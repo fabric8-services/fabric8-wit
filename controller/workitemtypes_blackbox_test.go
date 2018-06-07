@@ -112,7 +112,7 @@ func (s *workItemTypesSuite) TestList() {
 			"base":   spacetemplate.SystemBaseTemplateID,
 			"scrum":  spacetemplate.SystemScrumTemplateID,
 			"legacy": spacetemplate.SystemLegacyTemplateID,
-			"agile": spacetemplate.SystemAgileTemplateID,
+			"agile":  spacetemplate.SystemAgileTemplateID,
 		}
 		for name, ID := range spaceTemplates {
 			t.Run(name, func(t *testing.T) {

@@ -173,13 +173,13 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			require.True(t, templ.Template.CanConstruct)
 			require.Equal(t, spacetemplate.SystemAgileTemplateID, templ.Template.ID)
 			witsToBeFound := map[string]struct{}{
-				"Scrum Common Type":    {},
-				"Impediment":           {},
-				"Feature":              {},
-				"Epic":                 {},
-				"Story":                {},
-				"Task":                 {},
-				"Defect":               {},
+				"Scrum Common Type": {},
+				"Impediment":        {},
+				"Feature":           {},
+				"Epic":              {},
+				"Story":             {},
+				"Task":              {},
+				"Defect":            {},
 			}
 			for _, wit := range templ.WITs {
 				_, ok := witsToBeFound[wit.Name]
@@ -188,8 +188,8 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			}
 			require.Len(t, witsToBeFound, 0, "these work item types where not found in the scrum template: %+v", witsToBeFound)
 			witgsToBeFound := map[string]struct{}{
-				"Work Items":    {},
-				"Execution":     {},
+				"Work Items": {},
+				"Execution":  {},
 			}
 			for _, witg := range templ.WITGs {
 				delete(witgsToBeFound, witg.Name)
