@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -436,6 +437,7 @@ func (c *DeploymentsController) WatchEnvironmentEventsWSHandler(ctx *app.WatchEn
 			for {
 				var m string
 				err := websocket.Message.Receive(ws, &m)
+				fmt.Println("Server Recieved", m)
 				if err != nil {
 					if err != io.EOF {
 						log.Error(ctx, map[string]interface{}{
