@@ -968,12 +968,12 @@
             }
           }
         },
-        "icon": "fa fa-university",
-        "name": "Fundamental",
+        "icon": "fa fa-bullseye",
+        "name": "Scenario",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "ee7ca005-f81d-4eea-9b9b-1965df0988d0",
+      "id": "71171e90-6d35-498f-a6a7-2083b5267c18",
       "relationships": {
         "guidedChildTypes": {
           "data": [
@@ -1139,12 +1139,12 @@
             }
           }
         },
-        "icon": "fa fa-bullseye",
-        "name": "Scenario",
+        "icon": "fa fa-university",
+        "name": "Fundamental",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "71171e90-6d35-498f-a6a7-2083b5267c18",
+      "id": "ee7ca005-f81d-4eea-9b9b-1965df0988d0",
       "relationships": {
         "guidedChildTypes": {
           "data": [
