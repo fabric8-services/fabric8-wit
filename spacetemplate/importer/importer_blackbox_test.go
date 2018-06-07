@@ -173,7 +173,7 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			require.True(t, templ.Template.CanConstruct)
 			require.Equal(t, spacetemplate.SystemAgileTemplateID, templ.Template.ID)
 			witsToBeFound := map[string]struct{}{
-				"Scrum Common Type": {},
+				"Agile Common Type": {},
 				"Impediment":        {},
 				"Feature":           {},
 				"Epic":              {},
