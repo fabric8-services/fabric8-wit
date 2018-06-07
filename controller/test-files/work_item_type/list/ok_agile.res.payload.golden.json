@@ -6,29 +6,6 @@
         "created-at": "0001-01-01T00:00:00Z",
         "description": "This is the work item type that defines the common fields that are shared among all for all work item types of the agile template. It extends the planner item type and thereby already provides a great deal of common fields.\n",
         "fields": {
-          "resolution": {
-            "description": "The reason why this work item's state was last changed.\n",
-            "label": "Resolution",
-            "required": false,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "Done",
-                "Rejected",
-                "Duplicate",
-                "Incomplete Description",
-                "Cannot Reproduce",
-                "Partially Completed",
-                "Deferred",
-                "Won't Fix",
-                "Won't Do",
-                "Out of Date",
-                "Explained",
-                "Verified"
-              ]
-            }
-          },
           "system.area": {
             "description": "The area to which the work item belongs",
             "label": "Area",
@@ -200,11 +177,10 @@
                 "Rejected",
                 "Duplicate",
                 "Incomplete Description",
-                "Cannot Reproduce",
+                "Can not Reproduce",
                 "Partially Completed",
                 "Deferred",
                 "Won't Fix",
-                "Won't Do",
                 "Out of Date",
                 "Explained",
                 "Verified"
@@ -309,9 +285,11 @@
               "baseType": "string",
               "kind": "enum",
               "values": [
+                "New",
                 "Open",
-                "Closed",
-                "Removed"
+                "In Progress",
+                "Resolved",
+                "Closed"
               ]
             }
           },
@@ -390,29 +368,6 @@
             "required": false,
             "type": {
               "kind": "float"
-            }
-          },
-          "resolution": {
-            "description": "The reason why this work item's state was last changed.\n",
-            "label": "Resolution",
-            "required": false,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "Done",
-                "Rejected",
-                "Duplicate",
-                "Incomplete Description",
-                "Cannot Reproduce",
-                "Partially Completed",
-                "Deferred",
-                "Won't Fix",
-                "Won't Do",
-                "Out of Date",
-                "Explained",
-                "Verified"
-              ]
             }
           },
           "system.area": {
@@ -514,9 +469,10 @@
               "kind": "enum",
               "values": [
                 "New",
+                "Open",
                 "In Progress",
-                "Done",
-                "Removed"
+                "Resolved",
+                "Closed"
               ]
             }
           },
@@ -633,29 +589,6 @@
               "kind": "float"
             }
           },
-          "resolution": {
-            "description": "The reason why this work item's state was last changed.\n",
-            "label": "Resolution",
-            "required": false,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "Done",
-                "Rejected",
-                "Duplicate",
-                "Incomplete Description",
-                "Cannot Reproduce",
-                "Partially Completed",
-                "Deferred",
-                "Won't Fix",
-                "Won't Do",
-                "Out of Date",
-                "Explained",
-                "Verified"
-              ]
-            }
-          },
           "system.area": {
             "description": "The area to which the work item belongs",
             "label": "Area",
@@ -755,9 +688,10 @@
               "kind": "enum",
               "values": [
                 "New",
+                "Open",
                 "In Progress",
-                "Done",
-                "Removed"
+                "Resolved",
+                "Closed"
               ]
             }
           },
@@ -856,29 +790,6 @@
             "required": false,
             "type": {
               "kind": "float"
-            }
-          },
-          "resolution": {
-            "description": "The reason why this work item's state was last changed.\n",
-            "label": "Resolution",
-            "required": false,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "Done",
-                "Rejected",
-                "Duplicate",
-                "Incomplete Description",
-                "Cannot Reproduce",
-                "Partially Completed",
-                "Deferred",
-                "Won't Fix",
-                "Won't Do",
-                "Out of Date",
-                "Explained",
-                "Verified"
-              ]
             }
           },
           "system.area": {
@@ -980,10 +891,10 @@
               "kind": "enum",
               "values": [
                 "New",
-                "Approved",
-                "Committed",
-                "Done",
-                "Removed"
+                "Open",
+                "In Progress",
+                "Resolved",
+                "Closed"
               ]
             }
           },
@@ -1052,29 +963,6 @@
         "created-at": "0001-01-01T00:00:00Z",
         "description": "An atomic task on the project.",
         "fields": {
-          "resolution": {
-            "description": "The reason why this work item's state was last changed.\n",
-            "label": "Resolution",
-            "required": false,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "Done",
-                "Rejected",
-                "Duplicate",
-                "Incomplete Description",
-                "Cannot Reproduce",
-                "Partially Completed",
-                "Deferred",
-                "Won't Fix",
-                "Won't Do",
-                "Out of Date",
-                "Explained",
-                "Verified"
-              ]
-            }
-          },
           "system.area": {
             "description": "The area to which the work item belongs",
             "label": "Area",
@@ -1173,10 +1061,11 @@
               "baseType": "string",
               "kind": "enum",
               "values": [
-                "To Do",
+                "New",
+                "Open",
                 "In Progress",
-                "Done",
-                "Removed"
+                "Resolved",
+                "Closed"
               ]
             }
           },
@@ -1249,6 +1138,21 @@
               "kind": "markup"
             }
           },
+          "priority": {
+            "description": "TBD",
+            "label": "Priority",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "P1-critical",
+                "P2-high",
+                "P3-medium",
+                "P4-low"
+              ]
+            }
+          },
           "repro_steps": {
             "description": "Steps to reproduce the defect.",
             "label": "Steps to reproduce",
@@ -1258,7 +1162,7 @@
             }
           },
           "resolution": {
-            "description": "The reason why this work item's state was last changed.\n",
+            "description": "The reason why this defect's state was last changed.\n",
             "label": "Resolution",
             "required": false,
             "type": {
@@ -1269,11 +1173,10 @@
                 "Rejected",
                 "Duplicate",
                 "Incomplete Description",
-                "Cannot Reproduce",
+                "Can not Reproduce",
                 "Partially Completed",
                 "Deferred",
                 "Won't Fix",
-                "Won't Do",
                 "Out of Date",
                 "Explained",
                 "Verified"
@@ -1288,10 +1191,10 @@
               "baseType": "string",
               "kind": "enum",
               "values": [
-                "Critical",
-                "High",
-                "Medium",
-                "Low"
+                "SEV1-urgent",
+                "SEV2-high",
+                "SEV3-medium",
+                "SEV4-low"
               ]
             }
           },
@@ -1394,10 +1297,10 @@
               "kind": "enum",
               "values": [
                 "New",
-                "Approved",
-                "Committed",
-                "Done",
-                "Removed"
+                "Open",
+                "In Progress",
+                "Resolved",
+                "Closed"
               ]
             }
           },

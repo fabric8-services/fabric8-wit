@@ -18,45 +18,6 @@ work_item_types:
     planner item type and thereby already provides a great deal of common
     fields.
   icon: fa fa-question
-  fields:
-    "resolution":
-      label: Resolution
-      description: >
-        The reason why this work item's state was last changed.
-      required: no
-      type:
-        simple_type:
-          kind: enum
-        base_type:
-          kind: string
-        values: 
-        - Done
-        - Rejected
-        - Duplicate
-        - Incomplete Description
-        - Cannot Reproduce
-        - Partially Completed
-        - Deferred
-        - Won't Fix
-        - Won't Do
-        - Out of Date
-        - Explained
-        - Verified
-      "priority":
-        label: Priority
-        description: TBD
-        required: no
-        type:
-          simple_type:
-            kind: enum
-          base_type:
-            kind: string
-          values:
-          - Blocker
-          - Critical
-          - Minor
-          - Optional
-          - Trivial
 
 - id: &impedimentID "03b9bb64-4f65-4fa7-b165-494cd4f01401"
   extends: *agileCommonTypeID
@@ -76,9 +37,33 @@ work_item_types:
         base_type:
           kind: string
         values:
+        - New
         - Open
+        - In Progress
+        - Resolved
         - Closed
-        - Removed
+    "resolution":
+      label: Resolution
+      description: >
+        The reason why this work item's state was last changed.
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values: 
+        - Done
+        - Rejected
+        - Duplicate
+        - Incomplete Description
+        - Can not Reproduce
+        - Partially Completed
+        - Deferred
+        - Won't Fix
+        - Out of Date
+        - Explained
+        - Verified
 
 - id: &featureID "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a"
   extends: *agileCommonTypeID
@@ -100,9 +85,10 @@ work_item_types:
           kind: string
         values:
         - New
+        - Open
         - In Progress
-        - Done
-        - Removed
+        - Resolved
+        - Closed
     "effort":
       label: Effort
       description: 
@@ -164,9 +150,10 @@ work_item_types:
           kind: string
         values:
         - New
+        - Open
         - In Progress
-        - Done
-        - Removed
+        - Resolved
+        - Closed
     "effort":
       label: Effort
       description: 
@@ -229,10 +216,10 @@ work_item_types:
           kind: string
         values:
         - New
-        - Approved
-        - Committed
-        - Done
-        - Removed
+        - Open
+        - In Progress
+        - Resolved
+        - Closed
     "effort":
       label: Effort
       description: 
@@ -277,10 +264,11 @@ work_item_types:
         base_type:
           kind: string
         values:
-        - To Do
+        - New
+        - Open
         - In Progress
-        - Done
-        - Removed
+        - Resolved
+        - Closed
 
 - id: &defectID "fce0921f-ea70-4513-bb91-31d3aa8017f1"
   extends: *agileCommonTypeID
@@ -301,10 +289,10 @@ work_item_types:
           kind: string
         values: 
         - New
-        - Approved
-        - Committed
-        - Done
-        - Removed
+        - Open
+        - In Progress
+        - Resolved
+        - Closed
     "effort":
       label: Effort
       description: 
@@ -336,10 +324,46 @@ work_item_types:
         base_type:
           kind: string
         values:
-        - Critical
-        - High
-        - Medium
-        - Low
+        - SEV1-urgent
+        - SEV2-high
+        - SEV3-medium
+        - SEV4-low
+    "priority":
+      label: Priority
+      description: TBD
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - P1-critical
+        - P2-high
+        - P3-medium
+        - P4-low
+    "resolution":
+      label: Resolution
+      description: >
+        The reason why this defect's state was last changed.
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values: 
+        - Done
+        - Rejected
+        - Duplicate
+        - Incomplete Description
+        - Can not Reproduce
+        - Partially Completed
+        - Deferred
+        - Won't Fix
+        - Out of Date
+        - Explained
+        - Verified
 
 work_item_type_groups:
 
