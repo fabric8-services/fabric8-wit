@@ -1,6 +1,7 @@
 package event_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -43,6 +44,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.Empty(t, eventList)
 	})
+
 	s.T().Run("event assignee", func(t *testing.T) {
 
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.Identities(2))
@@ -288,6 +290,75 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.Len(t, eventList, 2)
 		assert.Equal(t, eventList[1].Name, workitem.SystemIteration)
+	})
+
+	s.T().Run("Field with Kind", func(t *testing.T) {
+		t.Run("Float", func(t *testing.T) {
+			initialValue := 12.3
+			updatedValue := 49.56
+			fieldName := "foo"
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+						fieldName: {
+							Type: &workitem.SimpleType{Kind: workitem.KindFloat},
+						},
+					}
+					return nil
+				}),
+				tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+					fxt.WorkItems[idx].Fields[fieldName] = initialValue
+					return nil
+				}),
+			)
+			fxt.WorkItems[0].Fields[fieldName] = updatedValue
+			_, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+			require.NoError(t, err)
+			eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+			require.Len(t, eventList, 1)
+			assert.Equal(t, eventList[0].Name, fieldName)
+			oldStr, _ := eventList[0].Old.(string)
+			old, _ := strconv.ParseFloat(oldStr, 64)
+			assert.Equal(t, old, initialValue)
+			newStr, _ := eventList[0].New.(string)
+			new, _ := strconv.ParseFloat(newStr, 64)
+			assert.Equal(t, new, updatedValue)
+		})
+
+		t.Run("Int", func(t *testing.T) {
+			initialValue := 12
+			updatedValue := 49
+			fieldName := "foo"
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+						fieldName: {
+							Type: &workitem.SimpleType{Kind: workitem.KindInteger},
+						},
+					}
+					return nil
+				}),
+				tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+					fxt.WorkItems[idx].Fields[fieldName] = initialValue
+					return nil
+				}),
+			)
+			fxt.WorkItems[0].Fields[fieldName] = updatedValue
+			_, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+			require.NoError(t, err)
+			eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+			require.Len(t, eventList, 1)
+			assert.Equal(t, eventList[0].Name, fieldName)
+			oldStr, _ := eventList[0].Old.(string)
+			old, _ := strconv.ParseInt(oldStr, 10, 0)
+			assert.EqualValues(t, old, initialValue)
+			newStr, _ := eventList[0].New.(string)
+			new, _ := strconv.ParseInt(newStr, 10, 0)
+			assert.EqualValues(t, new, updatedValue)
+		})
+
 	})
 
 	s.T().Run("multiple events", func(t *testing.T) {
