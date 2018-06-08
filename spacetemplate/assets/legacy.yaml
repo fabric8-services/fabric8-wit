@@ -87,6 +87,42 @@ work_item_types:
   - *experienceID
   - *valuePropositionID
 
+board_config:
+
+- id: "24181b5c-713f-4bef-a19f-45240875da92"
+  name: Scenarios Board
+  description: This is the default board config for the legacy template (Scenarios).
+  context: "679a563c-ac9b-4478-9f3e-4187f708dd30"
+  contextType: "TypeLevelContext"
+  columns:
+  - id: "b4edad70-1d77-4e5a-b973-0f0d599fd20d"
+    title: "New"
+    order: 0
+    transRuleKey: "updateStateFromColumnMove"
+    transRuleArguments: "{ metaState: 'mNew' }"
+  - id: "b4edad70-1d77-4e5a-b973-0f0d599fd20d"
+    title: "In Progress"
+    order: 0
+    transRuleKey: "updateStateFromColumnMove"
+    transRuleArguments: "{ metaState: 'mInprogress' }"
+
+- id: "56d62801-798a-4bb0-9c97-89f136f3d539"
+  name: Experiences Board
+  description: This is the default board config for the legacy template (Experiences).
+  context: "8e4c995d-8e5f-4ad6-85bd-3cfbe718f908"
+  contextType: "TypeLevelContext"
+  columns:
+  - id: "b4edad70-1d77-4e5a-b973-0f0d599fd20d"
+    title: "New"
+    order: 0
+    transRuleKey: "updateStateFromColumnMove"
+    transRuleArguments: "{ metaState: 'mNew' }"
+  - id: "ba79f468-d2b3-4f9b-a0de-3817f40d64b4"
+    title: "In Progress"
+    order: 0
+    transRuleKey: "updateStateFromColumnMove"
+    transRuleArguments: "{ metaState: 'mInprogress' }"
+
 work_item_type_groups:
 
 - name: Scenarios
