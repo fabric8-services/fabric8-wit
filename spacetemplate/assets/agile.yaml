@@ -65,72 +65,6 @@ work_item_types:
         - Explained
         - Verified
 
-- id: &featureID "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a"
-  extends: *agileCommonTypeID
-  name: Feature
-  can_construct: yes
-  description: 
-    A feature describes a high-level description of a functionality
-    on the system.
-  icon: fa fa-puzzle-piece
-  fields:
-    "system.state":
-      label: State
-      description: The state of the feature.
-      required: yes
-      type:
-        simple_type:
-          kind: enum
-        base_type:
-          kind: string
-        values:
-        - New
-        - Open
-        - In Progress
-        - Resolved
-        - Closed
-    "effort":
-      label: Effort
-      description: 
-        The effort needed to implement this feature.
-      required: no
-      type:
-        kind: float
-    "target_date": 
-      label: Target date
-      description: 
-        The target completion date of the feature.
-      required: no
-      type:
-        kind: instant
-    "business_value": 
-      label: Business value
-      description: 
-        The business value of the feature.
-      required: no
-      type:
-        kind: integer
-    "time_criticality": 
-      label: Time criticality
-      description: >
-        Time Criticality captures how the business value decreases over time for
-        a Feature or Epic. Higher values indicate that the item is inherently
-        more time critical than those items with lower values.
-      required: no
-      type:
-        kind: float
-    "acceptance_criteria": 
-      label: Acceptance criteria
-      description: 
-        The acceptance criteria describes rules for checking
-        if a chunk of work is completed.
-      required: no
-      type:
-        kind: markup
-  child_types:
-  - *defectID
-  - *epicID
-
 - id: &epicID "2c169431-a55d-49eb-af74-cc19e895356f"
   extends: *agileCommonTypeID
   name: Epic
@@ -354,15 +288,12 @@ work_item_types:
           kind: string
         values: 
         - Done
-        - Rejected
         - Duplicate
         - Incomplete Description
         - Can not Reproduce
-        - Partially Completed
         - Deferred
         - Won't Fix
         - Out of Date
-        - Explained
         - Verified
 
 work_item_type_groups:
@@ -370,7 +301,6 @@ work_item_type_groups:
 - name: Work Items
   id: "1c21af72-59ab-43d7-a84c-e76ee8ed3342"
   type_list:
-  - *featureID
   - *epicID
   - *storyID
   - *taskID
@@ -381,7 +311,6 @@ work_item_type_groups:
 - name: Execution
   id: "49d1a19f-02b4-4a10-a774-5723299f8944"
   type_list:
-  - *featureID
   - *epicID
   - *storyID
   - *taskID
