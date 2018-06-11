@@ -175,6 +175,7 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			witsToBeFound := map[string]struct{}{
 				"Agile Common Type": {},
 				"Impediment":        {},
+				"Theme":              {},
 				"Epic":              {},
 				"Story":             {},
 				"Task":              {},

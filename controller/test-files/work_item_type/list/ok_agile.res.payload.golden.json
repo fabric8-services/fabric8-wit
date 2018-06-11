@@ -1136,6 +1136,217 @@
         }
       },
       "type": "workitemtypes"
+    },
+    {
+      "attributes": {
+        "can-construct": true,
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "A theme describes a high-level description of a functionality on the system.",
+        "fields": {
+          "acceptance_criteria": {
+            "description": "The acceptance criteria describes rules for checking if a chunk of work is completed.",
+            "label": "Acceptance criteria",
+            "required": false,
+            "type": {
+              "kind": "markup"
+            }
+          },
+          "business_value": {
+            "description": "The business value of the theme.",
+            "label": "Business value",
+            "required": false,
+            "type": {
+              "kind": "integer"
+            }
+          },
+          "effort": {
+            "description": "The effort needed to implement this theme.",
+            "label": "Effort",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
+          "system.area": {
+            "description": "The area to which the work item belongs",
+            "label": "Area",
+            "required": false,
+            "type": {
+              "kind": "area"
+            }
+          },
+          "system.assignees": {
+            "description": "The users that are assigned to the work item",
+            "label": "Assignees",
+            "required": false,
+            "type": {
+              "componentType": "user",
+              "kind": "list"
+            }
+          },
+          "system.codebase": {
+            "description": "Contains codebase attributes to which this WI belongs to",
+            "label": "Codebase",
+            "required": false,
+            "type": {
+              "kind": "codebase"
+            }
+          },
+          "system.created_at": {
+            "description": "The date and time when the work item was created",
+            "label": "Created at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
+          },
+          "system.creator": {
+            "description": "The user that created the work item",
+            "label": "Creator",
+            "required": true,
+            "type": {
+              "kind": "user"
+            }
+          },
+          "system.description": {
+            "description": "A descriptive text of the work item",
+            "label": "Description",
+            "required": false,
+            "type": {
+              "kind": "markup"
+            }
+          },
+          "system.iteration": {
+            "description": "The iteration to which the work item belongs",
+            "label": "Iteration",
+            "required": false,
+            "type": {
+              "kind": "iteration"
+            }
+          },
+          "system.labels": {
+            "description": "List of labels attached to the work item",
+            "label": "Labels",
+            "required": false,
+            "type": {
+              "componentType": "label",
+              "kind": "list"
+            }
+          },
+          "system.number": {
+            "description": "The unique number that was given to this workitem within its space.",
+            "label": "Number",
+            "required": false,
+            "type": {
+              "kind": "integer"
+            }
+          },
+          "system.order": {
+            "description": "Execution Order of the workitem",
+            "label": "Execution Order",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
+          "system.remote_item_id": {
+            "description": "The ID of the remote work item",
+            "label": "Remote item",
+            "required": false,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system.state": {
+            "description": "The state of the theme.",
+            "label": "State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "New",
+                "Open",
+                "In Progress",
+                "Resolved",
+                "Closed"
+              ]
+            }
+          },
+          "system.title": {
+            "description": "The title text of the work item",
+            "label": "Title",
+            "required": true,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system.updated_at": {
+            "description": "The date and time when the work item was last updated",
+            "label": "Updated at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
+          },
+          "target_date": {
+            "description": "The target completion date of the theme.",
+            "label": "Target date",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
+          },
+          "time_criticality": {
+            "description": "Time Criticality captures how the business value decreases over time for a theme or epic. Higher values indicate that the item is inherently more time critical than those items with lower values.\n",
+            "label": "Time criticality",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          }
+        },
+        "icon": "fa fa-puzzle-piece",
+        "name": "Theme",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a",
+      "relationships": {
+        "guidedChildTypes": {
+          "data": [
+            {
+              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "2c169431-a55d-49eb-af74-cc19e895356f",
+              "type": "workitemtypes"
+            }
+          ]
+        },
+        "space": {
+          "data": {
+            "id": "2e0698d8-753e-4cef-bb7c-f027634824a2",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2",
+            "self": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2"
+          }
+        },
+        "space_template": {
+          "data": {
+            "id": "f405fa41-a8bb-46db-8800-2dbe13da1418",
+            "type": "spacetemplates"
+          },
+          "links": {
+            "related": "http:///api/spacetemplates/f405fa41-a8bb-46db-8800-2dbe13da1418",
+            "self": "http:///api/spacetemplates/f405fa41-a8bb-46db-8800-2dbe13da1418"
+          }
+        }
+      },
+      "type": "workitemtypes"
     }
   ]
 }
