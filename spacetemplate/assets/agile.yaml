@@ -258,10 +258,10 @@ work_item_types:
         base_type:
           kind: string
         values:
-        - SEV1-urgent
-        - SEV2-high
-        - SEV3-medium
-        - SEV4-low
+        - SEV1 - Urgent
+        - SEV2 - High
+        - SEV3 - Medium
+        - SEV4 - Low
     "priority":
       label: Priority
       description: TBD
@@ -272,10 +272,10 @@ work_item_types:
         base_type:
           kind: string
         values:
-        - P1-critical
-        - P2-high
-        - P3-medium
-        - P4-low
+        - P1 - Critical
+        - P2 - High
+        - P3 - Medium
+        - P4 - Low
     "resolution":
       label: Resolution
       description: >
