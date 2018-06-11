@@ -308,10 +308,10 @@ func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
 	return &up.apiURL, nil
 }
 
-func (up *testURLProvider) GetEnvironmentMapping() (map[string]string, error) {
+func (up *testURLProvider) GetEnvironmentMapping() map[string]string {
 	return map[string]string{
 		"test":  "myNamespace",
 		"run":   "my-run",
 		"stage": "my-stage",
-	}, nil
+	}
 }

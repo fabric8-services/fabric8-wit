@@ -1473,12 +1473,12 @@ func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
 	return &mu, nil
 }
 
-func (up *testURLProvider) GetEnvironmentMapping() (map[string]string, error) {
+func (up *testURLProvider) GetEnvironmentMapping() map[string]string {
 	return map[string]string{
 		"test":  "myNamespace",
 		"run":   "my-run",
 		"stage": "my-stage",
-	}, nil
+	}
 }
 
 func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {

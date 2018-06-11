@@ -138,7 +138,7 @@ type route struct {
 // This hasn't been done, because the rest of fabric8 seems to assume the cluster is the same.
 // For most uses, the proxy server will hide this issue - but not for metrics/logging and console.
 type BaseURLProvider interface {
-	GetEnvironmentMapping() (map[string]string, error)
+	GetEnvironmentMapping() map[string]string
 	GetAPIURL() (*string, error)
 	GetMetricsURL(envNS string) (*string, error)
 	GetConsoleURL(envNS string) (*string, error)
@@ -179,11 +179,7 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 		config.MetricsGetter = &defaultGetter{}
 	}
 
-	envMap, err := config.GetEnvironmentMapping()
-	if err != nil {
-		return nil, err
-	}
-
+	envMap := config.GetEnvironmentMapping()
 	kubeClient := &kubeClient{
 		config:           config,
 		envMap:           envMap,

@@ -187,7 +187,7 @@ func NewTenantURLProviderFromTenant(t *app.UserService, token string, proxyURL s
 
 // GetEnvironmentMapping returns a map whose keys are environment names, and values are the Kubernetes namespaces
 // that represent those environments
-func (up *tenantURLProvider) GetEnvironmentMapping() (map[string]string, error) {
+func (up *tenantURLProvider) GetEnvironmentMapping() map[string]string {
 	result := make(map[string]string)
 	// Exclude internal namespaces where the user cannot deploy applications
 
@@ -196,18 +196,21 @@ func (up *tenantURLProvider) GetEnvironmentMapping() (map[string]string, error) 
 	for envNS, attr := range up.namespaces {
 		envName := attr.Type
 		if envName == nil || len(*envName) == 0 {
-			return nil, errs.Errorf("namespace %s has no type", envNS)
-		}
-		if !isInternalNamespace(*envName) {
+			log.Error(nil, map[string]interface{}{
+				"namespace": envNS,
+			}, "namespace has no type")
+		} else if !isInternalNamespace(*envName) {
 			result[*envName] = envNS
 		}
 	}
-	return result, nil
+	return result
 }
 
+// Types of namespaces where the user does not deploy applications
+var internalNamespaceTypes = []string{"user", "che", "jenkins"}
+
 func isInternalNamespace(envType string) bool {
-	internalTypes := []string{"user", "che", "jenkins"}
-	for _, internalType := range internalTypes {
+	for _, internalType := range internalNamespaceTypes {
 		if envType == internalType {
 			return true
 		}

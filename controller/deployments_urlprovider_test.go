@@ -220,7 +220,6 @@ func TestTenantGetEnvironmentMapping(t *testing.T) {
 		testName    string
 		inputFile   string
 		expectedMap map[string]string
-		shouldFail  bool
 	}{
 		{
 			testName:  "Basic",
@@ -231,14 +230,18 @@ func TestTenantGetEnvironmentMapping(t *testing.T) {
 			},
 		},
 		{
-			testName:   "No Type",
-			inputFile:  "user-services-no-type.json",
-			shouldFail: true,
+			testName:  "No Type",
+			inputFile: "user-services-no-type.json",
+			expectedMap: map[string]string{
+				"run": "theuser-run",
+			},
 		},
 		{
-			testName:   "Empty Type",
-			inputFile:  "user-services-empty-type.json",
-			shouldFail: true,
+			testName:  "Empty Type",
+			inputFile: "user-services-empty-type.json",
+			expectedMap: map[string]string{
+				"run": "theuser-run",
+			},
 		},
 	}
 
@@ -249,14 +252,9 @@ func TestTenantGetEnvironmentMapping(t *testing.T) {
 			provider, err := controller.NewTenantURLProviderFromTenant(userSvc, defaultAPIToken, "")
 			require.NoError(t, err, "error creating URL provider")
 
-			envMap, err := provider.GetEnvironmentMapping()
-			if testCase.shouldFail {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, envMap)
-				require.Equal(t, testCase.expectedMap, envMap, "GetEnvironmentMapping() did not return the expected environments")
-			}
+			envMap := provider.GetEnvironmentMapping()
+			require.NotNil(t, envMap)
+			require.Equal(t, testCase.expectedMap, envMap, "GetEnvironmentMapping() did not return the expected environments")
 		})
 	}
 }
