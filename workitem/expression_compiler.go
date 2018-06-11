@@ -164,6 +164,38 @@ var DefaultTableJoins = func() TableJoinMap {
 			PrefixActivators: []string{"space."},
 			AllowedColumns:   []string{"name"},
 		},
+		"typegroup": {
+			TableName:  "work_item_type_groups",
+			TableAlias: "witg",
+			On:         fmt.Sprintf(`%s=%s`, Column("witg", "space_template_id"), Column("space", "space_template_id")),
+			// In this WHERE clause we access information from the
+			// `work_item_type_group_members` table which is why we must
+			// delegate from that table to this one.
+			Where: fmt.Sprintf(`%s=%s AND %s=%s`,
+				Column("witg_members", "type_group_id"), Column("witg", "id"),
+				Column(WorkItemStorage{}.TableName(), "type"), Column("witg_members", "work_item_type_id"),
+			),
+			// This join doesn't specify it's own prefix because we delegate to
+			// this join from another table in order to get the correct order of
+			// joins.
+			// PrefixActivators: []string{"typegroup."},
+			AllowedColumns:     []string{"name"},
+			ActivateOtherJoins: []string{"space"},
+		},
+	}
+
+	res["typegroup_members"] = &TableJoin{
+		TableName:          "work_item_type_group_members",
+		TableAlias:         "witg_members",
+		On:                 Column("witg_members", "type_group_id") + "=" + Column("witg", "id"),
+		PrefixActivators:   []string{"typegroup_members.", "typegroup."},
+		AllowedColumns:     []string{"work_item_type_id"},
+		ActivateOtherJoins: []string{"typegroup"},
+		// every field prefixed with .typegroup will be handled by the
+		// "typegroup" join
+		DelegateTo: map[string]*TableJoin{
+			"typegroup.": res["typegroup"],
+		},
 	}
 	return res
 }

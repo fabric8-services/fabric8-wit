@@ -5,17 +5,20 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
+
 	uuid "github.com/satori/go.uuid"
 )
 
 // Comment describes a single comment
 type Comment struct {
 	gormsupport.Lifecycle
-	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
-	ParentID uuid.UUID `sql:"type:uuid"`
-	Creator  uuid.UUID `sql:"type:uuid"` // Belongs To Identity
-	Body     string
-	Markup   string
+	ID              uuid.UUID   `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
+	ParentID        uuid.UUID   `sql:"type:uuid"`
+	ParentCommentID id.NullUUID `sql:"type:uuid"`
+	Creator         uuid.UUID   `sql:"type:uuid"` // Belongs To Identity
+	Body            string
+	Markup          string
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name

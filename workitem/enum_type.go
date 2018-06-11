@@ -30,6 +30,10 @@ func (t EnumType) DefaultValue(value interface{}) (interface{}, error) {
 	return t.Values[0], nil
 }
 
+// Ensure EnumType implements the FieldType interface
+var _ FieldType = EnumType{}
+var _ FieldType = (*EnumType)(nil)
+
 // Ensure EnumType implements the Equaler interface
 var _ convert.Equaler = EnumType{}
 var _ convert.Equaler = (*EnumType)(nil)

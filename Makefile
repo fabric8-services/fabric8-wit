@@ -22,6 +22,7 @@ DEP_VERSION=v0.4.1
 GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
+MINIMOCK_BIN=$(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock/minimock
 
 # This is a fix for a non-existing user in passwd file when running in a docker
 # container and trying to clone repos of dependencies
@@ -179,6 +180,14 @@ migration/sqlbindata_test.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-test-fi
 		-nocompress \
 		migration/sql-test-files
 
+spacetemplate/template_assets.go: $(GO_BINDATA_BIN) $(wildcard spacetemplate/assets/*.yaml)
+	$(GO_BINDATA_BIN) \
+		-o spacetemplate/template_assets.go \
+		-pkg spacetemplate \
+		-prefix spacetemplate/assets \
+		-nocompress \
+		spacetemplate/assets
+
 # These are binary tools from our vendored packages
 $(GOAGEN_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
@@ -213,6 +222,7 @@ clean-generated:
 	-rm -f ./migration/sqlbindata_test.go
 	-rm -rf ./account/tenant
 	-rm -rf ./auth/authservice
+	-rm -f ./spacetemplate/template_assets.go
 
 CLEAN_TARGETS += clean-sql-generated
 .PHONY: clean-sql-generated
@@ -265,7 +275,18 @@ app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR) goasupport/jsonapi_er
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-notification/design --notool --pkg client -o notification
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-auth/design --notool --pkg authservice -o auth
 
+$(MINIMOCK_BIN):
+	@echo "building the minimock binary..."
+	@cd $(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock && go build -v minimock.go
 
+.PHONY: generate-minimock
+generate-minimock: deps $(MINIMOCK_BIN) ## Generate Minimock sources. Only necessary after clean or if changes occurred in interfaces.
+	@echo "Generating mocks..."
+	-mkdir -p test/controller
+	$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-wit/controller.ClientGetter -o ./test/controller/client_getter_mock.go -t ClientGetterMock
+	$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-wit/controller.OpenshiftIOClient -o ./test/controller/osio_client_mock.go -t OSIOClientMock
+	-mkdir -p test/kubernetes
+	$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-wit/kubernetes.KubeClientInterface -o ./test/kubernetes/kube_client_mock.go -t KubeClientMock
 
 .PHONY: migrate-database
 ## Compiles the server and runs the database migration with it
@@ -274,7 +295,7 @@ migrate-database: $(BINARY_SERVER_BIN)
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: app/controllers.go migration/sqlbindata.go
+generate: app/controllers.go migration/sqlbindata.go spacetemplate/template_assets.go generate-minimock 
 
 .PHONY: regenerate
 ## Runs the "clean-generated" and the "generate" target

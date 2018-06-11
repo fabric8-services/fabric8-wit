@@ -47,6 +47,7 @@ required = [
   "github.com/jstemmer/go-junit-report",
   "github.com/wadey/gocovmerge",
   "github.com/pilu/fresh",
+  "github.com/gojuno/minimock/cmd/minimock",
 ]
     
 ignored = [
@@ -123,7 +124,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-tenant"
-  revision = "master"
+  revision = "7e149ee841ea9fe7d439f206781b51cacde5d4d3"
 
 [[constraint]]
   name = "github.com/jstemmer/go-junit-report"
@@ -134,9 +135,22 @@ ignored = [
   revision = "master"
 
 [[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[constraint]]
   name = "github.com/pilu/fresh"
   revision = "9c0092493eff2825c3abf64e087b3383dec939c3"
+
+[[constraint]]
+  name = "github.com/gojuno/minimock"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/dnaeon/go-vcr"
+  revision= "9d71b8a6df86e00127f96bc8dabc09856ab8afdb"
 
 [prune]
   go-tests = true
   unused-packages = true
+

@@ -118,7 +118,15 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		// manual checking
 		require.Len(t, c.WorkItemLinkCategories, n)
 	})
-
+	t.Run("space_templates", func(t *testing.T) {
+		// given
+		c, err := fxtCtor(db, tf.SpaceTemplates(n))
+		// then
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
+		// manual checking
+		require.Len(t, c.SpaceTemplates, n)
+	})
 	t.Run("spaces", func(t *testing.T) {
 		// given
 		c, err := fxtCtor(db, tf.Spaces(n))
@@ -129,6 +137,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			// manual checking
 			require.Len(t, c.Spaces, n)
 			require.Len(t, c.Identities, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 	t.Run("work item link types", func(t *testing.T) {
@@ -142,6 +151,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			require.Len(t, c.WorkItemLinkTypes, n)
 			require.Len(t, c.WorkItemLinkCategories, 1)
 			require.Len(t, c.Identities, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 	t.Run("codebases", func(t *testing.T) {
@@ -155,6 +165,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			require.Len(t, c.Codebases, n)
 			require.Len(t, c.Spaces, 1)
 			require.Len(t, c.Identities, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 	t.Run("work item types", func(t *testing.T) {
@@ -166,8 +177,21 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		// manual checking
 		if !isolated {
 			require.Len(t, c.WorkItemTypes, n)
-			require.Len(t, c.Spaces, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 			require.Len(t, c.Identities, 1)
+		}
+	})
+	t.Run("work_item_type_groups", func(t *testing.T) {
+		// given
+		c, err := fxtCtor(db, tf.WorkItemTypeGroups(n))
+		// then
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
+		// manual checking
+		if !isolated {
+			require.Len(t, c.WorkItemTypeGroups, n)
+			require.Len(t, c.WorkItemTypes, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 	t.Run("iterations", func(t *testing.T) {
@@ -181,6 +205,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			require.Len(t, c.Iterations, n)
 			require.Len(t, c.Spaces, 1)
 			require.Len(t, c.Identities, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 	t.Run("areas", func(t *testing.T) {
@@ -194,6 +219,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			require.Len(t, c.Areas, n)
 			require.Len(t, c.Spaces, 1)
 			require.Len(t, c.Identities, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 	t.Run("work items", func(t *testing.T) {
@@ -208,6 +234,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			require.Len(t, c.Identities, 1)
 			require.Len(t, c.WorkItemTypes, 1)
 			require.Len(t, c.Spaces, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 	t.Run("comments", func(t *testing.T) {
@@ -223,6 +250,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			require.Len(t, c.Identities, 1)
 			require.Len(t, c.WorkItemTypes, 1)
 			require.Len(t, c.Spaces, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 	t.Run("work item links", func(t *testing.T) {
@@ -239,6 +267,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			require.Len(t, c.WorkItemLinkTypes, 1)
 			require.Len(t, c.Spaces, 1)
 			require.Len(t, c.Identities, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 	t.Run("labels", func(t *testing.T) {
@@ -251,6 +280,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		if !isolated {
 			require.Len(t, c.Labels, n)
 			require.Len(t, c.Spaces, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 	t.Run("queries", func(t *testing.T) {
@@ -263,6 +293,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		if !isolated {
 			require.Len(t, c.Queries, n)
 			require.Len(t, c.Spaces, 1)
+			require.Len(t, c.SpaceTemplates, 1)
 		}
 	})
 }

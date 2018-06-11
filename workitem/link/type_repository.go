@@ -1,17 +1,15 @@
 package link
 
 import (
+	"context"
 	"fmt"
 	"time"
-
-	"context"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/space"
-
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -23,8 +21,7 @@ type WorkItemLinkTypeRepository interface {
 	repository.Exister
 	Create(ctx context.Context, linkType *WorkItemLinkType) (*WorkItemLinkType, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error)
-	List(ctx context.Context, spaceID uuid.UUID) ([]WorkItemLinkType, error)
-	Delete(ctx context.Context, spaceID uuid.UUID, ID uuid.UUID) error
+	List(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemLinkType, error)
 	Save(ctx context.Context, linkCat WorkItemLinkType) (*WorkItemLinkType, error)
 }
 
@@ -43,40 +40,46 @@ type GormWorkItemLinkTypeRepository struct {
 func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *WorkItemLinkType) (*WorkItemLinkType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "create"}, time.Now())
 	if err := linkType.CheckValidForCreation(); err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": linkType.ID.String(),
+			"err":     err,
+		}, "failed to validate link type")
 		return nil, errs.WithStack(err)
 	}
 	// Check link category exists
-	linkCategory := WorkItemLinkCategory{}
-	db := r.db.Where("id=?", linkType.LinkCategoryID).Find(&linkCategory)
-	if db.RecordNotFound() {
-		return nil, errors.NewBadParameterError("work item link category", linkType.LinkCategoryID)
+	err := NewWorkItemLinkCategoryRepository(r.db).CheckExists(ctx, linkType.LinkCategoryID)
+	if err != nil {
+		cause := errs.Cause(err)
+		switch cause.(type) {
+		case errors.NotFoundError:
+			log.Error(ctx, map[string]interface{}{
+				"wilt_id":     linkType.ID.String(),
+				"link_cat_id": linkType.LinkCategoryID,
+			}, "work item link category not found")
+			return nil, errors.NewNotFoundError("work item link category", linkType.LinkCategoryID.String())
+		default:
+			return nil, errors.NewInternalError(ctx, errs.WithStack(err))
+		}
 	}
-	if db.Error != nil {
-		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "failed to find work item link category"))
-	}
-	// Check space exists
-	space := space.Space{}
-	db = r.db.Where("id=?", linkType.SpaceID).Find(&space)
-	if db.RecordNotFound() {
-		return nil, errors.NewBadParameterError("work item link space", linkType.SpaceID)
-	}
-	if db.Error != nil {
-		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "failed to find work item link space"))
-	}
-
-	db = r.db.Create(linkType)
+	db := r.db.Create(linkType)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_link_types_name_idx") {
 			log.Error(ctx, map[string]interface{}{
-				"err":       db.Error,
-				"wilc_id":   linkType.LinkCategoryID,
-				"wilt_name": linkType.Name,
-			}, "unable to create work item link type because a link already exists with the same link_category_id and name")
-			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link type already exists with the same link_category_id: %s; name: %s ", linkType.LinkCategoryID, linkType.Name))
+				"err":               db.Error,
+				"space_template_id": linkType.SpaceTemplateID,
+				"wilt_name":         linkType.Name,
+			}, "unable to create work item link type because a link already exists with the same space_template_id and name")
+			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link type already exists with the same space_template_id: %s; name: %s ", linkType.SpaceTemplateID, linkType.Name))
 		}
-
-		return nil, errors.NewInternalError(ctx, db.Error)
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": linkType.ID.String(),
+			"err":     db.Error,
+		}, "failed to create work item link type")
+		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "failed to create link type"))
 	}
+	log.Info(ctx, map[string]interface{}{
+		"wilt_id": linkType.ID.String(),
+	}, "created work item link type")
 	return linkType, nil
 }
 
@@ -96,6 +99,10 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID uuid.UUID)
 		return nil, errors.NewNotFoundError("work item link type", ID.String())
 	}
 	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": ID,
+			"err":     db.Error,
+		}, "failed to create work item link type")
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	return &modelLinkType, nil
@@ -108,49 +115,28 @@ func (r *GormWorkItemLinkTypeRepository) CheckExists(ctx context.Context, id uui
 }
 
 // List returns all work item link types
-// TODO: Handle pagination
-func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context, spaceID uuid.UUID) ([]WorkItemLinkType, error) {
+func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemLinkType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "list"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
-		"space_id": spaceID,
-	}, "Listing work item link types by space ID %s", spaceID.String())
+		"space_template_id": spaceTemplateID,
+	}, "Listing work item link types by space template ID %s", spaceTemplateID)
 
-	// check space exists
-	if err := space.NewRepository(r.db).CheckExists(ctx, spaceID); err != nil {
-		return nil, errors.NewNotFoundError("space", spaceID.String())
+	// check space template exists
+	if err := spacetemplate.NewRepository(r.db).CheckExists(ctx, spaceTemplateID); err != nil {
+		return nil, errors.NewNotFoundError("space template", spaceTemplateID.String())
 	}
 
 	// We don't have any where clause or paging at the moment.
 	var modelLinkTypes []WorkItemLinkType
-	// TODO(kwk): Remove the system space from the query, once we have space templates
-	db := r.db.Where("space_id IN (?, ?)", spaceID, space.SystemSpace)
+	db := r.db.Where("space_template_id IN (?, ?)", spaceTemplateID, spacetemplate.SystemBaseTemplateID).Order("created_at")
 	if err := db.Find(&modelLinkTypes).Error; err != nil {
-		return nil, errs.WithStack(err)
+		log.Error(ctx, map[string]interface{}{
+			"err":               err,
+			"space_template_id": spaceTemplateID,
+		}, "failed to list work item link types")
+		return nil, errs.Wrapf(err, "failed to find link types")
 	}
 	return modelLinkTypes, nil
-}
-
-// Delete deletes the work item link type with the given id
-// returns NotFoundError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, spaceID uuid.UUID, ID uuid.UUID) error {
-	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "delete"}, time.Now())
-	var cat = WorkItemLinkType{
-		ID:      ID,
-		SpaceID: spaceID,
-	}
-	log.Info(ctx, map[string]interface{}{
-		"wilt_id":  ID,
-		"space_id": spaceID,
-	}, "Work item link type to delete %v", cat)
-
-	db := r.db.Delete(&cat)
-	if db.Error != nil {
-		return errors.NewInternalError(ctx, db.Error)
-	}
-	if db.RowsAffected == 0 {
-		return errors.NewNotFoundError("work item link type", ID.String())
-	}
-	return nil
 }
 
 // Save updates the given work item link type in storage. Version must be the same as the one int the stored version.
@@ -172,10 +158,17 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 		}, "unable to find work item link type repository")
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
+	if err := modelToSave.CheckValidForCreation(); err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": modelToSave.ID.String(),
+			"err":     err,
+		}, "failed to validate link type to save")
+		return nil, errs.WithStack(err)
+	}
 	if existingModel.Version != modelToSave.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	if existingModel.SpaceID != modelToSave.SpaceID {
+	if existingModel.SpaceTemplateID != modelToSave.SpaceTemplateID {
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id": modelToSave.ID,
 		}, "you must not change the link types association to a space")
@@ -189,16 +182,19 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 		return nil, errors.NewBadParameterError("topology", modelToSave.Topology)
 	}
 	modelToSave.Version = modelToSave.Version + 1
+	if existingModel.SpaceTemplateID != modelToSave.SpaceTemplateID {
+		return nil, errors.NewForbiddenError("one must not change the space template reference in a work item link")
+	}
 	db = db.Save(&modelToSave)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_link_types_name_idx") {
 			log.Error(ctx, map[string]interface{}{
-				"err":       db.Error,
-				"space_id":  existingModel.SpaceID,
-				"wilt_name": existingModel.Name,
-				"wilt_id":   existingModel.ID,
+				"err":               db.Error,
+				"space_template_id": existingModel.SpaceTemplateID,
+				"wilt_name":         existingModel.Name,
+				"wilt_id":           existingModel.ID,
 			}, "unable to save work item link type because a link already exists with the same space_template_id and name")
-			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link type already exists within the same space: %s; name: %s", existingModel.SpaceID, existingModel.Name))
+			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link type already exists within the same space: %s; name: %s", existingModel.SpaceTemplateID, existingModel.Name))
 		}
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id": existingModel.ID,

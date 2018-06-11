@@ -44,11 +44,13 @@ func (s *linkRepoBlackBoxTest) TestList() {
 	s.T().Run("ok - count child work items", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.WorkItems(4, tf.SetWorkItemTitles("parent", "child1", "child2", "child3")),
-			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
+			tf.WorkItemLinksCustom(3, func(fxt *tf.TestFixture, idx int) error {
+				l := fxt.WorkItemLinks[idx]
+				l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+				l.SourceID = fxt.WorkItems[0].ID
+				l.TargetID = fxt.WorkItems[idx+1].ID
 				return nil
 			}),
-			tf.WorkItemLinksCustom(3, tf.BuildLinks(tf.L("parent", "child1"), tf.L("parent", "child2"), tf.L("parent", "child3"))),
 		)
 		res, count, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItemByTitle("parent").ID, ptr.Int(0), ptr.Int(1))
 		require.NoError(t, err)
@@ -65,15 +67,13 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 		t.Run("setup", func(t *testing.T) {
 			fxt = tf.NewTestFixture(t, s.DB,
 				tf.WorkItems(4, tf.SetWorkItemTitles("parent", "child1", "child2", "child3")),
-				tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-					fxt.WorkItemLinkTypes[idx].ForwardName = link.TypeParentOf
+				tf.WorkItemLinks(3, func(fxt *tf.TestFixture, idx int) error {
+					l := fxt.WorkItemLinks[idx]
+					l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+					l.SourceID = fxt.WorkItems[0].ID
+					l.TargetID = fxt.WorkItems[idx+1].ID
 					return nil
 				}),
-				tf.WorkItemLinksCustom(3, tf.BuildLinks(
-					tf.L("parent", "child1"),
-					tf.L("parent", "child2"),
-					tf.L("parent", "child3"),
-				)),
 			)
 			// Expect children in descending order (sorted by their execution order)
 			beforeReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
@@ -181,13 +181,11 @@ func (s *linkRepoBlackBoxTest) TestWorkItemHasChildren() {
 		// given a work item link
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.WorkItems(2), // parent + child 1
-			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
-				return nil
-			}),
-			tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
-				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[idx+1].ID
+			tf.WorkItemLinksCustom(1, func(fxt *tf.TestFixture, idx int) error {
+				l := fxt.WorkItemLinks[idx]
+				l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+				l.SourceID = fxt.WorkItems[0].ID
+				l.TargetID = fxt.WorkItems[idx+1].ID
 				return nil
 			}),
 		)
@@ -855,5 +853,42 @@ func (s *linkRepoBlackBoxTest) TestListChildLinks() {
 		require.Equal(t, 2, cnt)
 		require.True(t, foundAB, "failed to find link A-B")
 		require.True(t, foundAC, "failed to find link A-C")
+	})
+}
+
+func (s *linkRepoBlackBoxTest) TestDeleteLinkAndListChildren() {
+	s.T().Run("delete link and list children", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.WorkItems(2),
+			tf.WorkItemLinksCustom(1, func(fxt *tf.TestFixture, idx int) error {
+				l := fxt.WorkItemLinks[idx]
+				l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+				l.SourceID = fxt.WorkItems[0].ID
+				l.TargetID = fxt.WorkItems[idx+1].ID
+				return nil
+			}),
+		)
+		hasChildren, err := s.workitemLinkRepo.WorkItemHasChildren(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.True(t, hasChildren)
+
+		childrenList, totalCount, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, totalCount)
+		require.Len(t, childrenList, 1)
+		require.Equal(t, childrenList[0].ID, fxt.WorkItems[1].ID)
+
+		// delete work item link
+		err = s.workitemLinkRepo.Delete(s.Ctx, fxt.WorkItemLinks[0].ID, fxt.Identities[0].ID)
+		require.NoError(t, err)
+
+		hasChildren, err = s.workitemLinkRepo.WorkItemHasChildren(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.False(t, hasChildren)
+
+		childrenList, totalCount, err = s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, totalCount)
+		require.Len(t, childrenList, 0)
 	})
 }

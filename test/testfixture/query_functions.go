@@ -5,6 +5,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/query"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
@@ -40,13 +41,14 @@ func (fxt *TestFixture) IterationByName(name string, spaceID ...uuid.UUID) *iter
 }
 
 // WorkItemTypeByName returns the first work item type that has the given name
-// (if any). If you have work item types with the same name in different spaces
-// you can also pass in one space ID to filter by space as well.
-func (fxt *TestFixture) WorkItemTypeByName(name string, spaceID ...uuid.UUID) *workitem.WorkItemType {
+// (if any). If you have work item types with the same name in different space
+// templates you can also pass in one space template ID to filter by space
+// template as well.
+func (fxt *TestFixture) WorkItemTypeByName(name string, spaceTemplateID ...uuid.UUID) *workitem.WorkItemType {
 	for _, wit := range fxt.WorkItemTypes {
-		if wit.Name == name && len(spaceID) > 0 && wit.SpaceID == spaceID[0] {
+		if wit.Name == name && len(spaceTemplateID) > 0 && wit.SpaceTemplateID == spaceTemplateID[0] {
 			return wit
-		} else if wit.Name == name && len(spaceID) == 0 {
+		} else if wit.Name == name && len(spaceTemplateID) == 0 {
 			return wit
 		}
 	}
@@ -104,13 +106,13 @@ func (fxt *TestFixture) WorkItemByID(ID uuid.UUID) *workitem.WorkItem {
 
 // WorkItemLinkTypeByName returns the first work item link type that has the
 // given name (if any). If you have work item link types with the same name in
-// different spaces you can also pass in one space ID to filter by space as
-// well.
-func (fxt *TestFixture) WorkItemLinkTypeByName(name string, spaceID ...uuid.UUID) *link.WorkItemLinkType {
+// different space templates you can also pass in one space template ID to
+// filter by space template as well.
+func (fxt *TestFixture) WorkItemLinkTypeByName(name string, spaceTemplateID ...uuid.UUID) *link.WorkItemLinkType {
 	for _, wilt := range fxt.WorkItemLinkTypes {
-		if wilt.Name == name && len(spaceID) > 0 && wilt.SpaceID == spaceID[0] {
+		if wilt.Name == name && len(spaceTemplateID) > 0 && wilt.SpaceTemplateID == spaceTemplateID[0] {
 			return wilt
-		} else if wilt.Name == name && len(spaceID) == 0 {
+		} else if wilt.Name == name && len(spaceTemplateID) == 0 {
 			return wilt
 		}
 	}
@@ -126,6 +128,16 @@ func (fxt *TestFixture) QueryByTitle(title string, spaceID ...uuid.UUID) *query.
 			return q
 		} else if q.Title == title && len(spaceID) == 0 {
 			return q
+		}
+	}
+	return nil
+}
+
+// SpaceTemplateByName returns the first space template that has the given name (if any).
+func (fxt *TestFixture) SpaceTemplateByName(name string) *spacetemplate.SpaceTemplate {
+	for _, st := range fxt.SpaceTemplates {
+		if st.Name == name {
+			return st
 		}
 	}
 	return nil

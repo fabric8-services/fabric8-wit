@@ -15,10 +15,6 @@ import (
 )
 
 // Structs and interfaces for mocking/testing
-type MockContext struct {
-	context.Context
-}
-
 type JsonResponseReader struct {
 	jsonBytes *bytes.Buffer
 }
@@ -64,7 +60,7 @@ func TestGetUserServicesWithShowUserServiceError(t *testing.T) {
 	}
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
-	_, err := mockOSIOClient.GetUserServices(&MockContext{})
+	_, err := mockOSIOClient.GetUserServices(context.Background())
 	require.Error(t, err)
 }
 
@@ -91,7 +87,7 @@ func TestGetUserServicesBadStatusCodes(t *testing.T) {
 		}
 		mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
-		userService, err := mockOSIOClient.GetUserServices(&MockContext{})
+		userService, err := mockOSIOClient.GetUserServices(context.Background())
 		if testCase.shouldBeNil {
 			require.NoError(t, err)
 		} else {
@@ -117,7 +113,7 @@ func TestGetUserServiceWithMalformedJSON(t *testing.T) {
 	}
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
-	_, err := mockOSIOClient.GetUserServices(&MockContext{})
+	_, err := mockOSIOClient.GetUserServices(context.Background())
 	require.Error(t, err)
 }
 
@@ -181,7 +177,7 @@ func TestUserServiceWithProperJSON(t *testing.T) {
 	}
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
-	userService, err := mockOSIOClient.GetUserServices(&MockContext{})
+	userService, err := mockOSIOClient.GetUserServices(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, userService)
 	require.Equal(t, "https://auth.openshift.io/api/users/77777777-7777-7777-7777-777777777777", *userService.Links.Related)
@@ -191,7 +187,7 @@ func TestUserServiceWithProperJSON(t *testing.T) {
 }
 
 func TestGetSpaceByIDWithShowSpaceError(t *testing.T) {
-	mockContext := &MockContext{}
+	mockContext := context.Background()
 	mockWitClient := &MockWitClient{
 		SpaceHttpResponse:            nil,
 		SpaceHttpResponseError:       errors.New("error"),
@@ -227,7 +223,7 @@ func TestGetSpaceByIDBadStatusCode(t *testing.T) {
 		}
 		mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
-		userService, err := mockOSIOClient.GetSpaceByID(&MockContext{}, uuid.Nil)
+		userService, err := mockOSIOClient.GetSpaceByID(context.Background(), uuid.Nil)
 		if testCase.shouldBeNil {
 			require.NoError(t, err)
 		} else {
@@ -253,7 +249,7 @@ func TestGetSpaceByIDWithMalformedJSON(t *testing.T) {
 	}
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
-	_, err := mockOSIOClient.GetSpaceByID(&MockContext{}, uuid.Nil)
+	_, err := mockOSIOClient.GetSpaceByID(context.Background(), uuid.Nil)
 	require.Error(t, err)
 }
 
@@ -293,7 +289,7 @@ func TestGetSpaceByIDWithProperJSON(t *testing.T) {
 			}
 		}`)),
 	}
-	mockContext := &MockContext{}
+	mockContext := context.Background()
 	mockResponse := &http.Response{
 		Body:       &MockResponseBodyReader{},
 		StatusCode: http.StatusOK,
@@ -331,7 +327,7 @@ func TestGetNamespaceByTypeErrorFromUserServices(t *testing.T) {
 	}
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
-	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(&MockContext{}, nil, "namespace")
+	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(context.Background(), nil, "namespace")
 	require.Error(t, err)
 	require.Nil(t, namespaceAttributes)
 }
@@ -351,7 +347,7 @@ func TestGetNamespaceByTypeNoMatch(t *testing.T) {
 		},
 	}
 
-	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(&MockContext{}, mockUserService, "namespace")
+	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(context.Background(), mockUserService, "namespace")
 	require.NoError(t, err)
 	require.Nil(t, namespaceAttributes)
 }
@@ -424,7 +420,7 @@ func TestGetNamespaceByTypeMatchNamespace(t *testing.T) {
 			CreatedAt:  nil,
 		},
 	}
-	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(&MockContext{}, mockUserService, NAMESPACE_TYPE)
+	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(context.Background(), mockUserService, NAMESPACE_TYPE)
 	require.NoError(t, err)
 	require.Equal(t, mockNamespace, namespaceAttributes)
 }
@@ -465,7 +461,7 @@ func TestGetNamespaceByTypeMatchNamespaceWithDiscoveredUserService(t *testing.T)
 		UserServiceHttpResponseError: nil,
 	}
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonProvider)
-	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(&MockContext{}, nil, NAMESPACE_TYPE)
+	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(context.Background(), nil, NAMESPACE_TYPE)
 	require.NoError(t, err)
 	require.Equal(t, NAMESPACE_TYPE, *namespaceAttributes.Type)
 	require.Equal(t, "some-name", *namespaceAttributes.Name)

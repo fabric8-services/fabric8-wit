@@ -9,6 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+
 	"github.com/davecgh/go-spew/spew"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -132,6 +135,12 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration84", testMigration84)
 	t.Run("TestMigration85", testMigration85)
 	t.Run("TestMigration86", testMigration86)
+	t.Run("TestMigration87", testMigration87SpaceTemplates) // space templates
+	t.Run("TestMigration88", testMigration88TypeGroups)     // type groups
+	t.Run("TestMigration89", testMigration89FixupForSpaceTemplates)
+	t.Run("TestMigration90", testMigration90QueriesVersion)
+	t.Run("TestMigration91", testMigration91CommentsChildComments)
+	t.Run("TestMigration92", testMigration92CommentRevisionsChildComments)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -739,6 +748,72 @@ func testMigration85(t *testing.T) {
 func testMigration86(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:87], 87)
 	require.True(t, dialect.HasColumn("work_item_types", "can_construct"))
+}
+
+func testMigration87SpaceTemplates(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:88], 88)
+	assert.True(t, dialect.HasTable("space_templates"))
+	assert.True(t, dialect.HasColumn("spaces", "space_template_id"))
+	assert.True(t, dialect.HasColumn("work_item_types", "space_template_id"))
+	assert.True(t, dialect.HasColumn("work_item_link_types", "space_template_id"))
+}
+
+func testMigration88TypeGroups(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:89], 89)
+	assert.True(t, dialect.HasTable("work_item_type_groups"))
+	assert.True(t, dialect.HasTable("work_item_type_group_members"))
+	assert.True(t, dialect.HasTable("work_item_child_types"))
+}
+
+func testMigration89FixupForSpaceTemplates(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:89], 89)
+
+	// Before this change, the planner item type was assigned to the legacy template
+	stmt, err := sqlDB.Prepare("SELECT space_template_id FROM work_item_types WHERE id = $1")
+	require.NoError(t, err)
+	var stID string
+	err = stmt.QueryRow(workitem.SystemPlannerItem).Scan(&stID)
+	require.NoError(t, err)
+	require.Equal(t, spacetemplate.SystemLegacyTemplateID.String(), stID)
+
+	// Before this change, all link types where assigned to the legacy template
+	stmt, err = sqlDB.Prepare("SELECT count(*) FROM work_item_link_types WHERE space_template_id = $1")
+	require.NoError(t, err)
+	var cnt int
+	err = stmt.QueryRow(spacetemplate.SystemLegacyTemplateID).Scan(&cnt)
+	require.NoError(t, err)
+	require.Equal(t, 3, cnt)
+
+	migrateToVersion(t, sqlDB, migrations[:90], 90)
+
+	// After this change, the planner item type is assigned to the base template
+	stmt, err = sqlDB.Prepare("SELECT space_template_id FROM work_item_types WHERE id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow(workitem.SystemPlannerItem).Scan(&stID)
+	require.NoError(t, err)
+	require.Equal(t, spacetemplate.SystemBaseTemplateID.String(), stID)
+
+	// After this change, all link types are assigned to the base template
+	stmt, err = sqlDB.Prepare("SELECT count(*) FROM work_item_link_types WHERE space_template_id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow(spacetemplate.SystemBaseTemplateID).Scan(&cnt)
+	require.NoError(t, err)
+	require.Equal(t, 3, cnt)
+}
+
+func testMigration90QueriesVersion(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:91], 91)
+	assert.True(t, dialect.HasColumn("queries", "version"))
+}
+
+func testMigration91CommentsChildComments(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:92], 92)
+	assert.True(t, dialect.HasColumn("comments", "parent_comment_id"))
+}
+
+func testMigration92CommentRevisionsChildComments(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:93], 93)
+	assert.True(t, dialect.HasColumn("comment_revisions", "comment_parent_comment_id"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

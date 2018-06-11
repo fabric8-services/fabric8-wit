@@ -1,0 +1,166 @@
+---
+version: 1
+interactions:
+- request:
+    body: ""
+    form: {}
+    url: http://core/api/deployments/spaces/634f997f-22d5-457b-9e27-cd2d148bee30
+    method: GET
+  response:
+    body: '{
+  "data": {
+    "attributes": {
+      "applications": [
+        {
+          "attributes": {
+            "deployments": [
+              {
+                "attributes": {
+                  "name": "stage",
+                  "pod_total": 1,
+                  "pods": [
+                    [
+                      "Running",
+                      "1"
+                    ]
+                  ],
+                  "pods_quota": {
+                    "cpucores": 1,
+                    "memory": 536870912
+                  },
+                  "version": "1.0.1"
+                },
+                "id": "stage",
+                "links": {
+                  "application": "",
+                  "console": "",
+                  "logs": ""
+                },
+                "type": "deployment"
+              },
+              {
+                "attributes": {
+                  "name": "run",
+                  "pod_total": 1,
+                  "pods": [
+                    [
+                      "Running",
+                      "1"
+                    ]
+                  ],
+                  "pods_quota": {
+                    "cpucores": 1,
+                    "memory": 536870912
+                  },
+                  "version": "1.0.1"
+                },
+                "id": "run",
+                "links": {
+                  "application": "",
+                  "console": "",
+                  "logs": ""
+                },
+                "type": "deployment"
+              }
+            ],
+            "name": "testspace1"
+          },
+          "id": "testspace1",
+          "type": "application"
+        },
+        {
+          "attributes": {
+            "deployments": [
+              {
+                "attributes": {
+                  "name": "stage",
+                  "pod_total": 1,
+                  "pods": [
+                    [
+                      "Running",
+                      "1"
+                    ]
+                  ],
+                  "pods_quota": {
+                    "cpucores": 1,
+                    "memory": 536870912
+                  },
+                  "version": "1.0.1"
+                },
+                "id": "stage",
+                "links": {
+                  "application": "",
+                  "console": "",
+                  "logs": ""
+                },
+                "type": "deployment"
+              },
+              {
+                "attributes": {
+                  "name": "run",
+                  "pod_total": 1,
+                  "pods": [
+                    [
+                      "Running",
+                      "1"
+                    ]
+                  ],
+                  "pods_quota": {
+                    "cpucores": 1,
+                    "memory": 536870912
+                  },
+                  "version": "1.0.1"
+                },
+                "id": "run",
+                "links": {
+                  "application": "",
+                  "console": "",
+                  "logs": ""
+                },
+                "type": "deployment"
+              }
+            ],
+            "name": "testspace2"
+          },
+          "id": "testspace2",
+          "type": "application"
+        }
+      ],
+      "name": "testspace"
+    },
+    "id": "634f997f-22d5-457b-9e27-cd2d148bee30",
+    "type": "space"
+  }
+}'
+    # headers:
+
+    status: 200 OK
+    code: 200
+- request:
+    url: http://core/api/deployments/spaces/634f997f-22d5-457b-9e27-cd2d148bee30/applications/testspace1/deployments/stage
+    method: DELETE
+  response:
+    # headers:
+    status: 200 OK
+    code: 200
+- request:
+    url: http://core/api/deployments/spaces/634f997f-22d5-457b-9e27-cd2d148bee30/applications/testspace1/deployments/run
+    method: DELETE
+  response:
+    # headers:
+    status: 200 OK
+    code: 200
+- request:
+    url: http://core/api/deployments/spaces/634f997f-22d5-457b-9e27-cd2d148bee30/applications/testspace2/deployments/stage
+    method: DELETE
+  response:
+    # headers:
+    status: 200 OK
+    code: 200
+- request:
+    url: http://core/api/deployments/spaces/634f997f-22d5-457b-9e27-cd2d148bee30/applications/testspace2/deployments/run
+    method: DELETE
+  response:
+    # headers:
+    status: 200 OK
+    code: 200

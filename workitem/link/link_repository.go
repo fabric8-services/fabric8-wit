@@ -117,7 +117,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 			return errs.Wrapf(err, "error during cycle-detection of new link")
 		}
 		if hasCycle {
-			return errs.New("link cycle detected")
+			return errors.NewDataConflictError(fmt.Sprintf("linking the work item %s to %s would create a cycle which isn't allowed in a %s topology", sourceID, targetID, linkType.Topology))
 		}
 	}
 	return nil
@@ -428,25 +428,24 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	where := fmt.Sprintf(`
 	id in (
 		SELECT target_id FROM %s
-		WHERE source_id = ? AND link_type_id IN (
-			SELECT id FROM %s WHERE forward_name = 'parent of'
-		)
-	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
-	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parentID.String())
+		WHERE source_id = $1 AND link_type_id = $2 AND deleted_at IS NULL
+	)`, WorkItemLink{}.TableName())
+	baseDB := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parentID.String(), SystemWorkItemLinkTypeParentChildID.String())
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, errors.NewBadParameterError("start", *start)
 		}
-		db = db.Offset(*start)
+		baseDB = baseDB.Offset(*start)
 	}
 	if limit != nil {
 		if *limit <= 0 {
 			return nil, 0, errors.NewBadParameterError("limit", *limit)
 		}
-		db = db.Limit(*limit)
+		baseDB = baseDB.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
-
+	db := baseDB.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
+	// To sort by title do this:
+	// db = db.Select("count(*) over () as cnt2 , *").Order(fmt.Sprintf("fields->>'%s'", workitem.SystemTitle))
 	rows, err := db.Rows()
 	defer closeable.Close(ctx, rows)
 	if err != nil {
@@ -486,7 +485,10 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		// means 0 rows were returned from the first query (maybe because of
 		// offset outside of total count), need to do a count(*) to find out
 		// total
-		db := db.Select("count(*)")
+		db := baseDB.Select("count(*)")
+		if db.Error != nil {
+			return nil, 0, errs.WithStack(db.Error)
+		}
 		rows2, err := db.Rows()
 		defer closeable.Close(ctx, rows2)
 		if err != nil {
@@ -520,14 +522,11 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s WHERE id in (
 				SELECT target_id FROM %[2]s
-				WHERE source_id = $1 AND deleted_at IS NULL AND link_type_id IN (
-					SELECT id FROM %[3]s WHERE forward_name = 'parent of'
-				)
+				WHERE source_id = $1 AND deleted_at IS NULL AND link_type_id = $2
 			)
 		)`,
 		workitem.WorkItemStorage{}.TableName(),
-		WorkItemLink{}.TableName(),
-		WorkItemLinkType{}.TableName())
+		WorkItemLink{}.TableName())
 	var hasChildren bool
 	db := r.db.CommonDB()
 	stmt, err := db.Prepare(query)
@@ -535,7 +534,7 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 		return false, errs.Wrapf(err, "failed prepare statement: %s", query)
 	}
 	defer closeable.Close(ctx, stmt)
-	err = stmt.QueryRow(parentID.String()).Scan(&hasChildren)
+	err = stmt.QueryRow(parentID.String(), SystemWorkItemLinkTypeParentChildID.String()).Scan(&hasChildren)
 	if err != nil {
 		return false, errs.Wrapf(err, "failed to check if work item %s has children: %s", parentID.String(), query)
 	}

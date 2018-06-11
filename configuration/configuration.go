@@ -55,6 +55,7 @@ const (
 	varAuthURL                      = "auth.url"
 	varAuthorizationEnabled         = "authz.enabled"
 	varGithubAuthToken              = "github.auth.token"
+	varOpenshiftProxyURL            = "osoproxy.url"
 	varKeycloakSecret               = "keycloak.secret"
 	varKeycloakClientID             = "keycloak.client.id"
 	varKeycloakDomainPrefix         = "keycloak.domain.prefix"
@@ -70,6 +71,7 @@ const (
 
 	// cache control settings for a list of resources
 	varCacheControlWorkItems         = "cachecontrol.workitems"
+	varCacheControlWorkItemEvents    = "cachecontrol.workitemevents"
 	varCacheControlWorkItemTypes     = "cachecontrol.workitemtypes"
 	varCacheControlWorkItemLinks     = "cachecontrol.workitemLinks"
 	varCacheControlWorkItemLinkTypes = "cachecontrol.workitemlinktypes"
@@ -82,6 +84,7 @@ const (
 	varCacheControlFilters           = "cachecontrol.filters"
 	varCacheControlUsers             = "cachecontrol.users"
 	varCacheControlCollaborators     = "cachecontrol.collaborators"
+	varCacheControlSpaceTemplates    = "cachecontrol.spacetemplates"
 
 	// cache control settings for a single resource
 	varCacheControlUser             = "cachecontrol.user"
@@ -105,6 +108,8 @@ const (
 	varTenantServiceURL         = "tenant.serviceurl"
 	varNotificationServiceURL   = "notification.serviceurl"
 	varTogglesServiceURL        = "toggles.serviceurl"
+	varDeploymentsServiceURL    = "deployments.serviceurl"
+	varCodebaseServiceURL       = "codebase.serviceurl"
 	varDeploymentsHTTPTimeout   = "deployments.http.timeout"
 )
 
@@ -209,12 +214,17 @@ func (c *Registry) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
 	c.v.SetDefault(varAuthorizationEnabled, true)
 
+	// Proxy related defaults
+	c.v.SetDefault(varOpenshiftProxyURL, "")
+
 	// HTTP Cache-Control/max-age default for a list of resources
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
+	c.v.SetDefault(varCacheControlWorkItemEvents, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=2")
 	c.v.SetDefault(varCacheControlSpaces, "max-age=2")
+	c.v.SetDefault(varCacheControlSpaceTemplates, "max-age=2")
 	c.v.SetDefault(varCacheControlIterations, "max-age=2")
 	c.v.SetDefault(varCacheControlAreas, "max-age=2")
 	c.v.SetDefault(varCacheControlComments, "max-age=2")
@@ -242,6 +252,8 @@ func (c *Registry) setConfigDefaults() {
 	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
 	c.v.SetDefault(varCheStarterURL, defaultCheStarterURL)
 	c.v.SetDefault(varTogglesServiceURL, defaultTogglesServiceURL)
+	c.v.SetDefault(varDeploymentsServiceURL, defaultDeploymentsServiceURL)
+	c.v.SetDefault(varCodebaseServiceURL, defaultCodebaseServiceURL)
 	c.v.SetDefault(varDeploymentsHTTPTimeout, defaultDeploymentsHTTPTimeout)
 }
 
@@ -388,6 +400,12 @@ func (c *Registry) IsAuthorizationEnabled() bool {
 	return c.v.GetBool(varAuthorizationEnabled)
 }
 
+// GetCacheControlEvents returns the value to set in the "Cache-Control" HTTP response header
+// when returning a list of work item types.
+func (c *Registry) GetCacheControlEvents() string {
+	return c.v.GetString(varCacheControlWorkItemEvents)
+}
+
 // GetCacheControlWorkItemTypes returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of work item types.
 func (c *Registry) GetCacheControlWorkItemTypes() string {
@@ -496,6 +514,12 @@ func (c *Registry) GetCacheControlIteration() string {
 	return c.v.GetString(varCacheControlIteration)
 }
 
+// GetCacheControlSpaceTemplates returns the value to set in the "Cache-Control"
+// HTTP response header when returning space templates.
+func (c *Registry) GetCacheControlSpaceTemplates() string {
+	return c.v.GetString(varCacheControlSpaceTemplates)
+}
+
 // GetCacheControlComments returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of comments.
 func (c *Registry) GetCacheControlComments() string {
@@ -563,6 +587,11 @@ func (c *Registry) GetAuthShortServiceHostName() string {
 // GetAuthServiceURL returns the Auth Service URL
 func (c *Registry) GetAuthServiceURL() string {
 	return c.v.GetString(varAuthURL)
+}
+
+// GetOpenshiftProxyURL returns the Openshift Proxy URL, or "" if no URL
+func (c *Registry) GetOpenshiftProxyURL() string {
+	return c.v.GetString(varOpenshiftProxyURL)
 }
 
 func (c *Registry) getServiceEndpoint(req *http.Request, varServiceURL string, devModeURL string, serviceDomainPrefix string, pathSufix string) (string, error) {
@@ -834,6 +863,16 @@ func (c *Registry) GetTogglesServiceURL() string {
 	return c.v.GetString(varTogglesServiceURL)
 }
 
+// GetDeploymentsServiceURL returns the URL for the Deployments service
+func (c *Registry) GetDeploymentsServiceURL() string {
+	return c.v.GetString(varDeploymentsServiceURL)
+}
+
+// GetCodebaseServiceURL returns the URL for the Codebase service
+func (c *Registry) GetCodebaseServiceURL() string {
+	return c.v.GetString(varCodebaseServiceURL)
+}
+
 // GetDeploymentsTimeout returns the amount of seconds until it should timeout.
 func (c *Registry) GetDeploymentsHTTPTimeoutSeconds() time.Duration {
 	timeout := c.v.GetInt(varDeploymentsHTTPTimeout)
@@ -874,6 +913,14 @@ const (
 	defaultCheStarterURL            = "che-server"
 	minimumDeploymentsHTTPTimeout   = 1
 	defaultDeploymentsHTTPTimeout   = 30
+
+	// as of now deployments and codebase service is integrated in wit, but
+	// going forward this will change
+	// TODO: @surajssd : change the default values of `defaultDeploymentsServiceURL`
+	// and `defaultCodebaseServiceURL` to appropriate defaults, pointing to
+	// respective services.
+	defaultDeploymentsServiceURL = "http://core"
+	defaultCodebaseServiceURL    = "http://core"
 
 	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth
 	// If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *

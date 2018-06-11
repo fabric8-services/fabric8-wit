@@ -134,12 +134,14 @@ var cheServerState = a.MediaType("CheServerState", func() {
 	a.TypeName("CheServerState")
 	a.Description(`JSONAPI store Che Server state.  See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attributes(func() {
-		a.Attribute("running", d.Boolean, "Che server state")
+		a.Attribute("running", d.Boolean, "Holds info about Che server state - running / not running")
 		a.Attribute("multiTenant", d.Boolean, "Holds info about Che server type - multi-tenant / single-tenant")
+		a.Attribute("clusterFull", d.Boolean, "Holds info about OSO cluster capacity - full / not full")
 	})
 	a.View("default", func() {
 		a.Attribute("running")
 		a.Attribute("multiTenant")
+		a.Attribute("clusterFull")
 	})
 })
 

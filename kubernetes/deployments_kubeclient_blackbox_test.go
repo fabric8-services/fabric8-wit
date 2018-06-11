@@ -3,10 +3,15 @@ package kubernetes_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/fabric8-services/fabric8-wit/errors"
 
 	"github.com/dnaeon/go-vcr/cassette"
 	"github.com/dnaeon/go-vcr/recorder"
@@ -14,6 +19,8 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
+
+	errs "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/pkg/api/v1"
 )
@@ -29,16 +36,33 @@ type testFixture struct {
 	metrics      *testMetrics
 }
 
+type testURLProvider struct {
+	apiURL       string
+	apiToken     string
+	clusterURL   string
+	clusterToken string
+}
+
+func getDefaultURLProvider(baseurl string, token string) kubernetes.BaseURLProvider {
+	return &testURLProvider{
+		apiURL:       baseurl,
+		apiToken:     token,
+		clusterURL:   baseurl,
+		clusterToken: token,
+	}
+}
+
 func getDefaultKubeClient(fixture *testFixture, transport http.RoundTripper, t *testing.T) kubernetes.KubeClientInterface {
+
 	config := &kubernetes.KubeClientConfig{
-		ClusterURL:    "http://api.myCluster",
-		BearerToken:   "myToken",
-		UserNamespace: "myNamespace",
-		Transport:     transport,
-		MetricsGetter: fixture,
+		BaseURLProvider: getDefaultURLProvider("http://api.myCluster", "myToken"),
+		UserNamespace:   "myNamespace",
+		MetricsGetter:   fixture,
+		Transport:       transport,
 	}
 
 	kc, err := kubernetes.NewKubeClient(config)
+
 	require.NoError(t, err)
 	return kc
 }
@@ -188,28 +212,34 @@ func TestGetMetrics(t *testing.T) {
 
 			fixture := &testFixture{}
 			config := &kubernetes.KubeClientConfig{
-				ClusterURL:    testCase.clusterURL,
-				BearerToken:   token,
-				UserNamespace: "myNamespace",
-				Transport:     r.Transport,
-				MetricsGetter: fixture,
+				BaseURLProvider: getDefaultURLProvider(testCase.clusterURL, token),
+				UserNamespace:   "myNamespace",
+				MetricsGetter:   fixture,
+				Transport:       r.Transport,
 			}
-
 			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldSucceed {
 				require.NoError(t, err, "Unexpected error")
-				require.NotNil(t, kc, "KubeClient must not be nil")
-
+				require.NotNil(t, kc)
+				mm, err := kc.GetMetricsClient("myNamespace")
+				require.NoError(t, err)
+				require.NotNil(t, mm)
 				metricsConfig := fixture.metrics.config
 				require.NotNil(t, metricsConfig, "Metrics config is nil")
 				require.Equal(t, testCase.expectedURL, metricsConfig.MetricsURL, "Incorrect Metrics URL")
 				require.Equal(t, token, metricsConfig.BearerToken, "Incorrect bearer token")
 			} else {
-				require.Error(t, err, "Expected error, but was successful")
+				// bad URLs aren't detected until a metrics client tries to use themn
+				_, err := kc.GetMetricsClient("myNamespace")
+				require.Errorf(t, err, "URL %s should fail", testCase.clusterURL)
 			}
 		})
 	}
 }
+
+// ensure testFixture implements all of MetricsGetter
+var _ kubernetes.MetricsGetter = &testFixture{}
+var _ kubernetes.MetricsGetter = (*testFixture)(nil)
 
 func TestClose(t *testing.T) {
 	r, err := recorder.New(pathToTestJSON + "newkubeclient")
@@ -219,8 +249,13 @@ func TestClose(t *testing.T) {
 	fixture := &testFixture{}
 	kc := getDefaultKubeClient(fixture, r.Transport, t)
 
+	mm, err := kc.GetMetricsClient("myNamespace")
+	require.NoError(t, err)
+	require.NotNil(t, mm)
+
 	// Check that KubeClientInterface.Close invokes MetricsInterface.Close
 	kc.Close()
+
 	require.True(t, fixture.metrics.closed, "Metrics client not closed")
 }
 
@@ -229,6 +264,8 @@ func TestConfigMapEnvironments(t *testing.T) {
 		name         string
 		cassetteName string
 		shouldFail   bool
+		// Checks if error is expected kind
+		errorChecker func(error) (bool, error)
 	}{
 		{
 			name:         "Basic",
@@ -253,6 +290,19 @@ func TestConfigMapEnvironments(t *testing.T) {
 			cassetteName: "newkubeclient-noprovider",
 			shouldFail:   true,
 		},
+		{
+			name:         "Kubernetes Error",
+			cassetteName: "newkubeclient-statuserror",
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+	}
+	fixture := &testFixture{}
+	userNamespace := "myNamespace"
+	config := &kubernetes.KubeClientConfig{
+		BaseURLProvider: getDefaultURLProvider("http://api.myCluster", "myToken"),
+		UserNamespace:   userNamespace,
+		MetricsGetter:   fixture,
 	}
 
 	for _, testCase := range testCases {
@@ -261,19 +311,15 @@ func TestConfigMapEnvironments(t *testing.T) {
 			require.NoError(t, err, "Failed to open cassette")
 			defer r.Stop()
 
-			fixture := &testFixture{}
-			config := &kubernetes.KubeClientConfig{
-				ClusterURL:    "http://api.myCluster",
-				BearerToken:   "myToken",
-				UserNamespace: "myNamespace",
-				Transport:     r.Transport,
-				MetricsGetter: fixture,
-			}
+			config.Transport = r.Transport
 
 			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
-				require.True(t, fixture.metrics.closed, "Metrics must be closed after error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, kc, "KubeClient must not be nil")
@@ -295,6 +341,7 @@ func TestGetEnvironments(t *testing.T) {
 		testName     string
 		cassetteName string
 		shouldFail   bool
+		errorChecker func(error) (bool, error)
 		data         map[string]*envTestData
 	}{
 		{
@@ -325,9 +372,10 @@ func TestGetEnvironments(t *testing.T) {
 			},
 		},
 		{
-			testName:     "Missing Quota",
-			cassetteName: "getenvironments-missingquota",
+			testName:     "Kubernetes Error",
+			cassetteName: "getenvironments-rq-error",
 			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
 		},
 	}
 
@@ -343,6 +391,10 @@ func TestGetEnvironments(t *testing.T) {
 			envs, err := kc.GetEnvironments()
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 
@@ -368,6 +420,7 @@ func TestGetEnvironment(t *testing.T) {
 		testName     string
 		cassetteName string
 		shouldFail   bool
+		errorChecker func(error) (bool, error)
 		envTestData
 	}{
 		{
@@ -390,12 +443,13 @@ func TestGetEnvironment(t *testing.T) {
 			shouldFail: true,
 		},
 		{
-			testName:     "Missing Quota",
-			cassetteName: "getenvironments-missingquota",
+			testName:     "Kubernetes Error",
+			cassetteName: "getenvironments-rq-error",
 			envTestData: envTestData{
 				envName: "run",
 			},
-			shouldFail: true,
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
 		},
 	}
 
@@ -411,6 +465,10 @@ func TestGetEnvironment(t *testing.T) {
 			env, err := kc.GetEnvironment(testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 
@@ -442,6 +500,7 @@ type spaceTestData struct {
 	shouldFail   bool
 	appTestData  map[string]*appTestData // Keys are app names
 	cassetteName string
+	errorChecker func(error) (bool, error)
 }
 
 var defaultSpaceTestData = &spaceTestData{
@@ -482,6 +541,7 @@ type deployTestData struct {
 	expectLogURL            string
 	expectAppURL            string
 	shouldFail              bool
+	errorChecker            func(error) (bool, error)
 	cassetteName            string
 }
 
@@ -498,8 +558,8 @@ var defaultDeployTestData = &deployTestData{
 	expectPodsQuotaMemory:   524288000,
 	expectPodsTotal:         2,
 	expectConsoleURL:        "http://console.myCluster/console/project/my-run",
-	expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
-	expectAppURL:            "http://myApp-my-run.example.com",
+	expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myDeploy-1?tab=logs",
+	expectAppURL:            "http://myDeploy-my-run.example.com",
 	cassetteName:            "getdeployment",
 }
 
@@ -614,8 +674,8 @@ func TestGetSpace(t *testing.T) {
 							expectPodsQuotaCpucores: 0.976,
 							expectPodsQuotaMemory:   524288000,
 							expectConsoleURL:        "http://console.myCluster/console/project/my-run",
-							expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
-							expectAppURL:            "http://myApp-my-run.example.com",
+							expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myDeploy-1?tab=logs",
+							expectAppURL:            "http://myDeploy-my-run.example.com",
 						},
 						"stage": {
 							spaceName:     "mySpace",
@@ -630,7 +690,7 @@ func TestGetSpace(t *testing.T) {
 							expectPodsQuotaCpucores: 0.976,
 							expectPodsQuotaMemory:   524288000,
 							expectConsoleURL:        "http://console.myCluster/console/project/my-stage",
-							expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myApp-1?tab=logs",
+							expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myDeploy-1?tab=logs",
 						},
 					},
 				},
@@ -650,12 +710,19 @@ func TestGetSpace(t *testing.T) {
 							expectPodsQuotaCpucores: 0.488,
 							expectPodsQuotaMemory:   262144000,
 							expectConsoleURL:        "http://console.myCluster/console/project/my-run",
-							expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myOtherApp-1?tab=logs",
-							expectAppURL:            "http://myOtherApp-my-run.example.com",
+							expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myOtherDeploy-1?tab=logs",
+							expectAppURL:            "http://myOtherDeploy-my-run.example.com",
 						},
 					},
 				},
 			},
+		},
+		{
+			testName:     "BC List Error",
+			spaceName:    "mySpace",
+			cassetteName: "getspace-bc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
 		},
 	}
 
@@ -671,6 +738,10 @@ func TestGetSpace(t *testing.T) {
 			space, err := kc.GetSpace(testCase.spaceName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.NotNil(t, space, "Space is nil")
@@ -713,7 +784,7 @@ func TestGetApplication(t *testing.T) {
 					expectPodsQuotaCpucores: 0.976,
 					expectPodsQuotaMemory:   524288000,
 					expectConsoleURL:        "http://console.myCluster/console/project/my-stage",
-					expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myApp-1?tab=logs",
+					expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myDeploy-1?tab=logs",
 				},
 			},
 			cassetteName: "getapplication",
@@ -727,8 +798,8 @@ func TestGetApplication(t *testing.T) {
 					envName:          "run",
 					expectVersion:    "1.0.1",
 					expectConsoleURL: "http://console.myCluster/console/project/my-run",
-					expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myOtherApp-1?tab=logs",
-					expectAppURL:     "http://myOtherApp-my-run.example.com",
+					expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myOtherDeploy-1?tab=logs",
+					expectAppURL:     "http://myOtherDeploy-my-run.example.com",
 				},
 			},
 			cassetteName: "getapplication-nopods",
@@ -777,8 +848,8 @@ func TestGetDeployment(t *testing.T) {
 			expectPodStatus:  [][]string{},
 			expectPodsTotal:  0,
 			expectConsoleURL: "http://console.myCluster/console/project/my-run",
-			expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myApp-2?tab=logs",
-			expectAppURL:     "http://myApp-my-run.example.com",
+			expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myDeploy-2?tab=logs",
+			expectAppURL:     "http://myDeploy-my-run.example.com",
 			// Contains RCs in ascending deployment version:
 			// 1. Visible 2. Scaled-down "active" 3. Failed
 			cassetteName: "getdeployment-scaled-down",
@@ -799,8 +870,8 @@ func TestGetDeployment(t *testing.T) {
 			expectPodsQuotaCpucores: 0.976,
 			expectPodsQuotaMemory:   524288000,
 			expectConsoleURL:        "http://console.myCluster/console/project/my-run",
-			expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
-			expectAppURL:            "http://myApp-my-run.example.com",
+			expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myDeploy-1?tab=logs",
+			expectAppURL:            "http://myDeploy-my-run.example.com",
 			cassetteName:            "getdeployment-nospace",
 		},
 		{
@@ -810,8 +881,62 @@ func TestGetDeployment(t *testing.T) {
 			spaceName:    "myWrongSpace",
 			appName:      "myApp",
 			envName:      "run",
-			cassetteName: "getdeployment",
+			cassetteName: "getdeployment-wrongspace",
 			shouldFail:   true,
+		},
+		{
+			testName:     "Build List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-build-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "DC Get Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-dc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "RC List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-rc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Pod List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-pod-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Service List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-svc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Route List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-route-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
 		},
 	}
 
@@ -827,6 +952,10 @@ func TestGetDeployment(t *testing.T) {
 			dep, err := kc.GetDeployment(testCase.spaceName, testCase.appName, testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				verifyDeployment(dep, testCase, t)
@@ -846,6 +975,7 @@ func TestScaleDeployment(t *testing.T) {
 		newReplicas   int
 		oldReplicas   int
 		shouldFail    bool
+		errorChecker  func(error) (bool, error)
 	}{
 		{
 			testName:     "Basic",
@@ -854,7 +984,7 @@ func TestScaleDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "scaledeployment",
 			expectPutURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy/scale": {},
 			},
 			newReplicas: 3,
 			oldReplicas: 2,
@@ -866,10 +996,32 @@ func TestScaleDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "scaledeployment-zero",
 			expectPutURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy/scale": {},
 			},
 			newReplicas: 1,
 			oldReplicas: 0,
+		},
+		{
+			testName:      "Scale Get Error",
+			spaceName:     "mySpace",
+			appName:       "myApp",
+			envName:       "run",
+			cassetteName:  "scaledeployment-get-error",
+			expectPutURLs: map[string]struct{}{},
+			shouldFail:    true,
+			errorChecker:  errors.IsBadParameterError,
+		},
+		{
+			testName:     "Scale Put Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "scaledeployment-put-error",
+			expectPutURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy/scale": {},
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
 		},
 	}
 
@@ -918,6 +1070,10 @@ func TestScaleDeployment(t *testing.T) {
 			old, err := kc.ScaleDeployment(testCase.spaceName, testCase.appName, testCase.envName, testCase.newReplicas)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.NotNil(t, old, "Previous replicas are nil")
@@ -949,6 +1105,7 @@ func TestDeleteDeployment(t *testing.T) {
 		cassetteName     string
 		expectDeleteURLs map[string]struct{}
 		shouldFail       bool
+		errorChecker     func(error) (bool, error)
 	}{
 		{
 			testName:     "Basic",
@@ -957,9 +1114,9 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
 			},
 		},
 		{
@@ -976,10 +1133,10 @@ func TestDeleteDeployment(t *testing.T) {
 			spaceName:    "otherSpace",
 			appName:      "myApp",
 			envName:      "run",
-			cassetteName: "deletedeployment",
+			cassetteName: "deletedeployment-wrongspace",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":  {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
 			},
 			shouldFail: true,
 		},
@@ -990,8 +1147,31 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment-noroutes",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
+			},
+		},
+		{
+			testName:     "List Routes Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-get-routes-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
+			},
+		},
+		{
+			testName:     "Delete Routes Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-badroutes",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
 			},
 		},
 		{
@@ -1001,8 +1181,31 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment-noservices",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+			},
+		},
+		{
+			testName:     "List Services Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-get-svc-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+			},
+		},
+		{
+			testName:     "Delete Services Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-badservices",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
 			},
 		},
 		{
@@ -1012,10 +1215,52 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment-nodc",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":  {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
 			},
-			shouldFail: true,
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Get DC Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-get-dc-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Delete DC Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-delete-dc-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			// Tests failure to map application name to OpenShift resources
+			// falls back to app name
+			testName:     "No Builds",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-nobuilds",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
+			},
 		},
 	}
 
@@ -1060,6 +1305,10 @@ func TestDeleteDeployment(t *testing.T) {
 			err = kc.DeleteDeployment(testCase.spaceName, testCase.appName, testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 			}
@@ -1258,4 +1507,69 @@ func verifyDeployment(dep *app.SimpleDeployment, testCase *deployTestData, t *te
 		require.NotNil(t, dep.Links.Logs, "Logs URL is nil")
 		require.Equal(t, testCase.expectLogURL, *dep.Links.Logs, "Logs URL is incorrect")
 	}
+}
+
+// code for test URL provider
+
+func (up *testURLProvider) GetAPIToken() (*string, error) {
+	return &up.apiToken, nil
+}
+
+func (up *testURLProvider) GetMetricsToken(envNS string) (*string, error) {
+	return &up.clusterToken, nil
+}
+
+func (up *testURLProvider) GetAPIURL() (*string, error) {
+	return &up.apiURL, nil
+}
+
+func (up *testURLProvider) GetConsoleURL(envNS string) (*string, error) {
+	path := fmt.Sprintf("console/project/%s", envNS)
+	// Replace "api" prefix with "console" and append path
+	consoleURL, err := modifyURL(up.clusterURL, "console", path)
+	if err != nil {
+		return nil, err
+	}
+	consoleURLStr := consoleURL.String()
+	return &consoleURLStr, nil
+}
+
+func (up *testURLProvider) GetLoggingURL(envNS string, deployName string) (*string, error) {
+	consoleURL, err := up.GetConsoleURL(envNS)
+	if err != nil {
+		return nil, err
+	}
+	logURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", *consoleURL, deployName)
+	return &logURL, nil
+}
+
+func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
+	metricsURL, err := modifyURL(up.clusterURL, "metrics", "")
+	if err != nil {
+		return nil, err
+	}
+	mu := metricsURL.String()
+	return &mu, nil
+}
+
+func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
+	// Parse as URL to give us easy access to the hostname
+	apiURL, err := url.Parse(apiURLStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the hostname (without port) and replace api prefix with prefix arg
+	apiHostname := apiURL.Hostname()
+	if !strings.HasPrefix(apiHostname, "api") {
+		return nil, errs.Errorf("cluster URL does not begin with \"api\": %s", apiHostname)
+	}
+	newHostname := strings.Replace(apiHostname, "api", prefix, 1)
+	// Construct URL using just scheme from API URL, modified hostname and supplied path
+	newURL := &url.URL{
+		Scheme: apiURL.Scheme,
+		Host:   newHostname,
+		Path:   path,
+	}
+	return newURL, nil
 }

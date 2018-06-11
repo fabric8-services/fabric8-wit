@@ -3,6 +3,7 @@ package jsonapi
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"strconv"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -37,7 +38,7 @@ func ErrorToJSONAPIError(ctx context.Context, err error) (app.JSONAPIError, int)
 	var title, code string
 	var statusCode int
 	var id *string
-	log.Error(ctx, map[string]interface{}{"err": cause, "error_message": cause.Error()}, "an error occurred in our api")
+	log.Error(ctx, map[string]interface{}{"err": cause, "error_message": cause.Error(), "err_type": reflect.TypeOf(cause)}, "an error occurred in our api")
 	switch cause.(type) {
 	case errors.NotFoundError:
 		code = ErrorCodeNotFound

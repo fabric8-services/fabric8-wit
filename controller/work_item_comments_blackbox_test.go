@@ -1,6 +1,8 @@
 package controller_test
 
 import (
+	"github.com/fabric8-services/fabric8-wit/id"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"html"
 	"net/http"
 	"net/url"
@@ -125,6 +127,37 @@ func assertWorkItemComment(t *testing.T, c *app.Comment, expectedBody string, ex
 	assert.NotNil(t, c.Relationships.Creator.Data.ID)
 }
 
+func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithParentComment() {
+	// given
+	wi := rest.createDefaultWorkItem()
+
+	// create parent
+	markup := rendering.SystemMarkupMarkdown
+	p := rest.newCreateWorkItemCommentsPayload("Test", &markup)
+	svc, ctrl := rest.SecuredController()
+	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, p)
+	// then
+	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", markup)
+
+	// create child
+	parentID := c.Data.ID.String()
+	child := rest.newCreateWorkItemCommentsPayload("Test Child", &markup)
+	child.Data.Relationships = &app.CreateCommentRelations{
+		ParentComment: &app.RelationGeneric{
+			Data: &app.GenericData{
+				Type: ptr.String("comments"),
+				ID:   ptr.String(c.Data.ID.String()),
+			},
+		},
+	}
+	// make sure the above correctly sets the parentCommentID
+	assert.Equal(rest.T(), *child.Data.Relationships.ParentComment.Data.ID, parentID)
+	// exec create child
+	_, d := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, child)
+	// check if the result has the correct parentCommentID
+	assert.Equal(rest.T(), c.Data.ID.String(), *d.Data.Relationships.ParentComment.Data.ID)
+}
+
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
 	// given
 	wi := rest.createDefaultWorkItem()
@@ -179,6 +212,32 @@ func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comm
 	return *wi, comments
 }
 
+func (rest *TestCommentREST) setupCommentsWithParentComments() (workitem.WorkItem, []*comment.Comment) {
+	wi := rest.createDefaultWorkItem()
+	comments := make([]*comment.Comment, 3)
+	// first entry is the parent comment
+	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Parent Comment", Creator: rest.testIdentity.ID}
+	application.Transactional(rest.db, func(app application.Application) error {
+		repo := app.Comments()
+		repo.Create(rest.ctx, comments[0], rest.testIdentity.ID)
+		return nil
+	})
+	// create the childs
+	parentCommentID := id.NullUUID{
+		UUID:  comments[0].ID,
+		Valid: true,
+	}
+	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Child Comment 1", Creator: rest.testIdentity.ID, ParentCommentID: parentCommentID}
+	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Child Comment 2", Creator: rest.testIdentity.ID, ParentCommentID: parentCommentID}
+	application.Transactional(rest.db, func(app application.Application) error {
+		repo := app.Comments()
+		repo.Create(rest.ctx, comments[1], rest.testIdentity.ID)
+		repo.Create(rest.ctx, comments[2], rest.testIdentity.ID)
+		return nil
+	})
+	return *wi, comments
+}
+
 func assertComments(t *testing.T, expectedIdentity account.Identity, comments *app.CommentList) {
 	require.Equal(t, 3, len(comments.Data))
 	assertComment(t, comments.Data[0], expectedIdentity, "Test 3", rendering.SystemMarkupDefault) // items are returned in reverse order or creation
@@ -194,6 +253,21 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemOK() {
 	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, &limit, &offset, nil, nil)
 	// then
 	assertComments(rest.T(), rest.testIdentity, cs)
+	assertResponseHeaders(rest.T(), res)
+}
+
+func (rest *TestCommentREST) TestListCommentsByParentWorkItemOKWithParentComments() {
+	// given
+	wi, _ := rest.setupCommentsWithParentComments()
+	// when
+	svc, ctrl := rest.UnSecuredController()
+	offset := "0"
+	limit := 3
+	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, &limit, &offset, nil, nil)
+	// note: the comments are returned in reverse order, [2] is the parent
+	parentCommentID := cs.Data[2].ID.String()
+	assert.Equal(rest.T(), parentCommentID, *cs.Data[1].Relationships.ParentComment.Data.ID)
+	assert.Equal(rest.T(), parentCommentID, *cs.Data[0].Relationships.ParentComment.Data.ID)
 	assertResponseHeaders(rest.T(), res)
 }
 

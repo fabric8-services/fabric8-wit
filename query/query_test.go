@@ -2,6 +2,7 @@ package query_test
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,11 +82,15 @@ func (s *TestQueryRepository) TestCreate() {
 				Title:   title,
 				Fields:  qs,
 				SpaceID: fxt.Spaces[0].ID,
+				Creator: fxt.Identities[0].ID,
 			}
 			// when
 			err := repo.Create(context.Background(), &q)
 			// then
 			require.Error(t, err)
+			_, ok := errs.Cause(err).(errors.BadParameterError)
+			assert.Contains(t, err.Error(), "query field is invalid JSON syntax")
+			assert.True(t, ok)
 		})
 	})
 
@@ -152,6 +158,84 @@ func (s *TestQueryRepository) TestShow() {
 		require.Error(t, err)
 	})
 }
+
+func (s *TestQueryRepository) TestSave() {
+	resource.Require(s.T(), resource.Database)
+	repo := query.NewQueryRepository(s.DB)
+
+	s.T().Run("success - save query", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Queries(1, tf.SetQueryTitles("q1")))
+		l := fxt.Queries[0]
+		l.Title = "Updated WI title"
+		l.Fields = `{"assignee": "6dde4657-1c71-4fe7-b4c3-8b88accc03dd"}`
+
+		lbl, err := repo.Save(context.Background(), *l)
+		require.NoError(t, err)
+		assert.Equal(t, l.Title, lbl.Title)
+		assert.Equal(t, l.Fields, lbl.Fields)
+	})
+
+	s.T().Run("empty title", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Queries(1, tf.SetQueryTitles("q1")))
+		l := fxt.Queries[0]
+		l.Title = " 	"
+
+		_, err := repo.Save(context.Background(), *l)
+		require.Error(t, err)
+		_, ok := errs.Cause(err).(errors.BadParameterError)
+		assert.Contains(t, err.Error(), "query title cannot be empty string")
+		assert.True(t, ok)
+	})
+
+	s.T().Run("empty fields", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Queries(1, tf.SetQueryTitles("q1")))
+		l := fxt.Queries[0]
+		l.Fields = ""
+
+		_, err := repo.Save(context.Background(), *l)
+		require.Error(t, err)
+		_, ok := errs.Cause(err).(errors.BadParameterError)
+		assert.Contains(t, err.Error(), "query field is invalid JSON syntax")
+		assert.True(t, ok)
+	})
+
+	s.T().Run("invalid JSON fields", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Queries(1, tf.SetQueryTitles("q1")))
+		l := fxt.Queries[0]
+		l.Fields = ""
+
+		_, err := repo.Save(context.Background(), *l)
+		require.Error(t, err)
+		_, ok := errs.Cause(err).(errors.BadParameterError)
+		assert.Contains(t, err.Error(), "query field is invalid JSON syntax")
+		assert.True(t, ok)
+	})
+
+	s.T().Run("non-existing query", func(t *testing.T) {
+		fakeID := uuid.NewV4()
+		fakeQuery := query.Query{
+			ID:    fakeID,
+			Title: "Some name",
+		}
+		repo := query.NewQueryRepository(s.DB)
+		_, err := repo.Save(context.Background(), fakeQuery)
+		require.Error(t, err)
+		assert.Equal(t, reflect.TypeOf(errors.BadParameterError{}), reflect.TypeOf(err))
+	})
+
+	s.T().Run("update query with same title", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Queries(2, tf.SetQueryTitles("q0", "q1")))
+		repo := query.NewQueryRepository(s.DB)
+		fxt.Queries[0].Title = fxt.Queries[1].Title
+
+		_, err := repo.Save(context.Background(), *fxt.Queries[0])
+		require.Error(t, err)
+		_, ok := errs.Cause(err).(errors.DataConflictError)
+		assert.Contains(t, err.Error(), "query already exists with title = q1")
+		assert.True(t, ok)
+	})
+}
+
 func (s *TestQueryRepository) TestDelete() {
 	resource.Require(s.T(), resource.Database)
 	repo := query.NewQueryRepository(s.DB)

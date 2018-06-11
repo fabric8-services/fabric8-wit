@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"path/filepath"
 	"testing"
-
 	"time"
 
+	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -19,7 +19,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -93,14 +96,47 @@ func (s *SpaceControllerTestSuite) SetupTest() {
 	s.testDir = filepath.Join("test-files", "space")
 }
 
-func (s *SpaceControllerTestSuite) SecuredController(identity account.Identity) (*goa.Service, *SpaceController) {
-	svc := testsupport.ServiceAsUser("Space-Service", identity)
-	return svc, NewSpaceController(svc, s.db, spaceConfiguration, &DummyResourceManager{})
+type ConfigureSpaceController func(*SpaceController)
+
+// withDeploymentsClient can be used while initializing the SpaceController
+// it helps you set the Deployments service Client of SpaceController
+func withDeploymentsClient(c *http.Client) ConfigureSpaceController {
+	return func(s *SpaceController) {
+		s.DeploymentsClient = c
+	}
 }
 
-func (s *SpaceControllerTestSuite) SecuredControllerWithDummyResourceManager(identity account.Identity, dummyResourceManager DummyResourceManager) (*goa.Service, *SpaceController) {
+// withCodebaseClient can be used while initializing the SpaceController
+// it helps you set the Codebase service Client of SpaceController
+func withCodebaseClient(c *http.Client) ConfigureSpaceController {
+	return func(s *SpaceController) {
+		s.CodebaseClient = c
+	}
+}
+
+func (s *SpaceControllerTestSuite) SecuredController(
+	identity account.Identity,
+	settings ...ConfigureSpaceController) (*goa.Service, *SpaceController) {
+
 	svc := testsupport.ServiceAsUser("Space-Service", identity)
-	return svc, NewSpaceController(svc, s.db, spaceConfiguration, &dummyResourceManager)
+	ctrl := NewSpaceController(svc, s.db, spaceConfiguration, &DummyResourceManager{})
+	for _, set := range settings {
+		set(ctrl)
+	}
+	return svc, ctrl
+}
+
+func (s *SpaceControllerTestSuite) SecuredControllerWithDummyResourceManager(
+	identity account.Identity,
+	dummyResourceManager DummyResourceManager,
+	settings ...ConfigureSpaceController) (*goa.Service, *SpaceController) {
+
+	svc := testsupport.ServiceAsUser("Space-Service", identity)
+	ctrl := NewSpaceController(svc, s.db, spaceConfiguration, &dummyResourceManager)
+	for _, set := range settings {
+		set(ctrl)
+	}
+	return svc, ctrl
 }
 
 func (s *SpaceControllerTestSuite) UnSecuredController() (*goa.Service, *SpaceController) {
@@ -152,7 +188,6 @@ func (s *SpaceControllerTestSuite) TestValidateSpaceName() {
 }
 
 func (s *SpaceControllerTestSuite) TestCreateSpace() {
-
 	s.T().Run("Fail - unsecure", func(t *testing.T) {
 		// given
 		p := newCreateSpacePayload(nil, nil)
@@ -201,7 +236,8 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 		p := newCreateSpacePayload(&name, nil)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		// when
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.payload.req.golden.json"), p)
+		res, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		// then
 		require.NotNil(t, created.Data)
 		require.NotNil(t, created.Data.Attributes)
@@ -211,6 +247,41 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 		assert.Equal(t, name, *created.Data.Attributes.Name)
 		require.NotNil(t, created.Data.Links)
 		assert.NotNil(t, created.Data.Links.Self)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.payload.res.golden.json"), created)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.headers.res.golden.json"), res.Header())
+	})
+
+	s.T().Run("ok (with explicit template)", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
+		name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpace-")
+		p := newCreateSpacePayload(&name, nil)
+
+		if p.Data.Relationships == nil {
+			p.Data.Relationships = &app.SpaceRelationships{}
+		}
+		p.Data.Relationships.SpaceTemplate = app.NewSpaceTemplateRelation(
+			fxt.SpaceTemplates[0].ID,
+			rest.AbsoluteURL(
+				&http.Request{Host: "api.service.domain.org"},
+				app.SpaceTemplateHref(fxt.SpaceTemplates[0].ID.String()),
+			),
+		)
+		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+		// when
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.payload.req.golden.json"), p)
+		res, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+		// then
+		require.NotNil(t, created.Data)
+		require.NotNil(t, created.Data.Attributes)
+		assert.NotNil(t, created.Data.Attributes.CreatedAt)
+		assert.NotNil(t, created.Data.Attributes.UpdatedAt)
+		require.NotNil(t, created.Data.Attributes.Name)
+		assert.Equal(t, name, *created.Data.Attributes.Name)
+		require.NotNil(t, created.Data.Links)
+		assert.NotNil(t, created.Data.Links.Self)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.payload.res.golden.json"), created)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.headers.res.golden.json"), res.Header())
 	})
 
 	s.T().Run("ok with default area", func(t *testing.T) {
@@ -325,94 +396,189 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 
 	s.T().Run("ok", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
-		description := "Space for TestFailDeleteSpaceDifferentOwner"
-		p := newCreateSpacePayload(&name, &description)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		// when
-		svc2, ctrl2 := s.SecuredController(testsupport.TestIdentity)
-		test.DeleteSpaceOK(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
+		var err error
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(f *tf.TestFixture, index int) error {
+				f.Spaces[index].ID, err = uuid.FromString("aec5f659-0680-4633-8599-5f14f1deeabc")
+				require.NoError(t, err)
+				return nil
+			}),
+			tf.Codebases(1),
+		)
+		spaceID := fxt.Spaces[0].ID
+		identity := *fxt.Identities[0]
+
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.ok")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
+		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.ok")
+		require.NoError(t, err)
+		defer rCodebase.Stop()
+
+		svc, ctrl := s.SecuredController(
+			identity,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
+			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
+		)
+		test.DeleteSpaceOK(t, svc.Context, svc, ctrl, spaceID)
 	})
 
-	s.T().Run("delete space - auth returns 401", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
-		description := "Space for TestFailDeleteSpaceDifferentOwner"
-		p := newCreateSpacePayload(&name, &description)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		// when
+	s.T().Run("delete space - auth returns 401 Unauthorized", func(t *testing.T) {
+		var err error
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(f *tf.TestFixture, index int) error {
+				f.Spaces[index].ID, err = uuid.FromString("ebd40c77-2fba-4cf6-a9bb-08b25a87e5e3")
+				require.NoError(t, err)
+				return nil
+			}),
+			tf.Codebases(1),
+		)
+		spaceID := fxt.Spaces[0].ID
+		identity := *fxt.Identities[0]
+
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.401")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
+		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.401")
+		require.NoError(t, err)
+		defer rCodebase.Stop()
+
 		r := DummyResourceManager{
 			httpResponseCode: 401,
 		}
-		svc2, ctrl2 := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
-		test.DeleteSpaceUnauthorized(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
-
+		svc, ctrl := s.SecuredControllerWithDummyResourceManager(
+			identity, r,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
+			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
+		)
+		test.DeleteSpaceUnauthorized(t, svc.Context, svc, ctrl, spaceID)
 	})
 
-	s.T().Run("delete space - auth returns 403", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
-		description := "Space for TestFailDeleteSpaceDifferentOwner"
-		p := newCreateSpacePayload(&name, &description)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		// when
+	s.T().Run("delete space - auth returns 403 Forbidden", func(t *testing.T) {
+		var err error
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(f *tf.TestFixture, index int) error {
+				f.Spaces[index].ID, err = uuid.FromString("49f0871e-d011-48ba-ad9c-74ee4001d2d6")
+				require.NoError(t, err)
+				return nil
+			}),
+			tf.Codebases(1),
+		)
+		spaceID := fxt.Spaces[0].ID
+		identity := *fxt.Identities[0]
+
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.403")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
+		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.403")
+		require.NoError(t, err)
+		defer rCodebase.Stop()
+
 		r := DummyResourceManager{
 			httpResponseCode: 403,
 		}
-		svc2, ctrl2 := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
-		test.DeleteSpaceForbidden(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
-
+		svc, ctrl := s.SecuredControllerWithDummyResourceManager(
+			identity, r,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
+			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
+		)
+		test.DeleteSpaceForbidden(t, svc.Context, svc, ctrl, spaceID)
 	})
 
-	s.T().Run("delete space - auth returns 404", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
-		description := "Space for TestFailDeleteSpaceDifferentOwner"
-		p := newCreateSpacePayload(&name, &description)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		// when
+	s.T().Run("delete space - auth returns 404 Not Found", func(t *testing.T) {
+		var err error
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(f *tf.TestFixture, index int) error {
+				f.Spaces[index].ID, err = uuid.FromString("a550edb8-20df-417c-aae8-30b6afd3dfd3")
+				require.NoError(t, err)
+				return nil
+			}),
+			tf.Codebases(1),
+		)
+		spaceID := fxt.Spaces[0].ID
+		identity := *fxt.Identities[0]
+
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.404")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
+		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.404")
+		require.NoError(t, err)
+		defer rCodebase.Stop()
+
 		r := DummyResourceManager{
 			httpResponseCode: 404,
 		}
-		svc2, ctrl2 := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
-		test.DeleteSpaceNotFound(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
-
+		svc, ctrl := s.SecuredControllerWithDummyResourceManager(
+			identity, r,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
+			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
+		)
+		test.DeleteSpaceNotFound(t, svc.Context, svc, ctrl, spaceID)
 	})
 
-	s.T().Run("delete space - auth returns 500", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
-		description := "Space for TestFailDeleteSpaceDifferentOwner"
-		p := newCreateSpacePayload(&name, &description)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		// when
+	s.T().Run("delete space - auth returns 500 Internal Server Error", func(t *testing.T) {
+		var err error
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(f *tf.TestFixture, index int) error {
+				f.Spaces[index].ID, err = uuid.FromString("634f997f-22d5-457b-9e27-cd2d148bee30")
+				require.NoError(t, err)
+				return nil
+			}),
+			tf.Codebases(1),
+		)
+		spaceID := fxt.Spaces[0].ID
+		identity := *fxt.Identities[0]
+
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.500")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
+		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.500")
+		require.NoError(t, err)
+		defer rCodebase.Stop()
+
 		r := DummyResourceManager{
 			httpResponseCode: 500,
 		}
-		svc2, ctrl2 := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
-		test.DeleteSpaceInternalServerError(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
-
+		svc, ctrl := s.SecuredControllerWithDummyResourceManager(
+			identity, r,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
+			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
+		)
+		test.DeleteSpaceInternalServerError(t, svc.Context, svc, ctrl, spaceID)
 	})
 
 	s.T().Run("fail - different owner", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
-		description := "Space for TestFailDeleteSpaceDifferentOwner"
-		p := newCreateSpacePayload(&name, &description)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		// when
-		svc2, ctrl2 := s.SecuredController(testsupport.TestIdentity2)
-		_, errors := test.DeleteSpaceForbidden(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
-		// then
-		assert.NotEmpty(t, errors.Errors)
-		assert.Contains(t, errors.Errors[0].Detail, "user is not the space owner")
+		var err error
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(f *tf.TestFixture, index int) error {
+				f.Spaces[index].ID, err = uuid.FromString("688cab16-ba0b-4d48-8587-f187ebc0d9ff")
+				require.NoError(t, err)
+				return nil
+			}),
+			tf.Codebases(1),
+		)
+		spaceID := fxt.Spaces[0].ID
+		identity := testsupport.TestIdentity
+
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.different-owner")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
+		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.different-owner")
+		require.NoError(t, err)
+		defer rCodebase.Stop()
+
+		svc, ctrl := s.SecuredController(
+			identity,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
+			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
+		)
+		test.DeleteSpaceForbidden(t, svc.Context, svc, ctrl, spaceID)
 	})
 }
 
@@ -567,7 +733,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 		eTag, lastModified, _ := assertResponseHeaders(t, res)
 		assert.Equal(t, app.ToHTTPTime(getSpaceUpdatedAt(*created)), lastModified)
 		assert.Equal(t, generateSpaceTag(*created), eTag)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show_space_ok.golden.json"), fetched)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.payload.res.golden.json"), fetched)
 	})
 
 	s.T().Run("conditional request", func(t *testing.T) {
@@ -718,6 +884,9 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 }
 
 func newCreateSpacePayload(name, description *string) *app.CreateSpacePayload {
+	//spaceTemplateID := spacetemplate.SystemLegacyTemplateID
+	//req := &http.Request{Host: "api.service.domain.org"}
+	// spaceTemplateRelatedURL := rest.AbsoluteURL(req, app.SpaceTemplateHref(spaceTemplateID.String()))
 	return &app.CreateSpacePayload{
 		Data: &app.Space{
 			Type: "spaces",
@@ -726,6 +895,12 @@ func newCreateSpacePayload(name, description *string) *app.CreateSpacePayload {
 				Description: description,
 			},
 		},
+		// NOTE(kwk): For now we don't specify a space template to test that a
+		// default one is taken.
+		//
+		// Relationships: &app.SpaceRelationships{
+		// 	SpaceTemplate: app.NewSpaceTemplateRelation(spaceTemplateID, spaceTemplateRelatedURL),
+		// },
 	}
 }
 
