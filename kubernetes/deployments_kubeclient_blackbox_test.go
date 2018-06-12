@@ -875,14 +875,25 @@ func TestGetDeployment(t *testing.T) {
 			cassetteName:            "getdeployment-nospace",
 		},
 		{
-			// Tests that we don't accept deployment configs with a space
-			// label different from the argument passed to GetDeployment
-			testName:     "Wrong Space Label",
-			spaceName:    "myWrongSpace",
-			appName:      "myApp",
-			envName:      "run",
-			cassetteName: "getdeployment-wrongspace",
-			shouldFail:   true,
+			// Tests handling of a deployment config with a space label
+			// different from the argument passed to GetDeployment
+			// FIXME When our workaround is no longer needed, we should expect
+			// an error
+			testName:      "Wrong Space Label",
+			spaceName:     "myWrongSpace",
+			appName:       "myApp",
+			envName:       "run",
+			expectVersion: "1.0.2",
+			expectPodStatus: [][]string{
+				{"Running", "2"},
+			},
+			expectPodsTotal:         2,
+			expectPodsQuotaCpucores: 0.976,
+			expectPodsQuotaMemory:   524288000,
+			expectConsoleURL:        "http://console.myCluster/console/project/my-run",
+			expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myDeploy-1?tab=logs",
+			expectAppURL:            "http://myDeploy-my-run.example.com",
+			cassetteName:            "getdeployment-wrongspace",
 		},
 		{
 			testName:     "Build List Error",
@@ -1129,16 +1140,18 @@ func TestDeleteDeployment(t *testing.T) {
 			shouldFail:       true,
 		},
 		{
+			// FIXME When our workaround is no longer needed, we should expect
+			// an error
 			testName:     "Wrong Space",
 			spaceName:    "otherSpace",
 			appName:      "myApp",
 			envName:      "run",
 			cassetteName: "deletedeployment-wrongspace",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
 			},
-			shouldFail: true,
 		},
 		{
 			testName:     "No Routes",
