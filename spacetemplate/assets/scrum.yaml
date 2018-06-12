@@ -5,7 +5,7 @@ space_template:
   description: >
     An iterative and incremental agile software development framework for
     managing product development.
-  can_construct: yes
+  can_construct: no
 
 work_item_types:
 
