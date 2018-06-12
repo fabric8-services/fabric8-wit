@@ -316,7 +316,7 @@ work_item_types:
         kind: markup
     "severity":
       label: Severity
-      description: TBD
+      description: The degree of impact that a defect has on the operation of the product or impact on security.
       required: no
       type:
         simple_type:
@@ -330,7 +330,7 @@ work_item_types:
         - SEV4 - Low
     "priority":
       label: Priority
-      description: TBD
+      description: The order in which the developer should resolve a defect.
       required: no
       type:
         simple_type:

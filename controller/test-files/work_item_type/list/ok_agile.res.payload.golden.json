@@ -928,7 +928,7 @@
             }
           },
           "priority": {
-            "description": "TBD",
+            "description": "The order in which the developer should resolve a defect.",
             "label": "Priority",
             "required": false,
             "type": {
@@ -970,7 +970,7 @@
             }
           },
           "severity": {
-            "description": "TBD",
+            "description": "The degree of impact that a defect has on the operation of the product or impact on security.",
             "label": "Severity",
             "required": false,
             "type": {
