@@ -72,6 +72,22 @@
               "kind": "list"
             }
           },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
+            }
+          },
           "system.number": {
             "description": "The unique number that was given to this workitem within its space.",
             "label": "Number",
@@ -229,6 +245,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {
@@ -396,6 +428,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {
@@ -569,6 +617,22 @@
               "kind": "list"
             }
           },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
+            }
+          },
           "system.number": {
             "description": "The unique number that was given to this workitem within its space.",
             "label": "Number",
@@ -738,6 +802,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {
@@ -911,6 +991,22 @@
               "kind": "list"
             }
           },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
+            }
+          },
           "system.number": {
             "description": "The unique number that was given to this workitem within its space.",
             "label": "Number",
@@ -1082,6 +1178,22 @@
               "kind": "list"
             }
           },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
+            }
+          },
           "system.number": {
             "description": "The unique number that was given to this workitem within its space.",
             "label": "Number",
@@ -1251,6 +1363,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {
