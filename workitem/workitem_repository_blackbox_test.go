@@ -146,6 +146,28 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		require.Nil(t, wi)
 	})
 
+	s.T().Run("disallow creation if WIT belongs to different spacetemplate", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.SpaceTemplates(2),
+			tf.Spaces(2, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[idx].SpaceTemplateID = fxt.SpaceTemplates[idx].ID
+				return nil
+			}),
+			tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypes[idx].SpaceTemplateID = fxt.SpaceTemplates[idx].ID
+				return nil
+			}),
+		)
+		wi, err := s.repo.Create(
+			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[1].ID,
+			map[string]interface{}{
+				workitem.SystemTitle: "Some title",
+			}, fxt.Identities[0].ID)
+		require.Error(t, err)
+		require.IsType(t, errors.BadParameterError{}, err)
+		require.Nil(t, wi)
+
+	})
 	s.T().Run("create work item without assignees & labels", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1), tf.Spaces(1))
 		wi, err := s.repo.Create(
