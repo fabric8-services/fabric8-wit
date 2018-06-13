@@ -1862,10 +1862,6 @@ func TestWatchEventsInNamespace(t *testing.T) {
 	}
 }
 
-func printObj(obj interface{}) {
-	fmt.Println(obj)
-}
-
 func checkEventItems(t *testing.T, eventList *v1.EventList, store *cache.FIFO) {
 	for _, item := range eventList.Items {
 		_, exists, _ := store.Get(item)

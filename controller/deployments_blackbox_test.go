@@ -18,6 +18,8 @@ import (
 
 	"github.com/gojuno/minimock"
 	"golang.org/x/net/websocket"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/goadesign/goa"
@@ -675,15 +677,6 @@ func createOSIOClientMock(t minimock.Tester, spaceName string) *testcontroller.O
 	return osioClientMock
 }
 
-type testWatchItem struct {
-	Name   string
-	Object testInnerItem
-}
-
-type testInnerItem struct {
-	Number int
-}
-
 func TestWatchEnvironmentEvents(t *testing.T) {
 	clientGetterMock := testcontroller.NewClientGetterMock(t)
 	svc, ctrl, err := createDeploymentsController()
@@ -691,31 +684,49 @@ func TestWatchEnvironmentEvents(t *testing.T) {
 	ctrl.ClientGetter = clientGetterMock
 
 	t.Run("ok", func(t *testing.T) {
-		testItems := []testWatchItem{
-			testWatchItem{
-				Name: "one",
-				Object: testInnerItem{
-					Number: 2,
+		testItems := []*v1.Event{
+			{
+				ObjectMeta: metaV1.ObjectMeta{},
+				InvolvedObject: v1.ObjectReference{
+					Kind:            "ReplicationController",
+					Namespace:       "jkang-stage",
+					Name:            "alpha",
+					UID:             "0187287e-6f2d-11e8-bc5d-0233cba325d9",
+					APIVersion:      "v1",
+					ResourceVersion: "1146930893",
 				},
+				Reason:  "FailedCreate",
+				Message: "Error creating: pods \"abc-123-1-fn79z\" is forbidden: exceeded quota: compute-resources, requested: limits.cpu=1,limits.memory=512Mi, used: limits.cpu=2,limits.memory=1Gi, limited: limits.cpu=2,limits.memory=1Gi",
+				Count:   1,
+				Type:    "Warning",
 			},
-			testWatchItem{
-				Name: "two",
-				Object: testInnerItem{
-					Number: 3,
+			{
+				ObjectMeta: metaV1.ObjectMeta{},
+				InvolvedObject: v1.ObjectReference{
+					Kind:            "Pod",
+					Namespace:       "jkang-stage",
+					Name:            "beta",
+					UID:             "0648a9cb-6fd0-11e8-aef8-0233cba325d9",
+					APIVersion:      "v1",
+					ResourceVersion: "1146929646",
+					FieldPath:       "spec.containers{vertx}",
 				},
+				Reason:  "Pulling",
+				Message: "pulling image \"docker-registry.default.svc:5000/jkang-stage/abc-123@sha256:4c1bb4adcdd3d462b1f3953ce947afc0c3afcd0dd810c007f4d3ed56220ac323\"",
+				Count:   1,
+				Type:    "Normal",
 			},
 		}
 
 		mockKeyFunc := func(obj interface{}) (string, error) {
-			if v, ok := obj.(testWatchItem); ok {
-				return v.Name, nil
+			if v, ok := obj.(*v1.Event); ok {
+				return v.InvolvedObject.Name, nil
 			}
 			return "default", nil
 		}
 
 		kubeClientMock := testk8s.NewKubeClientMock(t)
 		kubeClientMock.WatchEventsInNamespaceFunc = func(p string) (r *cache.FIFO, r1 chan struct{}) {
-			fmt.Println("Watch events function called")
 			store := cache.NewFIFO(mockKeyFunc)
 			for _, item := range testItems {
 				store.Add(item)
@@ -736,19 +747,42 @@ func TestWatchEnvironmentEvents(t *testing.T) {
 
 		var buf []byte
 		for _, item := range testItems {
-			// buffer 256 is an arbitrary choice that fits the test items
-			// Manually unmarshal ws frame. Second element contains length
-			// Object is marshaled as JSON and placed in index 2:length+2
-			buf = make([]byte, 256)
+			// buffer 1024 is an arbitrary choice that fits the test items
+			// Manually unmarshal ws frame; Object is marshaled as JSON
+			// For more info on websocket frames see:
+			// https://tools.ietf.org/html/rfc6455#section-5.2
+			buf = make([]byte, 1024)
 			conn.Read(buf)
+			var startPos int
 			frameLength := int(buf[1])
-			startPos := 2
+			if frameLength == 126 {
+				frameLength = int(buf[2])*256 + int(buf[3])
+				startPos = 4
+			} else {
+				startPos = 2
+			}
 			endPos := startPos + frameLength
-			var m testWatchItem
-			err = websocket.JSON.Unmarshal(buf[startPos:endPos], 1, &m)
-			assert.Equal(t, m, item)
+			var actual controller.DeploymentsEvent
+			err = websocket.JSON.Unmarshal(buf[startPos:endPos], 1, &actual)
+
+			expected := transformItem(item)
+			assert.Equal(t, *expected, actual)
 		}
+
+		conn.Close()
 	})
+}
+
+func transformItem(event *v1.Event) *controller.DeploymentsEvent {
+	transformedItem := &controller.DeploymentsEvent{
+		InvolvedObject:    event.InvolvedObject,
+		Reason:            event.Reason,
+		Message:           event.Message,
+		Count:             event.Count,
+		Type:              event.Type,
+		CreationTimestamp: event.ObjectMeta.CreationTimestamp,
+	}
+	return transformedItem
 }
 
 type wsRecorder struct {
@@ -761,7 +795,7 @@ func (r *wsRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return r.server, rw, nil
 }
 
-func WatchEnvironmentEventsDeploymentsOK(t goatest.TInterface, ctx context.Context, service *goa.Service, ctrl app.DeploymentsController, spaceID uuid.UUID) net.Conn {
+func WatchEnvironmentEventsDeploymentsOK(t *testing.T, ctx context.Context, service *goa.Service, ctrl app.DeploymentsController, spaceID uuid.UUID) net.Conn {
 	var (
 		logBuf     bytes.Buffer
 		respSetter goatest.ResponseSetterFunc = func(r interface{}) {}
@@ -801,18 +835,14 @@ func WatchEnvironmentEventsDeploymentsOK(t goatest.TInterface, ctx context.Conte
 		ctx = context.Background()
 	}
 	goaCtx := goa.NewContext(goa.WithAction(ctx, "DeploymentsTest"), rw, req, prms)
-	watchEnvirnomentEventsCtx, _err := app.NewWatchEnvironmentEventsDeploymentsContext(goaCtx, req, service)
+	watchEnvironmentEventsCtx, _err := app.NewWatchEnvironmentEventsDeploymentsContext(goaCtx, req, service)
 	if _err != nil {
 		panic("invalid test data " + _err.Error())
 	}
 
 	go func() {
-		_err = ctrl.WatchEnvironmentEvents(watchEnvirnomentEventsCtx)
+		ctrl.WatchEnvironmentEvents(watchEnvironmentEventsCtx)
 	}()
-
-	if _err != nil {
-		t.Fatalf("controller returned %+v, logs:\n%s", _err, logBuf.String())
-	}
 
 	var expected = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 0v75TdGGa4rJ+EXs1fpIBirdeG8=\r\n\r\n"
 	buf := make([]byte, 256)
