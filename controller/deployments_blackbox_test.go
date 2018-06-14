@@ -575,6 +575,85 @@ func TestShowSpaceEnvironments(t *testing.T) {
 
 }
 
+func TestShowAllEnvironments(t *testing.T) {
+	// given
+	clientGetterMock := testcontroller.NewClientGetterMock(t)
+	svc, ctrl, err := createDeploymentsController()
+	require.NoError(t, err)
+	ctrl.ClientGetter = clientGetterMock
+
+	t.Run("ok", func(t *testing.T) {
+		// given
+		envName1 := "foo1"
+		envName2 := "foo2"
+		kubeClientMock := testk8s.NewKubeClientMock(t)
+		kubeClientMock.GetEnvironmentsFunc = func() ([]*app.SimpleEnvironment, error) {
+			return []*app.SimpleEnvironment{
+				{
+					ID:   "foo1",
+					Type: "environment",
+					Attributes: &app.SimpleEnvironmentAttributes{
+						Name: &envName1,
+					},
+				},
+				{
+					ID:   "foo2",
+					Type: "environment",
+					Attributes: &app.SimpleEnvironmentAttributes{
+						Name: &envName2,
+					},
+				},
+			}, nil
+		}
+		kubeClientMock.CloseFunc = func() {}
+		clientGetterMock.GetKubeClientFunc = func(p context.Context) (kubernetes.KubeClientInterface, error) {
+			return kubeClientMock, nil
+		}
+		osioClientMock := testcontroller.NewOSIOClientMock(t)
+		clientGetterMock.GetAndCheckOSIOClientFunc = func(p context.Context) (controller.OpenshiftIOClient, error) {
+			return osioClientMock, nil
+		}
+		// when
+		test.ShowAllEnvironmentsDeploymentsOK(t, context.Background(), svc, ctrl)
+		// then verify that the Close method was called
+		assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
+
+	})
+
+	t.Run("failure", func(t *testing.T) {
+
+		t.Run("kube client init failure", func(t *testing.T) {
+			// given
+			clientGetterMock.GetKubeClientFunc = func(p context.Context) (r kubernetes.KubeClientInterface, r1 error) {
+				return nil, fmt.Errorf("failure")
+			}
+			// when/then
+			test.ShowAllEnvironmentsDeploymentsInternalServerError(t, context.Background(), svc, ctrl)
+		})
+
+		t.Run("get all environments bad request", func(t *testing.T) {
+			// given
+			kubeClientMock := testk8s.NewKubeClientMock(t)
+			kubeClientMock.GetEnvironmentsFunc = func() ([]*app.SimpleEnvironment, error) {
+				return nil, witerrors.NewBadParameterErrorFromString("TEST")
+			}
+			kubeClientMock.CloseFunc = func() {}
+			clientGetterMock.GetKubeClientFunc = func(p context.Context) (kubernetes.KubeClientInterface, error) {
+				return kubeClientMock, nil
+			}
+			osioClientMock := testcontroller.NewOSIOClientMock(t)
+			clientGetterMock.GetAndCheckOSIOClientFunc = func(p context.Context) (controller.OpenshiftIOClient, error) {
+				return osioClientMock, nil
+			}
+			// when
+			test.ShowAllEnvironmentsDeploymentsBadRequest(t, context.Background(), svc, ctrl)
+			// then verify that the Close method was called
+			assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
+		})
+	})
+
+}
+
 func createOSIOClientMock(t minimock.Tester, spaceName string) *testcontroller.OSIOClientMock {
 	osioClientMock := testcontroller.NewOSIOClientMock(t)
 	osioClientMock.GetSpaceByIDFunc = func(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
