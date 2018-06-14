@@ -635,6 +635,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 		importer.BaseTemplate,
 		importer.LegacyTemplate,
 		importer.ScrumTemplate,
+		importer.AgileTemplate,
 	}
 	importRepo := importer.NewRepository(db)
 	for idx, loadFunction := range templateFunctions {
