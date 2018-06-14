@@ -330,14 +330,14 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfNoneMatchHeade
 	test.ShowIterationNotModified(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
 }
 
-func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.WorkItem {
+func (rest *TestIterationREST) createWorkItem(parentSpace space.Space, wiTypeID uuid.UUID) workitem.WorkItem {
 	var wi *workitem.WorkItem
 	err := application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
 		fields := map[string]interface{}{
 			workitem.SystemTitle: "Test Item",
 			workitem.SystemState: "new",
 		}
-		w, err := app.WorkItems().Create(context.Background(), parentSpace.ID, workitem.SystemBug, fields, parentSpace.OwnerID)
+		w, err := app.WorkItems().Create(context.Background(), parentSpace.ID, wiTypeID, fields, parentSpace.OwnerID)
 		wi = w
 		return err
 	})
@@ -373,7 +373,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
-	testWI := rest.createWorkItem(parentSpace)
+	testWI := rest.createWorkItem(parentSpace, fxt.WorkItemTypes[0].ID)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
@@ -415,7 +415,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	svc, ctrl := rest.SecuredController()
 	ifNoneMatch := app.GenerateEntityTag(itr)
 	// now, create and attach a work item to the iteration
-	testWI := rest.createWorkItem(parentSpace)
+	testWI := rest.createWorkItem(parentSpace, fxt.WorkItemTypes[0].ID)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
@@ -433,7 +433,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
-	testWI := rest.createWorkItem(parentSpace)
+	testWI := rest.createWorkItem(parentSpace, fxt.WorkItemTypes[0].ID)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
@@ -567,7 +567,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 
 	for i := 0; i < 4; i++ {
 		wi, err := wirepo.Create(
-			ctx, itr.SpaceID, workitem.SystemBug,
+			ctx, itr.SpaceID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
@@ -579,7 +579,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	}
 	for i := 0; i < 5; i++ {
 		wi, err := wirepo.Create(
-			ctx, itr.SpaceID, workitem.SystemBug,
+			ctx, itr.SpaceID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
