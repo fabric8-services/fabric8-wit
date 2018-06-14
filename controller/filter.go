@@ -86,10 +86,10 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 		},
 		&app.Filters{
 			Attributes: &app.FilterAttributes{
-				Title:       "Workitem type",
+				Title:       "Type",
 				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyWorkItemType),
 				Key:         filterKeyWorkItemType,
-				Description: "Filter by workitemtype",
+				Description: "Filter by type",
 				Type:        "workitemtypes",
 			},
 			Type: "filters",
