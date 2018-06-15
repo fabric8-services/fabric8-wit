@@ -197,25 +197,19 @@ func TestGetMetrics(t *testing.T) {
 		name          string
 		clusterURL    string
 		expectedURL   string
-		cassetteName  string
 		shouldSucceed bool
 	}{
-		{"Basic", "https://api.myCluster.url:443/cluster", "https://metrics.myCluster.url", "newkubeclient-withport", true},
-		{"Bad URL", "https://myCluster.url:443/cluster", "", "newkubeclient-badurl", false},
+		{"Basic", "https://api.myCluster.url:443/cluster", "https://metrics.myCluster.url", true},
+		{"Bad URL", "https://myCluster.url:443/cluster", "", false},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
-			require.NoError(t, err, "Failed to open cassette")
-			defer r.Stop()
-
 			fixture := &testFixture{}
 			config := &kubernetes.KubeClientConfig{
 				BaseURLProvider: getDefaultURLProvider(testCase.clusterURL, token),
 				UserNamespace:   "myNamespace",
 				MetricsGetter:   fixture,
-				Transport:       r.Transport,
 			}
 			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldSucceed {
@@ -242,12 +236,8 @@ var _ kubernetes.MetricsGetter = &testFixture{}
 var _ kubernetes.MetricsGetter = (*testFixture)(nil)
 
 func TestClose(t *testing.T) {
-	r, err := recorder.New(pathToTestJSON + "newkubeclient")
-	require.NoError(t, err, "Failed to open cassette")
-	defer r.Stop()
-
 	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, r.Transport, t)
+	kc := getDefaultKubeClient(fixture, nil, t)
 
 	mm, err := kc.GetMetricsClient("myNamespace")
 	require.NoError(t, err)
@@ -257,75 +247,6 @@ func TestClose(t *testing.T) {
 	kc.Close()
 
 	require.True(t, fixture.metrics.closed, "Metrics client not closed")
-}
-
-func TestConfigMapEnvironments(t *testing.T) {
-	testCases := []struct {
-		name         string
-		cassetteName string
-		shouldFail   bool
-		// Checks if error is expected kind
-		errorChecker func(error) (bool, error)
-	}{
-		{
-			name:         "Basic",
-			cassetteName: "newkubeclient",
-		},
-		{
-			name:         "Empty Data",
-			cassetteName: "newkubeclient-empty",
-		},
-		{
-			name:         "Missing Colon",
-			cassetteName: "newkubeclient-nocolon",
-			shouldFail:   true,
-		},
-		{
-			name:         "Missing Namespace",
-			cassetteName: "newkubeclient-nonamespace",
-			shouldFail:   true,
-		},
-		{
-			name:         "No Provider",
-			cassetteName: "newkubeclient-noprovider",
-			shouldFail:   true,
-		},
-		{
-			name:         "Kubernetes Error",
-			cassetteName: "newkubeclient-statuserror",
-			shouldFail:   true,
-			errorChecker: errors.IsNotFoundError,
-		},
-	}
-	fixture := &testFixture{}
-	userNamespace := "myNamespace"
-	config := &kubernetes.KubeClientConfig{
-		BaseURLProvider: getDefaultURLProvider("http://api.myCluster", "myToken"),
-		UserNamespace:   userNamespace,
-		MetricsGetter:   fixture,
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
-			require.NoError(t, err, "Failed to open cassette")
-			defer r.Stop()
-
-			config.Transport = r.Transport
-
-			kc, err := kubernetes.NewKubeClient(config)
-			if testCase.shouldFail {
-				require.Error(t, err, "Expected an error")
-				if testCase.errorChecker != nil {
-					matches, _ := testCase.errorChecker(err)
-					require.True(t, matches, "Error or cause must be the expected type")
-				}
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, kc, "KubeClient must not be nil")
-			}
-		})
-	}
 }
 
 type envTestData struct {
@@ -1550,6 +1471,14 @@ func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
 	}
 	mu := metricsURL.String()
 	return &mu, nil
+}
+
+func (up *testURLProvider) GetEnvironmentMapping() map[string]string {
+	return map[string]string{
+		"test":  "myNamespace",
+		"run":   "my-run",
+		"stage": "my-stage",
+	}
 }
 
 func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
