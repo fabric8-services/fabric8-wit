@@ -2,7 +2,6 @@ package comment_test
 
 import (
 	"context"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/comment"
@@ -10,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -98,7 +98,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreChildCommentRevisions() {
 	c := *fxt.Comments[1]
 	c.Body = "Updated body"
 	c.Markup = rendering.SystemMarkupPlainText
-	c.ParentCommentID = id.NullUUID{
+	c.ParentCommentID = uuid.NullUUID{
 		UUID:  parentCommentID,
 		Valid: true,
 	}

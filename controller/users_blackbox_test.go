@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
@@ -272,7 +271,7 @@ func (s *TestUsersSuite) createRandomIdentityObject(user account.User, providerT
 		ProviderType: providerType,
 		ProfileURL:   &profile,
 		User:         user,
-		UserID:       id.NullUUID{UUID: user.ID, Valid: true},
+		UserID:       uuid.NullUUID{UUID: user.ID, Valid: true},
 	}
 	return identity
 }
@@ -284,7 +283,7 @@ func (s *TestUsersSuite) createRandomIdentity(user account.User, providerType st
 		ProviderType: providerType,
 		ProfileURL:   &profile,
 		User:         user,
-		UserID:       id.NullUUID{UUID: user.ID, Valid: true},
+		UserID:       uuid.NullUUID{UUID: user.ID, Valid: true},
 	}
 	err := s.identityRepo.Create(context.Background(), &identity)
 	require.NoError(s.T(), err)

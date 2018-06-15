@@ -1,13 +1,13 @@
 package controller_test
 
 import (
-	"github.com/fabric8-services/fabric8-wit/id"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"html"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/fabric8-services/fabric8-wit/ptr"
 
 	"context"
 
@@ -223,7 +223,7 @@ func (rest *TestCommentREST) setupCommentsWithParentComments() (workitem.WorkIte
 		return nil
 	})
 	// create the childs
-	parentCommentID := id.NullUUID{
+	parentCommentID := uuid.NullUUID{
 		UUID:  comments[0].ID,
 		Valid: true,
 	}

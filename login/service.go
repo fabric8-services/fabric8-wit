@@ -11,7 +11,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
 	"github.com/fabric8-services/fabric8-wit/token"
@@ -96,7 +95,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 
 			identity.ID = keycloakIdentityID
 			identity.ProviderType = account.KeycloakIDP
-			identity.UserID = id.NullUUID{UUID: user.ID, Valid: true}
+			identity.UserID = uuid.NullUUID{UUID: user.ID, Valid: true}
 			identity.User = *user
 
 			err = appl.Identities().Create(ctx, identity)

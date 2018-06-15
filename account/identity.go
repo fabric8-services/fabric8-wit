@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
 
 	"github.com/goadesign/goa"
@@ -40,7 +39,7 @@ type Identity struct {
 	// the URL of the profile on the remote work item service
 	ProfileURL *string `gorm:"column:profile_url"`
 	// Link to User
-	UserID id.NullUUID `sql:"type:uuid"`
+	UserID uuid.NullUUID `sql:"type:uuid"`
 	User   User
 }
 

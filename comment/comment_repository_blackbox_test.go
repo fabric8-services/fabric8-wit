@@ -7,7 +7,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -59,7 +58,7 @@ func (s *TestCommentRepository) TestCreateCommentWithParentComment() {
 	s.repo.Create(s.Ctx, parentComment, fxt.Identities[0].ID)
 	// child comments
 	childComment := newComment(uuid.NewV4(), "Test Child A", rendering.SystemMarkupMarkdown)
-	childComment.ParentCommentID = id.NullUUID{
+	childComment.ParentCommentID = uuid.NullUUID{
 		UUID:  parentComment.ID,
 		Valid: true,
 	}
