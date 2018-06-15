@@ -154,9 +154,9 @@ function deploy() {
   make docker-image-deploy
 
   if [ "$TARGET" = "rhel" ]; then
-    image_url="${registry}/openshiftio/rhel-fabric8-services/fabric8-wit"
+    image_url="${registry}/openshiftio/rhel-fabric8-services-fabric8-wit"
   else
-    image_url="${registry}/openshiftio/fabric8-services/fabric8-wit"
+    image_url="${registry}/openshiftio/fabric8-services-fabric8-wit"
   fi
 
   tag_push "${image_url}:${tag}"
