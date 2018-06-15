@@ -1,4 +1,4 @@
-FROM prod.registry.devshift.net/osio-prod/base/pcp:latest
+FROM quay.io/openshiftio/rhel-base-pcp:latest
 LABEL maintainer "Devtools <devtools@redhat.com>"
 LABEL author "Devtools <devtools@redhat.com>"
 
