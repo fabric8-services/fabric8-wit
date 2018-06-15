@@ -123,6 +123,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	}
 	err = test.trackerRepo.Create(ctx, &tracker2)
 	query, err = test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
+	require.NoError(t, err)
 	query2, err := test.queryRepo.Load(ctx, query.ID)
 	require.NoError(t, err)
 	assert.Equal(t, query, query2)
@@ -164,6 +165,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	}
 	err = test.trackerRepo.Create(ctx, &tracker)
 	tq, _ := test.queryRepo.Create(ctx, "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker.ID, space.SystemSpace)
+	require.NotNil(t, tq)
 	err = test.queryRepo.Delete(ctx, tq.ID)
 	require.NoError(t, err)
 
@@ -207,5 +209,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	trackerqueries2, _ := test.queryRepo.List(ctx)
 	assert.Equal(t, len(trackerqueries1)+4, len(trackerqueries2))
 	trackerqueries3, _ := test.queryRepo.List(ctx)
+	require.True(t, len(trackerqueries3) >= 2)
+	require.True(t, len(trackerqueries2) >= 2)
 	assert.Equal(t, trackerqueries2[1], trackerqueries3[1])
 }

@@ -7,19 +7,16 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -49,55 +46,45 @@ func (rest *TestPlannerBacklogBlackboxREST) UnSecuredController() (*goa.Service,
 }
 
 func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration *iteration.Iteration, createdWI *workitem.WorkItem) {
-	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
-		spacesRepo := app.Spaces()
-		testSpace = &space.Space{
-			Name: "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
-		}
-		_, err := spacesRepo.Create(rest.Ctx, testSpace)
-		require.NoError(rest.T(), err)
-		require.NotNil(rest.T(), testSpace.ID)
-		log.Info(nil, map[string]interface{}{"space_id": testSpace.ID}, "created space")
-		workitemTypesRepo := app.WorkItemTypes()
-		workitemType, err := workitemTypesRepo.Create(rest.Ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-		require.NoError(rest.T(), err)
-		log.Info(nil, map[string]interface{}{"wit_id": workitemType.ID}, "created workitem type")
-
-		iterationsRepo := app.Iterations()
-		parentIteration = &iteration.Iteration{
-			Name:    "Parent Iteration",
-			SpaceID: testSpace.ID,
-			State:   iteration.StateNew,
-		}
-		iterationsRepo.Create(rest.Ctx, parentIteration)
-		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
-
-		childIteration := &iteration.Iteration{
-			Name:    "Child Iteration",
-			SpaceID: testSpace.ID,
-			Path:    append(parentIteration.Path, parentIteration.ID),
-			State:   iteration.StateStart,
-		}
-		iterationsRepo.Create(rest.Ctx, childIteration)
-		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")
-
-		fields := map[string]interface{}{
-			workitem.SystemTitle:     "parentIteration Test",
-			workitem.SystemState:     "new",
-			workitem.SystemIteration: parentIteration.ID.String(),
-		}
-		app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields, rest.testIdentity.ID)
-
-		fields2 := map[string]interface{}{
-			workitem.SystemTitle:     "childIteration Test",
-			workitem.SystemState:     "closed",
-			workitem.SystemIteration: childIteration.ID.String(),
-		}
-		createdWI, err = app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields2, rest.testIdentity.ID)
-		require.NoError(rest.T(), err)
-		return nil
-	})
-	return
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.Spaces(1),
+		tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+			i := fxt.Iterations[idx]
+			switch idx {
+			case 0:
+				i.Name = "parent"
+				i.State = iteration.StateNew
+			case 1:
+				i.Name = "child"
+				i.Path = append(fxt.Iterations[0].Path, fxt.Iterations[0].ID)
+				i.State = iteration.StateStart
+			}
+			return nil
+		}),
+		tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			switch idx {
+			case 0:
+				wi.Fields[workitem.SystemTitle] = "parentIteration Test"
+				wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("parent").ID.String()
+				// wi.Type = workitem.SystemPlannerItem
+			case 1:
+				wi.Fields[workitem.SystemTitle] = "childIteration Test"
+				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("child").ID.String()
+				// wi.Type = workitem.SystemPlannerItem
+			}
+			return nil
+		}),
+	)
+	testSpace = fxt.Spaces[0]
+	parentIteration = fxt.IterationByName("parent")
+	createdWI = fxt.WorkItemByTitle("childIteration Test")
+	require.NotNil(rest.T(), testSpace)
+	require.NotNil(rest.T(), parentIteration)
+	require.NotNil(rest.T(), createdWI)
+	return testSpace, parentIteration, createdWI
 }
 
 func assertPlannerBacklogWorkItems(t *testing.T, workitems *app.WorkItemList, testSpace *space.Space, parentIteration *iteration.Iteration) {
@@ -108,7 +95,7 @@ func assertPlannerBacklogWorkItems(t *testing.T, workitems *app.WorkItemList, te
 		assert.Equal(t, "parentIteration Test", workItem.Attributes[workitem.SystemTitle])
 		assert.Equal(t, testSpace.ID.String(), workItem.Relationships.Space.Data.ID.String())
 		assert.Equal(t, "parentIteration Test", workItem.Attributes[workitem.SystemTitle])
-		assert.Equal(t, "new", workItem.Attributes[workitem.SystemState])
+		assert.Equal(t, workitem.SystemStateNew, workItem.Attributes[workitem.SystemState])
 		assert.Equal(t, parentIteration.ID.String(), *workItem.Relationships.Iteration.Data.ID)
 	}
 }
@@ -166,7 +153,11 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 	offset := "0"
 	filter := ""
 	limit := -1
-	ifModifiedSince := app.ToHTTPTime(lastWorkItem.Fields[workitem.SystemUpdatedAt].(time.Time))
+	updatedAt, ok := lastWorkItem.Fields[workitem.SystemUpdatedAt]
+	require.True(rest.T(), ok)
+	updatedAtTime, ok := updatedAt.(time.Time)
+	require.True(rest.T(), ok)
+	ifModifiedSince := app.ToHTTPTime(updatedAtTime)
 	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)
@@ -188,41 +179,24 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 }
 
 func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWorkItems() {
-	var spaceID uuid.UUID
-	var parentIteration *iteration.Iteration
-	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
-		iterationsRepo := app.Iterations()
-		newSpace := space.Space{
-			Name: "TestSuccessEmptyListPlannerBacklogWorkItems" + uuid.NewV4().String(),
-		}
-		p, err := app.Spaces().Create(rest.Ctx, &newSpace)
-		if err != nil {
-			rest.T().Error(err)
-		}
-		spaceID = p.ID
-		parentIteration = &iteration.Iteration{
-			Name:    "Parent Iteration",
-			SpaceID: spaceID,
-			State:   iteration.StateNew,
-		}
-		iterationsRepo.Create(rest.Ctx, parentIteration)
-
-		fields := map[string]interface{}{
-			workitem.SystemTitle:     "parentIteration Test",
-			workitem.SystemState:     "new",
-			workitem.SystemIteration: parentIteration.ID.String(),
-		}
-		app.WorkItems().Create(rest.Ctx, spaceID, workitem.SystemPlannerItem, fields, rest.testIdentity.ID)
-
-		return nil
-	})
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Iterations(2),
+		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			wi.Fields[workitem.SystemTitle] = "parentIteration Test"
+			wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+			wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+			return nil
+		}),
+	)
 
 	svc, ctrl := rest.UnSecuredController()
 
 	offset := "0"
 	filter := ""
 	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, spaceID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, fxt.Spaces[0].ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// The list has to be empty
 	assert.Len(rest.T(), workitems.Data, 0)
 }

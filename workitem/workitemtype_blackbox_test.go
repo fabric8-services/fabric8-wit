@@ -10,6 +10,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
@@ -83,11 +84,10 @@ func TestMarshalEnumType(t *testing.T) {
 		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", parsedWIT, expectedWIT)
 	}
 }
-
 func TestWorkItemType_Equal(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-
+	// given
 	fd := workitem.FieldDefinition{
 		Type: workitem.EnumType{
 			SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
@@ -95,89 +95,140 @@ func TestWorkItemType_Equal(t *testing.T) {
 		},
 		Required: true,
 	}
-
 	desc := "some description"
 	a := workitem.WorkItemType{
-		Name:        "foo",
-		Description: &desc,
-		Icon:        "fa-bug",
+		SpaceTemplateID: uuid.NewV4(),
+		Name:            "foo",
+		Description:     &desc,
+		Icon:            "fa-bug",
 		Fields: map[string]workitem.FieldDefinition{
 			"aListType": fd,
 		},
+		ChildTypeIDs: []uuid.UUID{uuid.NewV4(), uuid.NewV4()},
+		CanConstruct: false,
 	}
-
-	// Test types
-	b := convert.DummyEqualer{}
-	assert.False(t, a.Equal(b))
-
-	// Test lifecycle
-	c := a
-	c.Lifecycle = gormsupport.Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
-	assert.False(t, a.Equal(c))
-
-	// Test version
-	d := a
-	d.Version += 1
-	assert.False(t, a.Equal(d))
-
-	// Test name
-	e := a
-	e.Name = "bar"
-	assert.False(t, a.Equal(e))
-
-	// Test parent path
-	f := a
-	f.Path = "foobar"
-	assert.False(t, a.Equal(f))
-
-	// Test field array length
-	g := a
-	g.Fields = map[string]workitem.FieldDefinition{}
-	assert.False(t, a.Equal(g))
-
-	// Test field key existence
-	h := workitem.WorkItemType{
-		Name: "foo",
-		Fields: map[string]workitem.FieldDefinition{
-			"bar": fd,
-		},
-	}
-	assert.False(t, a.Equal(h))
-
-	// Test field difference
-	i := workitem.WorkItemType{
-		Name:        "foo",
-		Description: &desc,
-		Fields: map[string]workitem.FieldDefinition{
-			"aListType": {
-				Type: workitem.EnumType{
-					SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
-					Values:     []interface{}{"open", "done", "closed"},
-				},
-				Required: false,
+	t.Run("equality", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		assert.True(t, a.Equal(b))
+	})
+	t.Run("space template ID", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.SpaceTemplateID = uuid.NewV4()
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("type", func(t *testing.T) {
+		t.Parallel()
+		b := convert.DummyEqualer{}
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("lifecycle", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Lifecycle = gormsupport.Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("version", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Version += 1
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("name", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Name = "bar"
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("extends", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Extends = uuid.NewV4()
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("parent path", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Path = "foobar"
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("ChildTypeIDs", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		// different IDs
+		b.ChildTypeIDs = []uuid.UUID{uuid.NewV4(), uuid.NewV4()}
+		assert.False(t, a.Equal(b))
+		// different length
+		b.ChildTypeIDs = []uuid.UUID{uuid.NewV4(), uuid.NewV4(), uuid.NewV4()}
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("field array length", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Fields = map[string]workitem.FieldDefinition{}
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("field key existence", func(t *testing.T) {
+		t.Parallel()
+		b := workitem.WorkItemType{
+			Name: "foo",
+			Fields: map[string]workitem.FieldDefinition{
+				"bar": fd,
 			},
-		},
-	}
-	assert.False(t, a.Equal(i))
-
-	// Test description
-	j := a
-	otherDesc := "some other description"
-	j.Description = &otherDesc
-	assert.False(t, a.Equal(j))
-
-	// Test icon
-	j = a
-	j.Icon = "fa-cog"
-	assert.False(t, a.Equal(j))
+		}
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("field difference", func(t *testing.T) {
+		t.Parallel()
+		b := workitem.WorkItemType{
+			Name:        "foo",
+			Description: &desc,
+			Fields: map[string]workitem.FieldDefinition{
+				"aListType": {
+					Type: workitem.EnumType{
+						SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+						Values:     []interface{}{"open", "done", "closed"},
+					},
+					Required: false,
+				},
+			},
+		}
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("description", func(t *testing.T) {
+		t.Parallel()
+		t.Run("different value", func(t *testing.T) {
+			b := a
+			b.Description = ptr.String("some other description")
+			assert.False(t, a.Equal(b))
+		})
+		t.Run("different pointer but same value", func(t *testing.T) {
+			b := a
+			desc2 := desc
+			b.Description = &desc2
+			assert.True(t, a.Equal(b))
+		})
+	})
+	t.Run("icon", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Icon = "fa-cog"
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("can construct", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.CanConstruct = true
+		assert.False(t, a.Equal(b))
+	})
 }
-
 func TestMarshalFieldDef(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	et := workitem.EnumType{
-		SimpleType: workitem.SimpleType{workitem.KindEnum},
+		SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
 		Values:     []interface{}{"open", "done", "closed"},
 	}
 	expectedFieldDef := workitem.FieldDefinition{

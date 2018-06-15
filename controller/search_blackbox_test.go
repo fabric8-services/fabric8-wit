@@ -12,8 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/ptr"
-
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -22,8 +20,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
-	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/models"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -35,7 +32,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,10 +56,6 @@ type searchControllerTestSuite struct {
 
 func (s *searchControllerTestSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-		return migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
-	})
-	require.NoError(s.T(), err)
 	s.testDir = filepath.Join("test-files", "search")
 	s.db = gormapplication.NewGormDB(s.DB)
 	// create a test identity
@@ -95,6 +87,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItems() {
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
 	assert.Equal(s.T(), q, r.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), fxt.WorkItems[0].Number, r.Attributes[workitem.SystemNumber])
 }
 
 func (s *searchControllerTestSuite) TestSearchPagination() {
@@ -361,29 +354,39 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {
 
 func (s *searchControllerTestSuite) TestSearchWorkItemsWithoutSpaceContext() {
 	// given 2 spaces with 10 workitems in the first and 5 in the second space
-	_ = tf.NewTestFixture(s.T(), s.DB,
-		tf.Identities(1, tf.SetIdentityUsernames("pranav")),
+	// random title used in work items
+	searchByMe := uuid.NewV4().String()
+	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.Spaces(2),
 		tf.WorkItems(10+5, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
-			wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("pranav").ID.String()
 			wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 			if idx < 10 {
 				wi.SpaceID = fxt.Spaces[0].ID
-				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("search_by_me common_word random - ")
+				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName(searchByMe + " common_word random - ")
 			} else {
 				wi.SpaceID = fxt.Spaces[1].ID
-				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("search_by_me common_word random - ")
+				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName(searchByMe + " common_word random - ")
 			}
 			return nil
 		}),
 	)
 
-	q := "search_by_me"
-	// search without space context
+	q := searchByMe
+	// when search without space context
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, nil)
+	// then
 	require.NotEmpty(s.T(), sr.Data)
-	assert.Len(s.T(), sr.Data, 15)
+	toBeFound := id.Map{}
+	for _, wi := range fxt.WorkItems {
+		toBeFound[wi.ID] = struct{}{}
+	}
+	for _, wi := range sr.Data {
+		_, ok := toBeFound[*wi.ID]
+		assert.True(s.T(), ok, "found unexpected work item: %s", wi.Attributes[workitem.SystemTitle])
+		delete(toBeFound, *wi.ID)
+	}
+	require.Empty(s.T(), toBeFound, "failed to find these work items: %s", toBeFound)
 }
 
 func (s *searchControllerTestSuite) TestSearchFilter() {
@@ -405,143 +408,176 @@ func (s *searchControllerTestSuite) TestSearchFilter() {
 }
 
 func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
-	for _, paramName := range []string{search.WITGROUP, search.TypeGroupName} {
-		s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
-			svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
-			workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-			// given work items of different types and in different states
-			type testWI struct {
-				Title          string
-				WorkItemTypeID uuid.UUID
-				State          string
-				SpaceID        uuid.UUID
-			}
-			testWIs := []testWI{
-				{"closed feature", workitem.SystemFeature, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-				{"open feature", workitem.SystemFeature, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-				{"closed bug", workitem.SystemBug, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-				{"open bug", workitem.SystemBug, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-				{"open experience", workitem.SystemExperience, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-				{"closed experience", workitem.SystemExperience, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-				{"open task", workitem.SystemTask, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-				{"closed task", workitem.SystemTask, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-				{"open scenario", workitem.SystemScenario, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-				{"closed scenario", workitem.SystemScenario, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-				{"open fundamental", workitem.SystemFundamental, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-				{"closed fundamental", workitem.SystemFundamental, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-			}
-			for _, wi := range testWIs {
-				payload := minimumRequiredCreateWithTypeAndSpace(wi.WorkItemTypeID, wi.SpaceID)
-				payload.Data.Attributes[workitem.SystemTitle] = wi.Title
-				payload.Data.Attributes[workitem.SystemState] = wi.State
-				_, _ = test.CreateWorkitemsCreated(t, svc.Context, svc, workitemsCtrl, wi.SpaceID, &payload)
-			}
-
-			// helper function that checks if the given to be found work item titles
-			// exist in the result list that originate from a search query.
-			checkToBeFound := func(t *testing.T, toBeFound map[string]struct{}, results []*app.WorkItem) {
-				require.Len(t, results, len(toBeFound))
-				for _, wi := range results {
-					title, ok := wi.Attributes[workitem.SystemTitle].(string)
-					require.True(t, ok)
-					_, ok = toBeFound[title]
-					if ok {
-						delete(toBeFound, title)
+	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			// TODO(kwk): Decide if these type groups should go to CreateWorkItemEnvironment()
+			tf.WorkItemTypeGroups(4, func(fxt *tf.TestFixture, idx int) error {
+				witg := fxt.WorkItemTypeGroups[idx]
+				switch idx {
+				case 0:
+					witg.Name = "Scenarios"
+					witg.TypeList = []uuid.UUID{
+						workitem.SystemScenario,
+						workitem.SystemFundamental,
+						workitem.SystemPapercuts,
+					}
+				case 1:
+					witg.Name = "Experiences"
+					witg.TypeList = []uuid.UUID{
+						workitem.SystemExperience,
+						workitem.SystemValueProposition,
+					}
+				case 2:
+					witg.Name = "Requirements"
+					witg.TypeList = []uuid.UUID{
+						workitem.SystemFeature,
+						workitem.SystemBug,
+					}
+				case 3:
+					witg.Name = "Execution"
+					witg.TypeList = []uuid.UUID{
+						workitem.SystemTask,
+						workitem.SystemBug,
+						workitem.SystemFeature,
 					}
 				}
-				require.Empty(t, toBeFound, "not all work items could be found: %+v", toBeFound)
-			}
+				return nil
+			}),
+		)
+		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
+		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		// given work items of different types and in different states
+		type testWI struct {
+			Title          string
+			WorkItemTypeID uuid.UUID
+			State          string
+			SpaceID        uuid.UUID
+		}
+		testWIs := []testWI{
+			{"closed feature", workitem.SystemFeature, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"open feature", workitem.SystemFeature, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"closed bug", workitem.SystemBug, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"open bug", workitem.SystemBug, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"open experience", workitem.SystemExperience, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"closed experience", workitem.SystemExperience, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"open task", workitem.SystemTask, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"closed task", workitem.SystemTask, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"open scenario", workitem.SystemScenario, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"closed scenario", workitem.SystemScenario, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"open fundamental", workitem.SystemFundamental, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"closed fundamental", workitem.SystemFundamental, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+		}
+		for _, wi := range testWIs {
+			payload := minimumRequiredCreateWithTypeAndSpace(wi.WorkItemTypeID, wi.SpaceID)
+			payload.Data.Attributes[workitem.SystemTitle] = wi.Title
+			payload.Data.Attributes[workitem.SystemState] = wi.State
+			_, _ = test.CreateWorkitemsCreated(t, svc.Context, svc, workitemsCtrl, wi.SpaceID, &payload)
+		}
 
+		// helper function that checks if the given to be found work item titles
+		// exist in the result list that originate from a search query.
+		checkToBeFound := func(t *testing.T, toBeFound map[string]struct{}, results []*app.WorkItem) {
+			require.Len(t, results, len(toBeFound))
+			for _, wi := range results {
+				title, ok := wi.Attributes[workitem.SystemTitle].(string)
+				require.True(t, ok)
+				_, ok = toBeFound[title]
+				if ok {
+					delete(toBeFound, title)
+				}
+			}
+			require.Empty(t, toBeFound, "not all work items could be found: %+v", toBeFound)
+		}
+
+		// when
+		t.Run("Scenarios", func(t *testing.T) {
+			// given
+			filter := fmt.Sprintf(`
+			{"$AND": [
+				{"`+search.TypeGroupName+`": "Scenarios"},
+				{"space": "%s"}
+			]}`, fxt.Spaces[0].ID)
 			// when
-			t.Run("Scenarios", func(t *testing.T) {
-				// given
-				filter := fmt.Sprintf(`
-				{"$AND": [
-					{"`+paramName+`": "Scenarios"},
-					{"space": "%s"}
-				]}`, fxt.Spaces[0].ID)
-				// when
-				_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
-				// then
-				toBeFound := map[string]struct{}{
-					"open scenario":      {},
-					"closed scenario":    {},
-					"open fundamental":   {},
-					"closed fundamental": {},
-				}
-				checkToBeFound(t, toBeFound, sr.Data)
-			})
-			t.Run("Experiences", func(t *testing.T) {
-				// given
-				filter := fmt.Sprintf(`
-				{"$AND": [
-					{"`+paramName+`": "Experiences"},
-					{"space": "%s"}
-				]}`, fxt.Spaces[0].ID)
-				// when
-				_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
-				// then
-				toBeFound := map[string]struct{}{
-					"open experience":   {},
-					"closed experience": {},
-				}
-				checkToBeFound(t, toBeFound, sr.Data)
-			})
-			t.Run("Requirements", func(t *testing.T) {
-				// given
-				filter := fmt.Sprintf(`
-				{"$AND": [
-					{"`+paramName+`": "Requirements"},
-					{"space": "%s"}
-				]}`, fxt.Spaces[0].ID)
-				// when
-				_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
-				// then
-				toBeFound := map[string]struct{}{
-					"open feature":   {},
-					"closed feature": {},
-					"open bug":       {},
-					"closed bug":     {},
-				}
-				checkToBeFound(t, toBeFound, sr.Data)
-			})
-			t.Run("Execution", func(t *testing.T) {
-				// given
-				filter := fmt.Sprintf(`
-				{"$AND": [
-					{"`+paramName+`": "Execution"},
-					{"space": "%s"}
-				]}`, fxt.Spaces[0].ID)
-				// when
-				_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
-				// then
-				toBeFound := map[string]struct{}{
-					"open task":      {},
-					"closed task":    {},
-					"open bug":       {},
-					"closed bug":     {},
-					"open feature":   {},
-					"closed feature": {},
-				}
-				checkToBeFound(t, toBeFound, sr.Data)
-			})
+			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			toBeFound := map[string]struct{}{
+				"open scenario":      {},
+				"closed scenario":    {},
+				"open fundamental":   {},
+				"closed fundamental": {},
+			}
+			checkToBeFound(t, toBeFound, sr.Data)
 		})
-		s.T().Run(http.StatusText(http.StatusBadRequest), func(t *testing.T) {
-			t.Run("unknown hierarchy", func(t *testing.T) {
-				// given
-				fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
-				filter := fmt.Sprintf(`
-				{"$AND": [
-					{"`+paramName+`": "%s"},
-					{"space": "%s"}
-				]}`, "unknown work item type group", fxt.Spaces[0].ID)
-				// when
-				_, _ = test.ShowSearchBadRequest(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
-			})
+		t.Run("Experiences", func(t *testing.T) {
+			// given
+			filter := fmt.Sprintf(`
+			{"$AND": [
+				{"`+search.TypeGroupName+`": "Experiences"},
+				{"space": "%s"}
+			]}`, fxt.Spaces[0].ID)
+			// when
+			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			toBeFound := map[string]struct{}{
+				"open experience":   {},
+				"closed experience": {},
+			}
+			checkToBeFound(t, toBeFound, sr.Data)
 		})
-	}
+		t.Run("Requirements", func(t *testing.T) {
+			// given
+			filter := fmt.Sprintf(`
+			{"$AND": [
+				{"`+search.TypeGroupName+`": "Requirements"},
+				{"space": "%s"}
+			]}`, fxt.Spaces[0].ID)
+			// when
+			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			toBeFound := map[string]struct{}{
+				"open feature":   {},
+				"closed feature": {},
+				"open bug":       {},
+				"closed bug":     {},
+			}
+			checkToBeFound(t, toBeFound, sr.Data)
+		})
+		t.Run("Execution", func(t *testing.T) {
+			// given
+			filter := fmt.Sprintf(`
+			{"$AND": [
+				{"`+search.TypeGroupName+`": "Execution"},
+				{"space": "%s"}
+			]}`, fxt.Spaces[0].ID)
+			// when
+			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			toBeFound := map[string]struct{}{
+				"open task":      {},
+				"closed task":    {},
+				"open bug":       {},
+				"closed bug":     {},
+				"open feature":   {},
+				"closed feature": {},
+			}
+			checkToBeFound(t, toBeFound, sr.Data)
+		})
+		t.Run("unknown hierarchy", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
+			filter := fmt.Sprintf(`
+			{"$AND": [
+				{"`+search.TypeGroupName+`": "%s"},
+				{"space": "%s"}
+			]}`, "unknown work item type group", fxt.Spaces[0].ID)
+			// when
+			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			require.Empty(t, sr.Data)
+		})
+	})
 }
 
 // It creates 1 space
@@ -808,7 +844,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 				]}`,
 			spaceIDStr, workitem.SystemStateOpen, fakeIterationID)
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-		assert.Empty(t, result.Data) // all items are other than open state & in other thatn fake itr
+		assert.Empty(t, result.Data)
 	})
 
 	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID) using NE", func(t *testing.T) {

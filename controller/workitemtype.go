@@ -9,33 +9,26 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 )
-
-const (
-	sourceLinkTypesRouteEnd = "/source-link-types"
-	targetLinkTypesRouteEnd = "/target-link-types"
-)
-
-const APIWorkItemTypes = "workitemtypes"
 
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
 	*goa.Controller
 	db     application.DB
-	config WorkItemControllerConfiguration
+	config workItemTypeControllerConfiguration
 }
 
-type WorkItemControllerConfiguration interface {
+type workItemTypeControllerConfiguration interface {
 	GetCacheControlWorkItemTypes() string
 	GetCacheControlWorkItemType() string
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
-func NewWorkitemtypeController(service *goa.Service, db application.DB, config WorkItemControllerConfiguration) *WorkitemtypeController {
+func NewWorkitemtypeController(service *goa.Service, db application.DB, config workItemTypeControllerConfiguration) *WorkitemtypeController {
 	return &WorkitemtypeController{
 		Controller: service.NewController("WorkitemtypeController"),
 		db:         db,
@@ -64,21 +57,25 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 
 // ConvertWorkItemTypeFromModel converts from models to app representation
 func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemType) app.WorkItemTypeData {
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
+	spaceTemplateRelatedURL := rest.AbsoluteURL(request, app.SpaceTemplateHref(t.SpaceTemplateID.String()))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(space.SystemSpace.String()))
 	var converted = app.WorkItemTypeData{
-		Type: "workitemtypes",
+		Type: APIStringTypeWorkItemType,
 		ID:   ptr.UUID(t.ID),
 		Attributes: &app.WorkItemTypeAttributes{
-			CreatedAt:   ptr.Time(t.CreatedAt.UTC()),
-			UpdatedAt:   ptr.Time(t.UpdatedAt.UTC()),
-			Version:     &t.Version,
-			Description: t.Description,
-			Icon:        t.Icon,
-			Name:        t.Name,
-			Fields:      map[string]*app.FieldDefinition{},
+			CreatedAt:    ptr.Time(t.CreatedAt.UTC()),
+			UpdatedAt:    ptr.Time(t.UpdatedAt.UTC()),
+			Version:      &t.Version,
+			Description:  t.Description,
+			Icon:         t.Icon,
+			Name:         t.Name,
+			Fields:       map[string]*app.FieldDefinition{},
+			CanConstruct: ptr.Bool(t.CanConstruct),
 		},
 		Relationships: &app.WorkItemTypeRelationships{
-			Space: app.NewSpaceRelation(t.SpaceID, spaceSelfURL),
+			// TODO(kwk): The Space relationship should be deprecated after clients adopted
+			Space:         app.NewSpaceRelation(space.SystemSpace, spaceRelatedURL),
+			SpaceTemplate: app.NewSpaceTemplateRelation(t.SpaceTemplateID, spaceTemplateRelatedURL),
 		},
 	}
 	for name, def := range t.Fields {
@@ -90,31 +87,16 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 			Type:        &ct,
 		}
 	}
-	// TODO(kwk): Replaces this temporary static hack with a more dynamic solution
-	getGuidedChildTypes := func(witIDs ...uuid.UUID) *app.RelationGenericList {
-		res := &app.RelationGenericList{
-			Data: make([]*app.GenericData, len(witIDs)),
+	if len(t.ChildTypeIDs) > 0 {
+		converted.Relationships.GuidedChildTypes = &app.RelationGenericList{
+			Data: make([]*app.GenericData, len(t.ChildTypeIDs)),
 		}
-		for i, id := range witIDs {
-			res.Data[i] = &app.GenericData{
+		for i, id := range t.ChildTypeIDs {
+			converted.Relationships.GuidedChildTypes.Data[i] = &app.GenericData{
 				ID:   ptr.String(id.String()),
-				Type: ptr.String(APIWorkItemTypes),
-				// Links: &app.GenericLinks{
-				// 	Related: strPtr(rest.AbsoluteURL(request, app.WorkitemtypeHref(t.SpaceID, id.String()))),
-				// },
+				Type: ptr.String(APIStringTypeWorkItemType),
 			}
 		}
-		return res
-	}
-	switch t.ID {
-	case workitem.SystemScenario, workitem.SystemFundamental, workitem.SystemPapercuts:
-		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemExperience, workitem.SystemValueProposition)
-	case workitem.SystemExperience, workitem.SystemValueProposition:
-		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemFeature, workitem.SystemBug)
-	case workitem.SystemFeature:
-		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask, workitem.SystemBug)
-	case workitem.SystemBug:
-		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask)
 	}
 	return converted
 }
@@ -166,7 +148,7 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		return workitem.EnumType{
+		return workitem.EnumType{ // TODO(kwk): handle RewritableValues here?
 			SimpleType: workitem.SimpleType{
 				Kind: *kind,
 			},

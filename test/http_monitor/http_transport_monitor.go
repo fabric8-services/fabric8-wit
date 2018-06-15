@@ -8,7 +8,7 @@ import (
 )
 
 // TransportMonitor is a wrapper around the HTTP client's transport
-// It collects usage stats of the request/responses, to be able to verify what how the HTTP client was actually used.
+// It collects usage stats of the request/responses, to be able to verify how the HTTP client was actually used.
 type TransportMonitor struct {
 	transport http.RoundTripper
 	Exchanges []Exchange

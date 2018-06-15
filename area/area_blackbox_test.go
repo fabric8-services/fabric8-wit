@@ -6,13 +6,12 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/area"
-	errs "github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
-
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,7 +46,7 @@ func (s *TestAreaRepository) TestCreateAreaWithSameNameFail() {
 	// then
 	require.Error(s.T(), err)
 	// In case of unique constrain error, a DataConflictError is returned.
-	_, ok := errors.Cause(err).(errs.DataConflictError)
+	_, ok := errs.Cause(err).(errors.DataConflictError)
 	assert.True(s.T(), ok)
 }
 
@@ -87,7 +86,7 @@ func (s *TestAreaRepository) TestExistsArea() {
 		// when
 		err := repo.CheckExists(context.Background(), uuid.NewV4())
 		// then
-		require.IsType(t, errs.NotFoundError{}, err)
+		require.IsType(t, errors.NotFoundError{}, err)
 	})
 }
 

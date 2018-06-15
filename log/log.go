@@ -158,7 +158,7 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 		}
 
 		if len(args) > 0 {
-			entry.WithFields(fields).Errorf(format, args)
+			entry.WithFields(fields).Errorf(format, args...)
 		} else {
 			entry.WithFields(fields).Errorln(format)
 		}

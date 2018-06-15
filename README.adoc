@@ -39,25 +39,10 @@ $ go version
 See <<fetch-dependencies>> to see an explanaition on how we deal with
 dependencies.
 
-==== Install glide [[glide-setup]]
+==== Install dep [[dep-setup]]
 
-This project uses link:https://glide.sh/[glide] as a package manager for Go.
-
-To install glide, go to the
-link:https://github.com/Masterminds/glide/releases[release page] and download
-the newest binary for your operating system.
-
-Unpack the archive that you've downloaded and place the `glide` executable
-somewhere so that it is in your `PATH`.
-
-To check if everything is working, type `glide --version` in a terminal.
-
-----
-$ glide --version
-glide version v0.11.0
-----
-
-Try to use at least version `0.11.0` as we haven't tested another version.
+This project uses https://github.com/golang/dep[dep] as a package manager for Go.
+Running the `make deps` command will install `dep` in `$GOPATH/bin` if it's not already available on your system.
 
 === Get the code [[get-the-code]]
 
@@ -109,10 +94,9 @@ $ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make deps
 ----
 
-For dependency management of `go` packages we use `glide`.
-The file `glide.yaml` contains all dependencies.
-It is not suggested that you edit the file by hand but if you want to
-understand the format for this file, look link:https://glide.readthedocs.io/en/latest/glide.yaml/[here].
+For dependency management of `go` packages we use https://github.com/golang/dep[`dep`].
+The file `Gopkg.toml` contains all dependencies. If you want to
+understand the format for this file, look link:https://golang.github.io/dep/docs/Gopkg.toml.html[here].
 
 ===== Generate GOA sources [[generate-code]]
 
@@ -376,7 +360,7 @@ You should get Token in response, save this token in your favourite editor as yo
 
 Create a work item type (using above token).
 ----
-./bin/wit-cli create workitemtype --key "<GENERATED TOKEN>" --payload '{"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"Epic"}' -H localhost:8080 --pp
+./bin/wit-cli create workitemtype --key "<GENERATED TOKEN>" --payload '{"fields":{"system.owner":{"type":{"kind":"user"},"required":true},"system.state":{"type":{"kind":"string"},"required":false}},"name":"Epic"}' -H localhost:8080 --pp
 ----
 Note: Work Item Type `Name` is unique. If one tries to create another work item type with same name, error will be trown.
 

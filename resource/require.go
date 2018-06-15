@@ -7,6 +7,7 @@
 package resource
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"testing"
@@ -38,6 +39,22 @@ const (
 // that the unit test resource is always considered to be available unless
 // is is explicitly set to false (e.g. "no", "0", "false").
 func Require(t testing.TB, envVars ...string) {
+	skipReason := checkEnvVars(envVars...)
+	if skipReason != nil {
+		t.Skip(*skipReason)
+	}
+}
+
+// IsGiven works just like Require but instead of skipping the test the return
+// value of this function is just false.
+func IsGiven(envVars ...string) bool {
+	return checkEnvVars(envVars...) == nil
+}
+
+// checkEnvVars returns a skip reason if one of the given environment variables
+// cannot be found or evalutes to false.
+func checkEnvVars(envVars ...string) *string {
+	var res string
 	for _, envVar := range envVars {
 		v, isSet := os.LookupEnv(envVar)
 
@@ -50,19 +67,20 @@ func Require(t testing.TB, envVars ...string) {
 
 		// Skip test if environment variable is not set.
 		if !isSet {
-			t.Skipf(StSkipReasonNotSet, envVar)
-			return
+			res = fmt.Sprintf(StSkipReasonNotSet, envVar)
+			return &res
 		}
 		// Try to convert to boolean value
 		isTrue, err := strconv.ParseBool(v)
 		if err != nil {
-			t.Skipf(StSkipReasonParseError, envVar, v)
-			return
+			res = fmt.Sprintf(StSkipReasonParseError, envVar, v)
+			return &res
 		}
 
 		if !isTrue {
-			t.Skipf(StSkipReasonValueFalse, envVar, v)
-			return
+			res = fmt.Sprintf(StSkipReasonValueFalse, envVar, v)
+			return &res
 		}
 	}
+	return nil
 }

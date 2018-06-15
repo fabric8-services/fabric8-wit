@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
         "description": "this work item type was automatically generated",
         "fields": {
@@ -80,7 +81,7 @@
             }
           },
           "system.order": {
-            "description": "Execution Order of the workitem.",
+            "description": "Execution Order of the workitem",
             "label": "Execution Order",
             "required": false,
             "type": {
@@ -144,12 +145,23 @@
             "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
           }
+        },
+        "space_template": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "spacetemplates"
+          },
+          "links": {
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
+          }
         }
       },
       "type": "workitemtypes"
     },
     {
       "attributes": {
+        "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
         "description": "this work item type was automatically generated",
         "fields": {
@@ -228,7 +240,7 @@
             }
           },
           "system.order": {
-            "description": "Execution Order of the workitem.",
+            "description": "Execution Order of the workitem",
             "label": "Execution Order",
             "required": false,
             "type": {
@@ -277,11 +289,11 @@
           }
         },
         "icon": "fa-bug",
-        "name": "work item type 00000000-0000-0000-0000-000000000004",
+        "name": "work item type 00000000-0000-0000-0000-000000000005",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "00000000-0000-0000-0000-000000000005",
+      "id": "00000000-0000-0000-0000-000000000006",
       "relationships": {
         "space": {
           "data": {
@@ -291,6 +303,16 @@
           "links": {
             "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+          }
+        },
+        "space_template": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "spacetemplates"
+          },
+          "links": {
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
           }
         }
       },

@@ -52,6 +52,7 @@ type OpenshiftIOClient interface {
 type OSIOClient struct {
 	wc             WitClient
 	responseReader ResponseReader
+	userServices   *app.UserService
 }
 
 // ensure OSIOClient implements all methods in OpenshiftIOClient
@@ -97,9 +98,14 @@ func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userServic
 // GetUserServices - fetch array of user services
 // In the future, consider calling the tenant service (as /api/user/services implementation does)
 func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserService, error) {
-	resp, err := osioclient.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
+
+	if osioclient.userServices != nil {
+		return osioclient.userServices, nil
+	}
+
+	resp, err := osioclient.wc.ShowUserService(goasupport.ForwardContextRequestID(ctx), witclient.ShowUserServicePath())
 	if err != nil {
-		return nil, errs.Wrapf(err, "could not retrieve uses services")
+		return nil, errs.Wrapf(err, "could not retrieve user's services")
 	}
 
 	respBody, err := osioclient.responseReader.ReadResponse(resp)
@@ -112,7 +118,7 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 			"err":         err,
 			"path":        witclient.ShowUserServicePath(),
 			"http_status": status,
-		}, "failed to user service from WIT service due to HTTP error %d", status)
+		}, "failed to get user service from WIT service due to HTTP error %d", status)
 		return nil, errs.Errorf("failed to GET %s due to status code %d", witclient.ShowUserServicePath(), status)
 	}
 
@@ -126,6 +132,8 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 		}, "unable to unmarshal user service from WIT service")
 		return nil, errs.Wrapf(err, "could not unmarshal user services JSON")
 	}
+
+	osioclient.userServices = respType.Data
 	return respType.Data, nil
 }
 
@@ -133,7 +141,7 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
 	guid := goauuid.UUID(spaceID)
 	urlpath := witclient.ShowSpacePath(guid)
-	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
+	resp, err := osioclient.wc.ShowSpace(goasupport.ForwardContextRequestID(ctx), urlpath, nil, nil)
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)
 	}

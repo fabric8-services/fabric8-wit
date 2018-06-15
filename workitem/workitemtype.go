@@ -13,7 +13,8 @@ import (
 
 // String constants for the local work item types.
 const (
-	// pathSep specifies the symbol used to concatenate WIT names to form a so called "path"
+	// pathSep specifies the symbol used to concatenate WIT names to form a so
+	// called "path"
 	pathSep = "."
 
 	SystemVersion = "version"
@@ -44,7 +45,8 @@ const (
 
 // Never ever change these UUIDs!!!
 var (
-	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
+	// base item type with common fields for planner item types like userstory,
+	// experience, bug, feature, etc.
 	SystemPlannerItem      = uuid.FromStringOrNil("86af5178-9b41-469b-9096-57e5155c3f31") // "planneritem"
 	SystemTask             = uuid.FromStringOrNil("bbf35418-04b6-426c-a60b-7f80beb0b624") // "task"
 	SystemValueProposition = uuid.FromStringOrNil("3194ab60-855b-4155-9005-9dce4a05f1eb") // "valueproposition"
@@ -58,23 +60,52 @@ var (
 
 // WorkItemType represents a work item type as it is stored in the db
 type WorkItemType struct {
-	gormsupport.Lifecycle
-	// ID
-	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	// Name is a human readable name of this work item type
-	Name string
-	// Description is an optional description of the work item type
-	Description *string
-	// The CSS icon class to render an icon for the WIT
-	Icon string
-	// Version for optimistic concurrency control
-	Version int
-	// the IDs of the parents, separated with a dot (".") separator
-	Path string
-	// definitions of the fields this work item type supports
-	Fields FieldDefinitions `sql:"type:jsonb"`
-	// Reference to one Space
-	SpaceID uuid.UUID `sql:"type:uuid"`
+	gormsupport.Lifecycle `json:"lifecycle,omitempty"`
+
+	// ID is the primary key of a work item type.
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id,omitempty"`
+
+	// Name is a human readable name of this work item type.
+	Name string `json:"name,omitempty"`
+
+	// Description is an optional description of the work item type.
+	Description *string `json:"description,omitempty"`
+
+	// Icon contains the CSS icon class(es) to render an icon for the work item
+	// type.
+	Icon string `json:"icon,omitempty"`
+
+	// Version contains the revision number of this work item type and is used
+	// for optimistic concurrency control.
+	Version int `json:"version,omitempty"`
+
+	// Path contains the IDs of the parents, separated with a dot (".")
+	// separator.
+	// TODO(kwk): Think about changing this to the dedicated path type also used
+	// by iterations.
+	Path string `json:"path,omitempty"`
+
+	// Fields contains the definitions of the fields this work item type
+	// supports.
+	Fields FieldDefinitions `sql:"type:jsonb" json:"fields,omitempty"`
+
+	// SpaceTemplateID refers to the space template to which this work item type
+	// belongs.
+	SpaceTemplateID uuid.UUID `sql:"type:uuid" json:"space_template_id,omitempty"`
+
+	// Extends is a helper ID to support "extends" attribute of WIT in a space
+	// template. This field is not filled when you load a work item type from
+	// the DB. Instead the Path member contains the information.
+	Extends uuid.UUID `gorm:"-" json:"extends,omitempty"`
+
+	// CanConstruct is true when you can create work items from this work item
+	// type.
+	CanConstruct bool `gorm:"can_construct" json:"can_construct,omitempty"`
+
+	// ChildTypeIDs is a list of work item type IDs that can be used as child
+	// type of this work item. This field is filled upon loading the work item
+	// type from the DB.
+	ChildTypeIDs []uuid.UUID `gorm:"-" json:"child_types,omitempty"`
 }
 
 // GetTypePathSeparator returns the work item type's path separator "."
@@ -137,6 +168,12 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	if wit.Name != other.Name {
 		return false
 	}
+	if wit.Extends != other.Extends {
+		return false
+	}
+	if wit.CanConstruct != other.CanConstruct {
+		return false
+	}
 	if !strPtrIsNilOrContentIsEqual(wit.Description, other.Description) {
 		return false
 	}
@@ -145,6 +182,14 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	}
 	if wit.Path != other.Path {
 		return false
+	}
+	if len(wit.ChildTypeIDs) != len(other.ChildTypeIDs) {
+		return false
+	}
+	for i := range wit.ChildTypeIDs {
+		if wit.ChildTypeIDs[i] != other.ChildTypeIDs[i] {
+			return false
+		}
 	}
 	if len(wit.Fields) != len(other.Fields) {
 		return false
@@ -158,7 +203,10 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 			return false
 		}
 	}
-	return wit.SpaceID == other.SpaceID
+	if wit.SpaceTemplateID != other.SpaceTemplateID {
+		return false
+	}
+	return true
 }
 
 // ConvertWorkItemStorageToModel converts a workItem from the storage/persistence layer into a workItem of the model domain layer
