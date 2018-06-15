@@ -410,6 +410,12 @@ func GetMigrations() Migrations {
 	// Version 90
 	m = append(m, steps{ExecuteSQLFile("090-queries-version.sql")})
 
+	// Version 91
+	m = append(m, steps{ExecuteSQLFile("091-comments-child-comments.sql")})
+
+	// Version 92
+	m = append(m, steps{ExecuteSQLFile("092-comment-revisions-child-comments.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -510,12 +516,12 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 	// Apply all the updates of the next version
 	for j := range m[*nextVersion] {
 		if err := m[*nextVersion][j](tx); err != nil {
-			return errs.Errorf("Failed to execute migration of step %d of version %d: %s\n", j, *nextVersion, err)
+			return errs.Errorf("failed to execute migration of step %d of version %d: %s\n", j, *nextVersion, err)
 		}
 	}
 
 	if _, err := tx.Exec("INSERT INTO version(version) VALUES($1)", *nextVersion); err != nil {
-		return errs.Errorf("Failed to update DB to version %d: %s\n", *nextVersion, err)
+		return errs.Errorf("failed to update DB to version %d: %s\n", *nextVersion, err)
 	}
 
 	log.Info(nil, map[string]interface{}{
@@ -541,7 +547,7 @@ func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
 
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
-		return -1, errs.Errorf("Failed to scan if table \"version\" exists: %s\n", err)
+		return -1, errs.Errorf(`failed to scan if table "version" exists: %s\n`, err)
 	}
 
 	if !exists {
@@ -553,7 +559,7 @@ func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
 
 	var current int64 = -1
 	if err := row.Scan(&current); err != nil {
-		return -1, errs.Errorf("Failed to scan max version in table \"version\": %s\n", err)
+		return -1, errs.Errorf(`failed to scan max version in table "version": %s\n`, err)
 	}
 
 	return current, nil
@@ -629,6 +635,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 		importer.BaseTemplate,
 		importer.LegacyTemplate,
 		importer.ScrumTemplate,
+		importer.AgileTemplate,
 	}
 	importRepo := importer.NewRepository(db)
 	for idx, loadFunction := range templateFunctions {
@@ -644,7 +651,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 				"id":   t.Template.ID,
 				"name": t.Template.Name,
 			}, `failed to import space template #%d with name "%s" and ID %s`, idx, t.Template.Name, t.Template.ID)
-			return errs.Wrapf(err, `failed to import space #%d template with name "%s" ID %s`, idx, t.Template.Name, t.Template.ID)
+			return errs.Wrapf(err, `failed to import space template #%d with name "%s" and ID %s`, idx, t.Template.Name, t.Template.ID)
 		}
 		log.Debug(ctx, nil, `imported space template #%d "%s"`, idx, t.Template.Name)
 	}
