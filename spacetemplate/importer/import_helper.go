@@ -18,6 +18,7 @@ type ImportHelper struct {
 	WITs     []*workitem.WorkItemType      `gorm:"-" json:"work_item_types,omitempty"`
 	WILTs    []*link.WorkItemLinkType      `gorm:"-" json:"work_item_link_types,omitempty"`
 	WITGs    []*workitem.WorkItemTypeGroup `gorm:"-" json:"work_item_type_groups,omitempty"`
+	WIBs     []*workitem.Board 						 `gorm:"-" json:"work_item_boards,omitempty"`
 }
 
 // Validate ensures that all inner-document references of the given space
@@ -42,6 +43,11 @@ func (s *ImportHelper) Validate() error {
 	for _, witg := range s.WITGs {
 		if witg.SpaceTemplateID != s.Template.ID {
 			return errors.NewBadParameterError("work item type group's space template ID", witg.SpaceTemplateID.String()).Expected(s.Template.ID.String())
+		}
+	}
+	for _, wibs := range s.WIBs {
+		if wibs.SpaceTemplateID != s.Template.ID {
+			return errors.NewBadParameterError("work item board's space template ID", wibs.SpaceTemplateID.String()).Expected(s.Template.ID.String())
 		}
 	}
 
@@ -96,6 +102,9 @@ func (s *ImportHelper) SetID(id uuid.UUID) {
 	for _, witg := range s.WITGs {
 		witg.SpaceTemplateID = s.Template.ID
 	}
+	for _, wib := range s.WIBs {
+		wib.SpaceTemplateID = s.Template.ID
+	}
 }
 
 // Ensure ImportHelper implements the Equaler interface
@@ -143,6 +152,17 @@ func (s ImportHelper) Equal(u convert.Equaler) bool {
 			return false
 		}
 		if !s.WITGs[k].Equal(*other.WITGs[k]) {
+			return false
+		}
+	}
+	if len(s.WIBs) != len(other.WIBs) {
+		return false
+	}
+	for k := range s.WIBs {
+		if other.WIBs[k] == nil {
+			return false
+		}
+		if !s.WIBs[k].Equal(*other.WIBs[k]) {
 			return false
 		}
 	}

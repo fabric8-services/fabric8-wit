@@ -331,6 +331,82 @@ func makeWorkItemTypeGroups(fxt *TestFixture) error {
 	return nil
 }
 
+func makeWorkItemBoards(fxt *TestFixture) error {
+	if fxt.info[kindWorkItemBoards] == nil {
+		return nil
+	}
+	fxt.WorkItemBoards = make([]*workitem.Board, fxt.info[kindWorkItemBoards].numInstances)
+	wibRepo := workitem.NewBoardRepository(fxt.db)
+	for i := range fxt.WorkItemBoards {
+		fxt.WorkItemBoards[i] = &workitem.Board{
+			ID:          uuid.NewV4(),
+			Name:        testsupport.CreateRandomValidTestName("work item board "),
+			Description: testsupport.CreateRandomValidTestName("work item board description "),
+			// we only support this context for now.
+			ContextType: "TypeLevelContext",
+		}
+		if !fxt.isolatedCreation {
+			fxt.WorkItemBoards[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
+			// each board is attached to exactly one work item type group.
+			// the type groups are provided as a receipe dependency.
+			fxt.WorkItemBoards[i].Context = fxt.WorkItemTypeGroups[i].ID.String()
+			// create a set of columns
+			fxt.WorkItemBoards[i].Columns = []workitem.BoardColumn{
+				// we create a pre-defined fixed set of columns here to cover edge cases.
+				{
+					ID:                uuid.NewV4(),
+					Name:              testsupport.CreateRandomValidTestName("New"),
+					ColumnOrder:       0,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mNew' }",
+					BoardID: fxt.WorkItemBoards[i].ID,
+				},
+				{
+					ID:                uuid.NewV4(),
+					Name:              testsupport.CreateRandomValidTestName("In Progress"),
+					ColumnOrder:       1,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mInprogress' }",
+					BoardID: fxt.WorkItemBoards[i].ID,
+				},
+				{
+					ID:                uuid.NewV4(),
+					Name:              testsupport.CreateRandomValidTestName("Resolved"),
+					ColumnOrder:       2,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mResolved' }",
+					BoardID: fxt.WorkItemBoards[i].ID,
+				},
+				{
+					ID:                uuid.NewV4(),
+					Name:              testsupport.CreateRandomValidTestName("Approved"),
+					ColumnOrder:       3,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mResolved' }",
+					BoardID: fxt.WorkItemBoards[i].ID,
+				},
+			}
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemBoards); err != nil {
+			return errs.WithStack(err)
+		}
+		if fxt.isolatedCreation {
+			if fxt.WorkItemBoards[i].SpaceTemplateID == uuid.Nil {
+				return errs.New("you must specify a space template ID for each work item board")
+			}
+			if fxt.WorkItemBoards[i].Context == "" {
+				return errs.New("you must specify a context ID for each work item board")
+			}
+		}
+		wib, err := wibRepo.Create(fxt.ctx, *fxt.WorkItemBoards[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create work item board %+v", fxt.WorkItemBoards[i])
+		}
+		fxt.WorkItemBoards[i] = wib
+	}
+	return nil
+}
+
 func makeWorkItems(fxt *TestFixture) error {
 	if fxt.info[kindWorkItems] == nil {
 		return nil

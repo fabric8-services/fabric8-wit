@@ -28,6 +28,7 @@ type repoSuite struct {
 	witRepo           workitem.WorkItemTypeRepository
 	wiltRepo          link.WorkItemLinkTypeRepository
 	witgRepo          workitem.WorkItemTypeGroupRepository
+	wibRepo           workitem.BoardRepository
 }
 
 func TestRepository(t *testing.T) {
@@ -43,6 +44,7 @@ func (s *repoSuite) SetupSuite() {
 	s.witRepo = workitem.NewWorkItemTypeRepository(s.DB)
 	s.wiltRepo = link.NewWorkItemLinkTypeRepository(s.DB)
 	s.witgRepo = workitem.NewWorkItemTypeGroupRepository(s.DB)
+	s.wibRepo = workitem.NewBoardRepository(s.DB)
 }
 
 func diff(expectedStr, actualStr string) string {
@@ -57,11 +59,12 @@ func (s *repoSuite) TestImport() {
 	witID := uuid.NewV4()
 	wiltID := uuid.NewV4()
 	witgID := uuid.NewV4()
+	wibID := uuid.NewV4()
 
 	s.T().Run("valid", func(t *testing.T) {
 		t.Run("test template", func(t *testing.T) {
 			// when
-			expected := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			expected := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 			_, err := s.importerRepo.Import(s.Ctx, expected)
 			// then
 			require.NoError(t, err)
@@ -72,6 +75,8 @@ func (s *repoSuite) TestImport() {
 			err = s.wiltRepo.CheckExists(s.Ctx, wiltID)
 			assert.NoError(t, err)
 			err = s.witgRepo.CheckExists(s.Ctx, witgID)
+			assert.NoError(t, err)
+			err = s.wibRepo.CheckExists(s.Ctx, wibID)
 			assert.NoError(t, err)
 
 			wit, err := s.witRepo.Load(s.Ctx, witID)
@@ -114,13 +119,14 @@ func (s *repoSuite) TestImport() {
 			witID := uuid.NewV4()
 			wiltID := uuid.NewV4()
 			witgID := uuid.NewV4()
-			oldTempl := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			wibID := uuid.NewV4()
+			oldTempl := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 			oldTempl.Template.Name = "old name for space template " + spaceTemplateID.String()
 			oldTempl.Template.CanConstruct = true
 			_, err := s.importerRepo.Import(s.Ctx, oldTempl)
 			require.NoError(t, err)
 			// Import it once more but this time with changes
-			templ := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			templ := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 			templ.Template.Name = "new name for space template " + spaceTemplateID.String()
 			templ.Template.CanConstruct = false
 			templ.Template.Description = ptr.String("new description")
@@ -136,6 +142,7 @@ func (s *repoSuite) TestImport() {
 				},
 			}
 			templ.WITGs[0].Name = "Helmet"
+			templ.WIBs[0].Name = "Sword"
 			// when
 			_, err = s.importerRepo.Import(s.Ctx, templ)
 			// then
@@ -172,6 +179,11 @@ func (s *repoSuite) TestImport() {
 				require.NoError(t, err)
 				require.Equal(t, templ.WITGs[0].Name, witg.Name)
 			})
+			t.Run("WIB name has changed", func(t *testing.T) {
+				wib, err := s.wibRepo.Load(s.Ctx, templ.WIBs[0].ID)
+				require.NoError(t, err)
+				require.Equal(t, templ.WIBs[0].Name, wib.Name)
+			})
 		})
 	})
 	s.T().Run("invalid", func(t *testing.T) {
@@ -181,12 +193,13 @@ func (s *repoSuite) TestImport() {
 			witID := uuid.NewV4()
 			wiltID := uuid.NewV4()
 			witgID := uuid.NewV4()
-			oldTempl := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			wibID := uuid.NewV4()
+			oldTempl := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 			oldTempl.Template.Name = "old name for space template " + spaceTemplateID.String()
 			_, err := s.importerRepo.Import(s.Ctx, oldTempl)
 			require.NoError(t, err)
 			// Import it once more but this time with changes
-			templ := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			templ := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 			templ.WITs[0].Fields["title"] = workitem.FieldDefinition{
 				Label:       "Title",
 				Description: "The title of the bug",
@@ -203,7 +216,7 @@ func (s *repoSuite) TestImport() {
 		t.Run("WIT already exists", func(t *testing.T) {
 			// given old space template with new name, new ID, and new WILT ID
 			newWILTID := uuid.NewV4()
-			new := getValidTestTemplateParsed(t, spaceTemplateID, witID, newWILTID, witgID)
+			new := getValidTestTemplateParsed(t, spaceTemplateID, witID, newWILTID, witgID, wibID)
 			new.Template.Name = testsupport.CreateRandomValidTestName("test template")
 			new.SetID(uuid.NewV4())
 			// when
@@ -213,7 +226,7 @@ func (s *repoSuite) TestImport() {
 		t.Run("WILT already exists", func(t *testing.T) {
 			// given old space template with new name, new ID, and new WIT ID
 			newWITID := uuid.NewV4()
-			new := getValidTestTemplateParsed(t, spaceTemplateID, newWITID, wiltID, witgID)
+			new := getValidTestTemplateParsed(t, spaceTemplateID, newWITID, wiltID, witgID, wibID)
 			new.Template.Name = testsupport.CreateRandomValidTestName("test template")
 			new.SetID(uuid.NewV4())
 			// when
@@ -222,13 +235,13 @@ func (s *repoSuite) TestImport() {
 		})
 		t.Run("violating unique name constraint", func(t *testing.T) {
 			// given a template creation with some name
-			firstTemplate := getValidTestTemplateParsed(t, uuid.NewV4(), uuid.NewV4(), uuid.NewV4(), uuid.NewV4())
+			firstTemplate := getValidTestTemplateParsed(t, uuid.NewV4(), uuid.NewV4(), uuid.NewV4(), uuid.NewV4(), uuid.NewV4())
 			firstTemplate.Template.Name = "first template " + firstTemplate.Template.ID.String()
 			_, err := s.importerRepo.Import(s.Ctx, firstTemplate)
 			require.NoError(t, err)
 			// when we try to create another template with the same name as
 			// before
-			expected := getValidTestTemplateParsed(t, uuid.NewV4(), uuid.NewV4(), uuid.NewV4(), uuid.NewV4())
+			expected := getValidTestTemplateParsed(t, uuid.NewV4(), uuid.NewV4(), uuid.NewV4(), uuid.NewV4(), uuid.NewV4())
 			expected.Template.Name = firstTemplate.Template.Name
 			actual, err := s.importerRepo.Import(s.Ctx, expected)
 			// then the is not allowed
@@ -245,7 +258,8 @@ func (s *repoSuite) TestImport() {
 			witID := uuid.NewV4()
 			wiltID := uuid.NewV4()
 			witgID := uuid.NewV4()
-			firstTemplate := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			wibID := uuid.NewV4()
+			firstTemplate := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 			firstTemplate.Template.Name = testsupport.CreateRandomValidTestName("first template")
 			// Define an additional WIT that we'll skip the next time we import
 			// the space template
@@ -271,7 +285,8 @@ func (s *repoSuite) TestImport() {
 			witID := uuid.NewV4()
 			wiltID := uuid.NewV4()
 			witgID := uuid.NewV4()
-			firstTemplate := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			wibID := uuid.NewV4()
+			firstTemplate := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 			firstTemplate.Template.Name = testsupport.CreateRandomValidTestName("first template")
 			// Define an additional WILT that we'll skip the next time we import
 			// the space template
@@ -299,12 +314,13 @@ func (s *repoSuite) TestImport() {
 			witID := uuid.NewV4()
 			wiltID := uuid.NewV4()
 			witgID := uuid.NewV4()
-			oldTempl := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			wibID := uuid.NewV4()
+			oldTempl := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 			oldTempl.Template.Name = "old name for space template " + spaceTemplateID.String()
 			_, err := s.importerRepo.Import(s.Ctx, oldTempl)
 			require.NoError(t, err)
 			// Import it once more but this time remove a field from a WIT
-			templ := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			templ := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 			templ.Template.Name = oldTempl.Template.Name
 			// The field to be removed needs to be explicitly defined in the WIT
 			// and not in the WIT it extends.
@@ -324,10 +340,11 @@ func (s *repoSuite) TestExists() {
 	witID := uuid.NewV4()
 	wiltID := uuid.NewV4()
 	witgID := uuid.NewV4()
+	wibID := uuid.NewV4()
 
 	s.T().Run("existing template", func(t *testing.T) {
 		// given
-		expected := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+		expected := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 		_, err := s.spaceTemplateRepo.Create(s.Ctx, expected.Template)
 		require.NoError(t, err)
 		// when
@@ -352,10 +369,11 @@ func (s *repoSuite) TestLoad() {
 	witID := uuid.NewV4()
 	wiltID := uuid.NewV4()
 	witgID := uuid.NewV4()
+	wibID := uuid.NewV4()
 
 	s.T().Run("existing template", func(t *testing.T) {
 		// given
-		expected := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+		expected := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 		_, err := s.spaceTemplateRepo.Create(s.Ctx, expected.Template)
 		require.NoError(t, err)
 		// when

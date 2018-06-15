@@ -141,6 +141,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration90", testMigration90QueriesVersion)
 	t.Run("TestMigration91", testMigration91CommentsChildComments)
 	t.Run("TestMigration92", testMigration92CommentRevisionsChildComments)
+	t.Run("TestMigration93", testMigration93Boards)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -814,6 +815,12 @@ func testMigration91CommentsChildComments(t *testing.T) {
 func testMigration92CommentRevisionsChildComments(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:93], 93)
 	assert.True(t, dialect.HasColumn("comment_revisions", "comment_parent_comment_id"))
+}
+
+func testMigration93Boards(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:94], 94)
+	assert.True(t, dialect.HasTable("work_item_boards"))
+	assert.True(t, dialect.HasTable("work_item_board_columns"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

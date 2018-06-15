@@ -83,6 +83,7 @@ func (r *GormRepository) Import(ctx context.Context, s ImportHelper) (*ImportHel
 	res.WILTs = s.WILTs
 	res.WITs = s.WITs
 	res.WITGs = s.WITGs
+	res.WIBs = s.WIBs
 
 	// Create or update work item types
 	if err := r.createOrUpdateWITs(ctx, res); err != nil {
@@ -102,6 +103,12 @@ func (r *GormRepository) Import(ctx context.Context, s ImportHelper) (*ImportHel
 		return nil, errs.Wrapf(err, "failed to create or update work item type groups")
 	}
 
+		// Create or update work item boards
+		if err := r.createOrUpdateWIBs(ctx, res); err != nil {
+			log.Error(ctx, map[string]interface{}{"space_template": res, "err": err}, "failed to create or update work item boards")
+			return nil, errs.Wrapf(err, "failed to create or update work item boards")
+		}
+	
 	log.Info(ctx, map[string]interface{}{"space_template_id": s.Template.ID}, "space template imported successfully")
 	return res, nil
 }
@@ -323,6 +330,24 @@ func (r *GormRepository) createOrUpdateWITGs(ctx context.Context, s *ImportHelpe
 		_, err := repo.Create(ctx, *group)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item type group '%s' from space template '%s'", group.Name, s.Template.ID)
+		}
+	}
+	return nil
+}
+
+func (r *GormRepository) createOrUpdateWIBs(ctx context.Context, s *ImportHelper) error {
+	// Delete old work item boards (if any) associated with this space
+	// template. There's no need to retain information about old boards as
+	// it is just a linkage of work item type groups.
+	db := r.db.Unscoped().Delete(workitem.Board{}, "space_template_id = ?", s.Template.ID)
+	if db.Error != nil {
+		return errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to deleted previous work item boards for space template '%s'", s.Template.ID))
+	}
+	repo := workitem.NewBoardRepository(r.db)
+	for _, board := range s.WIBs {
+		_, err := repo.Create(ctx, *board)
+		if err != nil {
+			return errs.Wrapf(err, "failed to create work item board '%s' from space template '%s'", board.Name, s.Template.ID)
 		}
 	}
 	return nil
