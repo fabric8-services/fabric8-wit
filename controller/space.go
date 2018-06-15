@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -74,14 +73,8 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-
-	err = validateCreateSpace(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-
 	reqSpace := ctx.Payload.Data
-	spaceName := *reqSpace.Attributes.Name
+	spaceName := reqSpace.Attributes.Name
 	spaceID := uuid.NewV4()
 	if reqSpace.ID != nil {
 		spaceID = *reqSpace.ID
@@ -545,51 +538,6 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 		Data: spaceData,
 	}
 	return ctx.OK(&response)
-}
-
-const (
-	// see https://github.com/kubernetes/community/blob/master/contributors/design-proposals/architecture/identifiers.md
-	spaceNameMaxLength int    = 63
-	spaceNamePattern   string = `^([A-Za-z0-9][-A-Za-z0-9]*)?[A-Za-z0-9]$`
-)
-
-var nameRegex *regexp.Regexp
-
-func init() {
-	nameRegex = regexp.MustCompile(spaceNamePattern) // will panic if the pattern is invalid
-}
-
-func validateCreateSpace(ctx *app.CreateSpaceContext) error {
-	if ctx.Payload.Data == nil {
-		return errors.NewBadParameterError("data", nil).Expected("not nil")
-	}
-	if ctx.Payload.Data.Attributes == nil {
-		return errors.NewBadParameterError("data.attributes", nil).Expected("not nil")
-	}
-	if ctx.Payload.Data.Attributes.Name == nil {
-		return errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil")
-	}
-	name := *ctx.Payload.Data.Attributes.Name
-	// now, verify the length and pattern for the space name
-	if len(name) > spaceNameMaxLength {
-		return errors.NewBadParameterError("data.attributes.name", name).Expected(fmt.Sprintf("max length: %d (was %d)", spaceNameMaxLength, len(name)))
-	}
-	matched := nameRegex.MatchString(name)
-	if !matched {
-		return errors.NewBadParameterError("data.attributes.name", name).Expected(fmt.Sprintf("matching '%s' pattern", spaceNamePattern))
-	}
-
-	// // TODO(kwk): Comment back in once space template is official
-	// if ctx.Payload.Data.Relationships == nil {
-	// 	return errors.NewBadParameterError("data.relationships", nil).Expected("not nil")
-	// }
-	// if ctx.Payload.Data.Relationships.SpaceTemplate == nil {
-	// 	return errors.NewBadParameterError("data.relationships.spacetemplate", nil).Expected("not nil")
-	// }
-	// if ctx.Payload.Data.Relationships.SpaceTemplate.Data == nil {
-	// 	return errors.NewBadParameterError("data.relationships.spacetemplate.data", nil).Expected("not nil")
-	// }
-	return nil
 }
 
 func validateUpdateSpace(ctx *app.UpdateSpaceContext) error {

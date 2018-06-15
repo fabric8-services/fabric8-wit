@@ -161,7 +161,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 		t.Run("valid name", func(t *testing.T) {
 			// given
 			name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpace-")
-			p := newCreateSpacePayload(&name, nil)
+			p := newCreateSpacePayload(name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			// when
 			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.payload.req.golden.json"), p)
@@ -183,7 +183,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 			// given
 			fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
 			name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpace-")
-			p := newCreateSpacePayload(&name, nil)
+			p := newCreateSpacePayload(name, nil)
 
 			if p.Data.Relationships == nil {
 				p.Data.Relationships = &app.SpaceRelationships{}
@@ -215,7 +215,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 		t.Run("with default area", func(t *testing.T) {
 			// given
 			name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpaceAndDefaultArea-")
-			p := newCreateSpacePayload(&name, nil)
+			p := newCreateSpacePayload(name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			// when
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
@@ -238,7 +238,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 			// given
 			name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpaceWithDescription-")
 			description := "Space for TestSuccessCreateSpaceWithDescription"
-			p := newCreateSpacePayload(&name, &description)
+			p := newCreateSpacePayload(name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			// when
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
@@ -260,11 +260,11 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 			name := testsupport.CreateRandomValidTestName("SameName-")
 			description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
 			newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
-			a := newCreateSpacePayload(&name, &description)
+			a := newCreateSpacePayload(name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, a)
 			// when
-			b := newCreateSpacePayload(&name, &newDescription)
+			b := newCreateSpacePayload(name, &newDescription)
 			svc2, ctrl2 := s.SecuredController(testsupport.TestIdentity2)
 			_, created2 := test.CreateSpaceCreated(t, svc2.Context, svc2, ctrl2, b)
 			// then
@@ -282,7 +282,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 		t.Run("with max length name", func(t *testing.T) {
 			// given
 			name := testsupport.TestMaxsizedNameObj
-			p := newCreateSpacePayload(&name, nil)
+			p := newCreateSpacePayload(name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			// when
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
@@ -306,7 +306,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 			description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
 			newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
 			// when
-			a := newCreateSpacePayload(&name, &description)
+			a := newCreateSpacePayload(name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, a)
 			// then
@@ -316,8 +316,8 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 			assert.Equal(t, name, *created.Data.Attributes.Name)
 
 			// when
-			b := newCreateSpacePayload(&name, &newDescription)
-			b.Data.Attributes.Name = &name
+			b := newCreateSpacePayload(name, &newDescription)
+			b.Data.Attributes.Name = name
 			b.Data.Attributes.Description = &newDescription
 			test.CreateSpaceConflict(t, svc.Context, svc, ctrl, b)
 		})
@@ -327,10 +327,11 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 				// given
 				name := "foo@bar.com"
 				description := "Space with invalid name"
-				// when/then
-				p := newCreateSpacePayload(&name, &description)
-				svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-				test.CreateSpaceBadRequest(t, svc.Context, svc, ctrl, p)
+				// when
+				p := newCreateSpacePayload(name, &description)
+				err := p.Validate()
+				// then
+				require.Error(t, err)
 			})
 
 			t.Run("invalid length", func(t *testing.T) {
@@ -338,9 +339,10 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 				name := testsupport.TestOversizedNameObj
 				description := "Space with invalid name"
 				// when/then
-				p := newCreateSpacePayload(&name, &description)
-				svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-				test.CreateSpaceBadRequest(t, svc.Context, svc, ctrl, p)
+				p := newCreateSpacePayload(name, &description)
+				err := p.Validate()
+				// then
+				require.Error(t, err)
 			})
 		})
 
@@ -348,7 +350,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 			t.Run("400", func(t *testing.T) {
 				// given
 				spaceName := uuid.NewV4().String()
-				p := newCreateSpacePayload(&spaceName, nil)
+				p := newCreateSpacePayload(spaceName, nil)
 				r := DummyResourceManager{
 					httpResponseCode: 400,
 				}
@@ -360,7 +362,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 			t.Run("returned 401", func(t *testing.T) {
 				// given
 				spaceName := uuid.NewV4().String()
-				p := newCreateSpacePayload(&spaceName, nil)
+				p := newCreateSpacePayload(spaceName, nil)
 				r := DummyResourceManager{
 					httpResponseCode: 401,
 				}
@@ -372,7 +374,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 			s.T().Run("500", func(t *testing.T) {
 				// given
 				spaceName := uuid.NewV4().String()
-				p := newCreateSpacePayload(&spaceName, nil)
+				p := newCreateSpacePayload(spaceName, nil)
 				r := DummyResourceManager{
 					httpResponseCode: 500,
 				}
@@ -582,7 +584,7 @@ func (s *SpaceControllerTestSuite) TestUpdateSpace() {
 		description := "Space for TestSuccessUpdateSpace"
 		newName := testsupport.CreateRandomValidTestName("TestSuccessUpdateSpace")
 		newDescription := "Space for TestSuccessUpdateSpace2"
-		p := newCreateSpacePayload(&name, &description)
+		p := newCreateSpacePayload(name, &description)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		u := newUpdateSpacePayload()
@@ -603,7 +605,7 @@ func (s *SpaceControllerTestSuite) TestUpdateSpace() {
 		description := "Space for TestSuccessUpdateSpace"
 		newName := testsupport.CreateRandomValidTestName("TestSuccessUpdateSpace")
 		newDescription := "Space for TestSuccessUpdateSpace2"
-		p := newCreateSpacePayload(&name, &description)
+		p := newCreateSpacePayload(name, &description)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		u := newUpdateSpacePayload()
@@ -620,14 +622,14 @@ func (s *SpaceControllerTestSuite) TestUpdateSpace() {
 	s.T().Run("fail - name length", func(t *testing.T) {
 		// given
 		name := testsupport.CreateRandomValidTestName("TestFailUpdateSpaceNameLength-")
-		p := newCreateSpacePayload(&name, nil)
+		p := newCreateSpacePayload(name, nil)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		// when / then
 		u := newUpdateSpacePayload()
 		u.Data.ID = created.Data.ID
 		u.Data.Attributes.Version = created.Data.Attributes.Version
-		p.Data.Attributes.Name = &testsupport.TestOversizedNameObj
+		p.Data.Attributes.Name = testsupport.TestOversizedNameObj
 		svc2, ctrl2 := s.SecuredController(testsupport.TestIdentity2)
 		test.UpdateSpaceBadRequest(t, svc2.Context, svc2, ctrl2, *created.Data.ID, u)
 	})
@@ -638,9 +640,7 @@ func (s *SpaceControllerTestSuite) TestUpdateSpace() {
 		description := "Space for TestFailUpdateSpaceDifferentOwner"
 		newName := testsupport.CreateRandomValidTestName("TestFailUpdateSpaceDifferentOwner-")
 		newDescription := "Space for TestFailUpdateSpaceDifferentOwner2"
-		p := newCreateSpacePayload(&name, &description)
-		p.Data.Attributes.Name = &name
-		p.Data.Attributes.Description = &description
+		p := newCreateSpacePayload(name, &description)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		// when
@@ -681,8 +681,7 @@ func (s *SpaceControllerTestSuite) TestUpdateSpace() {
 	s.T().Run("fail - missing name", func(t *testing.T) {
 		// given
 		name := testsupport.CreateRandomValidTestName("TestFailUpdateSpaceMissingName-")
-		p := newCreateSpacePayload(&name, nil)
-		p.Data.Attributes.Name = &name
+		p := newCreateSpacePayload(name, nil)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		u := newUpdateSpacePayload()
@@ -696,7 +695,7 @@ func (s *SpaceControllerTestSuite) TestUpdateSpace() {
 		// given
 		name := testsupport.CreateRandomValidTestName("TestFailUpdateSpaceMissingVersion-")
 		newName := testsupport.CreateRandomValidTestName("TestFailUpdateSpaceMissingVersion-")
-		p := newCreateSpacePayload(&name, nil)
+		p := newCreateSpacePayload(name, nil)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		u := newUpdateSpacePayload()
@@ -716,7 +715,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 		// given
 		name := testsupport.CreateRandomValidTestName("Test-")
 		description := "Space for TestShowSpaceOK"
-		p := newCreateSpacePayload(&name, &description)
+		p := newCreateSpacePayload(name, &description)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		// when
@@ -733,7 +732,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 			// given
 			name := testsupport.CreateRandomValidTestName("Test-")
 			description := "Space for TestShowSpaceOKUsingExpiredIfModifiedSinceHeader"
-			p := newCreateSpacePayload(&name, &description)
+			p := newCreateSpacePayload(name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when
@@ -749,7 +748,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 			// given
 			name := testsupport.CreateRandomValidTestName("Test-")
 			description := "Space for TestShowSpaceOKUsingExpiredIfNoneMatchHeader"
-			p := newCreateSpacePayload(&name, &description)
+			p := newCreateSpacePayload(name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when
@@ -765,7 +764,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 			// given
 			name := testsupport.CreateRandomValidTestName("Test-")
 			description := "Space for TestShowSpaceNotModifiedUsingIfModifiedSinceHeader"
-			p := newCreateSpacePayload(&name, &description)
+			p := newCreateSpacePayload(name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when/then
@@ -777,7 +776,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 			// given
 			name := testsupport.CreateRandomValidTestName("Test-")
 			description := "Space for TestShowSpaceNotModifiedUsingIfNoneMatchHeader"
-			p := newCreateSpacePayload(&name, &description)
+			p := newCreateSpacePayload(name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when/then
@@ -801,7 +800,7 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		name := testsupport.CreateRandomValidTestName("Test-")
-		p := newCreateSpacePayload(&name, nil)
+		p := newCreateSpacePayload(name, nil)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		// when
@@ -823,7 +822,7 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 		t.Run("ok with expired modified-since header", func(t *testing.T) {
 			// given
 			name := testsupport.CreateRandomValidTestName("Test-")
-			p := newCreateSpacePayload(&name, nil)
+			p := newCreateSpacePayload(name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			_, createdSpace := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when
@@ -839,7 +838,7 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 		t.Run("ok with expired if-none-match header", func(t *testing.T) {
 			// given
 			name := testsupport.CreateRandomValidTestName("Test-")
-			p := newCreateSpacePayload(&name, nil)
+			p := newCreateSpacePayload(name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when
@@ -853,7 +852,7 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 		t.Run("not modified with modified-since header", func(t *testing.T) {
 			// given
 			name := testsupport.CreateRandomValidTestName("Test-")
-			p := newCreateSpacePayload(&name, nil)
+			p := newCreateSpacePayload(name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			_, createdSpace := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when/then
@@ -864,7 +863,7 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 		t.Run("not modified with if-none-match header", func(t *testing.T) {
 			// given
 			name := testsupport.CreateRandomValidTestName("Test-")
-			p := newCreateSpacePayload(&name, nil)
+			p := newCreateSpacePayload(name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			_, spaceList := test.ListSpaceOK(t, svc.Context, svc, ctrl, nil, nil, nil, nil)
@@ -875,14 +874,14 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 	})
 }
 
-func newCreateSpacePayload(name, description *string) *app.CreateSpacePayload {
+func newCreateSpacePayload(name string, description *string) *app.CreateSpacePayload {
 	//spaceTemplateID := spacetemplate.SystemLegacyTemplateID
 	//req := &http.Request{Host: "api.service.domain.org"}
 	// spaceTemplateRelatedURL := rest.AbsoluteURL(req, app.SpaceTemplateHref(spaceTemplateID.String()))
 	return &app.CreateSpacePayload{
-		Data: &app.Space{
+		Data: &app.CreateSpace{
 			Type: "spaces",
-			Attributes: &app.SpaceAttributes{
+			Attributes: &app.CreateSpaceAttributes{
 				Name:        name,
 				Description: description,
 			},

@@ -592,10 +592,10 @@ func CreateSecuredSpace(t *testing.T, db application.DB, config SpaceConfigurati
 	spaceCtrl := NewSpaceController(svc, db, config, &DummyResourceManager{})
 	require.NotNil(t, spaceCtrl)
 	spacePayload := &app.CreateSpacePayload{
-		Data: &app.Space{
+		Data: &app.CreateSpace{
 			Type: "spaces",
-			Attributes: &app.SpaceAttributes{
-				Name:        ptr.String("TestCollaborators-space-" + uuid.NewV4().String()),
+			Attributes: &app.CreateSpaceAttributes{
+				Name:        fmt.Sprintf("TestCollaborators-space-%v", uuid.NewV4()),
 				Description: ptr.String("description"),
 			},
 		},

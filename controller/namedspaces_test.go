@@ -70,7 +70,7 @@ func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 
 	name := testsupport.CreateRandomValidTestName("Test")
 
-	p := newCreateSpacePayload(&name, nil)
+	p := newCreateSpacePayload(name, nil)
 
 	_, created := test.CreateSpaceCreated(t, spaceSvc.Context, spaceSvc, spaceCtrl, p)
 	assert.NotNil(t, created.Data)
@@ -111,7 +111,7 @@ func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
 
 	name := testsupport.CreateRandomValidTestName("Test")
 
-	p := newCreateSpacePayload(&name, nil)
+	p := newCreateSpacePayload(name, nil)
 
 	_, created := test.CreateSpaceCreated(t, spaceSvc.Context, spaceSvc, spaceCtrl, p)
 	assert.NotNil(t, created.Data)
