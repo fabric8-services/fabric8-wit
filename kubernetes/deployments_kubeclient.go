@@ -138,6 +138,7 @@ type route struct {
 // This hasn't been done, because the rest of fabric8 seems to assume the cluster is the same.
 // For most uses, the proxy server will hide this issue - but not for metrics/logging and console.
 type BaseURLProvider interface {
+	GetEnvironmentMapping() map[string]string
 	GetAPIURL() (*string, error)
 	GetMetricsURL(envNS string) (*string, error)
 	GetConsoleURL(envNS string) (*string, error)
@@ -177,12 +178,8 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	if config.MetricsGetter == nil {
 		config.MetricsGetter = &defaultGetter{}
 	}
-	// Get environments from config map
-	envMap, err := getEnvironmentsFromConfigMap(kubeAPI, config.UserNamespace)
-	if err != nil {
-		return nil, err
-	}
 
+	envMap := config.GetEnvironmentMapping()
 	kubeClient := &kubeClient{
 		config:           config,
 		envMap:           envMap,
@@ -754,47 +751,6 @@ func (kc *kubeClient) getBuildConfigsForSpace(space string) ([]string, error) {
 func (oc *openShiftAPIClient) GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error) {
 	bcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/buildconfigs?labelSelector=%s", namespace, labelSelector)
 	return oc.getResource(bcURL, false)
-}
-
-func getEnvironmentsFromConfigMap(kube KubeRESTAPI, userNamespace string) (map[string]string, error) {
-	// fabric8 creates a ConfigMap in the user namespace with information on environments
-	const envConfigMap string = "fabric8-environments"
-	const providerLabel string = "fabric8"
-	configmap, err := kube.ConfigMaps(userNamespace).Get(envConfigMap, metaV1.GetOptions{})
-	if err != nil {
-		log.Error(nil, map[string]interface{}{
-			"err":            err,
-			"user_namespace": userNamespace,
-		}, "failed to get environment list from %s config map", envConfigMap)
-		return nil, convertError(errs.WithStack(err), "failed to get environment list")
-	}
-	// Check that config map has the expected label
-	if configmap.Labels["provider"] != providerLabel {
-		return nil, errs.Errorf("unknown or missing provider %s for environments config map in namespace %s", providerLabel, userNamespace)
-	}
-	// Parse config map data to construct environments map
-	envMap := make(map[string]string)
-	const namespaceProp string = "namespace"
-	// Config map keys are environment names
-	for key, value := range configmap.Data {
-		// Look through value for namespace property
-		var namespace string
-		lines := strings.Split(value, "\n")
-		for _, line := range lines {
-			if strings.HasPrefix(line, namespaceProp) {
-				tokens := strings.SplitN(line, ":", 2)
-				if len(tokens) < 2 {
-					return nil, errs.New("malformed environments config map")
-				}
-				namespace = strings.TrimSpace(tokens[1])
-			}
-		}
-		if len(namespace) == 0 {
-			return nil, errs.Errorf("no namespace for environment %s in config map", key)
-		}
-		envMap[key] = namespace
-	}
-	return envMap, nil
 }
 
 func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
