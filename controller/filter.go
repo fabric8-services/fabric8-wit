@@ -38,6 +38,8 @@ const (
 	filterKeyState        = "state"
 	filterKeyLabel        = "label"
 	filterKeyTitle        = "title"
+	AND                   = "AND"
+	OR                    = "OR"
 )
 
 // List runs the list action.
@@ -51,6 +53,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Type:        "users",
 				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyAssignee),
 				Key:         filterKeyAssignee,
+				Operator:    AND,
 			},
 			Type: "filters",
 		},
@@ -61,6 +64,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Type:        "users",
 				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyCreator),
 				Key:         filterKeyCreator,
+				Operator:    OR,
 			},
 			Type: "filters",
 		},
@@ -71,6 +75,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Key:         filterKeyArea,
 				Description: "Filter by area",
 				Type:        "areas",
+				Operator:    OR,
 			},
 			Type: "filters",
 		},
@@ -81,6 +86,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Key:         filterKeyIteration,
 				Description: "Filter by iteration",
 				Type:        "iterations",
+				Operator:    OR,
 			},
 			Type: "filters",
 		},
@@ -91,6 +97,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Key:         filterKeyWorkItemType,
 				Description: "Filter by type",
 				Type:        "workitemtypes",
+				Operator:    OR,
 			},
 			Type: "filters",
 		},
@@ -101,6 +108,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Key:         filterKeyState,
 				Description: "Filter by state",
 				Type:        "state",
+				Operator:    OR,
 			},
 			Type: "filters",
 		},
@@ -111,6 +119,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Key:         filterKeyLabel,
 				Description: "Filter by label",
 				Type:        "labels",
+				Operator:    AND,
 			},
 			Type: "filters",
 		},
@@ -121,6 +130,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Key:         filterKeyTitle,
 				Description: "Filter by title",
 				Type:        "title", // not really used anywhere
+				Operator:    OR,
 			},
 			Type: "filters",
 		},

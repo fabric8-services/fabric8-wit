@@ -34,7 +34,7 @@ var filterAttributes = a.Type("filterAttributes", func() {
 	a.Attribute("operator", d.String, "Filter key to be used in the search query language", func() {
 		a.Enum("AND", "OR")
 	})
-	a.Required("type", "title", "description", "query", "key")
+	a.Required("type", "title", "description", "query", "key", "operator")
 })
 
 var filterList = JSONList(

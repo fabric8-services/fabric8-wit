@@ -4,6 +4,7 @@
       "attributes": {
         "description": "Filter by assignee",
         "key": "assignee",
+        "operator": "AND",
         "query": "filter[assignee]={id}",
         "title": "Assignee",
         "type": "users"
@@ -14,6 +15,7 @@
       "attributes": {
         "description": "Filter by creator",
         "key": "creator",
+        "operator": "OR",
         "query": "filter[creator]={id}",
         "title": "Creator",
         "type": "users"
@@ -24,6 +26,7 @@
       "attributes": {
         "description": "Filter by area",
         "key": "area",
+        "operator": "OR",
         "query": "filter[area]={id}",
         "title": "Area",
         "type": "areas"
@@ -34,6 +37,7 @@
       "attributes": {
         "description": "Filter by iteration",
         "key": "iteration",
+        "operator": "OR",
         "query": "filter[iteration]={id}",
         "title": "Iteration",
         "type": "iterations"
@@ -44,6 +48,7 @@
       "attributes": {
         "description": "Filter by type",
         "key": "workitemtype",
+        "operator": "OR",
         "query": "filter[workitemtype]={id}",
         "title": "Type",
         "type": "workitemtypes"
@@ -54,6 +59,7 @@
       "attributes": {
         "description": "Filter by state",
         "key": "state",
+        "operator": "OR",
         "query": "filter[state]={id}",
         "title": "State",
         "type": "state"
@@ -64,6 +70,7 @@
       "attributes": {
         "description": "Filter by label",
         "key": "label",
+        "operator": "AND",
         "query": "filter[label]={id}",
         "title": "Label",
         "type": "labels"
@@ -74,6 +81,7 @@
       "attributes": {
         "description": "Filter by title",
         "key": "title",
+        "operator": "OR",
         "query": "filter[title]={id}",
         "title": "Title",
         "type": "title"
