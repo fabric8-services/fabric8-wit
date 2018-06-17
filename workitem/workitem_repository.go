@@ -600,32 +600,28 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	if !wiType.CanConstruct {
 		return nil, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from \"%s\" (%s)", wiType.Name, wiType.ID))
 	}
-	var allowedWorkitemTypesID []uuid.UUID
-
+	var exists bool
 	// Prohibit creation of work items from a type that doesn't belong to current space template
 	query := fmt.Sprintf(`
-		SELECT id from %s where space_template_id = (
-			SELECT space_template_id from spaces where id::text = '%s'
-		)`, wiType.TableName(), spaceID.String())
-	db := r.db.Raw(query)
-	db.Pluck("id", &allowedWorkitemTypesID)
-	if db.Error != nil {
-		log.Error(ctx, map[string]interface{}{
-			"space_id": spaceID,
-			"err":      db.Error,
-		}, "unable to fetch workitem types related to current space")
-		return nil, errors.NewInternalError(ctx, db.Error)
-	}
-	isAllowedType := false
-	for _, allowedType := range allowedWorkitemTypesID {
-		if allowedType == wiType.ID {
-			isAllowedType = true
-			break
-		}
-	}
-	if !isAllowedType {
+		SELECT EXISTS (
+			SELECT 1 from %s where id::text = '%s' AND space_template_id = (
+				SELECT space_template_id from spaces where id::text = '%s'
+			)
+		)`, wiType.TableName(), wiType.ID.String(), spaceID.String())
+	r.db.LogMode(true)
+	err = r.db.Raw(query).Row().Scan(&exists)
+	if err == nil && !exists {
 		return nil, errors.NewBadParameterErrorFromString(
-			fmt.Sprintf("Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wiType.Name, wiType.ID))
+			fmt.Sprintf("Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wiType.Name, wiType.ID),
+		)
+	}
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":         spaceID,
+			"workitem_type_id": wiType.ID,
+			"err":              err,
+		}, "unable to fetch workitem types related to current space")
+		return nil, errors.NewInternalError(ctx, errs.Wrapf(err, "unable to verify if %s exists", wiType.ID))
 	}
 	// The order of workitems are spaced by a factor of 1000.
 	pos, err := r.LoadHighestOrder(ctx, spaceID)
