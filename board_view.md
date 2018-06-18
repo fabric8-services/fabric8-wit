@@ -51,32 +51,24 @@ The new external relationship `workitemboards` is available at the endpoint `/sp
       "data": [
         {
           "id": "000-000-005",
-          "title": "workitemboardcolumn",
-          "order": 0,  // the left-to-right order of the column in the view
-          "relationships": {
-            "onUpdateActions": {  // should not be used in the UI
-              "data": [
-                {
-                  "id": "000-000-007",
-                  "type": "onUpdateActions",
-                  "transRuleKey": "updateStateFromColumnMove",
-                  "transRuleArguments": { 
-                    "metastate": "mNew" 
-                  }
-                }
-              ]
-            }
-          }
           "type": "boardcolumns"
         }
       ]
     }
   },
+  "included": [
+    {
+      "id": "000-000-005",
+      "title": "workitemboardcolumn",
+      "columnOrder": 0,  // the left-to-right order of the column in the view
+      "type": "boardcolumns"
+    }
+  ],
   "type": "workitemboards"
 }
 ```
 
-Note that clients should always use the `related` link from the `/spacetemplate` response to pull the column definitions.
+Note that clients should always use the `related` link from the `/spacetemplate` response to pull the column definitions. The column definitions are attached as an included relationship to match the JSONAPI standard.
 
 There might be zero or more `onUpdateActions` defined on a `boardcolumns` definition. The definition, including the `transRuleKey` and `transRuleArguments` values are only used on the WIT side and should not be used by the UI. They are provided for a future use case where the user might be allowed to update those values to change the board behaviour. `transRuleKey` describes the rule/action that is executed when a Work Item is moved *into* this column while `transRuleArguments` gives additional parameters for this action. In the current state of the implementation, this will execute a rule that updates the state of the Work Item moved into the column based on the meta-state given in `transRuleArguments`. In the future, there might be other rules/actions and different arguments. One example could be to create columns for labels. In this case, the rule/action needs to update the labels on the Work Item and the `transRuleArguments` may contain the label attached to the described column.
 
