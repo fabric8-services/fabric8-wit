@@ -15,14 +15,14 @@ This section describes the API of the new service changes. It defines new entiti
 
 The response for `/spacetemplates` and `/spacetemplates/:id` gets a new relationship for the board definition:
 
-```
-[...]
+```yaml
+# [...]
 "workitemboards": {
   "links": {
     "related": "http://api/spacetemplates/000-000-001/workitemboards"
   }
 },
-[...]
+# [...]
 ```
 
 Note that this relationship will *not* be present on the response for `/space/:id` as having normalized template information on the `space` relationships is deprecated. The client should always use the provided `space-template` relationship on the `space` entitiy to pull template information.
