@@ -168,6 +168,32 @@ When a Work Item is updated (either attributes or relationships), the WIT will r
 
 The rule/action being executed on the WIT side is defined by the `onUpdateActions` relationship on the Work Item Type definition (see above). If a Work Item is updated, the rules/actions are executed and the new board positions for the Work Item are calculated.
  
+## Querying for Work Items related to a Board View
+
+When displaying the board view, the UI needs a way to get all Work Items that are related to that board view. This is done by extending the query language for criterias on boards and columns:
+
+```
+{ $AND: [
+    { space: { $EQ: mySpaceID } },
+    { typegroup.name: { $EQ: Execution } },
+    { iteration: { $EQ: myIterationID } },
+    { column: { $EQ: myColumnID }}
+  ]}
+```
+
+Or for getting all Work Items on an entire board:
+
+```
+{ $AND: [
+    { space: { $EQ: mySpaceID } },
+    { typegroup.name: { $EQ: Execution } },
+    { iteration: { $EQ: myIterationID } },
+    { board: { $EQ: myBoardID }}
+  ]}
+```
+
+The new criterias `column` and `board` can be used with other query language features as usual to allow for more fine-granular filtering. The `boardID` and `columnID` values can be retrieved from the board definition contained in the Space Template.
+
 ## Internal Wiring
 
 ### Default Board Definition in the Space Templates
