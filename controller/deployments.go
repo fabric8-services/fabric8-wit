@@ -381,6 +381,29 @@ func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironm
 	return ctx.OK(res)
 }
 
+// ShowAllEnvironments runs the showAllEnvironments action.
+func (c *DeploymentsController) ShowAllEnvironments(ctx *app.ShowAllEnvironmentsDeploymentsContext) error {
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	envs, err := kc.GetEnvironments()
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "error retrieving environments"))
+	}
+	if envs == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundErrorFromString("no environments found"))
+	}
+
+	res := &app.SimpleEnvironmentList{
+		Data: envs,
+	}
+
+	return ctx.OK(res)
+}
+
 func cleanup(kc kubernetes.KubeClientInterface) {
 	if kc != nil {
 		kc.Close()

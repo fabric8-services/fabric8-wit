@@ -138,6 +138,7 @@ type route struct {
 // This hasn't been done, because the rest of fabric8 seems to assume the cluster is the same.
 // For most uses, the proxy server will hide this issue - but not for metrics/logging and console.
 type BaseURLProvider interface {
+	GetEnvironmentMapping() map[string]string
 	GetAPIURL() (*string, error)
 	GetMetricsURL(envNS string) (*string, error)
 	GetConsoleURL(envNS string) (*string, error)
@@ -177,12 +178,8 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	if config.MetricsGetter == nil {
 		config.MetricsGetter = &defaultGetter{}
 	}
-	// Get environments from config map
-	envMap, err := getEnvironmentsFromConfigMap(kubeAPI, config.UserNamespace)
-	if err != nil {
-		return nil, err
-	}
 
+	envMap := config.GetEnvironmentMapping()
 	kubeClient := &kubeClient{
 		config:           config,
 		envMap:           envMap,
@@ -756,47 +753,6 @@ func (oc *openShiftAPIClient) GetBuildConfigs(namespace string, labelSelector st
 	return oc.getResource(bcURL, false)
 }
 
-func getEnvironmentsFromConfigMap(kube KubeRESTAPI, userNamespace string) (map[string]string, error) {
-	// fabric8 creates a ConfigMap in the user namespace with information on environments
-	const envConfigMap string = "fabric8-environments"
-	const providerLabel string = "fabric8"
-	configmap, err := kube.ConfigMaps(userNamespace).Get(envConfigMap, metaV1.GetOptions{})
-	if err != nil {
-		log.Error(nil, map[string]interface{}{
-			"err":            err,
-			"user_namespace": userNamespace,
-		}, "failed to get environment list from %s config map", envConfigMap)
-		return nil, convertError(errs.WithStack(err), "failed to get environment list")
-	}
-	// Check that config map has the expected label
-	if configmap.Labels["provider"] != providerLabel {
-		return nil, errs.Errorf("unknown or missing provider %s for environments config map in namespace %s", providerLabel, userNamespace)
-	}
-	// Parse config map data to construct environments map
-	envMap := make(map[string]string)
-	const namespaceProp string = "namespace"
-	// Config map keys are environment names
-	for key, value := range configmap.Data {
-		// Look through value for namespace property
-		var namespace string
-		lines := strings.Split(value, "\n")
-		for _, line := range lines {
-			if strings.HasPrefix(line, namespaceProp) {
-				tokens := strings.SplitN(line, ":", 2)
-				if len(tokens) < 2 {
-					return nil, errs.New("malformed environments config map")
-				}
-				namespace = strings.TrimSpace(tokens[1])
-			}
-		}
-		if len(namespace) == 0 {
-			return nil, errs.Errorf("no namespace for environment %s in config map", key)
-		}
-		envMap[key] = namespace
-	}
-	return envMap, nil
-}
-
 func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
 	envNS, pres := kc.envMap[envName]
 	if !pres {
@@ -905,11 +861,19 @@ func (kc *kubeClient) getAndParseDeploymentConfig(namespace string, dcName strin
 	if !ok {
 		return nil, errs.Errorf("labels missing from deployment config %s: %+v", dcName, metadata)
 	}
-	/* FIXME Not all projects will have the space label defined due to the requirement that
-	 * fabric8-maven-plugin is called from the project's POM and not that of its parent.
-	 * This requirement is not always satisfied. For now, we work around the issue by logging
-	 * a warning and waiving the space label check, if missing.
-	 */
+
+	/* FIXME The launcher no longer configures POM files to apply a space label as part of the
+	 * project's fabric8-maven-plugin resource goal. This results in OpenShift objects that have no
+	 * space label.
+	 *
+	 * Additionally, projects created using the old launcher may have old space label
+	 * configuration that is not updated when importing the project with the new launcher.
+	 * This results in OpenShift objects having a space label for the wrong space.
+	 *
+	 * Until OpenShift objects have reliable space labels, we work around the issue by logging
+	 * a warning and waiving the space label check.
+	 *
+	 * See: https://github.com/openshiftio/openshift.io/issues/2360 */
 	spaceLabel, err := getOptionalStringValue(labels, spaceLabelName)
 	if err != nil {
 		return nil, err
@@ -921,7 +885,12 @@ func (kc *kubeClient) getAndParseDeploymentConfig(namespace string, dcName strin
 			"space":     space,
 		}, "space label missing from deployment config")
 	} else if spaceLabel != space {
-		return nil, errs.Errorf("deployment config %s is part of space %s, expected space %s", dcName, spaceLabel, space)
+		log.Warn(nil, map[string]interface{}{
+			"namespace":   namespace,
+			"dc_name":     dcName,
+			"space_name":  space,
+			"space_label": spaceLabel,
+		}, "space label on deployment config indicates different space")
 	}
 	// Get UID from deployment config
 	uid, ok := metadata["uid"].(string)
