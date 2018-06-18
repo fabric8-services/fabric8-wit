@@ -11,6 +11,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
+	"github.com/fabric8-services/fabric8-wit/ptr"
+	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -509,4 +512,160 @@ func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 		assert.Equal(s.T(), itemsPerRoutine, report.total)
 		assert.Equal(s.T(), 0, report.failures)
 	}
+}
+
+func (s *workItemRepoBlackBoxTest) TestList() {
+	s.T().Run("list with explicit order", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Iterations(2),
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2, 3, 4, 5, 6:
+					fxt.WorkItems[idx].Fields[workitem.SystemState] = "open"
+				default:
+					fxt.WorkItems[idx].Fields[workitem.SystemState] = "new"
+				}
+				return nil
+			}),
+		)
+		t.Run("by created descending", func(t *testing.T) {
+			// when
+			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-created"))
+			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			require.Equal(t, fxt.WorkItems[0].ID, res[6].ID)
+			require.Equal(t, fxt.WorkItems[1].ID, res[5].ID)
+			require.Equal(t, fxt.WorkItems[2].ID, res[4].ID)
+			require.Equal(t, fxt.WorkItems[3].ID, res[3].ID)
+			require.Equal(t, fxt.WorkItems[4].ID, res[2].ID)
+			require.Equal(t, fxt.WorkItems[5].ID, res[1].ID)
+			require.Equal(t, fxt.WorkItems[6].ID, res[0].ID)
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+		t.Run("by created ascending", func(t *testing.T) {
+			// when
+			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("created"))
+			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			require.Equal(t, fxt.WorkItems[0].ID, res[0].ID)
+			require.Equal(t, fxt.WorkItems[1].ID, res[1].ID)
+			require.Equal(t, fxt.WorkItems[2].ID, res[2].ID)
+			require.Equal(t, fxt.WorkItems[3].ID, res[3].ID)
+			require.Equal(t, fxt.WorkItems[4].ID, res[4].ID)
+			require.Equal(t, fxt.WorkItems[5].ID, res[5].ID)
+			require.Equal(t, fxt.WorkItems[6].ID, res[6].ID)
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+		t.Run("by updated descending", func(t *testing.T) {
+			// when
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[3], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[2], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[1], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[6], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[5], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[4], fxt.Identities[0].ID)
+			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-updated"))
+			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			require.Equal(t, fxt.WorkItems[3].ID, res[6].ID)
+			require.Equal(t, fxt.WorkItems[2].ID, res[5].ID)
+			require.Equal(t, fxt.WorkItems[0].ID, res[4].ID)
+			require.Equal(t, fxt.WorkItems[1].ID, res[3].ID)
+			require.Equal(t, fxt.WorkItems[6].ID, res[2].ID)
+			require.Equal(t, fxt.WorkItems[5].ID, res[1].ID)
+			require.Equal(t, fxt.WorkItems[4].ID, res[0].ID)
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+		t.Run("by updated ascending", func(t *testing.T) {
+			// when
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[3], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[2], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[1], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[6], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[5], fxt.Identities[0].ID)
+			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[4], fxt.Identities[0].ID)
+			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("updated"))
+			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			require.Equal(t, fxt.WorkItems[3].ID, res[0].ID)
+			require.Equal(t, fxt.WorkItems[2].ID, res[1].ID)
+			require.Equal(t, fxt.WorkItems[0].ID, res[2].ID)
+			require.Equal(t, fxt.WorkItems[1].ID, res[3].ID)
+			require.Equal(t, fxt.WorkItems[6].ID, res[4].ID)
+			require.Equal(t, fxt.WorkItems[5].ID, res[5].ID)
+			require.Equal(t, fxt.WorkItems[4].ID, res[6].ID)
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+
+	})
 }
