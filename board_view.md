@@ -15,21 +15,21 @@ This section describes the API of the new service changes. It defines new entiti
 
 The response for `/spacetemplates` and `/spacetemplates/:id` gets a new relationship for the board definition:
 
-```
-[...]
+```yaml
+# [...]
 "workitemboards": {
   "links": {
     "related": "http://api/spacetemplates/000-000-001/workitemboards"
   }
 },
-[...]
+# [...]
 ```
 
 Note that this relationship will *not* be present on the response for `/space/:id` as having normalized template information on the `space` relationships is deprecated. The client should always use the provided `space-template` relationship on the `space` entitiy to pull template information.
 
 The new external relationship `workitemboards` is available at the endpoint `/spacetemplates/:id/workitemboards` and has the following structure: 
 
-```
+```yaml
 {
   "id": "000-000-002",
   "attributes": {
@@ -86,14 +86,14 @@ The columns are described as an embedded JSONAPI relationship. `onUpdateActions`
 
 The response to `/workitems` and `/workitems/:id` is updated to contain the positions of the Work Item in the boards. Note that a Work Item may have multiple positions as a Work Item can and will appear in multiple boards. A Work Item can appear only once in each board though:
 
-```
+```yaml
 {
   "data": [
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
         "system.title":"Some Work Item",
-        [...]
+        # [...]
       },
       relationships: {
          "boardcolumns": {
@@ -105,7 +105,7 @@ The response to `/workitems` and `/workitems/:id` is updated to contain the posi
            ]
          }  
       },
-      [...]
+      # [...]
 ```
 
 The ID reference of the board column is alwasy referring to the UUID of a column. The board is given implicitly as we're dealing with UUIDs. The column positions are described as an embedded JSONAPI relationship.
@@ -114,7 +114,7 @@ The ID reference of the board column is alwasy referring to the UUID of a column
 
 The meta-state is not directly connected to the board/column definitions, but to the first application of that system, mapping states to board columns. The meta-state is stored with the Work Item and returned as a standard JSONAPI attribute:
 
-```
+```yaml
 {
   "data": [
     {
@@ -122,17 +122,17 @@ The meta-state is not directly connected to the board/column definitions, but to
         "system.created_at": "0001-01-01T00:00:00Z",
         "system.title": "Some Work Item",
         "system.metastate": "mInprogress",
-        [...]
+        # [...]
       },
-[...]
+# [...]
 ```
 
 ### Rule/Actions on Work Item Data Updates
 
 The rules/actions being executed on Work Item data changes are exposed by a new relationship `onUpdateActions` on the ` /workitemtypes` and `/workitemtypes/:id` responses:
 
-```
-[...]
+```yaml
+# [...]
 "onUpdateActions": {
   "data": [
     {
@@ -145,7 +145,7 @@ The rules/actions being executed on Work Item data changes are exposed by a new 
     }
   ]
 }
-[...]
+# [...]
 ```
 
 There may be zero or more rules defined on a Work Item Type. Note that the rule/action information is not (yet) used on the UI. This might change when we allow the user to update those values to change the board view behaviour. 
@@ -200,7 +200,7 @@ The new criterias `column` and `board` can be used with other query language fea
 
 The default board definition has to be added to the Space Template definition. This is done thru the YAML definition files:
 
-```
+```yaml
 board_config:
 
 - id: "24181b5c-713f-4bef-a19f-45240875da92"
@@ -245,7 +245,7 @@ The default board definitions get loaded/updated into the database on launch in 
 This is the table that holds the board definition for a specific board of a specific Space. A Work Item placed in a column links back to exactly one `boardcolumn` entry per `boardID`. A Work Item may be in multiple columns but only in one column per board. The `boardcolumns` defintions link back to a Space template (`spaceTemplateID`), not a Space as we don’t allow customization yet and the schema is modelles the same way the Work Item Types are modelled. That means that `columnID` and `boardID` are the same for Spaces using the same Space template. This is not an issue as the Work Item definition links back to the Space, so the context is given.
 
 (Pseudocode)
-```
+```sql
 CREATE TABLE boardcolumns ( 
    id UUID NOT NULL,
    spaceTemplateID UUID NOT NULL,
@@ -273,7 +273,7 @@ CREATE TABLE boardcolumns (
 
 The meta-state is stored and covered by a new Work Item Type attribute that provides the mapping by using the ordered nature of the enum definitions in the space template. The new attribute is added to the generalized WIT definition so it is inherited by all existing WITs in all templates:
 
-```
+```yaml
 "system.metastate":
       label: Meta-State
       description: The meta-state of the work item
