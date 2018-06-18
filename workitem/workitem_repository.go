@@ -608,7 +608,6 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 				SELECT space_template_id from spaces where id::text = '%s'
 			)
 		)`, wiType.TableName(), wiType.ID.String(), spaceID.String())
-	r.db.LogMode(true)
 	err = r.db.Raw(query).Row().Scan(&exists)
 	if err == nil && !exists {
 		return nil, errors.NewBadParameterErrorFromString(
