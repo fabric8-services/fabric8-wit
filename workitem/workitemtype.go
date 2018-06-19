@@ -35,6 +35,7 @@ const (
 	SystemArea                = "system.area"
 	SystemCodebase            = "system.codebase"
 	SystemLabels              = "system.labels"
+	SystemBoardcolumns        = "system.boardcolumns"
 
 	SystemStateOpen       = "open"
 	SystemStateNew        = "new"

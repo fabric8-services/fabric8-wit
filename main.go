@@ -386,6 +386,14 @@ func main() {
 	workItemTypeGroupsCtrl := controller.NewWorkItemTypeGroupsController(service, appDB)
 	app.MountWorkItemTypeGroupsController(service, workItemTypeGroupsCtrl)
 
+	// Mount "board" controller with "show" action
+	workItemBoardCtrl := controller.NewWorkItemBoardController(service, appDB)
+	app.MountWorkItemBoardController(service, workItemBoardCtrl)
+	
+	// Mount "boards" controller with "list" action
+	workItemBoardsCtrl := controller.NewWorkItemBoardsController(service, appDB)
+	app.MountWorkItemBoardsController(service, workItemBoardsCtrl)
+
 	// Mount "queries" controller
 	queriesCtrl := controller.NewQueryController(service, appDB, config)
 	app.MountQueryController(service, queriesCtrl)

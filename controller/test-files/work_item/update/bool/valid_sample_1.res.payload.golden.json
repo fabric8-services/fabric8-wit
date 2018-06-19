@@ -3,8 +3,9 @@
     "attributes": {
       "bool_field": false,
       "system.created_at": "0001-01-01T00:00:00Z",
-      "system.number": 2,
-      "system.order": 2000,
+      "system.metastate": null,
+      "system.number": 3,
+      "system.order": 3000,
       "system.remote_item_id": null,
       "system.state": "new",
       "system.title": "bool_wi",
@@ -28,6 +29,7 @@
           "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000002"
         }
       },
+      "boardcolumns": {},
       "children": {
         "links": {
           "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/children"

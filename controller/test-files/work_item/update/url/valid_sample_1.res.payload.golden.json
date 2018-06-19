@@ -2,8 +2,9 @@
   "data": {
     "attributes": {
       "system.created_at": "0001-01-01T00:00:00Z",
-      "system.number": 12,
-      "system.order": 12000,
+      "system.metastate": null,
+      "system.number": 13,
+      "system.order": 13000,
       "system.remote_item_id": null,
       "system.state": "new",
       "system.title": "url_wi",
@@ -28,6 +29,7 @@
           "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000002"
         }
       },
+      "boardcolumns": {},
       "children": {
         "links": {
           "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/children"

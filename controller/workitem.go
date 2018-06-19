@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/ptr"
 
 	"context"
-
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -315,6 +314,33 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 		}
 		target.Fields[workitem.SystemLabels] = ids
 	}
+	if source.Relationships != nil && source.Relationships.Boardcolumns != nil {
+		// Pass empty array to remove all boardcolumns
+		// null is treated as bad param
+		if source.Relationships.Boardcolumns.Data == nil {
+			return errors.NewBadParameterError("data.relationships.boardcolumns.data", nil)
+		}
+		distinctIDs := make(map[string]struct{})
+		for _, d := range source.Relationships.Boardcolumns.Data {
+			columnUUID, err := uuid.FromString(*d.ID)
+			if err != nil {
+				return errors.NewBadParameterError("data.relationships.boardcolumns.data.id", *d.ID)
+			}
+			/* TODO(michaelkleinhenz): check if columnID is valid
+			if ok := appl.Boards().validColumn(ctx, columnUUID); !ok {
+				return errors.NewBadParameterError("data.relationships.boardcolumns.data.id", *d.ID)
+			}
+			*/
+			if _, ok := distinctIDs[columnUUID.String()]; !ok {
+				distinctIDs[columnUUID.String()] = struct{}{}
+			}
+		}
+		ids := make([]string, 0, len(distinctIDs))
+		for k := range distinctIDs {
+			ids = append(ids, k)
+		}
+		target.Fields[workitem.SystemBoardcolumns] = ids
+	}
 	if source.Relationships != nil {
 		if source.Relationships.Iteration == nil || (source.Relationships.Iteration != nil && source.Relationships.Iteration.Data == nil) {
 			log.Debug(ctx, map[string]interface{}{
@@ -547,6 +573,13 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 					Links: &app.GenericLinks{
 						Related: &labelsRelated,
 					},
+				}
+			}
+		case workitem.SystemBoardcolumns:
+			if val != nil {
+				columnIDs := val.([]interface{})
+				op.Relationships.Boardcolumns = &app.RelationGenericList{
+					Data: ConvertLabelsSimple(request, columnIDs),
 				}
 			}
 		case workitem.SystemCreator:

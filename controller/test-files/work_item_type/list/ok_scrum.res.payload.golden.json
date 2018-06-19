@@ -46,6 +46,15 @@
               "kind": "list"
             }
           },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
           "system.codebase": {
             "description": "Contains codebase attributes to which this WI belongs to",
             "label": "Codebase",
@@ -241,6 +250,15 @@
             "required": false,
             "type": {
               "componentType": "user",
+              "kind": "list"
+            }
+          },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
               "kind": "list"
             }
           },
@@ -445,6 +463,15 @@
             "required": false,
             "type": {
               "componentType": "user",
+              "kind": "list"
+            }
+          },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
               "kind": "list"
             }
           },
@@ -708,6 +735,15 @@
               "kind": "list"
             }
           },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
           "system.codebase": {
             "description": "Contains codebase attributes to which this WI belongs to",
             "label": "Codebase",
@@ -946,6 +982,15 @@
               "kind": "list"
             }
           },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
           "system.codebase": {
             "description": "Contains codebase attributes to which this WI belongs to",
             "label": "Codebase",
@@ -1177,6 +1222,15 @@
             "required": false,
             "type": {
               "componentType": "user",
+              "kind": "list"
+            }
+          },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
               "kind": "list"
             }
           },
@@ -1426,6 +1480,15 @@
             "required": false,
             "type": {
               "componentType": "user",
+              "kind": "list"
+            }
+          },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
               "kind": "list"
             }
           },
