@@ -17,7 +17,7 @@ All the issues related to fabric8-wit should be reported in the
 
 ## Pull Requests
 
-Your pull requests can be send to Github repository against the master
+Your pull requests can be sent to the Github repository against the master
 branch.
 
 ## Reviewing
