@@ -604,10 +604,10 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	// Prohibit creation of work items from a type that doesn't belong to current space template
 	query := fmt.Sprintf(`
 		SELECT EXISTS (
-			SELECT 1 from %s WHERE id=$1 AND space_template_id = (
-				SELECT space_template_id FROM spaces WHERE id=$2
+			SELECT 1 from %[1]s WHERE id=$1 AND space_template_id = (
+				SELECT space_template_id FROM %[2]s WHERE id=$2
 			)
-		)`, wiType.TableName())
+		)`, wiType.TableName(), space.Space{}.TableName())
 	err = r.db.Raw(query, wiType.ID, spaceID).Row().Scan(&exists)
 	if err == nil && !exists {
 		return nil, errors.NewBadParameterErrorFromString(
