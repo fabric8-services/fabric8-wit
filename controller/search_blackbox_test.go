@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -411,6 +413,10 @@ func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[idx].SpaceTemplateID = spacetemplate.SystemLegacyTemplateID
+				return nil
+			}),
 			tf.CreateWorkItemEnvironment(),
 			// TODO(kwk): Decide if these type groups should go to CreateWorkItemEnvironment()
 			tf.WorkItemTypeGroups(4, func(fxt *tf.TestFixture, idx int) error {
