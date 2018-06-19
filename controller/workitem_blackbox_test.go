@@ -1692,13 +1692,11 @@ func (s *WorkItem2Suite) TestListOrder() {
 				fxt.WorkItems[5].ID,
 				fxt.WorkItems[6].ID,
 			}.ToMap()
-			require.Equal(t, fxt.WorkItems[0].ID, *actualWIs.Data[6].ID)
-			require.Equal(t, fxt.WorkItems[1].ID, *actualWIs.Data[5].ID)
-			require.Equal(t, fxt.WorkItems[2].ID, *actualWIs.Data[4].ID)
-			require.Equal(t, fxt.WorkItems[3].ID, *actualWIs.Data[3].ID)
-			require.Equal(t, fxt.WorkItems[4].ID, *actualWIs.Data[2].ID)
-			require.Equal(t, fxt.WorkItems[5].ID, *actualWIs.Data[1].ID)
-			require.Equal(t, fxt.WorkItems[6].ID, *actualWIs.Data[0].ID)
+
+			for i := 0; i <= 6; i++ {
+				require.Equal(t, fxt.WorkItems[i].ID, *actualWIs.Data[6-i].ID)
+			}
+
 			for _, wi := range actualWIs.Data {
 				_, ok := toBeFound[*wi.ID]
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
@@ -1722,13 +1720,11 @@ func (s *WorkItem2Suite) TestListOrder() {
 				fxt.WorkItems[5].ID,
 				fxt.WorkItems[6].ID,
 			}.ToMap()
-			require.Equal(t, fxt.WorkItems[0].ID, *actualWIs.Data[0].ID)
-			require.Equal(t, fxt.WorkItems[1].ID, *actualWIs.Data[1].ID)
-			require.Equal(t, fxt.WorkItems[2].ID, *actualWIs.Data[2].ID)
-			require.Equal(t, fxt.WorkItems[3].ID, *actualWIs.Data[3].ID)
-			require.Equal(t, fxt.WorkItems[4].ID, *actualWIs.Data[4].ID)
-			require.Equal(t, fxt.WorkItems[5].ID, *actualWIs.Data[5].ID)
-			require.Equal(t, fxt.WorkItems[6].ID, *actualWIs.Data[6].ID)
+
+			for i := 0; i <= 6; i++ {
+				require.Equal(t, fxt.WorkItems[i].ID, *actualWIs.Data[i].ID)
+			}
+
 			for _, wi := range actualWIs.Data {
 				_, ok := toBeFound[*wi.ID]
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
@@ -1739,96 +1735,20 @@ func (s *WorkItem2Suite) TestListOrder() {
 
 		t.Run("by updated descending", func(t *testing.T) {
 			// when
-			payload := app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[3].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[3].Version,
+			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				payload := app.UpdateWorkitemPayload{
+					Data: &app.WorkItem{
+						Type: APIStringTypeWorkItem,
+						ID:   &fxt.WorkItems[v].ID,
+						Attributes: map[string]interface{}{
+							workitem.SystemState:   "resolved",
+							workitem.SystemVersion: fxt.WorkItems[v].Version,
+						},
 					},
-				},
+				}
+
+				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[3].ID, &payload)
 			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[3].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[2].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[2].Version,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[2].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[0].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[0].Version,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[1].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[1].Version,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[1].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[6].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[6].Version,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[6].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[5].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[5].Version,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[5].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[4].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[4].Version,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[4].ID, &payload)
 
 			exp := ptr.String(`{"system.state": "resolved"}`)
 			sort := ptr.String("-updated")
@@ -1845,13 +1765,10 @@ func (s *WorkItem2Suite) TestListOrder() {
 				fxt.WorkItems[5].ID,
 				fxt.WorkItems[6].ID,
 			}.ToMap()
-			require.Equal(t, fxt.WorkItems[3].ID, *actualWIs.Data[6].ID)
-			require.Equal(t, fxt.WorkItems[2].ID, *actualWIs.Data[5].ID)
-			require.Equal(t, fxt.WorkItems[0].ID, *actualWIs.Data[4].ID)
-			require.Equal(t, fxt.WorkItems[1].ID, *actualWIs.Data[3].ID)
-			require.Equal(t, fxt.WorkItems[6].ID, *actualWIs.Data[2].ID)
-			require.Equal(t, fxt.WorkItems[5].ID, *actualWIs.Data[1].ID)
-			require.Equal(t, fxt.WorkItems[4].ID, *actualWIs.Data[0].ID)
+			for i, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				require.Equal(t, fxt.WorkItems[v].ID, *actualWIs.Data[6-i].ID)
+			}
+
 			for _, wi := range actualWIs.Data {
 				_, ok := toBeFound[*wi.ID]
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
@@ -1862,96 +1779,20 @@ func (s *WorkItem2Suite) TestListOrder() {
 		})
 		t.Run("by updated ascending", func(t *testing.T) {
 			// when
-			payload := app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[3].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[3].Version + 1,
+			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				payload := app.UpdateWorkitemPayload{
+					Data: &app.WorkItem{
+						Type: APIStringTypeWorkItem,
+						ID:   &fxt.WorkItems[v].ID,
+						Attributes: map[string]interface{}{
+							workitem.SystemState:   "resolved",
+							workitem.SystemVersion: fxt.WorkItems[v].Version + 1,
+						},
 					},
-				},
+				}
+
+				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[3].ID, &payload)
 			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[3].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[2].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[2].Version + 1,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[2].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[0].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[0].Version + 1,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[1].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[1].Version + 1,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[1].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[6].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[6].Version + 1,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[6].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[5].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[5].Version + 1,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[5].ID, &payload)
-
-			payload = app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type: APIStringTypeWorkItem,
-					ID:   &fxt.WorkItems[4].ID,
-					Attributes: map[string]interface{}{
-						workitem.SystemState:   "resolved",
-						workitem.SystemVersion: fxt.WorkItems[4].Version + 1,
-					},
-				},
-			}
-
-			test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[4].ID, &payload)
 
 			exp := ptr.String(`{"system.state": "resolved"}`)
 			sort := ptr.String("updated")
@@ -1968,13 +1809,11 @@ func (s *WorkItem2Suite) TestListOrder() {
 				fxt.WorkItems[5].ID,
 				fxt.WorkItems[6].ID,
 			}.ToMap()
-			require.Equal(t, fxt.WorkItems[3].ID, *actualWIs.Data[0].ID)
-			require.Equal(t, fxt.WorkItems[2].ID, *actualWIs.Data[1].ID)
-			require.Equal(t, fxt.WorkItems[0].ID, *actualWIs.Data[2].ID)
-			require.Equal(t, fxt.WorkItems[1].ID, *actualWIs.Data[3].ID)
-			require.Equal(t, fxt.WorkItems[6].ID, *actualWIs.Data[4].ID)
-			require.Equal(t, fxt.WorkItems[5].ID, *actualWIs.Data[5].ID)
-			require.Equal(t, fxt.WorkItems[4].ID, *actualWIs.Data[6].ID)
+
+			for i, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				require.Equal(t, fxt.WorkItems[v].ID, *actualWIs.Data[i].ID)
+			}
+
 			for _, wi := range actualWIs.Data {
 				_, ok := toBeFound[*wi.ID]
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
