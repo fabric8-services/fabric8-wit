@@ -517,7 +517,7 @@ func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 func (s *workItemRepoBlackBoxTest) TestList() {
 	s.T().Run("list with explicit order", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
-			tf.Iterations(2),
+			tf.Iterations(1),
 			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
 				switch idx {
 				case 0, 1, 2, 3, 4, 5, 6:
@@ -545,13 +545,9 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 				fxt.WorkItems[5].ID,
 				fxt.WorkItems[6].ID,
 			}.ToMap()
-			require.Equal(t, fxt.WorkItems[0].ID, res[6].ID)
-			require.Equal(t, fxt.WorkItems[1].ID, res[5].ID)
-			require.Equal(t, fxt.WorkItems[2].ID, res[4].ID)
-			require.Equal(t, fxt.WorkItems[3].ID, res[3].ID)
-			require.Equal(t, fxt.WorkItems[4].ID, res[2].ID)
-			require.Equal(t, fxt.WorkItems[5].ID, res[1].ID)
-			require.Equal(t, fxt.WorkItems[6].ID, res[0].ID)
+			for i := 0; i <= 6; i++ {
+				require.Equal(t, fxt.WorkItems[i].ID, res[6-i].ID)
+			}
 			for _, wi := range res {
 				_, ok := toBeFound[wi.ID]
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
@@ -576,13 +572,9 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 				fxt.WorkItems[5].ID,
 				fxt.WorkItems[6].ID,
 			}.ToMap()
-			require.Equal(t, fxt.WorkItems[0].ID, res[0].ID)
-			require.Equal(t, fxt.WorkItems[1].ID, res[1].ID)
-			require.Equal(t, fxt.WorkItems[2].ID, res[2].ID)
-			require.Equal(t, fxt.WorkItems[3].ID, res[3].ID)
-			require.Equal(t, fxt.WorkItems[4].ID, res[4].ID)
-			require.Equal(t, fxt.WorkItems[5].ID, res[5].ID)
-			require.Equal(t, fxt.WorkItems[6].ID, res[6].ID)
+			for i := 0; i <= 6; i++ {
+				require.Equal(t, fxt.WorkItems[i].ID, res[i].ID)
+			}
 			for _, wi := range res {
 				_, ok := toBeFound[wi.ID]
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
