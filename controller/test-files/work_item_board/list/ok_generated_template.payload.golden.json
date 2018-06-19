@@ -1,0 +1,231 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "context": "00000000-0000-0000-0000-000000000001",
+        "contextType": "TypeLevelContext",
+        "created-at": "0001-01-01T00:00:00Z",
+        "name": "work item board 00000000-0000-0000-0000-000000000002",
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "00000000-0000-0000-0000-000000000003",
+      "links": {
+        "related": "http:///api/workitemboards/00000000-0000-0000-0000-000000000003"
+      },
+      "relationships": {
+        "columns": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000004",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000005",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000006",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000007",
+              "type": "boardcolumns"
+            }
+          ]
+        },
+        "spaceTemplate": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000008",
+            "type": "spacetemplates"
+          }
+        }
+      },
+      "type": "workitemboards"
+    },
+    {
+      "attributes": {
+        "context": "00000000-0000-0000-0000-000000000009",
+        "contextType": "TypeLevelContext",
+        "created-at": "0001-01-01T00:00:00Z",
+        "name": "work item board 00000000-0000-0000-0000-000000000010",
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "00000000-0000-0000-0000-000000000011",
+      "links": {
+        "related": "http:///api/workitemboards/00000000-0000-0000-0000-000000000011"
+      },
+      "relationships": {
+        "columns": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000012",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000013",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000014",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000015",
+              "type": "boardcolumns"
+            }
+          ]
+        },
+        "spaceTemplate": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000008",
+            "type": "spacetemplates"
+          }
+        }
+      },
+      "type": "workitemboards"
+    },
+    {
+      "attributes": {
+        "context": "00000000-0000-0000-0000-000000000016",
+        "contextType": "TypeLevelContext",
+        "created-at": "0001-01-01T00:00:00Z",
+        "name": "work item board 00000000-0000-0000-0000-000000000017",
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "00000000-0000-0000-0000-000000000018",
+      "links": {
+        "related": "http:///api/workitemboards/00000000-0000-0000-0000-000000000018"
+      },
+      "relationships": {
+        "columns": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000019",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000020",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000021",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000022",
+              "type": "boardcolumns"
+            }
+          ]
+        },
+        "spaceTemplate": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000008",
+            "type": "spacetemplates"
+          }
+        }
+      },
+      "type": "workitemboards"
+    }
+  ],
+  "included": [
+    {
+      "attributes": {
+        "columnOrder": 0,
+        "name": "New00000000-0000-0000-0000-000000000023"
+      },
+      "id": "00000000-0000-0000-0000-000000000004",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 1,
+        "name": "In Progress00000000-0000-0000-0000-000000000024"
+      },
+      "id": "00000000-0000-0000-0000-000000000005",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 2,
+        "name": "Resolved00000000-0000-0000-0000-000000000025"
+      },
+      "id": "00000000-0000-0000-0000-000000000006",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 3,
+        "name": "Approved00000000-0000-0000-0000-000000000026"
+      },
+      "id": "00000000-0000-0000-0000-000000000007",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 0,
+        "name": "New00000000-0000-0000-0000-000000000027"
+      },
+      "id": "00000000-0000-0000-0000-000000000012",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 1,
+        "name": "In Progress00000000-0000-0000-0000-000000000028"
+      },
+      "id": "00000000-0000-0000-0000-000000000013",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 2,
+        "name": "Resolved00000000-0000-0000-0000-000000000029"
+      },
+      "id": "00000000-0000-0000-0000-000000000014",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 3,
+        "name": "Approved00000000-0000-0000-0000-000000000030"
+      },
+      "id": "00000000-0000-0000-0000-000000000015",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 0,
+        "name": "New00000000-0000-0000-0000-000000000031"
+      },
+      "id": "00000000-0000-0000-0000-000000000019",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 1,
+        "name": "In Progress00000000-0000-0000-0000-000000000032"
+      },
+      "id": "00000000-0000-0000-0000-000000000020",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 2,
+        "name": "Resolved00000000-0000-0000-0000-000000000033"
+      },
+      "id": "00000000-0000-0000-0000-000000000021",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 3,
+        "name": "Approved00000000-0000-0000-0000-000000000034"
+      },
+      "id": "00000000-0000-0000-0000-000000000022",
+      "type": "boardcolumns"
+    }
+  ],
+  "links": {
+    "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000008/workitemboards"
+  }
+}

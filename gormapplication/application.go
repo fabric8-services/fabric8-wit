@@ -162,6 +162,11 @@ func (g *GormBase) WorkItemTypeGroups() workitem.WorkItemTypeGroupRepository {
 	return workitem.NewWorkItemTypeGroupRepository(g.db)
 }
 
+// Boards returns a work item type group repository
+func (g *GormBase) Boards() workitem.BoardRepository {
+	return workitem.NewBoardRepository(g.db)
+}
+
 func (g *GormBase) DB() *gorm.DB {
 	return g.db
 }

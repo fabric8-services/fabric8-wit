@@ -21,10 +21,10 @@ import (
 
 type workItemBoardSuite struct {
 	gormtestsupport.DBTestSuite
-	svc            *goa.Service
-	boardCtrl  		 *WorkItemBoardController
-	boardsCtrl 		 *WorkItemBoardsController
-	testDir        string
+	svc        *goa.Service
+	boardCtrl  *WorkItemBoardController
+	boardsCtrl *WorkItemBoardsController
+	testDir    string
 }
 
 func TestWorkItemBoardSuite(t *testing.T) {
@@ -37,7 +37,7 @@ func TestWorkItemBoardSuite(t *testing.T) {
 // The SetupTest method will be run before every test in the suite.
 func (s *workItemBoardSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	s.svc = testsupport.ServiceAsUser("WITG-Service", testsupport.TestIdentity)
+	s.svc = testsupport.ServiceAsUser("Board-Service", testsupport.TestIdentity)
 	s.boardCtrl = NewWorkItemBoardController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.boardsCtrl = NewWorkItemBoardsController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.testDir = filepath.Join("test-files", "work_item_board")
@@ -88,7 +88,7 @@ func (s *workItemBoardSuite) TestShow() {
 		// when
 		res, group := test.ShowWorkItemBoardOK(t, nil, s.svc, s.boardCtrl, fxt.WorkItemBoards[0].ID)
 		// then
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.witg.golden.json"), group)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.board.golden.json"), group)
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
 	})
 	s.T().Run("not found", func(t *testing.T) {

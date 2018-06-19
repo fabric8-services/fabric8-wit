@@ -87,120 +87,120 @@ work_item_types:
   - *experienceID
   - *valuePropositionID
 
-board_config:
+work_item_boards:
 
 - id: "24181b5c-713f-4bef-a19f-45240875da92"
   name: Scenarios Board
   description: This is the default board config for the SDD template (Scenarios).
   context: "679a563c-ac9b-4478-9f3e-4187f708dd30"
-  contextType: "TypeLevelContext"
+  context_type: "TypeLevelContext"
   columns:
   - id: "b4edad70-1d77-4e5a-b973-0f0d599fd20d"
     name: "New"
-    order: 0
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mNew' }"
+    column_order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mNew' }"
   - id: "ce5cd7bd-1eb3-4945-821f-ebfedebf5958"
     name: "Approved"
-    order: 1
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mOpen' }"
+    column_order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mOpen' }"
   - id: "42120527-5a99-4913-9917-58450008b770"
     name: "Committed"
-    order: 2
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mInprogress' }"
+    column_order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mInprogress' }"
   - id: "b7ef0df4-2253-47ee-9e60-4f768a5d7c81"
     name: "Done"
-    order: 3
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mResolved' }"
+    column_order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mResolved' }"
 
 - id: "56d62801-798a-4bb0-9c97-89f136f3d539"
   name: Experiences Board
   description: This is the default board config for the SDD template (Experiences).
   context: "8e4c995d-8e5f-4ad6-85bd-3cfbe718f908"
-  contextType: "TypeLevelContext"
+  context_type: "TypeLevelContext"
   columns:
   - id: "8faebb8a-3748-44c6-a691-27633dde571c"
     name: "New"
-    order: 0
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mNew' }"
+    column_order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mNew' }"
   - id: "907dad6c-f117-4ad6-b6dd-e21fb198e56d"
     name: "Approved"
-    order: 1
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mOpen' }"
+    column_order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mOpen' }"
   - id: "90a0a0b1-3e9c-4921-8430-25ff56fd1996"
     name: "Committed"
-    order: 2
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mInprogress' }"
+    column_order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mInprogress' }"
   - id: "86a2aaaa-4a80-433b-b390-b8f42eec2d32"
     name: "Done"
-    order: 3
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mResolved' }"
+    column_order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mResolved' }"
 
 - id: "29493abe-02eb-4e4b-ac3b-a4c1390fa5cd"
   name: Requirements Board
   description: This is the default board config for the SDD template (Experiences).
   context: "8e4c995d-8e5f-4ad6-85bd-3cfbe718f908"
-  contextType: "TypeLevelContext"
+  context_type: "TypeLevelContext"
   columns:
   - id: "6c314706-f562-494d-91b9-b7d2c36672ba"
     name: "New"
-    order: 0
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mNew' }"
+    column_order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mNew' }"
   - id: "6b06a763-cdef-400e-98d3-8db46e633c92"
     name: "Approved"
-    order: 1
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mOpen' }"
+    column_order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mOpen' }"
   - id: "92f48297-062b-4605-9f30-2e546af4d898"
     name: "Committed"
-    order: 2
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mInprogress' }"
+    column_order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mInprogress' }"
   - id: "572c67ef-c550-4084-bd8a-a6d722a3278a"
     name: "Done"
-    order: 3
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mResolved' }"
+    column_order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mResolved' }"
 
 - id: "0e842bef-ac2a-4071-b97a-b07a6b29965d"
   name: Execution Board
   description: This is the default board config for the SDD template (Experiences).
   context: "8e4c995d-8e5f-4ad6-85bd-3cfbe718f908"
-  contextType: "TypeLevelContext"
+  context_type: "TypeLevelContext"
   columns:
   - id: "4953fd3a-32dd-4943-8dcf-4b4c9bfcfef1"
     name: "New"
-    order: 0
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mNew' }"
+    column_order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mNew' }"
   - id: "eea309e2-8caf-4dc0-98cd-8bb5de3dedb3"
     name: "Committed"
-    order: 1
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mOpen' }"
+    column_order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mOpen' }"
   - id: "616e8d49-09a9-4ffa-903f-61f215862ee2"
     name: "In Progress"
-    order: 2
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mInprogress' }"
+    column_order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mInprogress' }"
   - id: "c3c4a46e-13d6-4dbb-b82d-bcec22e76275"
     name: "Completed"
-    order: 3
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mInprogress' }"
+    column_order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mInprogress' }"
   - id: "0defb62a-863d-4040-9650-a6e05f744e81"
     name: "Verified"
-    order: 4
-    transRuleKey: "updateStateFromColumnMove"
-    transRuleArguments: "{ metaState: 'mResolved' }"
+    column_order: 4
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ metaState: 'mResolved' }"
 
 work_item_type_groups:
 
