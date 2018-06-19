@@ -2055,7 +2055,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Areas(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 	testSpace := fxt.Spaces[0]
 	rootArea := fxt.Areas[0]
 	log.Info(nil, nil, "creating child area...")

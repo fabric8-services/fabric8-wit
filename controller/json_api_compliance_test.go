@@ -67,10 +67,7 @@ func NewService(identity account.Identity) *goa.Service {
 
 func (s *JSONComplianceTestSuite) TestListSpaces() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1), tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
-		fxt.Spaces[idx].OwnerID = fxt.Identities[0].ID
-		return nil
-	}))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 	svc := NewService(*fxt.Identities[0])
 	spaceCtrl := NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	// when

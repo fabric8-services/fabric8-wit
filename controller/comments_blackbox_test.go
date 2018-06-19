@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"html"
-	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -23,11 +22,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -86,38 +84,6 @@ func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Serv
 	return svc, workitemCtrl, workitemsCtrl, workitemCommentsCtrl, commentsCtrl
 }
 
-// createWorkItem creates a workitem that will be used to perform the comment operations during the tests.
-func (s *CommentsSuite) createWorkItem(identity account.Identity) uuid.UUID {
-	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(workitem.SystemBug.String()))
-	createWorkitemPayload := app.CreateWorkitemsPayload{
-		Data: &app.WorkItem{
-			Type: APIStringTypeWorkItem,
-			Attributes: map[string]interface{}{
-				workitem.SystemTitle: "work item title",
-				workitem.SystemState: workitem.SystemStateNew},
-			Relationships: &app.WorkItemRelationships{
-				BaseType: &app.RelationBaseType{
-					Data: &app.BaseTypeData{
-						Type: "workitemtypes",
-						ID:   workitem.SystemBug,
-					},
-					Links: &app.GenericLinks{
-						Self:    &witRelatedURL,
-						Related: &witRelatedURL,
-					},
-				},
-				Space: app.NewSpaceRelation(space.SystemSpace, spaceRelatedURL),
-			},
-		},
-	}
-	userSvc, _, workitemsCtrl, _, _ := s.securedControllers(identity)
-	_, wi := test.CreateWorkitemsCreated(s.T(), userSvc.Context, userSvc, workitemsCtrl, *createWorkitemPayload.Data.Relationships.Space.Data.ID, &createWorkitemPayload)
-	wiID := *wi.Data.ID
-	s.T().Log(fmt.Sprintf("Created workitem with id %v", wiID))
-	return wiID
-}
-
 func newCreateWorkItemCommentsPayload(body string, markup *string, parentCommentID *uuid.UUID) *app.CreateWorkItemCommentsPayload {
 	tempPayload := app.CreateWorkItemCommentsPayload{
 		Data: &app.CreateComment{
@@ -147,7 +113,6 @@ func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wiID uu
 	userSvc, _, _, workitemCommentsCtrl, _ := s.securedControllers(identity)
 	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, wiID, createWorkItemCommentPayload)
 	require.NotNil(s.T(), c)
-	s.T().Log(fmt.Sprintf("Created comment with id %v", *c.Data.ID))
 	return *c
 }
 
@@ -212,7 +177,8 @@ func ConvertCommentToModel(c app.CommentSingle) comment.Comment {
 
 func (s *CommentsSuite) TestShowCommentWithParentComment() {
 	// create parent comment
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	p := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup, nil)
 	// create child comment
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup, p.Data.ID)
@@ -225,7 +191,8 @@ func (s *CommentsSuite) TestShowCommentWithParentComment() {
 
 func (s *CommentsSuite) TestShowCommentWithBackwardSupport() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup, nil)
 	// when
 	userSvc, commentsCtrl := s.unsecuredController()
@@ -236,7 +203,8 @@ func (s *CommentsSuite) TestShowCommentWithBackwardSupport() {
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthOK() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup, nil)
 	// when
 	userSvc, commentsCtrl := s.unsecuredController()
@@ -247,7 +215,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthOK() {
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup, nil)
 	// when
 	ifModifiedSince := app.ToHTTPTime(c.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
@@ -260,7 +229,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfModifiedSinceH
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup, nil)
 	// when
 	ifNoneMatch := "foo"
@@ -273,7 +243,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfNoneMatchHeade
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup, nil)
 	// when
 	ifModifiedSince := app.ToHTTPTime(*c.Data.Attributes.UpdatedAt)
@@ -285,7 +256,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthNotModifiedUsingIfModifiedSinc
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthNotModifiedUsingIfNoneMatchHeader() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup, nil)
 	// when
 	commentModel := ConvertCommentToModel(c)
@@ -298,7 +270,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthNotModifiedUsingIfNoneMatchHea
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthWithMarkup() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", nil, nil)
 	// when
 	userSvc, commentsCtrl := s.unsecuredController()
@@ -309,7 +282,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthWithMarkup() {
 
 func (s *CommentsSuite) TestShowCommentWithAuth() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup, nil)
 	// when
 	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
@@ -320,7 +294,8 @@ func (s *CommentsSuite) TestShowCommentWithAuth() {
 
 func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "<img src=x onerror=alert('body') />", &plaintextMarkup, nil)
 	// when
 	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
@@ -331,7 +306,8 @@ func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
 
 func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup, nil)
 	// when
 	updateCommentPayload := newUpdateCommentsPayload("updated body", &markdownMarkup)
@@ -341,7 +317,8 @@ func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
 
 func (s *CommentsSuite) TestUpdateCommentWithSameUserWithOtherMarkup() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup, nil)
 	// when
 	updateCommentPayload := newUpdateCommentsPayload("updated body", &markdownMarkup)
@@ -352,7 +329,8 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithOtherMarkup() {
 
 func (s *CommentsSuite) TestUpdateCommentWithSameUserWithNilMarkup() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup, nil)
 	// when
 	updateCommentPayload := newUpdateCommentsPayload("updated body", nil)
@@ -363,7 +341,8 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithNilMarkup() {
 
 func (s *CommentsSuite) TestDeleteCommentWithSameAuthenticatedUser() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup, nil)
 	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	// when/then
@@ -372,7 +351,8 @@ func (s *CommentsSuite) TestDeleteCommentWithSameAuthenticatedUser() {
 
 func (s *CommentsSuite) TestDeleteCommentWithoutAuth() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup, nil)
 	userSvc, commentsCtrl := s.unsecuredController()
 	// when/then
@@ -430,7 +410,8 @@ func (s *CommentsSuite) TestCollaboratorCanDelete() {
 }
 
 func (s *CommentsSuite) TestCreatorCanDelete() {
-	wID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup, nil)
 	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
@@ -520,7 +501,8 @@ func (s *CommentsSuite) TestCollaboratorCanUpdate() {
 }
 
 func (s *CommentsSuite) TestCreatorCanUpdate() {
-	wID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wID, "Hello world", &plaintextMarkup, nil)
 	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 
@@ -576,7 +558,8 @@ func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 
 func (s *CommentsSuite) TestNotificationSendOnUpdate() {
 	// given
-	wiID := s.createWorkItem(s.testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup, nil)
 	// when
 	updateCommentPayload := newUpdateCommentsPayload("updated body", &markdownMarkup)
