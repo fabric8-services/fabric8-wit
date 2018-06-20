@@ -305,12 +305,17 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 		q = "" // Allow empty query if * specified
 	}
 
+	sort, err := space.ParseSortSpaceBy(ctx.Sort)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
 	var result []space.Space
 	var count int
-	var err error
+
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		result, count, err = appl.Spaces().Search(ctx, &q, &offset, &limit)
+		result, count, err = appl.Spaces().Search(ctx, &q, &offset, &limit, sort)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"query":  q,

@@ -7,10 +7,12 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -355,5 +357,86 @@ func containsAllSpaces(t *testing.T, expectedSpaces []*space.Space, actualSpaces
 			}
 		}
 		return true
+	}
+}
+
+func TestParseSortSpaceBy(t *testing.T) {
+	tests := []struct {
+		name    string
+		s       *string
+		want    space.SortSpaceBy
+		wantErr bool
+	}{
+		{
+			name:    "if sort not specified",
+			s:       nil,
+			want:    space.SortSpaceByDefault,
+			wantErr: false,
+		},
+		{
+			name:    "sort ascending using name",
+			s:       ptr.String("name"),
+			want:    space.SortSpaceByNameAsc,
+			wantErr: false,
+		},
+		{
+			name:    "sort descending using name",
+			s:       ptr.String("-name"),
+			want:    space.SortSpaceByNameDesc,
+			wantErr: false,
+		},
+		{
+			name:    "sort ascending using owner",
+			s:       ptr.String("owner"),
+			want:    space.SortSpaceByOwnerIDAsc,
+			wantErr: false,
+		},
+		{
+			name:    "sort descending using owner",
+			s:       ptr.String("-owner"),
+			want:    space.SortSpaceByOwnerIDDesc,
+			wantErr: false,
+		},
+		{
+			name:    "sort ascending using created at",
+			s:       ptr.String("created"),
+			want:    space.SortSpaceByCreatedAtAsc,
+			wantErr: false,
+		},
+		{
+			name:    "sort descending using created at",
+			s:       ptr.String("-created"),
+			want:    space.SortSpaceByCreatedAtDesc,
+			wantErr: false,
+		},
+		{
+			name:    "sort ascending using updated at",
+			s:       ptr.String("updated"),
+			want:    space.SortSpaceByUpdatedAtAsc,
+			wantErr: false,
+		},
+		{
+			name:    "sort descending using updated at",
+			s:       ptr.String("-updated"),
+			want:    space.SortSpaceByUpdatedAtDesc,
+			wantErr: false,
+		},
+		{
+			name:    "name specified that does not match parameters defined",
+			s:       ptr.String("foo"),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := space.ParseSortSpaceBy(tt.s)
+			if tt.wantErr {
+				require.Error(t, err)
+				// if above assertion passes we don't need to continue
+				// to check if objects match
+				return
+			}
+			require.Equal(t, tt.want, got)
+		})
 	}
 }

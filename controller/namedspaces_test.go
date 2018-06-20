@@ -10,11 +10,14 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -124,7 +127,7 @@ func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
 	assert.NotNil(t, created.Data.Links.Self)
 
 	collabSpaceSvc, collabSpacectrl := rest.SecuredNamedSpaceController(testsupport.TestIdentity)
-	_, collabspaces := test.ListNamedspacesOK(t, collabSpaceSvc.Context, collabSpaceSvc, collabSpacectrl, testsupport.TestIdentity.Username, nil, nil)
+	_, collabspaces := test.ListNamedspacesOK(t, collabSpaceSvc.Context, collabSpaceSvc, collabSpacectrl, testsupport.TestIdentity.Username, nil, nil, nil)
 	assert.True(t, len(collabspaces.Data) > 0)
 	assert.Equal(t, created.Data.Attributes.Name, collabspaces.Data[0].Attributes.Name)
 	assert.Equal(t, created.Data.Attributes.Description, collabspaces.Data[0].Attributes.Description)
@@ -145,4 +148,116 @@ func (rest *TestNamedSpaceREST) TestShow() {
 		assert.Equal(t, &fxt.Spaces[0].Name, namedspace.Data.Attributes.Name)
 		assert.Equal(t, &fxt.Spaces[0].Description, namedspace.Data.Attributes.Description)
 	})
+}
+
+func (rest *TestNamedSpaceREST) TestSuccessSortListSpaces() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	// names of the spaces to be created
+	inputSpaces := []string{
+		"Test 24",
+		"Test 22",
+		"Test 23",
+	}
+	// randominze the space names so that they don't clash
+	random := testsupport.CreateRandomValidTestName("")
+	for i := range inputSpaces {
+		inputSpaces[i] += random
+	}
+
+	// create actual spaces with those names
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(len(inputSpaces),
+		func(fxt *tf.TestFixture, idx int) error {
+			fxt.Spaces[idx].Name = inputSpaces[idx]
+			return nil
+		}),
+	)
+	identity := *fxt.Identities[0]
+
+	// Now try to list the data in various circumstances
+	tests := []struct {
+		name      string
+		sortParam *string
+		want      []string
+	}{
+		{
+			name: "no sort param given",
+			want: []string{
+				"Test 23",
+				"Test 22",
+				"Test 24",
+			},
+		},
+		{
+			name:      "sort in ascending using name",
+			sortParam: ptr.String("name"),
+			want: []string{
+				"Test 22",
+				"Test 23",
+				"Test 24",
+			},
+		},
+		{
+			name:      "sort in descending using name",
+			sortParam: ptr.String("-name"),
+			want: []string{
+				"Test 24",
+				"Test 23",
+				"Test 22",
+			},
+		},
+		{
+			name:      "sort in ascending using created at",
+			sortParam: ptr.String("created"),
+			want: []string{
+				"Test 24",
+				"Test 22",
+				"Test 23",
+			},
+		},
+		{
+			name:      "sort in descending using created at",
+			sortParam: ptr.String("-created"),
+			want: []string{
+				"Test 23",
+				"Test 22",
+				"Test 24",
+			},
+		},
+		{
+			name:      "sort in ascending using updated at",
+			sortParam: ptr.String("updated"),
+			want: []string{
+				"Test 24",
+				"Test 22",
+				"Test 23",
+			},
+		},
+		{
+			name:      "sort in descending using updated at",
+			sortParam: ptr.String("-updated"),
+			want: []string{
+				"Test 23",
+				"Test 22",
+				"Test 24",
+			},
+		},
+	}
+
+	svc, ctrl := rest.SecuredNamedSpaceController(identity)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// list all the spaces created by fixture helper using the
+			// code that we have written
+			_, spaces := test.ListNamedspacesOK(t, svc.Context, svc, ctrl,
+				identity.Username, nil, nil, tt.sortParam)
+			require.True(t, len(spaces.Data) == len(tt.want))
+
+			for i, sn := range tt.want {
+				// since the the space names are randomized but we do know the prefix
+				assert.True(t, strings.HasPrefix(*spaces.Data[i].Attributes.Name, sn))
+			}
+		})
+	}
 }

@@ -34,6 +34,10 @@ var _ = a.Resource("namedspaces", func() {
 			a.Param("userName", d.String, "User name of the owner of the space")
 			a.Param("page[offset]", d.String, "Paging start position")
 			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("sort", d.String, func() {
+				a.Enum("name", "owner", "created", "updated",
+					"-name", "-owner", "-created", "-updated")
+			})
 		})
 
 		a.Response(d.OK, func() {

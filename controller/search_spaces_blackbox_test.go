@@ -15,20 +15,23 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 
 	"github.com/goadesign/goa"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 type args struct {
 	pageOffset *string
 	pageLimit  *int
 	q          string
+	sort       *string
 }
 
 type expect func(*testing.T, okScenario, *app.SearchSpaceList)
@@ -71,20 +74,81 @@ func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 	idents, err := createTestData(rest.db, prefix)
 	require.NoError(rest.T(), err)
 	tests := []okScenario{
-		{"With uppercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},
-		{"With lowercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},
-		{"With uppercase description query", args{offset("0"), limit(10), "DESCRIPTION FOR " + prefix + "TEST_AB"}, expects{totalCount(1)}},
-		{"With lowercase description query", args{offset("0"), limit(10), "description for " + prefix + "test_ab"}, expects{totalCount(1)}},
-		{"with special chars", args{offset("0"), limit(10), "&:\n!#%?*"}, expects{totalCount(0)}},
-		{"with * to list all", args{offset("0"), limit(10), "*"}, expects{totalCountAtLeast(len(idents))}},
-		{"with multi page", args{offset("0"), limit(10), prefix + "TEST"}, expects{hasLinks("Next")}},
-		{"with last page", args{offset(strconv.Itoa(len(idents) - 1)), limit(10), prefix + "TEST"}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
-		{"with different values", args{offset("0"), limit(10), prefix + "TEST"}, expects{differentValues()}},
+		{"With uppercase fullname query", args{ptr.String("0"), ptr.Int(10), prefix + "TEST_AB", nil}, expects{totalCount(1)}},
+		{"With lowercase fullname query", args{ptr.String("0"), ptr.Int(10), prefix + "TEST_AB", nil}, expects{totalCount(1)}},
+		{"With uppercase description query", args{ptr.String("0"), ptr.Int(10), "DESCRIPTION FOR " + prefix + "TEST_AB", nil}, expects{totalCount(1)}},
+		{"With lowercase description query", args{ptr.String("0"), ptr.Int(10), "description for " + prefix + "test_ab", nil}, expects{totalCount(1)}},
+		{"with special chars", args{ptr.String("0"), ptr.Int(10), "&:\n!#%?*", nil}, expects{totalCount(0)}},
+		{"with * to list all", args{ptr.String("0"), ptr.Int(10), "*", nil}, expects{totalCountAtLeast(len(idents))}},
+		{"with multi page", args{ptr.String("0"), ptr.Int(10), prefix + "TEST", nil}, expects{hasLinks("Next")}},
+		{"with last page", args{ptr.String(strconv.Itoa(len(idents) - 1)), ptr.Int(10), prefix + "TEST", nil}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
+		{"with different values", args{ptr.String("0"), ptr.Int(10), prefix + "TEST", nil}, expects{differentValues()}},
+
+		{
+			name: "sorted by name ascending",
+			args: args{
+				pageOffset: ptr.String("0"),
+				pageLimit:  ptr.Int(10),
+				q:          prefix + "TEST",
+				sort:       ptr.String("name"),
+			},
+			expects: expects{sortedSpaces(prefix+"TEST_0", prefix+"TEST_1")},
+		},
+		{
+			name: "sorted by name descending",
+			args: args{
+				pageOffset: ptr.String("0"),
+				pageLimit:  ptr.Int(10),
+				q:          prefix + "TEST",
+				sort:       ptr.String("-name"),
+			},
+			expects: expects{sortedSpaces(prefix+"TEST_C", prefix+"TEST_B")},
+		},
+		{
+			name: "sorted by owner ascending",
+			args: args{
+				pageOffset: ptr.String("0"),
+				pageLimit:  ptr.Int(10),
+				q:          prefix + "TEST",
+				sort:       ptr.String("owner"),
+			},
+			expects: expects{sortedSpaces(prefix+"TEST_AB", prefix+"TEST_B")},
+		},
+		{
+			name: "sorted by owner descending",
+			args: args{
+				pageOffset: ptr.String("0"),
+				pageLimit:  ptr.Int(10),
+				q:          prefix + "TEST",
+				sort:       ptr.String("-owner"),
+			},
+			expects: expects{sortedSpaces(prefix+"TEST_AB", prefix+"TEST_B")},
+		},
+		{
+			name: "sorted by creation timestamp ascending",
+			args: args{
+				pageOffset: ptr.String("0"),
+				pageLimit:  ptr.Int(10),
+				q:          prefix + "TEST",
+				sort:       ptr.String("created"),
+			},
+			expects: expects{sortedSpaces(prefix+"TEST_A", prefix+"TEST_AB")},
+		},
+		{
+			name: "sorted by creation timestamp descending",
+			args: args{
+				pageOffset: ptr.String("0"),
+				pageLimit:  ptr.Int(10),
+				q:          prefix + "TEST",
+				sort:       ptr.String("-created"),
+			},
+			expects: expects{sortedSpaces(prefix+"TEST_19", prefix+"TEST_18")},
+		},
 	}
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
 	for _, tt := range tests {
-		_, result := test.SpacesSearchOK(rest.T(), svc.Context, svc, ctrl, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)
+		_, result := test.SpacesSearchOK(rest.T(), svc.Context, svc, ctrl, tt.args.pageLimit, tt.args.pageOffset, tt.args.q, tt.args.sort)
 		for _, expect := range tt.expects {
 			expect(rest.T(), tt, result)
 		}
@@ -184,9 +248,10 @@ func differentValues() expect {
 	}
 }
 
-func limit(n int) *int {
-	return &n
-}
-func offset(n string) *string {
-	return &n
+func sortedSpaces(expectedSpaces ...string) expect {
+	return func(t *testing.T, scenario okScenario, result *app.SearchSpaceList) {
+		for i, space := range expectedSpaces {
+			assert.Equal(t, space, *result.Data[i].Attributes.Name)
+		}
+	}
 }
