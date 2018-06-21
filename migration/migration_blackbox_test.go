@@ -141,6 +141,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration90", testMigration90QueriesVersion)
 	t.Run("TestMigration91", testMigration91CommentsChildComments)
 	t.Run("TestMigration92", testMigration92CommentRevisionsChildComments)
+	t.Run("TestMigration93", testMigration93AddCVEScanToCodebases)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -814,6 +815,36 @@ func testMigration91CommentsChildComments(t *testing.T) {
 func testMigration92CommentRevisionsChildComments(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:93], 93)
 	assert.True(t, dialect.HasColumn("comment_revisions", "comment_parent_comment_id"))
+}
+
+func testMigration93AddCVEScanToCodebases(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:93], 93)
+
+	// setup the space needed for running all the tests
+	require.Nil(t, runSQLscript(sqlDB, "093-codebases-add-cve-scan-setup.sql"))
+
+	// an entry of codebase without an cve_scan field
+	require.Nil(t, runSQLscript(sqlDB, "093-codebases-add-cve-scan-without.sql"))
+
+	// an entry of codebase with an cve_scan field
+	require.NotNil(t, runSQLscript(sqlDB, "093-codebases-add-cve-scan-with.sql"))
+
+	// migrate to the current version
+	migrateToVersion(t, sqlDB, migrations[:94], 94)
+
+	// an entry of codebase with an cve_scan field
+	require.Nil(t, runSQLscript(sqlDB, "093-codebases-add-cve-scan-with2.sql"))
+
+	rows, err := sqlDB.Query("SELECT * FROM codebases WHERE id='1975cf7a-e3fb-4ca6-b368-bc8ee66fccee' AND cve_scan='t';")
+	require.NoError(t, err)
+	require.True(t, rows.Next(), "no row found with cve_scan=true")
+
+	rows, err = sqlDB.Query("SELECT * FROM codebases WHERE id='cdc691c8-534d-48b3-9f72-7836bc5b9188' AND cve_scan='f';")
+	require.NoError(t, err)
+	require.True(t, rows.Next(), "no row found with cve_scan=false")
+
+	// do the cleanup
+	require.Nil(t, runSQLscript(sqlDB, "093-codebases-add-cve-scan-cleanup.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

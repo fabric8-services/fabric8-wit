@@ -36,6 +36,9 @@ var codebaseAttributes = a.Type("CodebaseAttributes", func() {
 	a.Attribute("last_used_workspace", d.String, "The last used workspace name of the codebase ", func() {
 		a.Example("java-centos")
 	})
+	a.Attribute("cve-scan", d.Boolean, "Should this codebase be scanned for CVEs", func() {
+		a.Example(true)
+	})
 })
 
 var codebaseLinks = a.Type("CodebaseLinks", func() {

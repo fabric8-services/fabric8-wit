@@ -416,6 +416,9 @@ func GetMigrations() Migrations {
 	// Version 92
 	m = append(m, steps{ExecuteSQLFile("092-comment-revisions-child-comments.sql")})
 
+	// Version 93
+	m = append(m, steps{ExecuteSQLFile("093-codebase-add-cve-scan.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
