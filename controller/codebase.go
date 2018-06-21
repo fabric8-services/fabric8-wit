@@ -386,6 +386,7 @@ func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options 
 			URL:               &codebase.URL,
 			StackID:           codebase.StackID,
 			LastUsedWorkspace: &codebase.LastUsedWorkspace,
+			CveScan:           &codebase.CVEScan,
 		},
 		Relationships: &app.CodebaseRelations{
 			Space: &app.RelationGeneric{
