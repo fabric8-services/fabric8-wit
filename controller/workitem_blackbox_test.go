@@ -184,12 +184,12 @@ func (s *WorkItemSuite) TestPagingLinksHasAbsoluteURL() {
 	if !strings.HasPrefix(*result.Links.First, "http://") {
 		assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
 	}
-	// if !strings.HasPrefix(*result.Links.Last, "http://") {
-	// 	assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Last", *result.Links.Last)
-	// }
-	// if !strings.HasPrefix(*result.Links.Prev, "http://") {
-	// 	assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Prev", *result.Links.Prev)
-	// }
+	if !strings.HasPrefix(*result.Links.Last, "http://") {
+		assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Last", *result.Links.Last)
+	}
+	if !strings.HasPrefix(*result.Links.Prev, "http://") {
+		assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Prev", *result.Links.Prev)
+	}
 }
 
 func (s *WorkItemSuite) TestPagingDefaultAndMaxSize() {
@@ -358,7 +358,7 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	payload2.Data = dataArray
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result3.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -386,7 +386,7 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 
-	_, jerrs := test.ReorderWorkitemsConflict(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, jerrs := test.ReorderWorkitemsConflict(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 
 	require.NotNil(s.T(), jerrs)
 }
@@ -413,7 +413,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionBelow)
 
-	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -437,7 +437,7 @@ func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	payload2.Position.Direction = string(workitem.DirectionTop)
-	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -463,7 +463,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 	payload2.Data = dataArray
 	payload2.Position.Direction = string(workitem.DirectionBottom)
 
-	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -489,7 +489,7 @@ func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 	// when
-	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 	// then
 	require.NotNil(s.T(), reordered1)
 	require.NotNil(s.T(), reordered1.Data)
@@ -517,7 +517,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 	payload2.Data = dataArray
 	payload2.Position.ID = result1.Data.ID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	test.ReorderWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2)
+	test.ReorderWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2)
 }
 
 // TestReorderWorkitemNotFound is negative test which tests unsuccessful reorder by providing invalid input
@@ -539,7 +539,7 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	randomID := uuid.NewV4()
 	payload2.Position.ID = &randomID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	test.ReorderWorkitemsNotFound(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2)
+	test.ReorderWorkitemsNotFound(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2)
 }
 
 // TestUpdateWorkitemWithoutReorder tests that when workitem is updated, execution order of workitem doesnot change.
