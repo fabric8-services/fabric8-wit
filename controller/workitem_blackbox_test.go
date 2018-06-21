@@ -114,12 +114,12 @@ func (s *WorkItemSuite) TestPagingLinks() {
 	pagingTest(0, 4, "page[offset]=0&page[limit]=4", "page[offset]=8&page[limit]=4", "", "page[offset]=4&page[limit]=4")
 
 	// With only ZERO work items
-	spaceName := "paging zero space " + uuid.NewV4().String()
+	spaceName := "paging-" + uuid.NewV4().String()
 	sp := &app.CreateSpacePayload{
-		Data: &app.Space{
+		Data: &app.CreateSpace{
 			Type: "spaces",
-			Attributes: &app.SpaceAttributes{
-				Name: &spaceName,
+			Attributes: &app.CreateSpaceAttributes{
+				Name: spaceName,
 			},
 		},
 	}
@@ -2546,12 +2546,12 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
 	spaceTemplateID := spacetemplate.SystemLegacyTemplateID
 	spaceTemplateSelfURL := rest.AbsoluteURL(reqLong, app.SpaceTemplateHref(spaceTemplateID.String()))
 
-	spaceName := "My own Space " + uuid.NewV4().String()
+	spaceName := "My-Space-" + uuid.NewV4().String()
 	sp := &app.CreateSpacePayload{
-		Data: &app.Space{
+		Data: &app.CreateSpace{
 			Type: "spaces",
-			Attributes: &app.SpaceAttributes{
-				Name: &spaceName,
+			Attributes: &app.CreateSpaceAttributes{
+				Name: spaceName,
 			},
 			Relationships: &app.SpaceRelationships{
 				SpaceTemplate: app.NewSpaceTemplateRelation(spaceTemplateID, spaceTemplateSelfURL),

@@ -67,14 +67,14 @@ func (rest *TestSearchSpacesREST) UnSecuredController() (*goa.Service, *SearchCo
 
 func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 	// given
-	prefix := time.Now().Format("2006_Jan_2_15_04_05_") // using a unique prefix to make sure the test data will not collide with existing, older spaces.
+	prefix := time.Now().Format("2006-Jan-2-15-04-05-") // using a unique prefix to make sure the test data will not collide with existing, older spaces.
 	idents, err := createTestData(rest.db, prefix)
 	require.NoError(rest.T(), err)
 	tests := []okScenario{
-		{"With uppercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},
-		{"With lowercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},
-		{"With uppercase description query", args{offset("0"), limit(10), "DESCRIPTION FOR " + prefix + "TEST_AB"}, expects{totalCount(1)}},
-		{"With lowercase description query", args{offset("0"), limit(10), "description for " + prefix + "test_ab"}, expects{totalCount(1)}},
+		{"With uppercase fullname query", args{offset("0"), limit(10), prefix + "TEST-AB"}, expects{totalCount(1)}},
+		{"With lowercase fullname query", args{offset("0"), limit(10), prefix + "TEST-AB"}, expects{totalCount(1)}},
+		{"With uppercase description query", args{offset("0"), limit(10), "DESCRIPTION FOR " + prefix + "TEST-AB"}, expects{totalCount(1)}},
+		{"With lowercase description query", args{offset("0"), limit(10), "description for " + prefix + "TEST-ab"}, expects{totalCount(1)}},
 		{"with special chars", args{offset("0"), limit(10), "&:\n!#%?*"}, expects{totalCount(0)}},
 		{"with * to list all", args{offset("0"), limit(10), "*"}, expects{totalCountAtLeast(len(idents))}},
 		{"with multi page", args{offset("0"), limit(10), prefix + "TEST"}, expects{hasLinks("Next")}},
@@ -92,9 +92,9 @@ func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 }
 
 func createTestData(db application.DB, prefix string) ([]space.Space, error) {
-	names := []string{prefix + "TEST_A", prefix + "TEST_AB", prefix + "TEST_B", prefix + "TEST_C"}
+	names := []string{prefix + "TEST-A", prefix + "TEST-AB", prefix + "TEST-B", prefix + "TEST-C"}
 	for i := 0; i < 20; i++ {
-		names = append(names, prefix+"TEST_"+strconv.Itoa(i))
+		names = append(names, prefix+"TEST-"+strconv.Itoa(i))
 	}
 
 	spaces := []space.Space{}

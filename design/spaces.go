@@ -5,6 +5,19 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
+var createSpace = a.Type("createSpace", func() {
+	a.Attribute("type", d.String, "The type of the related resource", func() {
+		a.Enum("spaces")
+	})
+	a.Attribute("id", d.UUID, "ID of the space", func() {
+		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
+	})
+	a.Attribute("attributes", createSpaceAttributes)
+	a.Attribute("links", genericLinksForSpace)
+	a.Required("type", "attributes")
+	a.Attribute("relationships", spaceRelationships)
+})
+
 var space = a.Type("Space", func() {
 	a.Attribute("type", d.String, "The type of the related resource", func() {
 		a.Enum("spaces")
@@ -62,8 +75,25 @@ var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {
 	a.Required("data")
 })
 
+var createSpaceAttributes = a.Type("createSpaceAttributes", func() {
+	a.Attribute("name", d.String, "Name for the space", spacenameValidationFunction)
+	a.Attribute("description", d.String, "Description for the space", func() {
+		a.Example("This is the foobar collaboration space")
+	})
+	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
+		a.Example(23)
+	})
+	a.Attribute("created-at", d.DateTime, "When the space was created", func() {
+		a.Example("2016-11-29T23:18:14Z")
+	})
+	a.Attribute("updated-at", d.DateTime, "When the space was updated", func() {
+		a.Example("2016-11-29T23:18:14Z")
+	})
+	a.Required("name")
+})
+
 var spaceAttributes = a.Type("SpaceAttributes", func() {
-	a.Attribute("name", d.String, "Name for the space", nameValidationFunction)
+	a.Attribute("name", d.String, "Name for the space", spacenameValidationFunction)
 	a.Attribute("description", d.String, "Description for the space", func() {
 		a.Example("This is the foobar collaboration space")
 	})
@@ -78,6 +108,13 @@ var spaceAttributes = a.Type("SpaceAttributes", func() {
 	})
 })
 
+var spacenameValidationFunction = func() {
+	a.MaxLength(63) // maximum name length is 63 characters
+	a.MinLength(1)  // minimum name length is 1 characters
+	a.Pattern("^([A-Za-z0-9][-A-Za-z0-9]*)?[A-Za-z0-9]$")
+	a.Example("Space-1234")
+}
+
 var spaceListMeta = a.Type("SpaceListMeta", func() {
 	a.Attribute("totalCount", d.Integer)
 	a.Required("totalCount")
@@ -88,6 +125,11 @@ var spaceList = JSONList(
 	space,
 	pagingLinks,
 	spaceListMeta)
+
+var createSpaceSingle = JSONSingle(
+	"CreateSpace", "Holds the request to create a space",
+	createSpace,
+	nil)
 
 var spaceSingle = JSONSingle(
 	"Space", "Holds a single response to a space request",
@@ -155,7 +197,7 @@ var _ = a.Resource("space", func() {
 			a.POST(""),
 		)
 		a.Description("Create a space")
-		a.Payload(spaceSingle)
+		a.Payload(createSpaceSingle)
 		a.Response(d.Created, "/spaces/.*", func() {
 			a.Media(spaceSingle)
 		})

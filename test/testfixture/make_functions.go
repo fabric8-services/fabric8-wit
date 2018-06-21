@@ -77,7 +77,7 @@ func makeSpaceTemplates(fxt *TestFixture) error {
 	spaceTemplateRepo := spacetemplate.NewRepository(fxt.db)
 	for i := range fxt.SpaceTemplates {
 		fxt.SpaceTemplates[i] = &spacetemplate.SpaceTemplate{
-			Name:         testsupport.CreateRandomValidTestName("space template "),
+			Name:         testsupport.CreateRandomValidTestName("space-template-"),
 			CanConstruct: true,
 		}
 		fxt.SpaceTemplates[i].Description = ptr.String("Description for " + fxt.SpaceTemplates[i].Name)
@@ -102,7 +102,7 @@ func makeSpaces(fxt *TestFixture) error {
 	spaceRepo := space.NewRepository(fxt.db)
 	for i := range fxt.Spaces {
 		fxt.Spaces[i] = &space.Space{
-			Name:        testsupport.CreateRandomValidTestName("space "),
+			Name:        testsupport.CreateRandomValidTestName("space-"),
 			Description: "Some description",
 		}
 		if !fxt.isolatedCreation {
