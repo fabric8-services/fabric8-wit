@@ -3,12 +3,16 @@ package authz
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
+	"github.com/fabric8-services/fabric8-wit/rest"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -18,26 +22,19 @@ import (
 
 // AuthzService represents a space authorization service
 type AuthzService interface {
-	Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error)
-	Configuration() AuthzConfiguration
-}
-
-// AuthzConfiguration represents a Keycloak entitlement endpoint configuration
-type AuthzConfiguration interface {
-	GetKeycloakEndpointEntitlement(*http.Request) (string, error)
-	IsAuthorizationEnabled() bool
+	Authorize(ctx context.Context, spaceID string) (bool, error)
+	Configuration() auth.ServiceConfiguration
 }
 
 // AuthzServiceManager represents a space autharizarion service
 type AuthzServiceManager interface {
 	AuthzService() AuthzService
-	EntitlementEndpoint() string
 }
 
 // KeycloakAuthzServiceManager is a keyaloak implementation of a space autharizarion service
 type KeycloakAuthzServiceManager struct {
-	Service             AuthzService
-	entitlementEndpoint string
+	Service AuthzService
+	Config  auth.ServiceConfiguration
 }
 
 // AuthzService returns a space autharizarion service
@@ -45,36 +42,41 @@ func (m *KeycloakAuthzServiceManager) AuthzService() AuthzService {
 	return m.Service
 }
 
-// EntitlementEndpoint returns a keycloak entitlement endpoint URL
-func (m *KeycloakAuthzServiceManager) EntitlementEndpoint() string {
-	return m.entitlementEndpoint
-}
-
 // KeycloakAuthzService implements AuthzService interface
 type KeycloakAuthzService struct {
-	config AuthzConfiguration
+	config auth.ServiceConfiguration
+	doer   rest.HttpDoer
 }
 
 // NewAuthzService constructs a new KeycloakAuthzService
-func NewAuthzService(config AuthzConfiguration) *KeycloakAuthzService {
-	return &KeycloakAuthzService{config: config}
+func NewAuthzService(config auth.ServiceConfiguration) *KeycloakAuthzService {
+	return &KeycloakAuthzService{config: config, doer: rest.DefaultHttpDoer()}
 }
 
 // Configuration returns authz service configuration
-func (s *KeycloakAuthzService) Configuration() AuthzConfiguration {
+func (s *KeycloakAuthzService) Configuration() auth.ServiceConfiguration {
 	return s.config
 }
 
-// Authorize returns true and the corresponding Requesting Party Token if the current user is among the space collaborators
-func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error) {
+// Authorize returns true if the current user is among the space collaborators
+func (s *KeycloakAuthzService) Authorize(ctx context.Context, spaceID string) (bool, error) {
 	jwttoken := goajwt.ContextJWT(ctx)
 	if jwttoken == nil {
 		return false, errors.NewUnauthorizedError("missing token")
 	}
-	return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
+	return s.checkRole(ctx, *jwttoken, spaceID)
 }
 
-func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
+type Roles struct {
+	Data []Role `json:"data"`
+}
+
+type Role struct {
+	RoleName   string `json:"role_name"`
+	AssigneeID string `json:"assignee_id"`
+}
+
+func (s *KeycloakAuthzService) checkRole(ctx context.Context, token jwt.Token, spaceID string) (bool, error) {
 	if !s.config.IsAuthorizationEnabled() {
 		// Keycloak authorization is disabled by default in Developer Mode
 		log.Warn(ctx, map[string]interface{}{
@@ -82,33 +84,46 @@ func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, tok
 		}, "Authorization is disabled. All users are allowed to operate the space")
 		return true, nil
 	}
-	resource := auth.EntitlementResource{
-		Permissions: []auth.ResourceSet{{Name: spaceID}},
-	}
-	ent, err := auth.GetEntitlement(ctx, entitlementEndpoint, &resource, token.Raw)
+	currentIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return false, err
 	}
-	return ent != nil, nil
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/resources/%s/roles", s.config.GetAuthServiceURL(), spaceID), nil)
+	if err != nil {
+		return false, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token.Raw)
+	res, err := s.doer.Do(ctx, req)
+	if err != nil {
+		return false, errors.NewInternalError(ctx, err)
+	}
+	defer rest.CloseResponse(res)
+	bodyString := rest.ReadBody(res.Body)
+	if res.StatusCode != http.StatusOK {
+		return false, errors.NewInternalError(ctx, errs.New("unable to get space roles. Response status: "+res.Status+". Response body: "+bodyString))
+	}
+
+	var roles Roles
+	err = json.Unmarshal([]byte(bodyString), &roles)
+	if err != nil {
+		return false, errors.NewInternalError(ctx, err)
+	}
+
+	id := currentIdentityID.String()
+	for _, r := range roles.Data {
+		if r.AssigneeID == id && (r.RoleName == "admin" || r.RoleName == "contributor") {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // InjectAuthzService is a middleware responsible for setting up AuthzService in the context for every request.
 func InjectAuthzService(service AuthzService) goa.Middleware {
 	return func(h goa.Handler) goa.Handler {
 		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
-			config := service.Configuration()
-			var endpoint string
-			if config != nil {
-				var err error
-				endpoint, err = config.GetKeycloakEndpointEntitlement(req)
-				if err != nil {
-					log.Error(ctx, map[string]interface{}{
-						"err": err,
-					}, "unable to get entitlement endpoint")
-					return err
-				}
-			}
-			ctxWithAuthzServ := tokencontext.ContextWithSpaceAuthzService(ctx, &KeycloakAuthzServiceManager{Service: service, entitlementEndpoint: endpoint})
+			ctxWithAuthzServ := tokencontext.ContextWithSpaceAuthzService(ctx, &KeycloakAuthzServiceManager{Service: service, Config: service.Configuration()})
 			return h(ctxWithAuthzServ, rw, req)
 		}
 	}
@@ -125,5 +140,5 @@ func Authorize(ctx context.Context, spaceID string) (bool, error) {
 		return false, errs.New("missing space authz service")
 	}
 	manager := srv.(AuthzServiceManager)
-	return manager.AuthzService().Authorize(ctx, manager.EntitlementEndpoint(), spaceID)
+	return manager.AuthzService().Authorize(ctx, spaceID)
 }

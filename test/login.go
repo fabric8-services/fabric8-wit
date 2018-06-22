@@ -2,16 +2,16 @@ package test
 
 import (
 	"context"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/account"
-	tokencontext "github.com/fabric8-services/fabric8-wit/login/tokencontext"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/token"
 
-	"time"
-
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
@@ -19,11 +19,11 @@ import (
 type dummySpaceAuthzService struct {
 }
 
-func (s *dummySpaceAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *dummySpaceAuthzService) Authorize(ctx context.Context, spaceID string) (bool, error) {
 	return true, nil
 }
 
-func (s *dummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
+func (s *dummySpaceAuthzService) Configuration() auth.ServiceConfiguration {
 	return nil
 }
 
@@ -80,13 +80,6 @@ func service(serviceName string, key interface{}, u account.Identity, authz *tok
 		svc.Context = WithAuthz(svc.Context, key, u, *authz)
 	}
 	svc.Context = tokencontext.ContextWithTokenManager(svc.Context, testtoken.TokenManager)
-	return svc
-}
-
-// ServiceAsUserWithAuthz creates a new service and fill the context with input Identity and resource authorization information
-func ServiceAsUserWithAuthz(serviceName string, key interface{}, u account.Identity, authorizationPayload token.AuthorizationPayload) *goa.Service {
-	svc := service(serviceName, key, u, &authorizationPayload)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeycloakAuthzServiceManager{Service: &dummySpaceAuthzService{}})
 	return svc
 }
 
