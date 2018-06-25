@@ -279,4 +279,16 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.BadRequest, JSONAPIErrors)
 	})
+
+	a.Action("showAllEnvironments", func() {
+		a.Routing(
+			a.GET("/environments"),
+		)
+		a.Description("list all environments")
+		a.Response(d.OK, simpleEnvironmentMultiple)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+	})
 })

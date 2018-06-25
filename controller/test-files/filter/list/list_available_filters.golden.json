@@ -42,10 +42,10 @@
     },
     {
       "attributes": {
-        "description": "Filter by workitemtype",
+        "description": "Filter by type",
         "key": "workitemtype",
         "query": "filter[workitemtype]={id}",
-        "title": "Workitem type",
+        "title": "Type",
         "type": "workitemtypes"
       },
       "type": "filters"

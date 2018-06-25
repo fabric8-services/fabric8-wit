@@ -61,7 +61,7 @@ func (r *GormRepository) Import(ctx context.Context, s ImportHelper) (*ImportHel
 			res.Template = *created
 		default:
 			log.Error(ctx, map[string]interface{}{"space_template_id": s.Template.ID.String(), "err": err}, "failed to load space template")
-			return nil, errs.Wrapf(err, "failed to load space template", s.Template.ID)
+			return nil, errs.Wrapf(err, "failed to load space template %s", s.Template.ID)
 		}
 	} else {
 		// Update space template

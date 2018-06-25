@@ -241,10 +241,18 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			itr.Name = *ctx.Payload.Data.Attributes.Name
 		}
 		if ctx.Payload.Data.Attributes.StartAt != nil {
-			itr.StartAt = ctx.Payload.Data.Attributes.StartAt
+			if ctx.Payload.Data.Attributes.StartAt.IsZero() {
+				itr.StartAt = nil
+			} else {
+				itr.StartAt = ctx.Payload.Data.Attributes.StartAt
+			}
 		}
 		if ctx.Payload.Data.Attributes.EndAt != nil {
-			itr.EndAt = ctx.Payload.Data.Attributes.EndAt
+			if ctx.Payload.Data.Attributes.EndAt.IsZero() {
+				itr.EndAt = nil
+			} else {
+				itr.EndAt = ctx.Payload.Data.Attributes.EndAt
+			}
 		}
 		if ctx.Payload.Data.Attributes.Description != nil {
 			itr.Description = ctx.Payload.Data.Attributes.Description

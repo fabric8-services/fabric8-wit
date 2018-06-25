@@ -210,3 +210,17 @@ func ScrumTemplate() (*ImportHelper, error) {
 	s.SetID(spacetemplate.SystemScrumTemplateID)
 	return s, nil
 }
+
+// AgileTemplate returns the agile template as it is known to the system
+func AgileTemplate() (*ImportHelper, error) {
+	bs, err := spacetemplate.Asset("agile.yaml")
+	if err != nil {
+		return nil, errs.Wrap(err, "failed to load agile template")
+	}
+	s, err := FromString(string(bs))
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+	s.SetID(spacetemplate.SystemAgileTemplateID)
+	return s, nil
+}
