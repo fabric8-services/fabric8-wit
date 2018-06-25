@@ -84,7 +84,6 @@ func (s *WorkItemSuite) SetupTest() {
 	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
-
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
@@ -176,10 +175,11 @@ func (s *WorkItemSuite) TestPagingErrors() {
 
 func (s *WorkItemSuite) TestPagingLinksHasAbsoluteURL() {
 	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 	offset := "10"
 	limit := 10
 	// when
-	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
 	if !strings.HasPrefix(*result.Links.First, "http://") {
 		assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
