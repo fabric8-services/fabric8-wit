@@ -182,7 +182,62 @@ var DefaultTableJoins = func() TableJoinMap {
 			AllowedColumns:     []string{"name"},
 			ActivateOtherJoins: []string{"space"},
 		},
-	}
+		/*
+					 For later reference, here's a full SQL query that returns WIs by board_id:
+					 SELECT
+			  	   wi_id work_item_id,
+			       wi_columns && ARRAY(SELECT jsonb_array_elements_text(colids::jsonb)) matching,
+			       wi_columns work_item_columns,
+			       ARRAY(SELECT jsonb_array_elements_text(colids::jsonb))
+			 		 FROM (
+					 	 SELECT
+							wis.id wi_id,
+							ARRAY(SELECT jsonb_array_elements_text(wis.fields->'system.boardcolumns')) wi_columns,
+							colids
+						 FROM
+							work_items wis,
+							( SELECT
+									json_agg(id::text) as colids
+								FROM
+						      work_item_board_columns
+								WHERE
+						      board_id = '8485ec0f-ee24-4512-bef5-62ee3dcf871d'
+							) board
+					 ) crossproduct
+					 WHERE
+						 wi_columns && ARRAY(SELECT jsonb_array_elements_text(colids::jsonb));
+
+					 This returns the work_item_ids of matching work items, the column_ids that are
+					 matching and the original columns on the work item.
+		*/
+
+		/*
+			SELECT
+					wis.id wi_id
+			FROM
+					work_items wis,
+					(SELECT json_agg(id::text) as colids FROM work_item_board_columns WHERE board_id = '8485ec0f-ee24-4512-bef5-62ee3dcf871d') _
+			WHERE
+					(ARRAY(SELECT jsonb_array_elements_text(wis.fields->'system.boardcolumns')) && ARRAY(SELECT jsonb_array_elements_text(colids::jsonb))) IS TRUE;
+		*/
+		"boards_columns": {
+			TableName:  "work_item_board_columns",
+			TableAlias: "board_columns",
+			On:         fmt.Sprintf(`%s=%s`, Column("board_columns", "id"), Column("work_items", "fields.")),
+			// In this WHERE clause we access information from the
+			// `work_item_type_group_members` table which is why we must
+			// delegate from that table to this one.
+			Where: fmt.Sprintf(`%s=%s AND %s=%s`,
+				Column("witg_members", "type_group_id"), Column("witg", "id"),
+				Column(WorkItemStorage{}.TableName(), "type"), Column("witg_members", "work_item_type_id"),
+			),
+			// This join doesn't specify it's own prefix because we delegate to
+			// this join from another table in order to get the correct order of
+			// joins.
+			PrefixActivators:   []string{"board."},
+			AllowedColumns:     []string{"id"},
+			ActivateOtherJoins: []string{"space"},
+		},
 
 	res["typegroup_members"] = &TableJoin{
 		TableName:          "work_item_type_group_members",

@@ -314,17 +314,17 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 		}
 		target.Fields[workitem.SystemLabels] = ids
 	}
-	if source.Relationships != nil && source.Relationships.Boardcolumns != nil {
+	if source.Relationships != nil && source.Relationships.SystemBoardcolumns != nil {
 		// Pass empty array to remove all boardcolumns
 		// null is treated as bad param
-		if source.Relationships.Boardcolumns.Data == nil {
-			return errors.NewBadParameterError("data.relationships.boardcolumns.data", nil)
+		if source.Relationships.SystemBoardcolumns.Data == nil {
+			return errors.NewBadParameterError("data.relationships.systemboardcolumns.data", nil)
 		}
 		distinctIDs := make(map[string]struct{})
-		for _, d := range source.Relationships.Boardcolumns.Data {
+		for _, d := range source.Relationships.SystemBoardcolumns.Data {
 			columnUUID, err := uuid.FromString(*d.ID)
 			if err != nil {
-				return errors.NewBadParameterError("data.relationships.boardcolumns.data.id", *d.ID)
+				return errors.NewBadParameterError("data.relationships.systemboardcolumns.data.id", *d.ID)
 			}
 			/* TODO(michaelkleinhenz): check if columnID is valid
 			if ok := appl.Boards().validColumn(ctx, columnUUID); !ok {
@@ -578,7 +578,7 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 		case workitem.SystemBoardcolumns:
 			if val != nil {
 				columnIDs := val.([]interface{})
-				op.Relationships.Boardcolumns = &app.RelationGenericList{
+				op.Relationships.SystemBoardcolumns = &app.RelationGenericList{
 					Data: ConvertLabelsSimple(request, columnIDs),
 				}
 			}

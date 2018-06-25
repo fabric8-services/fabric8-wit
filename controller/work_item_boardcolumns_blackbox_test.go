@@ -70,8 +70,8 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoBoardcolumn() {
 
 	// Fetch WI and verify boardcolumns Relationship
 	_, fetchedWI := test.ShowWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, nil, nil)
-	require.NotNil(l.T(), fetchedWI.Data.Relationships.Boardcolumns)
-	assert.Empty(l.T(), fetchedWI.Data.Relationships.Boardcolumns.Data)
+	require.NotNil(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns)
+	assert.Empty(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
 
 	u := app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
@@ -84,7 +84,7 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoBoardcolumn() {
 		},
 	}
 	// add a column reference
-	u.Data.Relationships.Boardcolumns = &app.RelationGenericList{
+	u.Data.Relationships.SystemBoardcolumns = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			{
 				ID: ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
@@ -98,12 +98,12 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoBoardcolumn() {
 	}
 	_, updatedWI := test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
 	assert.NotNil(l.T(), updatedWI)
-	assert.Len(l.T(), updatedWI.Data.Relationships.Boardcolumns.Data, 2)
+	assert.Len(l.T(), updatedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
 	mustHave := map[string]struct{}{
-		*u.Data.Relationships.Boardcolumns.Data[0].ID: {},
-		*u.Data.Relationships.Boardcolumns.Data[1].ID: {},
+		*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
+		*u.Data.Relationships.SystemBoardcolumns.Data[1].ID: {},
 	}
-	for _, lblData := range updatedWI.Data.Relationships.Boardcolumns.Data {		
+	for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {		
 		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
@@ -117,8 +117,8 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 
 	// Fetch WI and verify boardcolumns Relationship
 	_, fetchedWI := test.ShowWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, nil, nil)
-	require.NotNil(l.T(), fetchedWI.Data.Relationships.Boardcolumns)
-	assert.Empty(l.T(), fetchedWI.Data.Relationships.Boardcolumns.Data)
+	require.NotNil(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns)
+	assert.Empty(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
 
 	u := app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
@@ -131,7 +131,7 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 		},
 	}
 	// add a column reference duplicate
-	u.Data.Relationships.Boardcolumns = &app.RelationGenericList{
+	u.Data.Relationships.SystemBoardcolumns = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			{
 				ID: ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
@@ -153,12 +153,12 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 	}
 	_, updatedWI := test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
 	assert.NotNil(l.T(), updatedWI)
-	assert.Len(l.T(), updatedWI.Data.Relationships.Boardcolumns.Data, 2)
+	assert.Len(l.T(), updatedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
 	mustHave := map[string]struct{}{
-		*u.Data.Relationships.Boardcolumns.Data[0].ID: {},
-		*u.Data.Relationships.Boardcolumns.Data[2].ID: {},
+		*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
+		*u.Data.Relationships.SystemBoardcolumns.Data[2].ID: {},
 	}
-	for _, lblData := range updatedWI.Data.Relationships.Boardcolumns.Data {		
+	for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {		
 		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
@@ -172,8 +172,8 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 
 	// Fetch WI and verify boardcolumns Relationship
 	_, fetchedWI := test.ShowWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, nil, nil)
-	require.NotNil(l.T(), fetchedWI.Data.Relationships.Boardcolumns)
-	assert.Empty(l.T(), fetchedWI.Data.Relationships.Boardcolumns.Data)
+	require.NotNil(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns)
+	assert.Empty(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
 
 	u := app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
@@ -186,7 +186,7 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 		},
 	}
 	// add a column reference
-	u.Data.Relationships.Boardcolumns = &app.RelationGenericList{
+	u.Data.Relationships.SystemBoardcolumns = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			{
 				ID: ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
@@ -200,24 +200,24 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 	}
 	_, updatedWI := test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
 	assert.NotNil(l.T(), updatedWI)
-	assert.Len(l.T(), updatedWI.Data.Relationships.Boardcolumns.Data, 2)
+	assert.Len(l.T(), updatedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
 	mustHave := map[string]struct{}{
-		*u.Data.Relationships.Boardcolumns.Data[0].ID: {},
-		*u.Data.Relationships.Boardcolumns.Data[1].ID: {},
+		*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
+		*u.Data.Relationships.SystemBoardcolumns.Data[1].ID: {},
 	}
-	for _, lblData := range updatedWI.Data.Relationships.Boardcolumns.Data {		
+	for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {		
 		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
 
 	// now remove all columns
 	u.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
-	u.Data.Relationships.Boardcolumns = &app.RelationGenericList{
+	u.Data.Relationships.SystemBoardcolumns = &app.RelationGenericList{
 		Data: []*app.GenericData{},
 	}
 	_, updatedWI = test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
 	assert.NotNil(l.T(), updatedWI)
-	assert.Empty(l.T(), updatedWI.Data.Relationships.Boardcolumns.Data)
+	assert.Empty(l.T(), updatedWI.Data.Relationships.SystemBoardcolumns.Data)
 	
 }
 

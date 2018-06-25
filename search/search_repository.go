@@ -392,6 +392,7 @@ var searchKeyMap = map[string]string{
 	"creator":      workitem.SystemCreator,
 	"label":        workitem.SystemLabels,
 	"state":        workitem.SystemState,
+	"boardcolumn":  workitem.SystemBoardcolumns,
 	"type":         "Type",
 	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
 	"space":        "SpaceID",
@@ -400,7 +401,7 @@ var searchKeyMap = map[string]string{
 
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
 	switch key {
-	case workitem.SystemAssignees, workitem.SystemLabels:
+	case workitem.SystemAssignees, workitem.SystemLabels, workitem.SystemBoardcolumns, "Board":
 		return criteria.Literal([]string{val})
 	default:
 		return criteria.Literal(val)
