@@ -141,6 +141,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration90", testMigration90QueriesVersion)
 	t.Run("TestMigration91", testMigration91CommentsChildComments)
 	t.Run("TestMigration92", testMigration92CommentRevisionsChildComments)
+	t.Run("TestMigration93", testMigration93ChangesToAgileTemplate)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -814,6 +815,32 @@ func testMigration91CommentsChildComments(t *testing.T) {
 func testMigration92CommentRevisionsChildComments(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:93], 93)
 	assert.True(t, dialect.HasColumn("comment_revisions", "comment_parent_comment_id"))
+}
+
+func testMigration93ChangesToAgileTemplate(t *testing.T) {
+	// create database that has migrated to just before 93.
+	migrateToVersion(t, sqlDB, migrations[:93], 93)
+
+	expectWorkItemFieldsToBe := func(t *testing.T, witID uuid.UUID, expectedFields string) {
+		row := sqlDB.QueryRow("SELECT fields FROM work_items WHERE id = $1", witID.String())
+		require.NotNil(t, row)
+		var actualFields string
+		err := row.Scan(&actualFields)
+		require.NoError(t, err)
+		require.Equal(t, expectedFields, actualFields)
+	}
+
+	// create two work items, one with the 'system.number' field and one without
+	// and check that they've been created as expected.
+	assert.Nil(t, runSQLscript(sqlDB, "093-changes-to-agile-template.sql"))
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("88c16e5d-b335-4c79-8eba-d19c3ccc7872"), `{"system.title": "Work item 1", "system.number": 1234}`)
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("57f40ad8-2848-4433-9d9b-0f89b43362a6"), `{"system.title": "Work item 2"}`)
+
+	// migrate to current version, which removes the 'system.number' field from
+	// work items and check that no work item has it.
+	migrateToVersion(t, sqlDB, migrations[:94], 94)
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("88c16e5d-b335-4c79-8eba-d19c3ccc7872"), `{"system.title": "Work item 1"}`)
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("57f40ad8-2848-4433-9d9b-0f89b43362a6"), `{"system.title": "Work item 2"}`)
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
