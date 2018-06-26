@@ -57,28 +57,28 @@ func (s *workItemBoardRepoTest) TestCreate() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemBoards(3))
 	ID := uuid.NewV4()
 	expected := workitem.Board{
-		ID:              	ID,
-		SpaceTemplateID: 	fxt.SpaceTemplates[0].ID,
-		Name:							"Some Board Name",
-		Description: 			"Some Board Description ",
-		ContextType: 			"TypeLevelContext",
-		Context: 			uuid.NewV4().String(),
+		ID:              ID,
+		SpaceTemplateID: fxt.SpaceTemplates[0].ID,
+		Name:            "Some Board Name",
+		Description:     "Some Board Description ",
+		ContextType:     "TypeLevelContext",
+		Context:         uuid.NewV4().String(),
 		Columns: []workitem.BoardColumn{
 			{
-				ID:                	uuid.NewV4(),
-				Name:             	"New",
-				ColumnOrder:       	0,
-				TransRuleKey:      	"updateStateFromColumnMove",
-				TransRuleArgument: 	"{ 'metastate': 'mNew' }",
-				BoardID: 						ID,
+				ID:                uuid.NewV4(),
+				Name:              "New",
+				ColumnOrder:       0,
+				TransRuleKey:      "updateStateFromColumnMove",
+				TransRuleArgument: "{ 'metastate': 'mNew' }",
+				BoardID:           ID,
 			},
 			{
-				ID:                	uuid.NewV4(),
-				Name:              	"Done",
-				ColumnOrder:       	1,
-				TransRuleKey:      	"updateStateFromColumnMove",
-				TransRuleArgument: 	"{ 'metastate': 'mDone' }",
-				BoardID: 						ID,
+				ID:                uuid.NewV4(),
+				Name:              "Done",
+				ColumnOrder:       1,
+				TransRuleKey:      "updateStateFromColumnMove",
+				TransRuleArgument: "{ 'metastate': 'mDone' }",
+				BoardID:           ID,
 			},
 		},
 	}
@@ -86,15 +86,15 @@ func (s *workItemBoardRepoTest) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
 		actual, err := s.repo.Create(s.Ctx, expected)
 		require.NoError(t, err)
-		require.True(t, expected.Equal(*actual));
-		require.True(t, expected.Columns[0].Equal(actual.Columns[0]));
-		require.True(t, expected.Columns[1].Equal(actual.Columns[1]));
+		require.True(t, expected.Equal(*actual))
+		require.True(t, expected.Columns[0].Equal(actual.Columns[0]))
+		require.True(t, expected.Columns[1].Equal(actual.Columns[1]))
 		t.Run("load same work item board and check it is the same", func(t *testing.T) {
 			actual, err := s.repo.Load(s.Ctx, ID)
 			require.NoError(t, err)
-			require.True(t, expected.Equal(*actual));
-			require.True(t, expected.Columns[0].Equal(actual.Columns[0]));
-			require.True(t, expected.Columns[1].Equal(actual.Columns[1]));
+			require.True(t, expected.Equal(*actual))
+			require.True(t, expected.Columns[0].Equal(actual.Columns[0]))
+			require.True(t, expected.Columns[1].Equal(actual.Columns[1]))
 		})
 	})
 	s.T().Run("invalid", func(t *testing.T) {
@@ -154,28 +154,28 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 	// given
 	ID := uuid.NewV4()
 	a := workitem.Board{
-		ID:              	ID,
-		SpaceTemplateID: 	uuid.NewV4(),
-		Name:							"Some Board Name",
-		Description: 			"Some Board Description ",
-		ContextType: 			"TypeLevelContext",
-		Context: 					uuid.NewV4().String(),
+		ID:              ID,
+		SpaceTemplateID: uuid.NewV4(),
+		Name:            "Some Board Name",
+		Description:     "Some Board Description ",
+		ContextType:     "TypeLevelContext",
+		Context:         uuid.NewV4().String(),
 		Columns: []workitem.BoardColumn{
 			{
-				ID:                	uuid.NewV4(),
-				Name:             	"New",
-				ColumnOrder:       	0,
-				TransRuleKey:      	"updateStateFromColumnMove",
-				TransRuleArgument: 	"{ 'metastate': 'mNew' }",
-				BoardID: 						ID,
+				ID:                uuid.NewV4(),
+				Name:              "New",
+				ColumnOrder:       0,
+				TransRuleKey:      "updateStateFromColumnMove",
+				TransRuleArgument: "{ 'metastate': 'mNew' }",
+				BoardID:           ID,
 			},
 			{
-				ID:                	uuid.NewV4(),
-				Name:              	"Done",
-				ColumnOrder:       	1,
-				TransRuleKey:      	"updateStateFromColumnMove",
-				TransRuleArgument: 	"{ 'metastate': 'mDone' }",
-				BoardID: 						ID,
+				ID:                uuid.NewV4(),
+				Name:              "Done",
+				ColumnOrder:       1,
+				TransRuleKey:      "updateStateFromColumnMove",
+				TransRuleArgument: "{ 'metastate': 'mDone' }",
+				BoardID:           ID,
 			},
 		},
 	}
@@ -207,32 +207,32 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 		// different IDs
 		b.Columns = []workitem.BoardColumn{
 			{
-				ID:                	uuid.NewV4(),
-				Name:             	"New",
-				ColumnOrder:       	0,
-				TransRuleKey:      	"updateStateFromColumnMove",
-				TransRuleArgument: 	"{ 'metastate': 'mNew' }",
-				BoardID: 						ID,
+				ID:                uuid.NewV4(),
+				Name:              "New",
+				ColumnOrder:       0,
+				TransRuleKey:      "updateStateFromColumnMove",
+				TransRuleArgument: "{ 'metastate': 'mNew' }",
+				BoardID:           ID,
 			},
 			{
-				ID:                	uuid.NewV4(),
-				Name:              	"Done",
-				ColumnOrder:       	1,
-				TransRuleKey:      	"updateStateFromColumnMove",
-				TransRuleArgument: 	"{ 'metastate': 'mDone' }",
-				BoardID: 						ID,
+				ID:                uuid.NewV4(),
+				Name:              "Done",
+				ColumnOrder:       1,
+				TransRuleKey:      "updateStateFromColumnMove",
+				TransRuleArgument: "{ 'metastate': 'mDone' }",
+				BoardID:           ID,
 			},
 		}
 		assert.False(t, a.Equal(b))
 		// different length
 		b.Columns = []workitem.BoardColumn{
 			{
-				ID:                	uuid.NewV4(),
-				Name:             	"New",
-				ColumnOrder:       	0,
-				TransRuleKey:      	"updateStateFromColumnMove",
-				TransRuleArgument: 	"{ 'metastate': 'mNew' }",
-				BoardID: 						ID,
+				ID:                uuid.NewV4(),
+				Name:              "New",
+				ColumnOrder:       0,
+				TransRuleKey:      "updateStateFromColumnMove",
+				TransRuleArgument: "{ 'metastate': 'mNew' }",
+				BoardID:           ID,
 			},
 		}
 		assert.False(t, a.Equal(b))

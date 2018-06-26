@@ -9,11 +9,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -87,11 +87,11 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoBoardcolumn() {
 	u.Data.Relationships.SystemBoardcolumns = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			{
-				ID: ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
+				ID:   ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
 				Type: ptr.String("boardcolumns"),
 			},
 			{
-				ID:    ptr.String(fixtures.WorkItemBoards[1].Columns[1].ID.String()),
+				ID:   ptr.String(fixtures.WorkItemBoards[1].Columns[1].ID.String()),
 				Type: ptr.String("boardcolumns"),
 			},
 		},
@@ -103,7 +103,7 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoBoardcolumn() {
 		*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
 		*u.Data.Relationships.SystemBoardcolumns.Data[1].ID: {},
 	}
-	for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {		
+	for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {
 		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
@@ -134,19 +134,19 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 	u.Data.Relationships.SystemBoardcolumns = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			{
-				ID: ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
+				ID:   ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
 				Type: ptr.String("boardcolumns"),
 			},
 			{
-				ID:    ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
+				ID:   ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
 				Type: ptr.String("boardcolumns"),
 			},
 			{
-				ID: ptr.String(fixtures.WorkItemBoards[1].Columns[1].ID.String()),
+				ID:   ptr.String(fixtures.WorkItemBoards[1].Columns[1].ID.String()),
 				Type: ptr.String("boardcolumns"),
 			},
 			{
-				ID:    ptr.String(fixtures.WorkItemBoards[1].Columns[1].ID.String()),
+				ID:   ptr.String(fixtures.WorkItemBoards[1].Columns[1].ID.String()),
 				Type: ptr.String("boardcolumns"),
 			},
 		},
@@ -158,7 +158,7 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 		*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
 		*u.Data.Relationships.SystemBoardcolumns.Data[2].ID: {},
 	}
-	for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {		
+	for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {
 		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
@@ -189,11 +189,11 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 	u.Data.Relationships.SystemBoardcolumns = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			{
-				ID: ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
+				ID:   ptr.String(fixtures.WorkItemBoards[0].Columns[0].ID.String()),
 				Type: ptr.String("boardcolumns"),
 			},
 			{
-				ID:    ptr.String(fixtures.WorkItemBoards[1].Columns[1].ID.String()),
+				ID:   ptr.String(fixtures.WorkItemBoards[1].Columns[1].ID.String()),
 				Type: ptr.String("boardcolumns"),
 			},
 		},
@@ -205,7 +205,7 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 		*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
 		*u.Data.Relationships.SystemBoardcolumns.Data[1].ID: {},
 	}
-	for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {		
+	for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {
 		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
@@ -218,7 +218,7 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 	_, updatedWI = test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
 	assert.NotNil(l.T(), updatedWI)
 	assert.Empty(l.T(), updatedWI.Data.Relationships.SystemBoardcolumns.Data)
-	
+
 }
 
 /* FIXME(michaelkleinhenz): Add tests as soon as isValid is added to workitem.go

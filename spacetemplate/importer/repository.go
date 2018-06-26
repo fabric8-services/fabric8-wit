@@ -103,12 +103,12 @@ func (r *GormRepository) Import(ctx context.Context, s ImportHelper) (*ImportHel
 		return nil, errs.Wrapf(err, "failed to create or update work item type groups")
 	}
 
-		// Create or update work item boards
-		if err := r.createOrUpdateWIBs(ctx, res); err != nil {
-			log.Error(ctx, map[string]interface{}{"space_template": res, "err": err}, "failed to create or update work item boards")
-			return nil, errs.Wrapf(err, "failed to create or update work item boards")
-		}
-	
+	// Create or update work item boards
+	if err := r.createOrUpdateWIBs(ctx, res); err != nil {
+		log.Error(ctx, map[string]interface{}{"space_template": res, "err": err}, "failed to create or update work item boards")
+		return nil, errs.Wrapf(err, "failed to create or update work item boards")
+	}
+
 	log.Info(ctx, map[string]interface{}{"space_template_id": s.Template.ID}, "space template imported successfully")
 	return res, nil
 }

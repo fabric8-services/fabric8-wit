@@ -53,4 +53,3 @@ func (c *WorkItemBoardsController) List(ctx *app.ListWorkItemBoardsContext) erro
 	}
 	return ctx.OK(res)
 }
-

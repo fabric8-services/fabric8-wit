@@ -389,7 +389,7 @@ func main() {
 	// Mount "board" controller with "show" action
 	workItemBoardCtrl := controller.NewWorkItemBoardController(service, appDB)
 	app.MountWorkItemBoardController(service, workItemBoardCtrl)
-	
+
 	// Mount "boards" controller with "list" action
 	workItemBoardsCtrl := controller.NewWorkItemBoardsController(service, appDB)
 	app.MountWorkItemBoardsController(service, workItemBoardsCtrl)

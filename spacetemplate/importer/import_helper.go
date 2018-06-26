@@ -18,7 +18,7 @@ type ImportHelper struct {
 	WITs     []*workitem.WorkItemType      `gorm:"-" json:"work_item_types,omitempty"`
 	WILTs    []*link.WorkItemLinkType      `gorm:"-" json:"work_item_link_types,omitempty"`
 	WITGs    []*workitem.WorkItemTypeGroup `gorm:"-" json:"work_item_type_groups,omitempty"`
-	WIBs     []*workitem.Board 						 `gorm:"-" json:"work_item_boards,omitempty"`
+	WIBs     []*workitem.Board             `gorm:"-" json:"work_item_boards,omitempty"`
 }
 
 // Validate ensures that all inner-document references of the given space
