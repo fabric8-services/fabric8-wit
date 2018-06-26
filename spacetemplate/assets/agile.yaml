@@ -96,13 +96,6 @@ work_item_types:
       required: no
       type:
         kind: instant
-    "business_value": 
-      label: Business value
-      description: 
-        The business value of the theme.
-      required: no
-      type:
-        kind: integer
     "acceptance_criteria": 
       label: Acceptance criteria
       description: 
