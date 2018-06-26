@@ -108,6 +108,43 @@ func TestField(t *testing.T) {
 				c.Equals(c.Field("iteration.created_at"), c.Literal("123")),
 			), `((`+workitem.Column("iter", "name")+` = ?) OR (`+workitem.Column("iter", "created_at")+` = ?))`, []interface{}{"abcd", "123"}, []*workitem.TableJoin{&j})
 		})
+		t.Run("board by id", func(t *testing.T) {
+			j := *defJoins["board"]
+			j.Active = true
+			j.HandledFields = []string{"id"}
+
+			k := *defJoins["boardcolumns"]
+			k.Active = true
+			k.DelegateTo = map[string]*workitem.TableJoin{"board.": &j}
+			expect(t,
+				c.Equals(c.Field("board.id"), c.Literal("c20882bd-3a70-48a4-9784-3d6735992a43")),
+				`(`+workitem.Column("board", "id")+` = ?)`, []interface{}{"c20882bd-3a70-48a4-9784-3d6735992a43"}, []*workitem.TableJoin{&j, &k})
+		})
+		t.Run("board by name", func(t *testing.T) {
+			j := *defJoins["board"]
+			j.Active = true
+			j.HandledFields = []string{"name"}
+
+			k := *defJoins["boardcolumns"]
+			k.Active = true
+			k.DelegateTo = map[string]*workitem.TableJoin{"board.": &j}
+			expect(t,
+				c.Equals(c.Field("board.name"), c.Literal("foobar")),
+				`(`+workitem.Column("board", "name")+` = ?)`, []interface{}{"foobar"}, []*workitem.TableJoin{&j, &k})
+		})
+		t.Run("board by name or id", func(t *testing.T) {
+			j := *defJoins["board"]
+			j.Active = true
+			j.HandledFields = []string{"name", "id"}
+
+			k := *defJoins["boardcolumns"]
+			k.Active = true
+			k.DelegateTo = map[string]*workitem.TableJoin{"board.": &j}
+			expect(t, c.Or(
+				c.Equals(c.Field("board.name"), c.Literal("foobar")),
+				c.Equals(c.Field("board.id"), c.Literal("51ef97a4-5c9a-45e2-a40b-70fa5d436c41")),
+			), `((`+workitem.Column("board", "name")+` = ?) OR (`+workitem.Column("board", "id")+` = ?))`, []interface{}{"foobar", "51ef97a4-5c9a-45e2-a40b-70fa5d436c41"}, []*workitem.TableJoin{&j, &k})
+		})
 	})
 	t.Run("test illegal field name", func(t *testing.T) {
 		t.Run("double quote", func(t *testing.T) {

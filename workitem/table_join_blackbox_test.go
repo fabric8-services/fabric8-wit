@@ -85,7 +85,7 @@ func Test_TableJoin_String(t *testing.T) {
 	// when
 	s := j.GetJoinExpression()
 	// then
-	require.Equal(t, fmt.Sprintf(`LEFT JOIN "%s" "%s" ON %s`, j.TableName, j.TableAlias, j.On), s)
+	require.Equal(t, fmt.Sprintf(`LEFT JOIN %s "%s" ON %s`, j.TableName, j.TableAlias, j.On), s)
 }
 
 func Test_TableJoin_TranslateFieldName(t *testing.T) {

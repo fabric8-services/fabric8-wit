@@ -24,7 +24,8 @@ import (
 type TableJoin struct {
 	Active bool // true if this table join is used
 
-	// TableName specifies the foreign table upon which to join
+	// TableName specifies the foreign table upon which to join. This can also
+	// be subselect on its own.
 	TableName string // e.g. "iterations"
 
 	// TableAlias allows us to specify an alias for the table to be used in the
@@ -35,7 +36,7 @@ type TableJoin struct {
 	On string // e.g. `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`
 
 	// Where defines what condition to place in the main WHERE clause of the
-	// query final query.
+	// final query.
 	Where string
 
 	// PrefixActivators can hold a number of prefix strings that cause this join
@@ -91,7 +92,7 @@ func JoinOnJSONField(jsonField, foreignCol string) string {
 
 // GetJoinExpression returns the SQL JOIN expression for this table join.
 func (j TableJoin) GetJoinExpression() string {
-	return fmt.Sprintf(`LEFT JOIN "%s" "%s" ON %s`, j.TableName, j.TableAlias, j.On)
+	return fmt.Sprintf(`LEFT JOIN %s "%s" ON %s`, j.TableName, j.TableAlias, j.On)
 }
 
 // HandlesFieldName returns true if the given field name should be handled by

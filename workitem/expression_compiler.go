@@ -252,6 +252,32 @@ var DefaultTableJoins = func() TableJoinMap {
 			"typegroup.": res["typegroup"],
 		},
 	}
+
+	res["board"] = &TableJoin{
+		TableName:  "work_item_boards",
+		TableAlias: "board",
+		On:         fmt.Sprintf(`%s=%s`, Column("board", "id"), Column("boardcolumns", "board_id")),
+		// This join doesn't specify it's own prefix because we delegate to
+		// this join from another table in order to get the correct order of
+		// joins.
+		// PrefixActivators: []string{"board."},
+		AllowedColumns: []string{"name", "id"},
+	}
+	res["boardcolumns"] = &TableJoin{
+		// TODO(kwk): activate space as well to only select columns from boards
+		// within same space template?
+		TableName:        "(SELECT id, board_id, jsonb_agg(id::text) AS colids FROM work_item_board_columns GROUP BY 1,2)",
+		TableAlias:       "boardcolumns",
+		On:               Column("boardcolumns", "id") + " IN (SELECT jsonb_array_elements_text(" + Column(WorkItemStorage{}.TableName(), "fields") + "->'system.boardcolumns'))",
+		PrefixActivators: []string{"board."},
+		AllowedColumns:   []string{},
+		// ActivateOtherJoins: []string{"board"}, // not needed because it is delegated to this join
+		// every field prefixed with .board will be handled by the
+		// "board" join
+		DelegateTo: map[string]*TableJoin{
+			"board.": res["board"],
+		},
+	}
 	return res
 }
 
