@@ -89,6 +89,13 @@ work_item_types:
         - In Progress
         - Resolved
         - Closed
+    "business_value":
+      label: Component
+      description:
+        Business value for this theme.
+      required: no
+      type:
+        kind: string
     "target_date": 
       label: Target date
       description: 
