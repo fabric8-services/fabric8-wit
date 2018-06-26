@@ -37,6 +37,7 @@ func TestRunWorkItemLabelREST(t *testing.T) {
 }
 
 func (l *TestWorkItemLabelREST) SetupTest() {
+	l.DBTestSuite.SetupTest()
 	l.db = gormapplication.NewGormDB(l.DB)
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
