@@ -94,13 +94,13 @@ func ServiceAsServiceAccountUser(serviceName string, u account.Identity) *goa.Se
 // ServiceAsUser creates a new service and fill the context with input Identity
 func ServiceAsUser(serviceName string, u account.Identity) *goa.Service {
 	svc := service(serviceName, nil, u, nil)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeycloakAuthzServiceManager{Service: &dummySpaceAuthzService{}})
+	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.AuthzServiceManagerWrapper{Service: &dummySpaceAuthzService{}})
 	return svc
 }
 
 // ServiceAsSpaceUser creates a new service and fill the context with input Identity and space authz service
 func ServiceAsSpaceUser(serviceName string, u account.Identity, authzSrv authz.AuthzService) *goa.Service {
 	svc := service(serviceName, nil, u, nil)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeycloakAuthzServiceManager{Service: authzSrv})
+	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.AuthzServiceManagerWrapper{Service: authzSrv})
 	return svc
 }
