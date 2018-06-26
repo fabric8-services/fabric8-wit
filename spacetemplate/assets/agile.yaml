@@ -364,7 +364,7 @@ work_item_link_types:
 - id: "48b1b953-ddf3-473d-8527-e705f7c5f943"
   name: Impedes
   description: One work item item impedes another one
-  forward_name: is impeded by
+  forward_name: impedes
   reverse_name: is impeded by
   topology: network
   
