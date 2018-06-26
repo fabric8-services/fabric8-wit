@@ -259,6 +259,9 @@ func checkDiff(t *testing.T, expected, actual importer.ImportHelper) {
 // getValidTestTemplate returns a test template in unparsed format. See
 // getValidTestTemplateParsed() for the parsed representation of this template
 func getValidTestTemplate(spaceTemplateID, witID, wiltID, witgID uuid.UUID, wibID uuid.UUID) string {
+	boardIDStr := wibID.String()
+	colID1 := boardIDStr[:len(boardIDStr)-1] + "1"
+	colID2 := boardIDStr[:len(boardIDStr)-1] + "2"
 	return `
 space_template:
   id: "` + spaceTemplateID.String() + `"
@@ -316,29 +319,34 @@ work_item_type_groups:
     - "` + witID.String() + `"
   bucket: portfolio
   icon: fa fa-suitcase
-board_config:
+work_item_boards:
 - id: "` + wibID.String() + `"
-	name: "Some Board Name"
-	description: "Some Board Description"
-	context: "` + witgID.String() + `"
-	contextType: "TypeLevelContext"
-	columns:
-	- id: "` + uuid.NewV4().String() + `"
-		name: "New"
-		order: 0
-		transRuleKey: "updateStateFromColumnMove"
-		transRuleArguments: "{ metaState: 'mNew' }"
-	- id: "` + uuid.NewV4().String() + `"
-		name: "Done"
-		order: 1
-		transRuleKey: "updateStateFromColumnMove"
-		transRuleArguments: "{ metaState: 'mDone' }"
+  name: "Some Board Name"
+  description: "Some Board Description"
+  context: "` + witgID.String() + `"
+  context_type: "TypeLevelContext"
+  columns:
+    - id: "` + colID1 + `"
+      board_id: "` + wibID.String() + `"
+      name: "New"
+      column_order: 0
+      trans_rule_key: "updateStateFromColumnMove"
+      trans_rule_argument: "{ 'metastate': 'mNew' }"
+    - id: "` + colID2 + `"
+      board_id: "` + wibID.String() + `"
+      name: "Done"
+      column_order: 1
+      trans_rule_key: "updateStateFromColumnMove"
+      trans_rule_argument: "{ 'metastate': 'mDone' }"
 `
 }
 
 // getValidTestTemplateParsed returns the expected parsed representation of the
 // getValidTestTemplate string
 func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uuid.UUID, witgID uuid.UUID, wibID uuid.UUID) importer.ImportHelper {
+	boardIDStr := wibID.String()
+	colID1 := boardIDStr[:len(boardIDStr)-1] + "1"
+	colID2 := boardIDStr[:len(boardIDStr)-1] + "2"
 	expected := importer.ImportHelper{
 		Template: spacetemplate.SpaceTemplate{
 			ID:           spaceTemplateID,
@@ -422,12 +430,12 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 				ID:              wibID,
 				SpaceTemplateID: spaceTemplateID,
 				Name:            "Some Board Name",
-				Description:     "Some Board Description ",
+				Description:     "Some Board Description",
 				ContextType:     "TypeLevelContext",
 				Context:         witgID.String(),
 				Columns: []workitem.BoardColumn{
 					{
-						ID:                uuid.NewV4(),
+						ID:                uuid.FromStringOrNil(colID1),
 						Name:              "New",
 						ColumnOrder:       0,
 						TransRuleKey:      "updateStateFromColumnMove",
@@ -435,7 +443,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 						BoardID:           wibID,
 					},
 					{
-						ID:                uuid.NewV4(),
+						ID:                uuid.FromStringOrNil(colID2),
 						Name:              "Done",
 						ColumnOrder:       1,
 						TransRuleKey:      "updateStateFromColumnMove",
