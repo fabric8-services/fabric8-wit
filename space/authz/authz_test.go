@@ -18,6 +18,7 @@ import (
 	testsuite "github.com/fabric8-services/fabric8-wit/test/suite"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 
+	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,28 +58,74 @@ func (s *TestAuthzSuite) TestDefaultDoer() {
 	assert.Equal(s.T(), rest.DefaultHttpDoer(), as.Doer)
 }
 
+func (s *TestAuthzSuite) TestDisabledAuthorization() {
+	as := NewAuthzService(&authURLConfig{disabled: true})
+	assert.False(s.T(), as.Configuration().IsAuthorizationEnabled())
+	ctx, _, _, _ := token.ContextWithTokenAndRequestID(s.T())
+	ok, err := as.Authorize(ctx, "")
+	require.NoError(s.T(), err)
+	assert.True(s.T(), ok)
+}
+
+func (s *TestAuthzSuite) TestInvalidAuthURLFails() {
+	as := NewAuthzService(&authURLConfig{authURL: "% %"})
+	ctx, _, _, _ := token.ContextWithTokenAndRequestID(s.T())
+	_, err := as.Authorize(ctx, "")
+	require.Error(s.T(), err)
+	assert.Equal(s.T(), "parse % %/api/resources//roles: invalid URL escape \"% %\"", err.Error())
+}
+
 func (s *TestAuthzSuite) TestAuthorizeOK() {
 	ctx, identityID, tokenString, reqID := token.ContextWithTokenAndRequestID(s.T())
 
 	// One admin
 	responsePayload := fmt.Sprintf("{\"data\":[{\"role_name\":\"admin\",\"assignee_id\":\"%s\"}]}", identityID.String())
-	s.checkAuthorize(ctx, identityID, tokenString, reqID, responsePayload, true)
+	s.checkAuthorize(ctx, tokenString, reqID, responsePayload, true)
 
 	// One contributor
 	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"contributor\",\"assignee_id\":\"%s\"}]}", identityID.String())
-	s.checkAuthorize(ctx, identityID, tokenString, reqID, responsePayload, true)
+	s.checkAuthorize(ctx, tokenString, reqID, responsePayload, true)
 
 	// Multiple users and the expected one is among them
 	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"admin\",\"assignee_id\":\"%s\"},{\"role_name\":\"contributor\",\"assignee_id\":\"%s\"}]}", uuid.NewV4().String(), identityID.String())
-	s.checkAuthorize(ctx, identityID, tokenString, reqID, responsePayload, true)
+	s.checkAuthorize(ctx, tokenString, reqID, responsePayload, true)
 
 	// Viewer is forbidden
 	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"viewer\",\"assignee_id\":\"%s\"}]}", identityID.String())
-	s.checkAuthorize(ctx, identityID, tokenString, reqID, responsePayload, false)
+	s.checkAuthorize(ctx, tokenString, reqID, responsePayload, false)
 
 	// If the user is not among the roles then it's forbidden too
 	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"admin\",\"assignee_id\":\"%s\"},{\"role_name\":\"contributor\",\"assignee_id\":\"%s\"}]}", uuid.NewV4().String(), uuid.NewV4().String())
-	s.checkAuthorize(ctx, identityID, tokenString, reqID, responsePayload, false)
+	s.checkAuthorize(ctx, tokenString, reqID, responsePayload, false)
+}
+
+func (s *TestAuthzSuite) TestAuthorizeFailIfUserCantListRoles() {
+	// Forbidden if the user doesn't have permissions to view the roles
+	ctx, _, _, _ := token.ContextWithTokenAndRequestID(s.T())
+
+	// Set up expected request
+	s.doer.Client.Error = nil
+	body := ioutil.NopCloser(bytes.NewReader([]byte{}))
+	s.doer.Client.Response = &http.Response{Body: body, StatusCode: http.StatusForbidden, Status: "403"}
+
+	// Forbidden
+	ok, err := s.authzService.Authorize(ctx, uuid.NewV4().String())
+	require.NoError(s.T(), err)
+	assert.False(s.T(), ok)
+}
+
+func (s *TestAuthzSuite) TestAuthorizeFailIfInvalidResponse() {
+	// Forbidden if the user doesn't have permissions to view the roles
+	ctx, _, _, _ := token.ContextWithTokenAndRequestID(s.T())
+
+	// Set up expected request
+	s.doer.Client.Error = nil
+	body := ioutil.NopCloser(bytes.NewReader([]byte("{[")))
+	s.doer.Client.Response = &http.Response{Body: body, StatusCode: http.StatusOK, Status: "200"}
+
+	_, err := s.authzService.Authorize(ctx, uuid.NewV4().String())
+	require.Error(s.T(), err)
+	assert.IsType(s.T(), witerrors.InternalError{}, errs.Cause(err))
 }
 
 func (s *TestAuthzSuite) TestAuthorizeFailWithError() {
@@ -96,11 +143,10 @@ func (s *TestAuthzSuite) TestAuthorizeFailWithError() {
 	s.doer.Client.Response = &http.Response{Body: body, StatusCode: http.StatusInternalServerError, Status: "500"}
 	s.doer.Client.Error = nil
 	_, err = s.authzService.Authorize(ctx, spaceID)
-	require.Error(s.T(), err)
 	testsupport.AssertError(s.T(), err, witerrors.InternalError{}, "unable to get space roles. Response status: 500. Response body: ")
 }
 
-func (s *TestAuthzSuite) checkAuthorize(ctx context.Context, identityID uuid.UUID, token, reqID, responsePayload string, expectedAllowed bool) {
+func (s *TestAuthzSuite) checkAuthorize(ctx context.Context, token, reqID, responsePayload string, expectedAllowed bool) {
 	spaceID := uuid.NewV4().String()
 
 	// Set up expected request
@@ -123,7 +169,8 @@ func (s *TestAuthzSuite) checkAuthorize(ctx context.Context, identityID uuid.UUI
 }
 
 type authURLConfig struct {
-	authURL string
+	authURL  string
+	disabled bool
 }
 
 func (c *authURLConfig) GetAuthServiceURL() string {
@@ -135,5 +182,5 @@ func (c *authURLConfig) GetAuthShortServiceHostName() string {
 }
 
 func (c *authURLConfig) IsAuthorizationEnabled() bool {
-	return true
+	return !c.disabled
 }
