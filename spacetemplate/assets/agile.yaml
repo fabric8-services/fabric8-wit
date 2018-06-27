@@ -54,15 +54,12 @@ work_item_types:
           kind: string
         values: 
         - Done
-        - Rejected
         - Duplicate
         - Incomplete Description
         - Can not Reproduce
-        - Partially Completed
         - Deferred
         - Won't Fix
         - Out of Date
-        - Explained
         - Verified
 
 - id: &themeID "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a"
