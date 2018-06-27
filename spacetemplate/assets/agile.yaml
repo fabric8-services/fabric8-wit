@@ -90,7 +90,7 @@ work_item_types:
         - Resolved
         - Closed
     "business_value":
-      label: Component
+      label: Business Value
       description:
         Business value for this theme.
       required: no
@@ -366,5 +366,5 @@ work_item_link_types:
   description: One work item item impedes another one
   forward_name: impedes
   reverse_name: is impeded by
-  topology: network
+  topology: dependency
   

@@ -880,8 +880,9 @@ func testMigration93ChangesToAgileTemplate(t *testing.T) {
 		})
 	})
 
-	// migrate to current version, which removes the fields from
-	// work items and check that no work item has it.
+	// Migrate to the current version. That removes fields from each work item
+	// and its work item type. We then check that those fields have actually
+	// been removed from the work items and their types.
 	migrateToVersion(t, sqlDB, migrations[:94], 94)
 
 	t.Run("after", func(t *testing.T) {
