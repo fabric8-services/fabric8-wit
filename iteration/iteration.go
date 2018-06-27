@@ -187,20 +187,20 @@ func (m *GormIterationRepository) Root(ctx context.Context, spaceID uuid.UUID) (
 	var itr Iteration
 
 	tx := m.db.Where("space_id = ? and path = ?", spaceID, "").First(&itr)
-	if tx.Error != nil {
-		log.Error(ctx, map[string]interface{}{
-			"space_id": spaceID,
-			"err":      tx.Error,
-		}, "unable to get the root iteration")
-		switch tx.Error {
-		case gorm.ErrRecordNotFound:
-			return nil, errors.NewNotFoundError("Root iteration for space", spaceID.String())
-		default:
-			return nil, errors.NewInternalError(ctx, tx.Error)
-
-		}
+	if tx.Error == nil {
+		return &itr, nil
 	}
-	return &itr, nil
+	log.Error(ctx, map[string]interface{}{
+		"space_id": spaceID,
+		"err":      tx.Error,
+	}, "unable to get the root iteration")
+	switch tx.Error {
+	case gorm.ErrRecordNotFound:
+		return nil, errors.NewNotFoundError("Root iteration for space", spaceID.String())
+	default:
+		return nil, errors.NewInternalError(ctx, tx.Error)
+
+	}
 }
 
 // Load a single Iteration regardless of parent
