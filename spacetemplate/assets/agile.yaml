@@ -52,7 +52,8 @@ work_item_types:
           kind: enum
         base_type:
           kind: string
-        values: 
+        values:
+        - None
         - Done
         - Duplicate
         - Incomplete Description

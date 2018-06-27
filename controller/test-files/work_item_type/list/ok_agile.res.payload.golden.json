@@ -173,16 +173,14 @@
               "baseType": "string",
               "kind": "enum",
               "values": [
+                "None",
                 "Done",
-                "Rejected",
                 "Duplicate",
                 "Incomplete Description",
                 "Can not Reproduce",
-                "Partially Completed",
                 "Deferred",
                 "Won't Fix",
                 "Out of Date",
-                "Explained",
                 "Verified"
               ]
             }
