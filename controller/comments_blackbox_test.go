@@ -14,6 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -25,10 +26,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
-	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/satori/go.uuid"
@@ -611,7 +612,7 @@ type TestSpaceAuthzService struct {
 	userIDs string
 }
 
-func (s *TestSpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
+func (s *TestSpaceAuthzService) Authorize(ctx context.Context, spaceID string) (bool, error) {
 	jwtToken := goajwt.ContextJWT(ctx)
 	if jwtToken == nil {
 		return false, errors.NewUnauthorizedError("Missing token")
@@ -620,6 +621,6 @@ func (s *TestSpaceAuthzService) Authorize(ctx context.Context, endpoint string, 
 	return s.owner.ID.String() == id || strings.Contains(s.userIDs, id), nil
 }
 
-func (s *TestSpaceAuthzService) Configuration() authz.AuthzConfiguration {
+func (s *TestSpaceAuthzService) Configuration() auth.ServiceConfiguration {
 	return nil
 }
