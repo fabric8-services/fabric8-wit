@@ -161,7 +161,7 @@
     },
     {
       "attributes": {
-        "can-construct": false,
+        "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
         "description": "This describes an impediment blocking work on the project.\n",
         "fields": {
@@ -355,19 +355,11 @@
             }
           },
           "business_value": {
-            "description": "The business value of the theme.",
-            "label": "Business value",
+            "description": "Business value for this theme.",
+            "label": "Business Value",
             "required": false,
             "type": {
-              "kind": "integer"
-            }
-          },
-          "effort": {
-            "description": "The effort needed to implement this theme.",
-            "label": "Effort",
-            "required": false,
-            "type": {
-              "kind": "float"
+              "kind": "string"
             }
           },
           "system.area": {
@@ -499,14 +491,6 @@
             "type": {
               "kind": "instant"
             }
-          },
-          "time_criticality": {
-            "description": "Time Criticality captures how the business value decreases over time for a theme or epic. Higher values indicate that the item is inherently more time critical than those items with lower values.\n",
-            "label": "Time criticality",
-            "required": false,
-            "type": {
-              "kind": "float"
-            }
           }
         },
         "icon": "fa fa-puzzle-piece",
@@ -524,6 +508,10 @@
             },
             {
               "id": "2c169431-a55d-49eb-af74-cc19e895356f",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "03b9bb64-4f65-4fa7-b165-494cd4f01401",
               "type": "workitemtypes"
             }
           ]
@@ -565,25 +553,9 @@
               "kind": "markup"
             }
           },
-          "business_value": {
-            "description": "The business value of the epic.",
-            "label": "Business value",
-            "required": false,
-            "type": {
-              "kind": "integer"
-            }
-          },
-          "component": {
-            "description": "The component for this area of work.",
-            "label": "Component",
-            "required": false,
-            "type": {
-              "kind": "string"
-            }
-          },
-          "effort": {
+          "storypoints": {
             "description": "The effort needed to implement the epic.",
-            "label": "Effort",
+            "label": "Storypoints",
             "required": false,
             "type": {
               "kind": "float"
@@ -710,14 +682,6 @@
             "type": {
               "kind": "instant"
             }
-          },
-          "time_criticality": {
-            "description": "Time Criticality captures how the business value decreases over time for a Feature or Epic. Higher values indicate that the item is inherently more time critical than those items with lower values.\n",
-            "label": "Time criticality",
-            "required": false,
-            "type": {
-              "kind": "float"
-            }
           }
         },
         "icon": "fa fa-bullseye",
@@ -735,6 +699,10 @@
             },
             {
               "id": "6ff83406-caa7-47a9-9200-4ca796be11bb",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "03b9bb64-4f65-4fa7-b165-494cd4f01401",
               "type": "workitemtypes"
             }
           ]
@@ -784,9 +752,9 @@
               "kind": "string"
             }
           },
-          "effort": {
+          "storypoints": {
             "description": "The effort needed to implement this user story.",
-            "label": "Effort",
+            "label": "Storypoints",
             "required": false,
             "type": {
               "kind": "float"
@@ -931,6 +899,10 @@
             {
               "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
               "type": "workitemtypes"
+            },
+            {
+              "id": "03b9bb64-4f65-4fa7-b165-494cd4f01401",
+              "type": "workitemtypes"
             }
           ]
         },
@@ -963,6 +935,14 @@
         "created-at": "0001-01-01T00:00:00Z",
         "description": "An atomic task on the project.",
         "fields": {
+          "effort": {
+            "description": "The effort needed to implement this user story.",
+            "label": "Effort",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
           "system.area": {
             "description": "The area to which the work item belongs",
             "label": "Area",
