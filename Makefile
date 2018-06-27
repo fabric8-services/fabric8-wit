@@ -221,6 +221,7 @@ clean-generated:
 	-rm -f ./migration/sqlbindata.go
 	-rm -f ./migration/sqlbindata_test.go
 	-rm -rf ./account/tenant
+	-rm -rf ./notification/client
 	-rm -rf ./auth/authservice
 	-rm -f ./spacetemplate/template_assets.go
 
