@@ -250,7 +250,6 @@ var _ = a.Resource("codebase", func() {
 			a.Media(codebaseSingle)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.Conflict, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)

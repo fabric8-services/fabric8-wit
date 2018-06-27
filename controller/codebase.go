@@ -70,6 +70,9 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 
 }
 
+// Update can be used to update the codebase entries to change things like
+// the cve-scan, stackID, codebase type, rest of the attributes of codebase
+// will remain same
 func (c *CodebaseController) Update(ctx *app.UpdateCodebaseContext) error {
 	codebaseID, err := uuid.FromString(ctx.CodebaseID)
 	if err != nil {
@@ -81,24 +84,16 @@ func (c *CodebaseController) Update(ctx *app.UpdateCodebaseContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	// Validate Request
-	if ctx.Payload.Data == nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data", nil).Expected("not nil"))
-	}
-	reqIter := ctx.Payload.Data
-	if reqIter.Attributes == nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes", nil).Expected("not nil"))
-	}
-
 	// set only allowed fields
-	if reqIter.Attributes.CveScan != nil {
-		cb.CVEScan = *reqIter.Attributes.CveScan
+	reqAttributes := ctx.Payload.Data.Attributes
+	if reqAttributes.CveScan != nil {
+		cb.CVEScan = *reqAttributes.CveScan
 	}
-	if reqIter.Attributes.StackID != nil {
-		cb.StackID = reqIter.Attributes.StackID
+	if reqAttributes.StackID != nil {
+		cb.StackID = reqAttributes.StackID
 	}
-	if reqIter.Attributes.Type != nil {
-		cb.Type = *reqIter.Attributes.Type
+	if reqAttributes.Type != nil {
+		cb.Type = *reqAttributes.Type
 	}
 
 	var updatedCb *codebase.Codebase
@@ -206,6 +201,7 @@ func (c *CodebaseController) verifyCodebaseOwner(ctx context.Context, codebaseID
 	if err != nil {
 		return nil, goa.ErrUnauthorized(err.Error())
 	}
+	fmt.Println("current user:", currentUser)
 	var cb *codebase.Codebase
 	var cbSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
@@ -219,6 +215,7 @@ func (c *CodebaseController) verifyCodebaseOwner(ctx context.Context, codebaseID
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("ownner:", cbSpace.OwnerID)
 	if !uuid.Equal(*currentUser, cbSpace.OwnerID) {
 		log.Warn(ctx, map[string]interface{}{
 			"codebase_id":  codebaseID,
