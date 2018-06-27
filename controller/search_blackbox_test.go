@@ -1207,8 +1207,8 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 				// check order of execution
 				if len(result.Included) > 1 {
 					var expectedOrder []interface{}
-					for i := 0; i < 2; i++ {
-						expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID) // expectedOrder = [A, B]
+					for i := 1; i >= 0; i-- {
+						expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID) // expectedOrder = [B, A]
 					}
 					includedData := make([]app.WorkItem, len(result.Included))
 					for i, v := range result.Included {
@@ -1262,7 +1262,7 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 		// With tree-view query option
 		testFunc(t, []string{"A"}, id.Slice{A}, nil, true)
 		testFunc(t, []string{"B"}, id.Slice{B}, id.Slice{A}, true)
-		testFunc(t, []string{"C"}, id.Slice{C}, id.Slice{B, A}, true)
+		testFunc(t, []string{"C"}, id.Slice{C}, id.Slice{A, B}, true)
 		testFunc(t, []string{"D"}, id.Slice{D}, id.Slice{A}, true)
 		testFunc(t, []string{"E"}, id.Slice{E}, nil, true)
 		// search for parent and child elements without tree-view query option
@@ -1546,54 +1546,4 @@ func (s SortableIncludedSpacesByID) Less(i, j int) bool {
 		return false
 	}
 	return strings.Compare(s[i].(app.Space).ID.String(), s[j].(app.Space).ID.String()) < 0
-}
-
-func TestWorkItemPtrSliceSort(t *testing.T) {
-	t.Run("by work item title", func(t *testing.T) {
-		// given
-		a := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "A"}}
-		b := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "B"}}
-		c := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "C"}}
-		s := WorkItemPtrSlice{c, a, b}
-		// when
-		sort.Sort(s)
-		// then
-		require.Equal(t, WorkItemPtrSlice{a, b, c}, s)
-	})
-	t.Run("by work item ID", func(t *testing.T) {
-		// given
-		a := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
-		b := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
-		c := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000003"))}
-		s := WorkItemPtrSlice{c, a, b}
-		// when
-		sort.Sort(s)
-		// then
-		require.Equal(t, WorkItemPtrSlice{a, b, c}, s)
-	})
-}
-
-func TestWorkItemInterfaceSliceSort(t *testing.T) {
-	t.Run("by work item title", func(t *testing.T) {
-		// given objects and pointers
-		var a interface{} = app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "A"}}
-		var b interface{} = &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "B"}}
-		var c interface{} = app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "C"}}
-		s := WorkItemInterfaceSlice{c, a, b}
-		// when
-		sort.Sort(s)
-		// then
-		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
-	})
-	t.Run("by work item ID", func(t *testing.T) {
-		// given objects and pointers
-		var a interface{} = app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
-		var b interface{} = &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000002"))}
-		var c interface{} = app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000003"))}
-		s := WorkItemInterfaceSlice{c, a, b}
-		// when
-		sort.Sort(s)
-		// then
-		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
-	})
 }

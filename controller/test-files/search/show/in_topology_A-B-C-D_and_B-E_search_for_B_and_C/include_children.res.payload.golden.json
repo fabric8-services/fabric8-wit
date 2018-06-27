@@ -3,11 +3,11 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
-        "system.number": 2,
-        "system.order": 2000,
+        "system.number": 3,
+        "system.order": 3000,
         "system.remote_item_id": null,
         "system.state": "new",
-        "system.title": "B",
+        "system.title": "C",
         "system.updated_at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -90,100 +90,11 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
-        "system.number": 3,
-        "system.order": 3000,
+        "system.number": 2,
+        "system.order": 2000,
         "system.remote_item_id": null,
         "system.state": "new",
-        "system.title": "C",
-        "system.updated_at": "0001-01-01T00:00:00Z",
-        "version": 0
-      },
-      "id": "00000000-0000-0000-0000-000000000006",
-      "links": {
-        "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006",
-        "self": "http:///api/workitems/00000000-0000-0000-0000-000000000006"
-      },
-      "relationships": {
-        "area": {},
-        "assignees": {},
-        "baseType": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
-            "type": "workitemtypes"
-          },
-          "links": {
-            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000002"
-          }
-        },
-        "children": {
-          "links": {
-            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/children"
-          },
-          "meta": {
-            "hasChildren": true
-          }
-        },
-        "comments": {
-          "links": {
-            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/comments",
-            "self": "http:///api/workitems/00000000-0000-0000-0000-000000000006/relationships/comments"
-          }
-        },
-        "creator": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
-            "links": {
-              "related": "http:///api/users/00000000-0000-0000-0000-000000000003",
-              "self": "http:///api/users/00000000-0000-0000-0000-000000000003"
-            },
-            "type": "users"
-          }
-        },
-        "events": {
-          "links": {
-            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/events"
-          }
-        },
-        "iteration": {},
-        "labels": {
-          "links": {
-            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/labels"
-          }
-        },
-        "parent": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000001",
-            "type": "workitems"
-          }
-        },
-        "space": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000005",
-            "type": "spaces"
-          },
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000005",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000005"
-          }
-        },
-        "workItemLinks": {
-          "links": {
-            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/links"
-          }
-        }
-      },
-      "type": "workitems"
-    }
-  ],
-  "included": [
-    {
-      "attributes": {
-        "system.created_at": "0001-01-01T00:00:00Z",
-        "system.number": 1,
-        "system.order": 1000,
-        "system.remote_item_id": null,
-        "system.state": "new",
-        "system.title": "A",
+        "system.title": "B",
         "system.updated_at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -239,7 +150,12 @@
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/labels"
           }
         },
-        "parent": {},
+        "parent": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000006",
+            "type": "workitems"
+          }
+        },
         "space": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000005",
@@ -253,6 +169,90 @@
         "workItemLinks": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/links"
+          }
+        }
+      },
+      "type": "workitems"
+    }
+  ],
+  "included": [
+    {
+      "attributes": {
+        "system.created_at": "0001-01-01T00:00:00Z",
+        "system.number": 1,
+        "system.order": 1000,
+        "system.remote_item_id": null,
+        "system.state": "new",
+        "system.title": "A",
+        "system.updated_at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000006",
+      "links": {
+        "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006",
+        "self": "http:///api/workitems/00000000-0000-0000-0000-000000000006"
+      },
+      "relationships": {
+        "area": {},
+        "assignees": {},
+        "baseType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "children": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/children"
+          },
+          "meta": {
+            "hasChildren": true
+          }
+        },
+        "comments": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/comments",
+            "self": "http:///api/workitems/00000000-0000-0000-0000-000000000006/relationships/comments"
+          }
+        },
+        "creator": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "links": {
+              "related": "http:///api/users/00000000-0000-0000-0000-000000000003",
+              "self": "http:///api/users/00000000-0000-0000-0000-000000000003"
+            },
+            "type": "users"
+          }
+        },
+        "events": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/events"
+          }
+        },
+        "iteration": {},
+        "labels": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/labels"
+          }
+        },
+        "parent": {},
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000005",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000005",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000005"
+          }
+        },
+        "workItemLinks": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/links"
           }
         }
       },
@@ -323,7 +323,7 @@
         },
         "parent": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000001",
+            "id": "00000000-0000-0000-0000-000000000004",
             "type": "workitems"
           }
         },
@@ -352,8 +352,8 @@
   },
   "meta": {
     "ancestorIDs": [
-      "00000000-0000-0000-0000-000000000001",
-      "00000000-0000-0000-0000-000000000004"
+      "00000000-0000-0000-0000-000000000004",
+      "00000000-0000-0000-0000-000000000006"
     ],
     "totalCount": 2
   }

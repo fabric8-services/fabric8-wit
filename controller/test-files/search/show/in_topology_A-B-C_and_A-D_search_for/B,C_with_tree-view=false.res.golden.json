@@ -3,11 +3,11 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
-        "system.number": 2,
-        "system.order": 2000,
+        "system.number": 3,
+        "system.order": 3000,
         "system.remote_item_id": null,
         "system.state": "new",
-        "system.title": "B",
+        "system.title": "C",
         "system.updated_at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -33,7 +33,7 @@
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/children"
           },
           "meta": {
-            "hasChildren": true
+            "hasChildren": false
           }
         },
         "comments": {
@@ -85,11 +85,11 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
-        "system.number": 3,
-        "system.order": 3000,
+        "system.number": 2,
+        "system.order": 2000,
         "system.remote_item_id": null,
         "system.state": "new",
-        "system.title": "C",
+        "system.title": "B",
         "system.updated_at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -115,7 +115,7 @@
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/children"
           },
           "meta": {
-            "hasChildren": false
+            "hasChildren": true
           }
         },
         "comments": {
