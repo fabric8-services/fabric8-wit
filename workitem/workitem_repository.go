@@ -56,7 +56,7 @@ var (
 func ParseSortWorkItemsBy(s *string) (SortWorkItemsBy, error) {
 	if s == nil {
 		// this is the default case
-		// which returns recently updated spaces first
+		// which returns workitems with highest execution order
 		return SortWorkItemsByDefault, nil
 	}
 

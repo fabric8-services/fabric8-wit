@@ -576,7 +576,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
 				delete(toBeFound, wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("by created ascending", func(t *testing.T) {
 			// when
@@ -603,17 +603,13 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
 				delete(toBeFound, wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("by updated descending", func(t *testing.T) {
 			// when
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[3], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[2], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[1], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[6], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[5], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[4], fxt.Identities[0].ID)
+			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+			}
 			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-updated"))
 			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
@@ -629,29 +625,21 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 				fxt.WorkItems[5].ID,
 				fxt.WorkItems[6].ID,
 			}.ToMap()
-			require.Equal(t, fxt.WorkItems[3].ID, res[6].ID)
-			require.Equal(t, fxt.WorkItems[2].ID, res[5].ID)
-			require.Equal(t, fxt.WorkItems[0].ID, res[4].ID)
-			require.Equal(t, fxt.WorkItems[1].ID, res[3].ID)
-			require.Equal(t, fxt.WorkItems[6].ID, res[2].ID)
-			require.Equal(t, fxt.WorkItems[5].ID, res[1].ID)
-			require.Equal(t, fxt.WorkItems[4].ID, res[0].ID)
+			for i, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				require.Equal(t, fxt.WorkItems[v].ID, res[6-i].ID)
+			}
 			for _, wi := range res {
 				_, ok := toBeFound[wi.ID]
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
 				delete(toBeFound, wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("by updated ascending", func(t *testing.T) {
 			// when
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[3], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[2], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[1], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[6], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[5], fxt.Identities[0].ID)
-			s.repo.Save(context.Background(), fxt.WorkItems[0].SpaceID, *fxt.WorkItems[4], fxt.Identities[0].ID)
+			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+			}
 			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("updated"))
 			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
@@ -667,19 +655,15 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 				fxt.WorkItems[5].ID,
 				fxt.WorkItems[6].ID,
 			}.ToMap()
-			require.Equal(t, fxt.WorkItems[3].ID, res[0].ID)
-			require.Equal(t, fxt.WorkItems[2].ID, res[1].ID)
-			require.Equal(t, fxt.WorkItems[0].ID, res[2].ID)
-			require.Equal(t, fxt.WorkItems[1].ID, res[3].ID)
-			require.Equal(t, fxt.WorkItems[6].ID, res[4].ID)
-			require.Equal(t, fxt.WorkItems[5].ID, res[5].ID)
-			require.Equal(t, fxt.WorkItems[4].ID, res[6].ID)
+			for i, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				require.Equal(t, fxt.WorkItems[v].ID, res[i].ID)
+			}
 			for _, wi := range res {
 				_, ok := toBeFound[wi.ID]
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
 				delete(toBeFound, wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 
 	})
