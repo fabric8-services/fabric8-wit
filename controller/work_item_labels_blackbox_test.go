@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -29,7 +28,6 @@ type TestWorkItemLabelREST struct {
 	gormtestsupport.DBTestSuite
 	db           *gormapplication.GormDB
 	ctx          context.Context
-	clean        func()
 	testIdentity account.Identity
 }
 
@@ -39,8 +37,8 @@ func TestRunWorkItemLabelREST(t *testing.T) {
 }
 
 func (l *TestWorkItemLabelREST) SetupTest() {
+	l.DBTestSuite.SetupTest()
 	l.db = gormapplication.NewGormDB(l.DB)
-	l.clean = cleaner.DeleteCreatedEntities(l.DB)
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	l.ctx = goa.NewContext(context.Background(), nil, req, params)
@@ -48,10 +46,6 @@ func (l *TestWorkItemLabelREST) SetupTest() {
 	require.NotNil(l.T(), fixture)
 	require.Len(l.T(), fixture.Identities, 1)
 	l.testIdentity = *fixture.Identities[0]
-}
-
-func (l *TestWorkItemLabelREST) TearDownTest() {
-	l.clean()
 }
 
 func (l *TestWorkItemLabelREST) SecuredController() (*goa.Service, app.WorkitemController) {

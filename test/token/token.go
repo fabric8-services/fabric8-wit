@@ -1,16 +1,22 @@
 package token
 
 import (
+	"context"
 	"crypto/rsa"
 	"fmt"
+	"testing"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
 	"github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/goadesign/goa/client"
+	jwtgoa "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -64,6 +70,57 @@ func GenerateToken(identityID string, identityUsername string, privateKey *rsa.P
 // NewManager returns a new token Manager for handling tokens
 func NewManager() token.Manager {
 	return token.NewManagerWithPublicKey("test-key", &PrivateKey().PublicKey)
+}
+
+// EmbedTokenInContext generates a token and embed it into the context
+func EmbedTokenInContext(t *testing.T, sub, username string) (context.Context, string, error) {
+	// Generate Token with an identity that doesn't exist in the database
+	tokenString, err := GenerateToken(sub, username, PrivateKey())
+	if err != nil {
+		return nil, "", err
+	}
+
+	extracted, err := parse(t, tokenString)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Embed Token in the context
+	ctx := jwtgoa.WithJWT(context.Background(), extracted)
+	ctx = tokencontext.ContextWithTokenManager(ctx, TokenManager)
+	return ctx, tokenString, nil
+}
+
+func parse(t *testing.T, tokenString string) (*jwt.Token, error) {
+	keyFunc := keyFunction()
+	jwtToken, err := jwt.Parse(tokenString, keyFunc)
+	require.NoError(t, err)
+	return jwtToken, nil
+}
+
+func keyFunction() jwt.Keyfunc {
+	return func(token *jwt.Token) (interface{}, error) {
+		kid := token.Header["kid"]
+		if kid == nil {
+			return nil, errors.New("there is no 'kid' header in the token")
+		}
+		key := TokenManager.PublicKey(fmt.Sprintf("%s", kid))
+		if key == nil {
+			return nil, errors.New(fmt.Sprintf("there is no public key with such ID: %s", kid))
+		}
+		return key, nil
+	}
+}
+
+func ContextWithTokenAndRequestID(t *testing.T) (context.Context, uuid.UUID, string, string) {
+	identityID := uuid.NewV4()
+	ctx, ctxToken, err := EmbedTokenInContext(t, identityID.String(), uuid.NewV4().String())
+	require.NoError(t, err)
+
+	reqID := uuid.NewV4().String()
+	ctx = client.SetContextRequestID(ctx, reqID)
+
+	return ctx, identityID, ctxToken, reqID
 }
 
 func PrivateKey() *rsa.PrivateKey {

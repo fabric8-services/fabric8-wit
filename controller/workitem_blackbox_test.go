@@ -2055,7 +2055,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Areas(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Areas(1), tf.WorkItemTypes(1))
 	testSpace := fxt.Spaces[0]
 	rootArea := fxt.Areas[0]
 	log.Info(nil, nil, "creating child area...")
@@ -2082,7 +2082,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 				BaseType: &app.RelationBaseType{
 					Data: &app.BaseTypeData{
 						Type: "workitemtypes",
-						ID:   workitem.SystemBug,
+						ID:   fxt.WorkItemTypes[0].ID,
 					},
 				},
 				Area: &app.RelationGeneric{
@@ -2223,7 +2223,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 				BaseType: &app.RelationBaseType{
 					Data: &app.BaseTypeData{
 						Type: "workitemtypes",
-						ID:   workitem.SystemBug,
+						ID:   fxt.WorkItemTypes[0].ID,
 					},
 				},
 				Iteration: &app.RelationGeneric{
@@ -2371,12 +2371,13 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 
 func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 	c := minimumRequiredCreatePayload()
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
+	c.Data.Relationships.Space = app.NewSpaceRelation(fxt.Spaces[0].ID, "")
 	branch := "earth-recycle-101"
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
@@ -2411,21 +2412,13 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 // this test aims at checking different codebaseIDs for
 // two CodebaseContent with same Repository but in two different spaces
 func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
-
-	// create one space
-	spaceInstance, _, _ := createSpaceWithDefaults(s.svc.Context, s.DB)
-	space1ID := spaceInstance.ID
-	assert.NotEqual(s.T(), uuid.Nil, space1ID)
-
-	// create a WI in above space
-	// this WI should get a new CodebaseID for itself
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 	c := minimumRequiredCreatePayload()
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
-	c.Data.Relationships.Space = app.NewSpaceRelation(space1ID, "")
+	c.Data.Relationships.Space = app.NewSpaceRelation(fxt.Spaces[0].ID, "")
 	branch := "earth-recycle-101"
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
@@ -2437,16 +2430,15 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 		LineNumber: line,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
-	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space1ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &c)
 	require.NotNil(s.T(), createdWI)
 	cb := createdWI.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	codebaseID1 := cb.CodebaseID
 	require.NotEmpty(s.T(), codebaseID1)
 
 	// create another space
-	spaceInstance2, _, _ := createSpaceWithDefaults(s.svc.Context, s.DB)
-	space2ID := spaceInstance2.ID
-	assert.NotEqual(s.T(), uuid.Nil, space2ID)
+	// fxt1 is created because we cannot create more than one space in a single test fixture while using tf.CreateWorkItemEnvironment()
+	fxt1 := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 
 	// create a WI in new space with same Repo value
 	// this WI should get a new CodebaseID for itself and not the same as before
@@ -2455,10 +2447,8 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	branch = "earth-recycle-102"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
-	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
-		ID: &space2ID,
-	}}
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt1.WorkItemTypes[0].ID)
+	c.Data.Relationships.Space = app.NewSpaceRelation(fxt1.Spaces[0].ID, "")
 	cbase = codebase.Content{
 		Branch:     branch,
 		Repository: repo,
@@ -2466,7 +2456,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 		LineNumber: line,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
-	_, createdWI2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space2ID, &c)
+	_, createdWI2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt1.Spaces[0].ID, &c)
 	require.NotNil(s.T(), createdWI2)
 	cb2 := createdWI2.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	codebaseID2 := cb2.CodebaseID
@@ -2482,9 +2472,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
-	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
-		ID: &space1ID,
-	}}
+	c.Data.Relationships.Space = app.NewSpaceRelation(fxt.Spaces[0].ID, "")
 	cbase = codebase.Content{
 		Branch:     branch,
 		Repository: repo,
@@ -2492,7 +2480,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 		LineNumber: line,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
-	_, createdWI3 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space1ID, &c)
+	_, createdWI3 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &c)
 	require.NotNil(s.T(), createdWI3)
 	cb3 := createdWI3.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	codebaseID3 := cb3.CodebaseID
@@ -2641,7 +2629,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(workitem.SystemBug)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
 	*c.Data.Relationships.Space.Data.ID = sp.ID
 	_, wiCreated := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, sp.ID, &c)
 	assert.NotNil(s.T(), wiCreated.Data.Relationships.Iteration)
