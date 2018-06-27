@@ -1702,7 +1702,7 @@ func (s *WorkItem2Suite) TestListOrder() {
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("by created ascending", func(t *testing.T) {
 			exp := ptr.String(`{"system.state": "open"}`)
