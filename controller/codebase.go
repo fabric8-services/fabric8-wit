@@ -70,6 +70,54 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 
 }
 
+func (c *CodebaseController) Update(ctx *app.UpdateCodebaseContext) error {
+	codebaseID, err := uuid.FromString(ctx.CodebaseID)
+	if err != nil {
+		return err
+	}
+	// see if the user is allowed to delete this codebase
+	cb, err := c.verifyCodebaseOwner(ctx, codebaseID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	// Validate Request
+	if ctx.Payload.Data == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data", nil).Expected("not nil"))
+	}
+	reqIter := ctx.Payload.Data
+	if reqIter.Attributes == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes", nil).Expected("not nil"))
+	}
+
+	// set only allowed fields
+	if reqIter.Attributes.CveScan != nil {
+		cb.CVEScan = *reqIter.Attributes.CveScan
+	}
+	if reqIter.Attributes.StackID != nil {
+		cb.StackID = reqIter.Attributes.StackID
+	}
+	if reqIter.Attributes.Type != nil {
+		cb.Type = *reqIter.Attributes.Type
+	}
+
+	var updatedCb *codebase.Codebase
+	// now save the object back into the database
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		updatedCb, err = appl.Codebases().Save(ctx, cb)
+		return err
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	res := &app.CodebaseSingle{
+		Data: ConvertCodebase(ctx.Request, *updatedCb),
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.CodebaseHref(res.Data.ID)))
+
+	return ctx.OK(res)
+}
+
 // Edit Deprecated: ListWorkspaces action should be used instead.
 func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	listWorkspacesContext := app.ListWorkspacesCodebaseContext{ctx.Context, ctx.ResponseData, ctx.RequestData, ctx.CodebaseID}
@@ -150,33 +198,45 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 	return ctx.OK(resp)
 }
 
-// Delete deletes the given codebase if the user is authenticated and authorized
-func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
+// verifyCodebaseOwner makes sure that the users making changes are the ones who own it
+// this can be called in the update and delete to verify that, if the verification is successful
+// this function also returns the codebase object corresponding to the codebase id that was passed
+func (c *CodebaseController) verifyCodebaseOwner(ctx context.Context, codebaseID uuid.UUID) (*codebase.Codebase, error) {
 	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+		return nil, goa.ErrUnauthorized(err.Error())
 	}
 	var cb *codebase.Codebase
 	var cbSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		cb, err = appl.Codebases().Load(ctx.Context, ctx.CodebaseID)
+		cb, err = appl.Codebases().Load(ctx, codebaseID)
 		if err != nil {
 			return err
 		}
-		cbSpace, err = appl.Spaces().Load(ctx.Context, cb.SpaceID)
+		cbSpace, err = appl.Spaces().Load(ctx, cb.SpaceID)
 		return err
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
+		return nil, err
 	}
 	if !uuid.Equal(*currentUser, cbSpace.OwnerID) {
 		log.Warn(ctx, map[string]interface{}{
-			"codebase_id":  ctx.CodebaseID,
+			"codebase_id":  codebaseID,
 			"space_id":     cbSpace.ID,
 			"space_owner":  cbSpace.OwnerID,
 			"current_user": *currentUser,
 		}, "user is not the space owner")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+		return nil, errors.NewForbiddenError("user is not the space owner")
+	}
+	return cb, nil
+}
+
+// Delete deletes the given codebase if the user is authenticated and authorized
+func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
+	// see if the user is allowed to delete this codebase
+	cb, err := c.verifyCodebaseOwner(ctx, ctx.CodebaseID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	// attempt to remotely delete the Che workspaces
 	ns, err := c.getCheNamespace(ctx)

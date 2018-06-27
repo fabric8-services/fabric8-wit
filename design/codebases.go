@@ -239,6 +239,23 @@ var _ = a.Resource("codebase", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
 	})
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:codebaseID"),
+		)
+		a.Description("Update a codebase with the given ID")
+		a.Payload(codebaseSingle)
+		a.Response(d.OK, func() {
+			a.Media(codebaseSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+	})
 	a.Action("create", func() {
 		a.Security("jwt")
 		a.Routing(
