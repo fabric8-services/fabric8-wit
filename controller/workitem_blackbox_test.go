@@ -1663,7 +1663,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 func (s *WorkItem2Suite) TestListOrder() {
 	s.T().Run("list with explicit order", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
-			tf.Iterations(2),
+			tf.Iterations(1),
 			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
 				switch idx {
 				case 0, 1, 2, 3, 4, 5, 6:
@@ -1747,7 +1747,7 @@ func (s *WorkItem2Suite) TestListOrder() {
 					},
 				}
 
-				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[3].ID, &payload)
+				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[v].ID, &payload)
 			}
 
 			exp := ptr.String(`{"system.state": "resolved"}`)
@@ -1774,7 +1774,7 @@ func (s *WorkItem2Suite) TestListOrder() {
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 
 		})
 		t.Run("by updated ascending", func(t *testing.T) {
@@ -1791,7 +1791,7 @@ func (s *WorkItem2Suite) TestListOrder() {
 					},
 				}
 
-				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[3].ID, &payload)
+				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[v].ID, &payload)
 			}
 
 			exp := ptr.String(`{"system.state": "resolved"}`)
