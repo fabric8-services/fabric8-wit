@@ -3,6 +3,7 @@
     {
       "attributes": {
         "createdAt": "0001-01-01T00:00:00Z",
+        "cve-scan": true,
         "last_used_workspace": "my-used-last-workspace",
         "stackId": "golang-default",
         "type": "git",
