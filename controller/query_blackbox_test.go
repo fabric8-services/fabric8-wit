@@ -30,7 +30,7 @@ type TestQueryREST struct {
 }
 
 func TestRunQueryREST(t *testing.T) {
-	suite.Run(t, &TestQueryREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestQueryREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestQueryREST) SecuredController() (*goa.Service, *QueryController) {

@@ -40,9 +40,7 @@ type workItemTypesSuite struct {
 
 func TestSuiteWorkItemTypes(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemTypesSuite{
-		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
-	})
+	suite.Run(t, &workItemTypesSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *workItemTypesSuite) SetupSuite() {

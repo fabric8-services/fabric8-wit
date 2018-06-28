@@ -28,7 +28,7 @@ type linkRepoBlackBoxTest struct {
 
 func TestRunLinkRepoBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &linkRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../../config.yaml")})
+	suite.Run(t, &linkRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *linkRepoBlackBoxTest) SetupTest() {

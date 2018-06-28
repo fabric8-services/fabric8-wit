@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -31,9 +30,7 @@ type TestLabelREST struct {
 
 func TestRunLabelREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pwd, err := os.Getwd()
-	require.NoError(t, err)
-	suite.Run(t, &TestLabelREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestLabelREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestLabelREST) SetupTest() {

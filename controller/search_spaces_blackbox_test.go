@@ -47,7 +47,7 @@ type TestSearchSpacesREST struct {
 
 func TestRunSearchSpacesREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestSearchSpacesREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestSearchSpacesREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestSearchSpacesREST) SetupTest() {

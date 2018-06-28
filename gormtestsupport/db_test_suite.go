@@ -21,14 +21,13 @@ var _ suite.SetupAllSuite = &DBTestSuite{}
 var _ suite.TearDownAllSuite = &DBTestSuite{}
 
 // NewDBTestSuite instanciate a new DBTestSuite
-func NewDBTestSuite(configFilePath string) DBTestSuite {
-	return DBTestSuite{configFile: configFilePath}
+func NewDBTestSuite() DBTestSuite {
+	return DBTestSuite{}
 }
 
 // DBTestSuite is a base for tests using a gorm db
 type DBTestSuite struct {
 	suite.Suite
-	configFile    string
 	Configuration *config.Registry
 	DB            *gorm.DB
 	clean         func()
@@ -38,7 +37,8 @@ type DBTestSuite struct {
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
-	configuration, err := config.New(s.configFile)
+	// Get default configuration
+	configuration, err := config.Get()
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,

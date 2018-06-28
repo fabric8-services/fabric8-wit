@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -36,11 +35,7 @@ type testSpaceTemplateSuite struct {
 
 func TestSpaceTemplateSuite(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pwd, err := os.Getwd()
-	if err != nil {
-		require.Nil(t, err)
-	}
-	suite.Run(t, &testSpaceTemplateSuite{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &testSpaceTemplateSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *testSpaceTemplateSuite) SetupTest() {

@@ -24,9 +24,7 @@ import (
 
 func TestSuiteWorkItemLinkCategory(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemLinkCategorySuite{
-		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
-	})
+	suite.Run(t, &workItemLinkCategorySuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type workItemLinkCategorySuite struct {

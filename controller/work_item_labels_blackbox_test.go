@@ -33,7 +33,7 @@ type TestWorkItemLabelREST struct {
 
 func TestRunWorkItemLabelREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestWorkItemLabelREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestWorkItemLabelREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (l *TestWorkItemLabelREST) SetupTest() {

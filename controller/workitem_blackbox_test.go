@@ -860,7 +860,7 @@ func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iterat
 // a normal test function that will kick off WorkItem2Suite
 func TestSuiteWorkItem2(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &WorkItem2Suite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &WorkItem2Suite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func ident(id uuid.UUID) *app.GenericData {

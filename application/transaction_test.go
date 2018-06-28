@@ -22,7 +22,7 @@ type TestTransaction struct {
 
 func TestRunTransaction(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestTransaction{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestTransaction{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (test *TestTransaction) SetupTest() {

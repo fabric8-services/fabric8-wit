@@ -25,7 +25,7 @@ type TestNamedSpaceREST struct {
 }
 
 func TestRunNamedSpacesREST(t *testing.T) {
-	suite.Run(t, &TestNamedSpaceREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestNamedSpaceREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestNamedSpaceREST) SetupTest() {

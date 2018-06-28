@@ -28,7 +28,7 @@ import (
 
 func TestSuiteWorkItemChildren(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 // The workItemChildSuite has state the is relevant to all tests.
@@ -787,7 +787,7 @@ func (s *searchParentExistsSuite) SetupTest() {
 
 func TestSearchParentExists(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchParentExistsSuite{workItemChildSuite: workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}})
+	suite.Run(t, &searchParentExistsSuite{workItemChildSuite: workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()}})
 }
 
 func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists() {

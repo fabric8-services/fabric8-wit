@@ -32,7 +32,7 @@ type TestLoginREST struct {
 }
 
 func TestRunLoginREST(t *testing.T) {
-	suite.Run(t, &TestLoginREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestLoginREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestLoginREST) SetupTest() {
