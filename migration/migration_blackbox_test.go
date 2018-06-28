@@ -143,7 +143,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration91", testMigration91CommentsChildComments)
 	t.Run("TestMigration92", testMigration92CommentRevisionsChildComments)
 	t.Run("TestMigration93", testMigration93AddCVEScanToCodebases)
-	t.Run("TestMigration94", testMigration93ChangesToAgileTemplate)
+	t.Run("TestMigration94", testMigration94ChangesToAgileTemplate)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)

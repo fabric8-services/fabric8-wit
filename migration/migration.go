@@ -420,7 +420,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("093-codebase-add-cve-scan.sql")})
 
 	// Version 94
-	m = append(m, steps{ExecuteSQLFile("093-changes-to-agile-template.sql")})
+	m = append(m, steps{ExecuteSQLFile("094-changes-to-agile-template.sql")})
 
 	// Version N
 	//
