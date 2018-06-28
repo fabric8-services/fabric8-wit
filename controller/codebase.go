@@ -78,7 +78,7 @@ func (c *CodebaseController) Update(ctx *app.UpdateCodebaseContext) error {
 	if err != nil {
 		return err
 	}
-	// see if the user is allowed to delete this codebase
+	// see if the user is allowed to update this codebase
 	cb, err := c.verifyCodebaseOwner(ctx, codebaseID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
