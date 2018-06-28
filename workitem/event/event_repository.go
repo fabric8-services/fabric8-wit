@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/jinzhu/gorm"
@@ -110,7 +111,6 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					}
 				default:
 					return nil, errors.NewNotFoundError("Unknown field:", fieldName)
-
 				}
 			case workitem.EnumType:
 				var p string
@@ -133,7 +133,6 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					n, _ = newValue.(string)
 
 				}
-
 				if p != n {
 					wie := Event{
 						ID:        revisionList[k].ID,
@@ -182,28 +181,34 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 						}
 						eventList = append(eventList, wie)
 					}
-				case workitem.KindString, workitem.KindIteration, workitem.KindArea:
+				case workitem.KindString, workitem.KindIteration, workitem.KindArea, workitem.KindFloat, workitem.KindInteger:
 					var p string
 					var n string
 
 					previousValue := revisionList[k-1].WorkItemFields[fieldName]
 					newValue := revisionList[k].WorkItemFields[fieldName]
 
-					switch previousValue.(type) {
+					switch v := previousValue.(type) {
 					case nil:
 						p = ""
-					case interface{}:
-						p, _ = previousValue.(string)
+					case float32, float64, int:
+						p = fmt.Sprintf("%g", previousValue)
+					case string:
+						p = v
+					default:
+						return nil, errors.NewConversionError("Failed to convert")
 					}
 
-					switch newValue.(type) {
+					switch v := newValue.(type) {
 					case nil:
 						n = ""
-					case interface{}:
-						n, _ = newValue.(string)
-
+					case float32, float64, int:
+						n = fmt.Sprintf("%g", newValue)
+					case string:
+						n = v
+					default:
+						return nil, errors.NewConversionError("Failed to convert")
 					}
-
 					if p != n {
 						wie := Event{
 							ID:        revisionList[k].ID,
@@ -219,7 +224,6 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 			default:
 				return nil, errors.NewNotFoundError("Unknown field:", fieldName)
 			}
-
 		}
 	}
 	return eventList, nil

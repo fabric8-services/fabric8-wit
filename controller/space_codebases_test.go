@@ -65,13 +65,16 @@ func (rest *TestSpaceCodebaseREST) TestCreateCodebaseCreated() {
 	stackId := "stackId"
 	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", &stackId)
 
+	t := rest.T()
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateSpaceCodebasesCreated(rest.T(), svc.Context, svc, ctrl, sp.ID, ci)
-	require.NotNil(rest.T(), c.Data.ID)
-	require.NotNil(rest.T(), c.Data.Relationships.Space)
-	assert.Equal(rest.T(), sp.ID.String(), *c.Data.Relationships.Space.Data.ID)
-	assert.Equal(rest.T(), "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
-	assert.Equal(rest.T(), "stackId", *c.Data.Attributes.StackID)
+	_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, sp.ID, ci)
+	require.NotNil(t, c.Data.ID)
+	require.NotNil(t, c.Data.Relationships.Space)
+	assert.Equal(t, sp.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	require.NotNil(t, c.Data.Attributes.CveScan)
+	assert.Equal(t, true, *c.Data.Attributes.CveScan)
+	assert.Equal(t, "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
+	assert.Equal(t, "stackId", *c.Data.Attributes.StackID)
 }
 
 func (rest *TestSpaceCodebaseREST) TestCreateCodebaseWithNoStackIdCreated() {

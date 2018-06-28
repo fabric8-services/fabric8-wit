@@ -26,14 +26,59 @@ import (
 
 const orderValue = 1000
 
+// DirectionType represents execution order direction
 type DirectionType string
 
+// Possible values for execution order direction
 const (
 	DirectionAbove  DirectionType = "above"
 	DirectionBelow  DirectionType = "below"
 	DirectionTop    DirectionType = "top"
 	DirectionBottom DirectionType = "bottom"
 )
+
+// SortWorkItemsBy is type used to define parameters using which workitems will be sorted
+type SortWorkItemsBy string
+
+// Available sort orders
+var (
+	SortWorkItemsByExecutionAsc  = SortWorkItemsBy("execution_order ASC")
+	SortWorkItemsByExecutionDesc = SortWorkItemsBy("execution_order DESC")
+	SortWorkItemsByCreatedAtAsc  = SortWorkItemsBy("created_at ASC")
+	SortWorkItemsByCreatedAtDesc = SortWorkItemsBy("created_at DESC")
+	SortWorkItemsByUpdatedAtAsc  = SortWorkItemsBy("updated_at ASC")
+	SortWorkItemsByUpdatedAtDesc = SortWorkItemsBy("updated_at DESC")
+	SortWorkItemsByDefault       = SortWorkItemsByExecutionDesc
+)
+
+// ParseSortWorkItemsBy parses the string input and returns object of type SortWorkItemsBy
+// which can directly be used while querying database to order the output.
+func ParseSortWorkItemsBy(s *string) (SortWorkItemsBy, error) {
+	if s == nil {
+		// this is the default case
+		// which returns workitems with highest execution order
+		return SortWorkItemsByDefault, nil
+	}
+
+	var sort SortWorkItemsBy
+	switch *s {
+	case "execution":
+		sort = SortWorkItemsByExecutionAsc
+	case "-execution":
+		sort = SortWorkItemsByExecutionDesc
+	case "created":
+		sort = SortWorkItemsByCreatedAtAsc
+	case "-created":
+		sort = SortWorkItemsByCreatedAtDesc
+	case "updated":
+		sort = SortWorkItemsByUpdatedAtAsc
+	case "-updated":
+		sort = SortWorkItemsByUpdatedAtDesc
+	default:
+		return SortWorkItemsBy(""), errors.NewBadParameterError("sort", *s)
+	}
+	return sort, nil
+}
 
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
@@ -47,7 +92,7 @@ type WorkItemRepository interface {
 	Reorder(ctx context.Context, spaceID uuid.UUID, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Delete(ctx context.Context, id uuid.UUID, suppressorID uuid.UUID) error
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error)
-	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, length *int) ([]WorkItem, int, error)
+	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, length *int, sort SortWorkItemsBy) ([]WorkItem, int, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error)
@@ -600,7 +645,28 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	if !wiType.CanConstruct {
 		return nil, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from \"%s\" (%s)", wiType.Name, wiType.ID))
 	}
-
+	var exists bool
+	// Prohibit creation of work items from a type that doesn't belong to current space template
+	query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 from %[1]s WHERE id=$1 AND space_template_id = (
+				SELECT space_template_id FROM %[2]s WHERE id=$2
+			)
+		)`, wiType.TableName(), space.Space{}.TableName())
+	err = r.db.Raw(query, wiType.ID, spaceID).Row().Scan(&exists)
+	if err == nil && !exists {
+		return nil, errors.NewBadParameterErrorFromString(
+			fmt.Sprintf("Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wiType.Name, wiType.ID),
+		)
+	}
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":         spaceID,
+			"workitem_type_id": wiType.ID,
+			"err":              err,
+		}, "unable to fetch workitem types related to current space")
+		return nil, errors.NewInternalError(ctx, errs.Wrapf(err, "unable to verify if %s exists", wiType.ID))
+	}
 	// The order of workitems are spaced by a factor of 1000.
 	pos, err := r.LoadHighestOrder(ctx, spaceID)
 	if err != nil {
@@ -680,7 +746,7 @@ func ConvertWorkItemStorageToModel(wiType *WorkItemType, wi *WorkItemStorage) (*
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItemStorage, int, error) {
+func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int, sort SortWorkItemsBy) ([]WorkItemStorage, int, error) {
 	where, parameters, joins, compileErrors := Compile(criteria)
 	if compileErrors != nil {
 		log.Error(ctx, map[string]interface{}{"compile_errors": compileErrors, "expression": criteria}, "failed to compile expression")
@@ -724,7 +790,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 		db = db.Limit(*limit)
 	}
 
-	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
+	db = db.Select("count(*) over () as cnt2 , *").Order(string(sort))
 
 	rows, err := db.Rows()
 	defer closeable.Close(ctx, rows)
@@ -777,9 +843,9 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItem, int, error) {
+func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int, sort SortWorkItemsBy) ([]WorkItem, int, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "list"}, time.Now())
-	result, count, err := r.listItemsFromDB(ctx, spaceID, criteria, parentExists, start, limit)
+	result, count, err := r.listItemsFromDB(ctx, spaceID, criteria, parentExists, start, limit, sort)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
@@ -830,7 +896,7 @@ func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "fetch"}, time.Now())
 
 	limit := 1
-	results, count, err := r.List(ctx, spaceID, criteria, nil, nil, &limit)
+	results, count, err := r.List(ctx, spaceID, criteria, nil, nil, &limit, SortWorkItemsByDefault)
 	if err != nil {
 		return nil, err
 	}

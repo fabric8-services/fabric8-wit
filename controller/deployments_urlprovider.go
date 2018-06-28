@@ -159,7 +159,7 @@ func newTenantURLProviderFromTenant(t *app.UserService, token string, proxyURL s
 	namespaceMap := make(map[string]*app.NamespaceAttributes)
 	for i, namespace := range t.Attributes.Namespaces {
 		namespaceMap[*namespace.Name] = t.Attributes.Namespaces[i]
-		if *namespace.Type == "user" {
+		if namespace.Type != nil && *namespace.Type == "user" {
 			defaultNamespace = namespace
 		}
 	}
@@ -183,6 +183,39 @@ func newTenantURLProviderFromTenant(t *app.UserService, token string, proxyURL s
 // NewTenantURLProviderFromTenant create a provider from a UserService object (exposed for testing)
 func NewTenantURLProviderFromTenant(t *app.UserService, token string, proxyURL string) (kubernetes.BaseURLProvider, error) {
 	return newTenantURLProviderFromTenant(t, token, proxyURL)
+}
+
+// GetEnvironmentMapping returns a map whose keys are environment names, and values are the Kubernetes namespaces
+// that represent those environments
+func (up *tenantURLProvider) GetEnvironmentMapping() map[string]string {
+	result := make(map[string]string)
+	// Exclude internal namespaces where the user cannot deploy applications
+
+	// Deployments API will receive requests by environment name (e.g. "run", "stage").
+	// These names correspond to the "type" attribute in Namespaces.
+	for envNS, attr := range up.namespaces {
+		envName := attr.Type
+		if envName == nil || len(*envName) == 0 {
+			log.Error(nil, map[string]interface{}{
+				"namespace": envNS,
+			}, "namespace has no type")
+		} else if !isInternalNamespace(*envName) {
+			result[*envName] = envNS
+		}
+	}
+	return result
+}
+
+// Types of namespaces where the user does not deploy applications
+var internalNamespaceTypes = []string{"user", "che", "jenkins"}
+
+func isInternalNamespace(envType string) bool {
+	for _, internalType := range internalNamespaceTypes {
+		if envType == internalType {
+			return true
+		}
+	}
+	return false
 }
 
 func (up *tenantURLProvider) GetAPIToken() (*string, error) {
@@ -288,7 +321,7 @@ func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
 	// Parse as URL to give us easy access to the hostname
 	apiURL, err := url.Parse(apiURLStr)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Get the hostname (without port) and replace api prefix with prefix arg

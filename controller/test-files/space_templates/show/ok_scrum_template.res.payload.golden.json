@@ -1,7 +1,7 @@
 {
   "data": {
     "attributes": {
-      "can-construct": true,
+      "can-construct": false,
       "created-at": "0001-01-01T00:00:00Z",
       "description": "An iterative and incremental agile software development framework for managing product development.\n",
       "name": "Scrum",

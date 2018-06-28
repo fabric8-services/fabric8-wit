@@ -239,6 +239,7 @@ func makeCodebases(fxt *TestFixture) error {
 			StackID:           &stackID,
 			LastUsedWorkspace: "my-used-last-workspace",
 			URL:               "git@github.com:fabric8-services/fabric8-wit.git",
+			CVEScan:           true,
 		}
 		if !fxt.isolatedCreation {
 			fxt.Codebases[i].SpaceID = fxt.Spaces[0].ID
@@ -318,7 +319,7 @@ func makeWorkItemTypeGroups(fxt *TestFixture) error {
 			return errs.WithStack(err)
 		}
 		if fxt.isolatedCreation {
-			if fxt.WorkItemTypes[i].SpaceTemplateID == uuid.Nil {
+			if fxt.WorkItemTypeGroups[i].SpaceTemplateID == uuid.Nil {
 				return errs.New("you must specify a space template ID for each work item type group")
 			}
 		}

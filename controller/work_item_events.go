@@ -202,6 +202,20 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 				},
 			},
 		}
+	default:
+		e = &app.Event{
+			Type: event.APIStringTypeEvents,
+			ID:   &wiEvent.ID,
+			Attributes: map[string]interface{}{
+				"name":      wiEvent.Name,
+				"newValue":  wiEvent.New,
+				"oldValue":  wiEvent.Old,
+				"timestamp": wiEvent.Timestamp,
+			},
+			Relationships: &app.EventRelations{
+				Modifier: modifier,
+			},
+		}
 	}
 	return e
 }

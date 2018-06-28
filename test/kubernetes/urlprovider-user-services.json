@@ -1,9 +1,11 @@
-{  
-    "data":{  
-       "attributes":{  
-          "created-at":"2018-01-17T14:56:24.5106Z",
-          "namespaces":[  
-             {  
+{
+    "id": "240dd5ce-23b8-11e8-95d6-507b9dac9ad3",
+    "type": "tenant",
+    "attributes":{  
+        "email": "user@domain.tld",
+        "profile": "",
+        "namespaces":[  
+            {  
                 "cluster-app-domain":"1b7d.free-stg.openshiftapps.com",
                 "cluster-console-url":"https://console.free-stg.openshift.com/console/",
                 "cluster-logging-url":"https://console.free-stg.openshift.com/console/",
@@ -15,8 +17,8 @@
                 "type":"user",
                 "updated-at":"2018-01-17T14:56:24.808462Z",
                 "version":"1.0.91"
-             },
-             {  
+            },
+            {  
                 "cluster-app-domain":"1b7d.free-stg.openshiftapps.com",
                 "cluster-console-url":"https://console.free-stg.openshift.com/console/",
                 "cluster-logging-url":"https://console.free-stg.openshift.com/console/",
@@ -28,8 +30,8 @@
                 "type":"stage",
                 "updated-at":"2018-01-17T14:56:24.913676Z",
                 "version":"2.0.8"
-             },
-             {  
+            },
+            {  
                 "cluster-app-domain":"1b7d.free-stg.openshiftapps.com",
                 "cluster-console-url":"https://console.free-stg.openshift.com/console/",
                 "cluster-logging-url":"https://console.free-stg.openshift.com/console/",
@@ -41,8 +43,8 @@
                 "type":"run",
                 "updated-at":"2018-01-17T14:56:25.081509Z",
                 "version":"2.0.8"
-             },
-             {  
+            },
+            {  
                 "cluster-app-domain":"1b7d.free-stg.openshiftapps.com",
                 "cluster-console-url":"https://console.free-stg.openshift.com/console/",
                 "cluster-logging-url":"https://console.free-stg.openshift.com/console/",
@@ -54,8 +56,8 @@
                 "type":"che",
                 "updated-at":"2018-01-17T14:56:25.131629Z",
                 "version":"2.0.8"
-             },
-             {  
+            },
+            {  
                 "cluster-app-domain":"1b7d.free-stg.openshiftapps.com",
                 "cluster-console-url":"https://console.free-stg.openshift.com/console/",
                 "cluster-logging-url":"https://console.free-stg.openshift.com/console/",
@@ -67,10 +69,7 @@
                 "type":"jenkins",
                 "updated-at":"2018-01-17T14:56:25.145606Z",
                 "version":"2.0.8"
-             }
-          ]
-       },
-       "id":"11111111-2222-3333-4444-5555555555",
-       "type":"userservices"
+            }
+        ]
     }
  }

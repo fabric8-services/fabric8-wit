@@ -189,6 +189,7 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("showDeploymentStats", func() {
@@ -206,6 +207,7 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("showDeploymentStatSeries", func() {
@@ -225,6 +227,7 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("setDeployment", func() {
@@ -242,6 +245,7 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("deleteDeployment", func() {
@@ -258,6 +262,7 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("showSpaceEnvironments", func() {
@@ -272,5 +277,18 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+	})
+
+	a.Action("showAllEnvironments", func() {
+		a.Routing(
+			a.GET("/environments"),
+		)
+		a.Description("list all environments")
+		a.Response(d.OK, simpleEnvironmentMultiple)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 })

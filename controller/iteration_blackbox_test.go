@@ -16,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
+	witauth "github.com/fabric8-services/fabric8-wit/auth"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -23,13 +24,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/space"
-	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -78,7 +78,7 @@ type DummySpaceAuthzService struct {
 	rest *TestIterationREST
 }
 
-func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
+func (s *DummySpaceAuthzService) Authorize(ctx context.Context, spaceID string) (bool, error) {
 	jwtToken := goajwt.ContextJWT(ctx)
 	if jwtToken == nil {
 		return false, errors.NewUnauthorizedError("Missing token")
@@ -87,7 +87,7 @@ func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string,
 	return strings.Contains(s.rest.policy.Config.UserIDs, id), nil
 }
 
-func (s *DummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
+func (s *DummySpaceAuthzService) Configuration() witauth.ServiceConfiguration {
 	return nil
 }
 
@@ -330,14 +330,14 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfNoneMatchHeade
 	test.ShowIterationNotModified(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
 }
 
-func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.WorkItem {
+func (rest *TestIterationREST) createWorkItem(parentSpace space.Space, wiTypeID uuid.UUID) workitem.WorkItem {
 	var wi *workitem.WorkItem
 	err := application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
 		fields := map[string]interface{}{
 			workitem.SystemTitle: "Test Item",
 			workitem.SystemState: "new",
 		}
-		w, err := app.WorkItems().Create(context.Background(), parentSpace.ID, workitem.SystemBug, fields, parentSpace.OwnerID)
+		w, err := app.WorkItems().Create(context.Background(), parentSpace.ID, wiTypeID, fields, parentSpace.OwnerID)
 		wi = w
 		return err
 	})
@@ -373,7 +373,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
-	testWI := rest.createWorkItem(parentSpace)
+	testWI := rest.createWorkItem(parentSpace, fxt.WorkItemTypes[0].ID)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
@@ -415,7 +415,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	svc, ctrl := rest.SecuredController()
 	ifNoneMatch := app.GenerateEntityTag(itr)
 	// now, create and attach a work item to the iteration
-	testWI := rest.createWorkItem(parentSpace)
+	testWI := rest.createWorkItem(parentSpace, fxt.WorkItemTypes[0].ID)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
@@ -433,7 +433,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
-	testWI := rest.createWorkItem(parentSpace)
+	testWI := rest.createWorkItem(parentSpace, fxt.WorkItemTypes[0].ID)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
@@ -537,6 +537,36 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 		})
+		t.Run("zero value for startAt endAt", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Iterations(1, func(fxt *tf.TestFixture, idx int) error {
+				now := time.Now()
+				fxt.Iterations[idx].StartAt = &now
+				fxt.Iterations[idx].EndAt = &now
+				return nil
+			}))
+			itr := fxt.Iterations[0]
+			zeroTime := time.Time{}
+			// set zero value for StartAt and EndAt
+			payload := app.UpdateIterationPayload{
+				Data: &app.Iteration{
+					Attributes: &app.IterationAttributes{
+						StartAt: &zeroTime,
+						EndAt:   &zeroTime,
+					},
+					ID:   &itr.ID,
+					Type: iteration.APIStringTypeIteration,
+				},
+			}
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+			// then
+			assert.Nil(rest.T(), updated.Data.Attributes.StartAt)
+			assert.Nil(rest.T(), updated.Data.Attributes.EndAt)
+			require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+		})
 	})
 }
 
@@ -567,7 +597,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 
 	for i := 0; i < 4; i++ {
 		wi, err := wirepo.Create(
-			ctx, itr.SpaceID, workitem.SystemBug,
+			ctx, itr.SpaceID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
@@ -579,7 +609,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	}
 	for i := 0; i < 5; i++ {
 		wi, err := wirepo.Create(
-			ctx, itr.SpaceID, workitem.SystemBug,
+			ctx, itr.SpaceID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
