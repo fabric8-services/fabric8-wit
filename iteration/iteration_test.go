@@ -287,7 +287,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// Test fixture doesn't create root iteration and root area
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		rootIteration, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
-		assert.EqualError(t, err, errors.NewNotFoundError("Root iteration for space", fxt.Spaces[0].ID.String()).Error())
+		assert.EqualError(t, err, errors.NewNotFoundError("root iteration for space", fxt.Spaces[0].ID.String()).Error())
 		assert.Nil(t, rootIteration)
 	})
 
