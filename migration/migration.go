@@ -419,6 +419,9 @@ func GetMigrations() Migrations {
 	// Version 93
 	m = append(m, steps{ExecuteSQLFile("093-codebase-add-cve-scan.sql")})
 
+	// Version 94
+	m = append(m, steps{ExecuteSQLFile("094-changes-to-agile-template.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
