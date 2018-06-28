@@ -16,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
+	witauth "github.com/fabric8-services/fabric8-wit/auth"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -23,13 +24,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/space"
-	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -78,7 +78,7 @@ type DummySpaceAuthzService struct {
 	rest *TestIterationREST
 }
 
-func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
+func (s *DummySpaceAuthzService) Authorize(ctx context.Context, spaceID string) (bool, error) {
 	jwtToken := goajwt.ContextJWT(ctx)
 	if jwtToken == nil {
 		return false, errors.NewUnauthorizedError("Missing token")
@@ -87,7 +87,7 @@ func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string,
 	return strings.Contains(s.rest.policy.Config.UserIDs, id), nil
 }
 
-func (s *DummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
+func (s *DummySpaceAuthzService) Configuration() witauth.ServiceConfiguration {
 	return nil
 }
 
