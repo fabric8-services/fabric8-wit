@@ -53,7 +53,7 @@ func (test *TestTransaction) TestTransactionOut() {
 	})
 	// then
 	require.Error(test.T(), err)
-	assert.Contains(test.T(), err.Error(), "database transaction timeout!")
+	assert.Contains(test.T(), err.Error(), "database transaction timeout")
 }
 
 func (test *TestTransaction) TestTransactionPanicAndRecoverWithStack() {
