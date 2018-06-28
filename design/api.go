@@ -5,6 +5,18 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
+// JWT defines a security scheme using JWT.  The scheme uses the "Authorization"
+// header to lookup the token.  It also defines then scopes "view",
+// "collaborate" and "manage".
+var JWT = a.JWTSecurity("jwt", func() {
+	a.Description("JWT Token Auth")
+	a.TokenURL("/api/login/authorize")
+	a.Header("Authorization")
+	a.Scope("view", "view a resource")
+	a.Scope("collaborate", "collaborate on a resource (includes view scope)")
+	a.Scope("manage", "manage the resource (includes view and collaborate scope)")
+})
+
 var _ = a.API("wit", func() {
 	a.Title("Fabric8-wit: One to rule them all")
 	a.Description("The next big thing")
@@ -41,12 +53,6 @@ var _ = a.API("wit", func() {
 			a.Header("If-Modified-Since", d.String)
 			a.Header("If-None-Match", d.String)
 		})
-	})
-
-	a.JWTSecurity("jwt", func() {
-		a.Description("JWT Token Auth")
-		a.TokenURL("/api/login/authorize")
-		a.Header("Authorization")
 	})
 
 	a.ResponseTemplate(d.OK, func() {

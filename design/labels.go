@@ -62,6 +62,9 @@ var _ = a.Resource("label", func() {
 	a.BasePath("/labels")
 
 	a.Action("show", func() {
+		a.Security(JWT, func() { // Use JWT to auth requests to this endpoint
+			a.Scope("view") // Enforce presence of "view" scope in JWT claims.
+		})
 		a.Routing(
 			a.GET("/:labelID"),
 		)
@@ -78,6 +81,9 @@ var _ = a.Resource("label", func() {
 	})
 
 	a.Action("list", func() {
+		a.Security(JWT, func() { // Use JWT to auth requests to this endpoint
+			a.Scope("view") // Enforce presence of "view" scope in JWT claims.
+		})
 		a.Routing(
 			a.GET(""),
 		)
@@ -90,6 +96,9 @@ var _ = a.Resource("label", func() {
 	})
 
 	a.Action("create", func() {
+		a.Security(JWT, func() { // Use JWT to auth requests to this endpoint
+			a.Scope("manage") // Enforce presence of "manage" scope in JWT claims.
+		})
 		a.Security("jwt")
 		a.Routing(
 			a.POST(""),
@@ -108,6 +117,9 @@ var _ = a.Resource("label", func() {
 	})
 
 	a.Action("update", func() {
+		a.Security(JWT, func() { // Use JWT to auth requests to this endpoint
+			a.Scope("collaborate") // Enforce presence of "collaborate" scope in JWT claims.
+		})
 		a.Security("jwt")
 		a.Routing(
 			a.PATCH("/:labelID"),
