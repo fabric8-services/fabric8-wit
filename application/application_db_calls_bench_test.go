@@ -199,7 +199,7 @@ func (s *BenchDbOperations) BenchmarkGormSelectSpaceRaw() {
 				&sp.Version,
 				&sp.Name,
 				&sp.Description,
-				&sp.OwnerId)
+				&sp.OwnerID)
 			sps = append(sps, sp)
 		}
 	}
@@ -221,7 +221,7 @@ func (s *BenchDbOperations) BenchmarkPqSelectSpacePreparedStatement() {
 			&sp.Version,
 			&sp.Name,
 			&sp.Description,
-			&sp.OwnerId)
+			&sp.OwnerID)
 		if err != nil {
 			s.B().Logf("%v", err)
 			s.B().Fail()
@@ -238,7 +238,7 @@ func (s *BenchDbOperations) BenchmarkPqSelectSpaceQueryRow() {
 			&sp.Version,
 			&sp.Name,
 			&sp.Description,
-			&sp.OwnerId)
+			&sp.OwnerID)
 		if err != nil {
 			s.B().Logf("%v", err)
 			s.B().Fail()

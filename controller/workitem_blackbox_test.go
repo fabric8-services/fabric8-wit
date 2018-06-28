@@ -28,6 +28,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -132,28 +133,28 @@ func (s *WorkItemSuite) TestPagingLinks() {
 func (s *WorkItemSuite) TestPagingErrors() {
 	var offset string = "-1"
 	var limit int = 2
-	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[offset]=0") {
 		assert.Fail(s.T(), "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = 0
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is 0", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = -1
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "-3"
 	limit = -1
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
@@ -163,7 +164,7 @@ func (s *WorkItemSuite) TestPagingErrors() {
 
 	offset = "ALPHA"
 	limit = 40
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=40") {
 		assert.Fail(s.T(), "Limit is within range", "Expected limit to be size %d, but was %s", 40, *result.Links.First)
 	}
@@ -177,7 +178,7 @@ func (s *WorkItemSuite) TestPagingLinksHasAbsoluteURL() {
 	offset := "10"
 	limit := 10
 	// when
-	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	// then
 	if !strings.HasPrefix(*result.Links.First, "http://") {
 		assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
@@ -195,21 +196,21 @@ func (s *WorkItemSuite) TestPagingDefaultAndMaxSize() {
 	offset := "0"
 	var limit int
 	// when
-	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, nil, &offset, nil, nil)
+	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, nil, &offset, nil, nil, nil)
 	// then
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is nil", "Expected limit to be default size %d, got %v", 20, *result.Links.First)
 	}
 	// when
 	limit = 1000
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	// then
 	if !strings.Contains(*result.Links.First, "page[limit]=100") {
 		assert.Fail(s.T(), "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
 	}
 	// when
 	limit = 50
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	// then
 	if !strings.Contains(*result.Links.First, "page[limit]=50") {
 		assert.Fail(s.T(), "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)
@@ -576,14 +577,14 @@ func (s *WorkItemSuite) TestListByFields() {
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
 	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
 	// then
-	_, result = test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 }
@@ -730,7 +731,7 @@ func createPagingTest(t *testing.T, ctx context.Context, controller *WorkitemsCo
 	return func(start int, limit int, first string, last string, prev string, next string) {
 		offset := strconv.Itoa(start)
 
-		_, response := test.ListWorkitemsOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+		_, response := test.ListWorkitemsOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
@@ -1462,7 +1463,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
 	newUserID := newUser.ID.String()
-	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	assert.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
@@ -1488,7 +1489,7 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	assignee := none
 
 	s.T().Run("default work item created in fixture", func(t *testing.T) {
-		_, list0 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list0 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		// data coming from test fixture
 		assert.Len(t, list0.Data, 3)
 		assert.True(t, strings.Contains(*list0.Links.First, "filter[assignee]=none"))
@@ -1503,7 +1504,7 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 		assert.NotNil(t, wi.Data.Relationships.Assignees.Data)
 		assert.NotNil(t, wi.Data.Relationships.Assignees.Data[0].ID)
 
-		_, list := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		assert.Len(t, list.Data, 1)
 		require.NotNil(t, *list.Data[0].Relationships.Assignees.Data[0])
 		assert.Equal(t, newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
@@ -1511,13 +1512,13 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	})
 
 	s.T().Run("work item with assignee value as none", func(t *testing.T) {
-		_, list2 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list2 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		assert.Len(t, list2.Data, 3)
 		assert.True(t, strings.Contains(*list2.Links.First, "filter[assignee]=none"))
 	})
 
 	s.T().Run("work item without specifying assignee", func(t *testing.T) {
-		_, list3 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list3 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		assert.Len(t, list3.Data, 4)
 		assert.False(t, strings.Contains(*list3.Links.First, "filter[assignee]=none"))
 	})
@@ -1532,7 +1533,7 @@ func (s *WorkItem2Suite) TestWI2ListByTypeFilter() {
 		}),
 	)
 	// when
-	_, actual := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, nil, &fxt.WorkItemTypes[0].ID, nil, nil, nil, nil)
+	_, actual := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, nil, &fxt.WorkItemTypes[0].ID, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actual)
 	require.Len(s.T(), actual.Data, 1)
@@ -1566,7 +1567,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOK() {
 	}))
 	// when
 	stateNew := workitem.SystemStateNew
-	_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
 	require.Len(s.T(), actualWIs.Data, 1)
@@ -1592,7 +1593,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfMo
 	// inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
 	// when
 	stateNew := workitem.SystemStateNew
-	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
 	require.Len(s.T(), actualWIs.Data, 1)
@@ -1603,7 +1604,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfMo
 	// retain conditional headers in response and submit the request again
 	etag, lastModified, _ := assertResponseHeaders(s.T(), res)
 	// when calling again
-	res = test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
+	res = test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, &lastModified, &etag)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
@@ -1622,7 +1623,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 	}))
 	// when
 	stateNew := workitem.SystemStateNew
-	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
 	require.Len(s.T(), actualWIs.Data, 1)
@@ -1642,7 +1643,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 	update.Data.Attributes["version"] = fxt.WorkItems[1].Version
 	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[1].ID, &update)
 	// when calling again (with expired validation headers)
-	res, actualWIs = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
+	res, actualWIs = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, &lastModified, &etag)
 	// then expect the new data
 	assertResponseHeaders(s.T(), res)
 	require.NotNil(s.T(), actualWIs)
@@ -1659,6 +1660,170 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 	require.Empty(s.T(), toBeFound, "failed to find these work items in list: %+v", toBeFound)
 }
 
+func (s *WorkItem2Suite) TestListOrder() {
+	s.T().Run("list with explicit order", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Iterations(1),
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2, 3, 4, 5, 6:
+					fxt.WorkItems[idx].Fields[workitem.SystemState] = "open"
+				default:
+					fxt.WorkItems[idx].Fields[workitem.SystemState] = "new"
+				}
+				return nil
+			}),
+		)
+
+		t.Run("by created descending", func(t *testing.T) {
+			// when
+			exp := ptr.String(`{"system.state": "open"}`)
+			sort := ptr.String("-created")
+			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
+			// then
+			require.NotNil(s.T(), actualWIs)
+			require.Len(s.T(), actualWIs.Data, 7)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+
+			for i := 0; i <= 6; i++ {
+				require.Equal(t, fxt.WorkItems[i].ID, *actualWIs.Data[6-i].ID)
+			}
+
+			for _, wi := range actualWIs.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("by created ascending", func(t *testing.T) {
+			exp := ptr.String(`{"system.state": "open"}`)
+			sort := ptr.String("created")
+			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
+			// then
+			require.NotNil(s.T(), actualWIs)
+			require.Len(s.T(), actualWIs.Data, 7)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+
+			for i := 0; i <= 6; i++ {
+				require.Equal(t, fxt.WorkItems[i].ID, *actualWIs.Data[i].ID)
+			}
+
+			for _, wi := range actualWIs.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+
+		t.Run("by updated descending", func(t *testing.T) {
+			// when
+			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				payload := app.UpdateWorkitemPayload{
+					Data: &app.WorkItem{
+						Type: APIStringTypeWorkItem,
+						ID:   &fxt.WorkItems[v].ID,
+						Attributes: map[string]interface{}{
+							workitem.SystemState:   "resolved",
+							workitem.SystemVersion: fxt.WorkItems[v].Version,
+						},
+					},
+				}
+
+				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[v].ID, &payload)
+			}
+
+			exp := ptr.String(`{"system.state": "resolved"}`)
+			sort := ptr.String("-updated")
+			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
+			// then
+			require.NotNil(s.T(), actualWIs)
+			require.Len(s.T(), actualWIs.Data, 7)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for i, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				require.Equal(t, fxt.WorkItems[v].ID, *actualWIs.Data[6-i].ID)
+			}
+
+			for _, wi := range actualWIs.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+
+		})
+		t.Run("by updated ascending", func(t *testing.T) {
+			// when
+			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				payload := app.UpdateWorkitemPayload{
+					Data: &app.WorkItem{
+						Type: APIStringTypeWorkItem,
+						ID:   &fxt.WorkItems[v].ID,
+						Attributes: map[string]interface{}{
+							workitem.SystemState:   "resolved",
+							workitem.SystemVersion: fxt.WorkItems[v].Version + 1,
+						},
+					},
+				}
+
+				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[v].ID, &payload)
+			}
+
+			exp := ptr.String(`{"system.state": "resolved"}`)
+			sort := ptr.String("updated")
+			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
+			// then
+			require.NotNil(s.T(), actualWIs)
+			require.Len(s.T(), actualWIs.Data, 7)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+
+			for i, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				require.Equal(t, fxt.WorkItems[v].ID, *actualWIs.Data[i].ID)
+			}
+
+			for _, wi := range actualWIs.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+
+		})
+	})
+}
 func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (uuid.UUID, string, *app.WorkItemSingle) {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1))
 	tempArea := fxt.Areas[0]
@@ -1699,7 +1864,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOK() {
 	// given
 	spaceID, areaID, _ := s.setupAreaWorkItem(true)
 	// when
-	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	// then
 	assertAreaWorkItems(s.T(), areaID, workitems)
 	assertResponseHeaders(s.T(), res)
@@ -1709,7 +1874,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKEmptyList() {
 	// given
 	spaceID, areaID, _ := s.setupAreaWorkItem(false)
 	// when
-	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), *workitems)
 	require.Empty(s.T(), workitems.Data)
@@ -1725,7 +1890,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfModifiedSinceHea
 	// when
 	updatedAt := wi.Data.Attributes[workitem.SystemUpdatedAt].(time.Time)
 	ifModifiedSince := app.ToHTTPTime(updatedAt.Add(-1 * time.Hour))
-	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
+	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
 	// then
 	assertAreaWorkItems(s.T(), areaID, workitems)
 	assertResponseHeaders(s.T(), res)
@@ -1736,7 +1901,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfNoneMatchHeader(
 	spaceID, areaID, _ := s.setupAreaWorkItem(true)
 	// when
 	ifNoneMatch := "foo"
-	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
+	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertAreaWorkItems(s.T(), areaID, workitems)
 	assertResponseHeaders(s.T(), res)
@@ -1748,7 +1913,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfModifiedSinceH
 	// when
 	updatedAt := wi.Data.Attributes[workitem.SystemUpdatedAt].(time.Time)
 	ifModifiedSince := app.ToHTTPTime(updatedAt)
-	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
+	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
@@ -1758,7 +1923,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeade
 	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
 	ifNoneMatch := app.GenerateEntityTag(ConvertWorkItemToConditionalRequestEntity(*wi))
-	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
+	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
@@ -1785,7 +1950,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 
-	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, nil, &iterationID, nil, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, nil, &iterationID, nil, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), iterationID, *list.Data[0].Relationships.Iteration.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[iteration]"))
@@ -2785,15 +2950,15 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 	}
 
 	// list workitems for grandParentIteration
-	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 7)
 
 	// list workitems for parentIteration
-	_, list = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &parentIterationID, nil, nil, nil, nil, nil, nil, nil)
+	_, list = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &parentIterationID, nil, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 4)
 
 	// list workitems for childIteraiton
-	_, list = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &childIteraitonID, nil, nil, nil, nil, nil, nil, nil)
+	_, list = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &childIteraitonID, nil, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 2)
 }
 
@@ -2801,7 +2966,7 @@ func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	c := minimumRequiredCreatePayload()
 	queryExpression := fmt.Sprintf(`{"iteration" : "%s"}`, uuid.NewV4().String())
 	expectedLocation := fmt.Sprintf(`/api/search?filter[expression]={"%s":[{"space": "%s" }, %s]}`, search.AND, *c.Data.Relationships.Space.Data.ID, queryExpression)
-	respWriter := test.ListWorkitemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, &queryExpression, nil, nil, nil, nil, nil, nil, nil, nil)
+	respWriter := test.ListWorkitemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, &queryExpression, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	location := respWriter.Header().Get("location")
 	assert.Contains(s.T(), location, expectedLocation)
 }

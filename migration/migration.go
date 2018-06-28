@@ -416,8 +416,13 @@ func GetMigrations() Migrations {
 	// Version 92
 	m = append(m, steps{ExecuteSQLFile("092-comment-revisions-child-comments.sql")})
 
-	// Version 93
-	m = append(m, steps{ExecuteSQLFile("093-boards.sql")})
+	m = append(m, steps{ExecuteSQLFile("093-codebase-add-cve-scan.sql")})
+
+	// Version 94
+	m = append(m, steps{ExecuteSQLFile("094-changes-to-agile-template.sql")})
+
+	// Version 95
+	m = append(m, steps{ExecuteSQLFile("095-boards.sql")})
 
 	// Version N
 	//

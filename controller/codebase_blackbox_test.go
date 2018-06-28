@@ -7,21 +7,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/account/tenant"
+	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/codebase/che"
 	"github.com/fabric8-services/fabric8-wit/configuration"
-	"github.com/fabric8-services/fabric8-wit/ptr"
-
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/test/http_monitor"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+
+	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
@@ -278,6 +279,90 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		require.NoError(t, err)
 	})
 
+}
+
+func (s *CodebaseControllerTestSuite) TestUpdateCodebase() {
+	t := s.T()
+
+	getPayload := func(codebaseID uuid.UUID) *app.UpdateCodebasePayload {
+		return &app.UpdateCodebasePayload{
+			Data: &app.Codebase{
+				ID:   &codebaseID,
+				Type: "codebases",
+				Attributes: &app.CodebaseAttributes{
+					CveScan: ptr.Bool(false),
+				},
+			},
+		}
+	}
+
+	t.Run("OK", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1))
+		codebase := fxt.Codebases[0]
+		svc, ctrl := s.SecuredControllers(*fxt.Identities[0])
+
+		// input
+		newType := "svn"
+		newStack := "rust"
+		payload := getPayload(codebase.ID)
+		payload.Data.Attributes.Type = ptr.String(newType)
+		payload.Data.Attributes.StackID = ptr.String(newStack)
+
+		// when
+		_, result := test.UpdateCodebaseOK(t, svc.Context, svc, ctrl, codebase.ID.String(), payload)
+		require.NotNil(t, result)
+
+		require.Equal(t, false, *result.Data.Attributes.CveScan)
+		require.Equal(t, newType, *result.Data.Attributes.Type)
+		require.Equal(t, newStack, *result.Data.Attributes.StackID)
+	})
+
+	t.Run("forbidden for wrong user", func(t *testing.T) {
+		// creating the temporary codebase
+		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1))
+		codebase := fxt.Codebases[0]
+
+		// creating another identity to be used for creating the controller
+		// so the test will fail with forbidden because the user who created
+		// the codebase and the user requesting it to change are different
+		idFxt := tf.NewTestFixture(t, s.DB, tf.Identities(1))
+		svc, ctrl := s.SecuredControllers(*idFxt.Identities[0])
+
+		// input
+		payload := getPayload(codebase.ID)
+		// when
+		_, err := test.UpdateCodebaseForbidden(t, svc.Context, svc, ctrl, codebase.ID.String(), payload)
+		require.NotNil(t, err)
+	})
+
+	t.Run("the codebase does not exist", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1))
+		svc, ctrl := s.SecuredControllers(*fxt.Identities[0])
+		// creating an uuid to be provided to be search, which fail on not found
+		codebaseID := uuid.NewV4()
+
+		// input
+		payload := getPayload(codebaseID)
+		// when
+		_, err := test.UpdateCodebaseNotFound(t, svc.Context, svc, ctrl, codebaseID.String(), payload)
+		require.NotNil(t, err)
+	})
+
+	t.Run("unauthorized user", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1))
+		codebase := fxt.Codebases[0]
+		// creating unsecured controller and this is where it will fail
+		svc, ctrl := s.UnsecuredController()
+
+		// input
+		payload := getPayload(codebase.ID)
+		// when
+		_, err := test.UpdateCodebaseUnauthorized(t, svc.Context, svc, ctrl, codebase.ID.String(), payload)
+		require.NotNil(t, err)
+	})
 }
 
 func (s *CodebaseControllerTestSuite) TestListWorkspaces() {
