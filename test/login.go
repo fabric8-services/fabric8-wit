@@ -2,16 +2,16 @@ package test
 
 import (
 	"context"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/account"
-	tokencontext "github.com/fabric8-services/fabric8-wit/login/tokencontext"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/token"
 
-	"time"
-
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
@@ -19,11 +19,11 @@ import (
 type dummySpaceAuthzService struct {
 }
 
-func (s *dummySpaceAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *dummySpaceAuthzService) Authorize(ctx context.Context, spaceID string) (bool, error) {
 	return true, nil
 }
 
-func (s *dummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
+func (s *dummySpaceAuthzService) Configuration() auth.ServiceConfiguration {
 	return nil
 }
 
@@ -83,13 +83,6 @@ func service(serviceName string, key interface{}, u account.Identity, authz *tok
 	return svc
 }
 
-// ServiceAsUserWithAuthz creates a new service and fill the context with input Identity and resource authorization information
-func ServiceAsUserWithAuthz(serviceName string, key interface{}, u account.Identity, authorizationPayload token.AuthorizationPayload) *goa.Service {
-	svc := service(serviceName, key, u, &authorizationPayload)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeycloakAuthzServiceManager{Service: &dummySpaceAuthzService{}})
-	return svc
-}
-
 // ServiceAsServiceAccountUser generates the minimal service needed to satisfy the condition of being a service account.
 func ServiceAsServiceAccountUser(serviceName string, u account.Identity) *goa.Service {
 	svc := goa.New(serviceName)
@@ -101,13 +94,13 @@ func ServiceAsServiceAccountUser(serviceName string, u account.Identity) *goa.Se
 // ServiceAsUser creates a new service and fill the context with input Identity
 func ServiceAsUser(serviceName string, u account.Identity) *goa.Service {
 	svc := service(serviceName, nil, u, nil)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeycloakAuthzServiceManager{Service: &dummySpaceAuthzService{}})
+	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.AuthzServiceManagerWrapper{Service: &dummySpaceAuthzService{}})
 	return svc
 }
 
 // ServiceAsSpaceUser creates a new service and fill the context with input Identity and space authz service
 func ServiceAsSpaceUser(serviceName string, u account.Identity, authzSrv authz.AuthzService) *goa.Service {
 	svc := service(serviceName, nil, u, nil)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeycloakAuthzServiceManager{Service: authzSrv})
+	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.AuthzServiceManagerWrapper{Service: authzSrv})
 	return svc
 }

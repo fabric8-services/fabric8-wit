@@ -225,9 +225,14 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	var workitems []workitem.WorkItem
 	var count int
+	sort, err := workitem.ParseSortWorkItemsBy(ctx.Sort)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
 	err = application.Transactional(c.db, func(tx application.Application) error {
 		var err error
-		workitems, count, err = tx.WorkItems().List(ctx.Context, ctx.SpaceID, exp, ctx.FilterParentexists, &offset, &limit)
+		workitems, count, err = tx.WorkItems().List(ctx.Context, ctx.SpaceID, exp, ctx.FilterParentexists, &offset, &limit, sort)
 		if err != nil {
 			return errs.Wrap(err, "Error listing work items")
 		}
