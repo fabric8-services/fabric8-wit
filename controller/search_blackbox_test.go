@@ -42,7 +42,7 @@ import (
 
 func TestSearchController(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type searchControllerTestSuite struct {

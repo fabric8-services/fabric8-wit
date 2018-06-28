@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"net/http"
@@ -114,11 +113,7 @@ type TestWorkItemREST struct {
 }
 
 func TestRunWorkItemREST(t *testing.T) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		require.NoError(t, err)
-	}
-	suite.Run(t, &TestWorkItemREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestWorkItemREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestWorkItemREST) SetupTest() {

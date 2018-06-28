@@ -24,9 +24,7 @@ import (
 
 func TestSuiteWorkItemLinkType(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemLinkTypeSuite{
-		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
-	})
+	suite.Run(t, &workItemLinkTypeSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func TestNewWorkItemLinkTypeControllerDBNull(t *testing.T) {

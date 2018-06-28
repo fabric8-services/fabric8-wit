@@ -40,7 +40,7 @@ import (
 // a normal test function that will kick off TestSuiteComments
 func TestSuiteComments(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &CommentsSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &CommentsSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 // ========== TestSuiteComments struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========

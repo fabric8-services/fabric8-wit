@@ -23,7 +23,7 @@ type workItemNumberSequenceTest struct {
 
 func TestWorkItemNumberSequenceTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemNumberSequenceTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../../config.yaml")})
+	suite.Run(t, &workItemNumberSequenceTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *workItemNumberSequenceTest) SetupTest() {

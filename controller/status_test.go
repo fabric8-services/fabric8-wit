@@ -19,7 +19,7 @@ type TestStatusREST struct {
 }
 
 func TestRunStatusREST(t *testing.T) {
-	suite.Run(t, &TestStatusREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestStatusREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestStatusREST) SecuredController() (*goa.Service, *StatusController) {

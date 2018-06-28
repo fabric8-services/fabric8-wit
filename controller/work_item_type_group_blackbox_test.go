@@ -29,9 +29,7 @@ type workItemTypeGroupSuite struct {
 
 func TestWorkItemTypeGroupSuite(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemTypeGroupSuite{
-		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
-	})
+	suite.Run(t, &workItemTypeGroupSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 // The SetupTest method will be run before every test in the suite.

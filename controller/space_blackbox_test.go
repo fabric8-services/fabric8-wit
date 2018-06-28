@@ -86,7 +86,7 @@ type SpaceControllerTestSuite struct {
 
 func TestSpaceController(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &SpaceControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &SpaceControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *SpaceControllerTestSuite) SetupTest() {

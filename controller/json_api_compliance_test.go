@@ -28,7 +28,7 @@ type JSONComplianceTestSuite struct {
 
 func TestJSONAPICompliance(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &JSONComplianceTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &JSONComplianceTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *JSONComplianceTestSuite) SetupSuite() {

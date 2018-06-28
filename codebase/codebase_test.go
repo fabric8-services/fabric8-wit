@@ -159,7 +159,7 @@ type TestCodebaseRepository struct {
 
 func TestRunCodebaseRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestCodebaseRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestCodebaseRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (test *TestCodebaseRepository) TestListCodebases() {

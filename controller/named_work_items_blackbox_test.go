@@ -21,7 +21,7 @@ type TestNamedWorkItemsSuite struct {
 }
 
 func TestNamedWorkItems(t *testing.T) {
-	suite.Run(t, &TestNamedWorkItemsSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestNamedWorkItemsSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *TestNamedWorkItemsSuite) TestShowNamedWorkItems() {

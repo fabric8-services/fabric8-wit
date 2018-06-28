@@ -42,7 +42,7 @@ type SpaceIterationControllerTestSuite struct {
 
 func TestSpaceIterationController(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &SpaceIterationControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &SpaceIterationControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *SpaceIterationControllerTestSuite) SetupTest() {

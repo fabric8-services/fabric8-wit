@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"net/http"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -30,9 +29,7 @@ type TestEvent struct {
 
 func TestRunEvent(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pwd, err := os.Getwd()
-	require.NoError(t, err)
-	suite.Run(t, &TestEvent{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestEvent{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *TestEvent) SetupTest() {

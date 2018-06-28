@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"context"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -33,11 +32,7 @@ type TestSpaceCodebaseREST struct {
 }
 
 func TestRunSpaceCodebaseREST(t *testing.T) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		require.NoError(t, err)
-	}
-	suite.Run(t, &TestSpaceCodebaseREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestSpaceCodebaseREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestSpaceCodebaseREST) SetupTest() {

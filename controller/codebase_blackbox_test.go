@@ -31,7 +31,7 @@ import (
 // a normal test function that will kick off TestSuiteCodebases
 func TestCodebaseController(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &CodebaseControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &CodebaseControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 // ========== CodebaseControllerTestSuite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========

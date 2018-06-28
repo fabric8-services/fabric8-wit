@@ -1,13 +1,14 @@
 package controller_test
 
 import (
-	"github.com/fabric8-services/fabric8-wit/id"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"html"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/fabric8-services/fabric8-wit/id"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 
 	"context"
 
@@ -44,7 +45,7 @@ type TestCommentREST struct {
 }
 
 func TestRunCommentREST(t *testing.T) {
-	suite.Run(t, &TestCommentREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestCommentREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestCommentREST) SetupTest() {

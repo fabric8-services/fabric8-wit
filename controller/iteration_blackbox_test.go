@@ -44,7 +44,7 @@ type TestIterationREST struct {
 
 func TestRunIterationREST(t *testing.T) {
 	// given
-	suite.Run(t, &TestIterationREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestIterationREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestIterationREST) SetupTest() {

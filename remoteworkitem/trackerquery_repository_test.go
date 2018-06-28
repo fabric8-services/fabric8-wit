@@ -27,7 +27,7 @@ type TestTrackerQueryRepository struct {
 }
 
 func TestRunTrackerQueryRepository(t *testing.T) {
-	suite.Run(t, &TestTrackerQueryRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestTrackerQueryRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (test *TestTrackerQueryRepository) SetupTest() {

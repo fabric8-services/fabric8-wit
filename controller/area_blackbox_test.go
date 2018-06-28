@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -21,7 +20,6 @@ import (
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -33,9 +31,7 @@ type TestAreaREST struct {
 
 func TestRunAreaREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pwd, err := os.Getwd()
-	require.NoError(t, err)
-	suite.Run(t, &TestAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestAreaREST) SetupTest() {
