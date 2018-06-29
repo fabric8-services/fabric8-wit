@@ -422,6 +422,9 @@ func GetMigrations() Migrations {
 	// Version 94
 	m = append(m, steps{ExecuteSQLFile("094-changes-to-agile-template.sql")})
 
+	// Version 95
+	m = append(m, steps{ExecuteSQLFile("095-remove-resolution-field-from-impediment.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
