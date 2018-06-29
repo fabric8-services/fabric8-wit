@@ -513,6 +513,14 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 	if err != nil {
 		return errs.WithStack(err)
 	}
+	coreDBVersion := len(GetMigrations()) + 1
+	if currentVersion > int64(coreDBVersion) {
+		log.Error(nil, map[string]interface{}{
+			"current_version": currentVersion,
+			"core_db_version": coreDBVersion,
+		}, "migration failed because core is too old (db version:%d) to operate on version %d of the database", coreDBVersion, currentVersion)
+		return errs.Errorf("migration failed because core is too old (db version:%d) to operate on version %d of the database", coreDBVersion, currentVersion)
+	}
 	*nextVersion = currentVersion + 1
 	if *nextVersion >= int64(len(m)) {
 		// No further updates to apply (this is NOT an error)
