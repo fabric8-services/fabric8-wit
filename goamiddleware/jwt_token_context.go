@@ -77,38 +77,6 @@ func TokenContext(validationKeys interface{}, validationFunc goa.Middleware, sch
 	}
 }
 
-// partitionKeys sorts keys by their type.
-func partitionKeys(k interface{}) ([]*rsa.PublicKey, []*ecdsa.PublicKey, [][]byte) {
-	var (
-		rsaKeys   []*rsa.PublicKey
-		ecdsaKeys []*ecdsa.PublicKey
-		hmacKeys  [][]byte
-	)
-
-	switch typed := k.(type) {
-	case []byte:
-		hmacKeys = append(hmacKeys, typed)
-	case [][]byte:
-		hmacKeys = typed
-	case string:
-		hmacKeys = append(hmacKeys, []byte(typed))
-	case []string:
-		for _, s := range typed {
-			hmacKeys = append(hmacKeys, []byte(s))
-		}
-	case *rsa.PublicKey:
-		rsaKeys = append(rsaKeys, typed)
-	case []*rsa.PublicKey:
-		rsaKeys = typed
-	case *ecdsa.PublicKey:
-		ecdsaKeys = append(ecdsaKeys, typed)
-	case []*ecdsa.PublicKey:
-		ecdsaKeys = typed
-	}
-
-	return rsaKeys, ecdsaKeys, hmacKeys
-}
-
 func parseRSAKeys(rsaKeys []*rsa.PublicKey, algo, incomingToken string) (token *jwt.Token, err error) {
 	for _, pubkey := range rsaKeys {
 		token, err = jwt.Parse(incomingToken, func(token *jwt.Token) (interface{}, error) {

@@ -294,6 +294,7 @@ var _ = a.Resource("deployments", func() {
 	})
 
 	a.Action("watchEnvironmentEvents", func() {
+		a.Security("jwt-query-param")
 		a.Routing(
 			a.GET("/environments/:envName/events/watch"),
 		)
