@@ -325,3 +325,35 @@ func (test *TestCodebaseRepository) TestDeleteCodebase() {
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 }
+
+func (test *TestCodebaseRepository) TestCreateCodebase() {
+	t := test.T()
+
+	t.Run("when the CVEScan is set to false", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, test.DB, tf.Codebases(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Codebases[idx].CVEScan = false
+			return nil
+		}))
+		repo := codebase.NewCodebaseRepository(test.DB)
+
+		// when
+		loadedCodebase, err := repo.Load(context.Background(), fxt.Codebases[0].ID)
+		// then
+		require.NoError(t, err)
+		require.Equal(t, fxt.Codebases[0].CVEScan, loadedCodebase.CVEScan)
+
+	})
+
+	t.Run("when the CVEScan is not set", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, test.DB, tf.Codebases(1))
+		repo := codebase.NewCodebaseRepository(test.DB)
+
+		// when
+		loadedCodebase, err := repo.Load(context.Background(), fxt.Codebases[0].ID)
+		// then
+		require.NoError(t, err)
+		require.Equal(t, true, loadedCodebase.CVEScan)
+	})
+}
