@@ -145,6 +145,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration93", testMigration93AddCVEScanToCodebases)
 	t.Run("TestMigration94", testMigration94ChangesToAgileTemplate)
 	t.Run("TestMigration95", testMigration95RemoveResolutionFieldFromImpediment)
+	t.Run("TestMigration96", testMigration96ChangesToAgileTemplate)
+	t.Run("TestMigration97", testMigration97RemoveResolutionFieldFromImpediment)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -996,6 +998,156 @@ func testMigration95RemoveResolutionFieldFromImpediment(t *testing.T) {
 			expectWorkItemTypeFieldsToBe(t, uuid.FromStringOrNil("03b9bb64-4f65-4fa7-b165-494cd4f01401"), `{"system.area": {"type": {"kind": "area"}, "label": "Area", "required": false, "read_only": false, "description": "The area to which the work item belongs"}, "system.order": {"type": {"kind": "float"}, "label": "Execution Order", "required": false, "read_only": true, "description": "Execution Order of the workitem"}, "system.state": {"type": {"values": ["New", "Open", "In Progress", "Resolved", "Closed"], "base_type": {"kind": "string"}, "simple_type": {"kind": "enum"}, "rewritable_values": false}, "label": "State", "required": true, "read_only": false, "description": "The state of the impediment."}, "system.title": {"type": {"kind": "string"}, "label": "Title", "required": true, "read_only": false, "description": "The title text of the work item"}, "system.labels": {"type": {"simple_type": {"kind": "list"}, "component_type": {"kind": "label"}}, "label": "Labels", "required": false, "read_only": false, "description": "List of labels attached to the work item"}, "system.number": {"type": {"kind": "integer"}, "label": "Number", "required": false, "read_only": true, "description": "The unique number that was given to this workitem within its space."}, "system.creator": {"type": {"kind": "user"}, "label": "Creator", "required": true, "read_only": false, "description": "The user that created the work item"}, "system.codebase": {"type": {"kind": "codebase"}, "label": "Codebase", "required": false, "read_only": false, "description": "Contains codebase attributes to which this WI belongs to"}, "system.assignees": {"type": {"simple_type": {"kind": "list"}, "component_type": {"kind": "user"}}, "label": "Assignees", "required": false, "read_only": false, "description": "The users that are assigned to the work item"}, "system.iteration": {"type": {"kind": "iteration"}, "label": "Iteration", "required": false, "read_only": false, "description": "The iteration to which the work item belongs"}, "system.created_at": {"type": {"kind": "instant"}, "label": "Created at", "required": false, "read_only": true, "description": "The date and time when the work item was created"}, "system.updated_at": {"type": {"kind": "instant"}, "label": "Updated at", "required": false, "read_only": true, "description": "The date and time when the work item was last updated"}, "system.description": {"type": {"kind": "markup"}, "label": "Description", "required": false, "read_only": false, "description": "A descriptive text of the work item"}, "system.remote_item_id": {"type": {"kind": "string"}, "label": "Remote item", "required": false, "read_only": false, "description": "The ID of the remote work item"}}`)
 			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("24ed462d-0430-4ffe-ba4f-7b5725b6a48c"), `{"system.title": "Work item 1"}`)
 			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("6a870ee3-e57c-4f98-9c7a-3cdf2ef5c2ef"), `{"system.title": "Work item 2"}`)
+		})
+	})
+}
+
+func testMigration96ChangesToAgileTemplate(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:96], 96)
+
+	expectWorkItemTypeFieldsToBe := func(t *testing.T, witID uuid.UUID, expectedFields string) {
+		row := sqlDB.QueryRow("SELECT fields FROM work_item_types WHERE id = $1", witID.String())
+		require.NotNil(t, row)
+		var actualFields string
+		err := row.Scan(&actualFields)
+		require.NoError(t, err)
+
+		actualMap := map[string]interface{}{}
+		err = json.Unmarshal([]byte(actualFields), &actualMap)
+		require.NoError(t, err)
+		expectedMap := map[string]interface{}{}
+		err = json.Unmarshal([]byte(expectedFields), &expectedMap)
+		require.NoError(t, err)
+
+		require.Equal(t, actualMap, expectedMap)
+	}
+
+	expectWorkItemFieldsToBe := func(t *testing.T, wiID uuid.UUID, expectedFields string) {
+		row := sqlDB.QueryRow("SELECT fields FROM work_items WHERE id = $1", wiID.String())
+		require.NotNil(t, row)
+		var actualFields string
+		err := row.Scan(&actualFields)
+		require.NoError(t, err)
+
+		actualMap := map[string]interface{}{}
+		err = json.Unmarshal([]byte(actualFields), &actualMap)
+		require.NoError(t, err)
+		expectedMap := map[string]interface{}{}
+		err = json.Unmarshal([]byte(expectedFields), &expectedMap)
+		require.NoError(t, err)
+
+		require.Equal(t, actualMap, expectedMap)
+	}
+
+	// create two work items, one with the fields and one without
+	// and check that they've been created as expected.
+	require.Nil(t, runSQLscript(sqlDB, "096-changes-to-agile-template-test.sql"))
+
+	t.Run("before", func(t *testing.T) {
+		t.Run("theme", func(t *testing.T) {
+			expectWorkItemTypeFieldsToBe(t, uuid.FromStringOrNil("5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a"), `{"system.area": {"Type": {"Kind": "area"}, "Label": "Area", "Required": false, "Description": "The area to which the work item belongs"}, "system.order": {"Type": {"Kind": "float"}, "Label": "Execution Order", "Required": false, "Description": "Execution Order of the workitem."}, "system.state": {"Type": {"Kind": "enum", "Values": ["new", "open", "in progress", "resolved", "closed"], "BaseType": {"Kind": "string"}}, "Label": "State", "Required": true, "Description": "The state of the work item"}, "system.title": {"Type": {"Kind": "string"}, "Label": "Title", "Required": true, "Description": "The title text of the work item"}, "system.labels": {"Type": {"Kind": "list", "ComponentType": {"Kind": "label"}}, "Label": "Labels", "Required": false, "Description": "List of labels attached to the work item"}, "business_value": {"Type": {"Kind": "integer"}, "Label": "Business Value", "Required": false, "Description": "The business value of this work item."}, "effort": {"Type": {"Kind": "float"}, "Label": "Effort", "Required": false, "Description": "The effort that was given to this workitem within its space."}, "time_criticality": {"Type": {"Kind": "float"}, "Label": "Time Criticality", "Required": false, "Description": "The time criticality that was given to this workitem within its space."}, "system.creator": {"Type": {"Kind": "user"}, "Label": "Creator", "Required": true, "Description": "The user that created the work item"}, "system.codebase": {"Type": {"Kind": "codebase"}, "Label": "Codebase", "Required": false, "Description": "Contains codebase attributes to which this WI belongs to"}, "system.assignees": {"Type": {"Kind": "list", "ComponentType": {"Kind": "user"}}, "Label": "Assignees", "Required": false, "Description": "The users that are assigned to the work item"}, "system.iteration": {"Type": {"Kind": "iteration"}, "Label": "Iteration", "Required": false, "Description": "The iteration to which the work item belongs"}, "system.created_at": {"Type": {"Kind": "instant"}, "Label": "Created at", "Required": false, "Description": "The date and time when the work item was created"}, "system.updated_at": {"Type": {"Kind": "instant"}, "Label": "Updated at", "Required": false, "Description": "The date and time when the work item was last updated"}, "system.description": {"Type": {"Kind": "markup"}, "Label": "Description", "Required": false, "Description": "A descriptive text of the work item"}, "system.remote_item_id": {"Type": {"Kind": "string"}, "Label": "Remote item", "Required": false, "Description": "The ID of the remote work item"}}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("cf84c888-ac28-493d-a0cd-978b78568011"), `{"system.title": "Work item 1", "effort": 12.34, "business_value": 1234, "time_criticality": 56.78}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("8bbb542c-4f5c-44bb-9272-e1a8f24e6e22"), `{"system.title": "Work item 2"}`)
+		})
+		t.Run("epic", func(t *testing.T) {
+			expectWorkItemTypeFieldsToBe(t, uuid.FromStringOrNil("2c169431-a55d-49eb-af74-cc19e895356f"), `{"system.area": {"Type": {"Kind": "area"}, "Label": "Area", "Required": false, "Description": "The area to which the work item belongs"}, "system.order": {"Type": {"Kind": "float"}, "Label": "Execution Order", "Required": false, "Description": "Execution Order of the workitem."}, "system.state": {"Type": {"Kind": "enum", "Values": ["new", "open", "in progress", "resolved", "closed"], "BaseType": {"Kind": "string"}}, "Label": "State", "Required": true, "Description": "The state of the work item"}, "system.title": {"Type": {"Kind": "string"}, "Label": "Title", "Required": true, "Description": "The title text of the work item"}, "system.labels": {"Type": {"Kind": "list", "ComponentType": {"Kind": "label"}}, "Label": "Labels", "Required": false, "Description": "List of labels attached to the work item"}, "component": {"Type": {"Kind": "string"}, "Label": "Component", "Required": false, "Description": "The component value of this work item."}, "business_value": {"Type": {"Kind": "integer"}, "Label": "Business Value", "Required": false, "Description": "The business value of this work item."}, "effort": {"Type": {"Kind": "float"}, "Label": "Effort", "Required": false, "Description": "The effort that was given to this workitem within its space."}, "time_criticality": {"Type": {"Kind": "float"}, "Label": "Time Criticality", "Required": false, "Description": "The time criticality that was given to this workitem within its space."}, "system.creator": {"Type": {"Kind": "user"}, "Label": "Creator", "Required": true, "Description": "The user that created the work item"}, "system.codebase": {"Type": {"Kind": "codebase"}, "Label": "Codebase", "Required": false, "Description": "Contains codebase attributes to which this WI belongs to"}, "system.assignees": {"Type": {"Kind": "list", "ComponentType": {"Kind": "user"}}, "Label": "Assignees", "Required": false, "Description": "The users that are assigned to the work item"}, "system.iteration": {"Type": {"Kind": "iteration"}, "Label": "Iteration", "Required": false, "Description": "The iteration to which the work item belongs"}, "system.created_at": {"Type": {"Kind": "instant"}, "Label": "Created at", "Required": false, "Description": "The date and time when the work item was created"}, "system.updated_at": {"Type": {"Kind": "instant"}, "Label": "Updated at", "Required": false, "Description": "The date and time when the work item was last updated"}, "system.description": {"Type": {"Kind": "markup"}, "Label": "Description", "Required": false, "Description": "A descriptive text of the work item"}, "system.remote_item_id": {"Type": {"Kind": "string"}, "Label": "Remote item", "Required": false, "Description": "The ID of the remote work item"}}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("4aebb314-a8c1-4e9c-96b6-074769d16933"), `{"system.title": "Work item 3", "effort": 12.34, "business_value": 1234, "time_criticality": 56.78, "component": "Component 1"}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("9c53fb2b-c6af-48a1-bef1-6fa547ea7244"), `{"system.title": "Work item 4"}`)
+		})
+		t.Run("story", func(t *testing.T) {
+			expectWorkItemTypeFieldsToBe(t, uuid.FromStringOrNil("6ff83406-caa7-47a9-9200-4ca796be11bb"), `{"system.area": {"Type": {"Kind": "area"}, "Label": "Area", "Required": false, "Description": "The area to which the work item belongs"}, "system.order": {"Type": {"Kind": "float"}, "Label": "Execution Order", "Required": false, "Description": "Execution Order of the workitem."}, "system.state": {"Type": {"Kind": "enum", "Values": ["new", "open", "in progress", "resolved", "closed"], "BaseType": {"Kind": "string"}}, "Label": "State", "Required": true, "Description": "The state of the work item"}, "system.title": {"Type": {"Kind": "string"}, "Label": "Title", "Required": true, "Description": "The title text of the work item"}, "system.labels": {"Type": {"Kind": "list", "ComponentType": {"Kind": "label"}}, "Label": "Labels", "Required": false, "Description": "List of labels attached to the work item"}, "effort": {"Type": {"Kind": "float"}, "Label": "Effort", "Required": false, "Description": "The effort that was given to this workitem within its space."}, "system.creator": {"Type": {"Kind": "user"}, "Label": "Creator", "Required": true, "Description": "The user that created the work item"}, "system.codebase": {"Type": {"Kind": "codebase"}, "Label": "Codebase", "Required": false, "Description": "Contains codebase attributes to which this WI belongs to"}, "system.assignees": {"Type": {"Kind": "list", "ComponentType": {"Kind": "user"}}, "Label": "Assignees", "Required": false, "Description": "The users that are assigned to the work item"}, "system.iteration": {"Type": {"Kind": "iteration"}, "Label": "Iteration", "Required": false, "Description": "The iteration to which the work item belongs"}, "system.created_at": {"Type": {"Kind": "instant"}, "Label": "Created at", "Required": false, "Description": "The date and time when the work item was created"}, "system.updated_at": {"Type": {"Kind": "instant"}, "Label": "Updated at", "Required": false, "Description": "The date and time when the work item was last updated"}, "system.description": {"Type": {"Kind": "markup"}, "Label": "Description", "Required": false, "Description": "A descriptive text of the work item"}, "system.remote_item_id": {"Type": {"Kind": "string"}, "Label": "Remote item", "Required": false, "Description": "The ID of the remote work item"}}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("68f83154-8d76-49c1-8be0-063ce90f8055"), `{"system.title": "Work item 5", "effort": 12.34}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("17e2081f-812d-4f4e-9c51-c537406bd166"), `{"system.title": "Work item 6"}`)
+		})
+	})
+
+	// Migrate to the current version. That removes fields from each work item
+	// and its work item type. We then check that those fields have actually
+	// been removed from the work items and their types.
+	migrateToVersion(t, sqlDB, migrations[:97], 97)
+
+	t.Run("after", func(t *testing.T) {
+		t.Run("theme", func(t *testing.T) {
+			expectWorkItemTypeFieldsToBe(t, uuid.FromStringOrNil("5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a"), `{"system.area": {"Type": {"Kind": "area"}, "Label": "Area", "Required": false, "Description": "The area to which the work item belongs"}, "system.order": {"Type": {"Kind": "float"}, "Label": "Execution Order", "Required": false, "Description": "Execution Order of the workitem."}, "system.state": {"Type": {"Kind": "enum", "Values": ["new", "open", "in progress", "resolved", "closed"], "BaseType": {"Kind": "string"}}, "Label": "State", "Required": true, "Description": "The state of the work item"}, "system.title": {"Type": {"Kind": "string"}, "Label": "Title", "Required": true, "Description": "The title text of the work item"}, "system.labels": {"Type": {"Kind": "list", "ComponentType": {"Kind": "label"}}, "Label": "Labels", "Required": false, "Description": "List of labels attached to the work item"}, "system.creator": {"Type": {"Kind": "user"}, "Label": "Creator", "Required": true, "Description": "The user that created the work item"}, "system.codebase": {"Type": {"Kind": "codebase"}, "Label": "Codebase", "Required": false, "Description": "Contains codebase attributes to which this WI belongs to"}, "system.assignees": {"Type": {"Kind": "list", "ComponentType": {"Kind": "user"}}, "Label": "Assignees", "Required": false, "Description": "The users that are assigned to the work item"}, "system.iteration": {"Type": {"Kind": "iteration"}, "Label": "Iteration", "Required": false, "Description": "The iteration to which the work item belongs"}, "system.created_at": {"Type": {"Kind": "instant"}, "Label": "Created at", "Required": false, "Description": "The date and time when the work item was created"}, "system.updated_at": {"Type": {"Kind": "instant"}, "Label": "Updated at", "Required": false, "Description": "The date and time when the work item was last updated"}, "system.description": {"Type": {"Kind": "markup"}, "Label": "Description", "Required": false, "Description": "A descriptive text of the work item"}, "system.remote_item_id": {"Type": {"Kind": "string"}, "Label": "Remote item", "Required": false, "Description": "The ID of the remote work item"}}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("cf84c888-ac28-493d-a0cd-978b78568011"), `{"system.title": "Work item 1"}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("8bbb542c-4f5c-44bb-9272-e1a8f24e6e22"), `{"system.title": "Work item 2"}`)
+		})
+
+		t.Run("epic", func(t *testing.T) {
+			expectWorkItemTypeFieldsToBe(t, uuid.FromStringOrNil("2c169431-a55d-49eb-af74-cc19e895356f"), `{"system.area": {"Type": {"Kind": "area"}, "Label": "Area", "Required": false, "Description": "The area to which the work item belongs"}, "system.order": {"Type": {"Kind": "float"}, "Label": "Execution Order", "Required": false, "Description": "Execution Order of the workitem."}, "system.state": {"Type": {"Kind": "enum", "Values": ["new", "open", "in progress", "resolved", "closed"], "BaseType": {"Kind": "string"}}, "Label": "State", "Required": true, "Description": "The state of the work item"}, "system.title": {"Type": {"Kind": "string"}, "Label": "Title", "Required": true, "Description": "The title text of the work item"}, "system.labels": {"Type": {"Kind": "list", "ComponentType": {"Kind": "label"}}, "Label": "Labels", "Required": false, "Description": "List of labels attached to the work item"}, "system.creator": {"Type": {"Kind": "user"}, "Label": "Creator", "Required": true, "Description": "The user that created the work item"}, "system.codebase": {"Type": {"Kind": "codebase"}, "Label": "Codebase", "Required": false, "Description": "Contains codebase attributes to which this WI belongs to"}, "system.assignees": {"Type": {"Kind": "list", "ComponentType": {"Kind": "user"}}, "Label": "Assignees", "Required": false, "Description": "The users that are assigned to the work item"}, "system.iteration": {"Type": {"Kind": "iteration"}, "Label": "Iteration", "Required": false, "Description": "The iteration to which the work item belongs"}, "system.created_at": {"Type": {"Kind": "instant"}, "Label": "Created at", "Required": false, "Description": "The date and time when the work item was created"}, "system.updated_at": {"Type": {"Kind": "instant"}, "Label": "Updated at", "Required": false, "Description": "The date and time when the work item was last updated"}, "system.description": {"Type": {"Kind": "markup"}, "Label": "Description", "Required": false, "Description": "A descriptive text of the work item"}, "system.remote_item_id": {"Type": {"Kind": "string"}, "Label": "Remote item", "Required": false, "Description": "The ID of the remote work item"}}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("4aebb314-a8c1-4e9c-96b6-074769d16933"), `{"system.title": "Work item 3"}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("9c53fb2b-c6af-48a1-bef1-6fa547ea7244"), `{"system.title": "Work item 4"}`)
+		})
+
+		t.Run("story", func(t *testing.T) {
+			expectWorkItemTypeFieldsToBe(t, uuid.FromStringOrNil("6ff83406-caa7-47a9-9200-4ca796be11bb"), `{"system.area": {"Type": {"Kind": "area"}, "Label": "Area", "Required": false, "Description": "The area to which the work item belongs"}, "system.order": {"Type": {"Kind": "float"}, "Label": "Execution Order", "Required": false, "Description": "Execution Order of the workitem."}, "system.state": {"Type": {"Kind": "enum", "Values": ["new", "open", "in progress", "resolved", "closed"], "BaseType": {"Kind": "string"}}, "Label": "State", "Required": true, "Description": "The state of the work item"}, "system.title": {"Type": {"Kind": "string"}, "Label": "Title", "Required": true, "Description": "The title text of the work item"}, "system.labels": {"Type": {"Kind": "list", "ComponentType": {"Kind": "label"}}, "Label": "Labels", "Required": false, "Description": "List of labels attached to the work item"}, "system.creator": {"Type": {"Kind": "user"}, "Label": "Creator", "Required": true, "Description": "The user that created the work item"}, "system.codebase": {"Type": {"Kind": "codebase"}, "Label": "Codebase", "Required": false, "Description": "Contains codebase attributes to which this WI belongs to"}, "system.assignees": {"Type": {"Kind": "list", "ComponentType": {"Kind": "user"}}, "Label": "Assignees", "Required": false, "Description": "The users that are assigned to the work item"}, "system.iteration": {"Type": {"Kind": "iteration"}, "Label": "Iteration", "Required": false, "Description": "The iteration to which the work item belongs"}, "system.created_at": {"Type": {"Kind": "instant"}, "Label": "Created at", "Required": false, "Description": "The date and time when the work item was created"}, "system.updated_at": {"Type": {"Kind": "instant"}, "Label": "Updated at", "Required": false, "Description": "The date and time when the work item was last updated"}, "system.description": {"Type": {"Kind": "markup"}, "Label": "Description", "Required": false, "Description": "A descriptive text of the work item"}, "system.remote_item_id": {"Type": {"Kind": "string"}, "Label": "Remote item", "Required": false, "Description": "The ID of the remote work item"}}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("68f83154-8d76-49c1-8be0-063ce90f8055"), `{"system.title": "Work item 5"}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("17e2081f-812d-4f4e-9c51-c537406bd166"), `{"system.title": "Work item 6"}`)
+		})
+	})
+}
+
+func testMigration97RemoveResolutionFieldFromImpediment(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:97], 97)
+
+	expectWorkItemTypeFieldsToBe := func(t *testing.T, witID uuid.UUID, expectedFields string) {
+		row := sqlDB.QueryRow("SELECT fields FROM work_item_types WHERE id = $1", witID.String())
+		require.NotNil(t, row)
+		var actualFields string
+		err := row.Scan(&actualFields)
+		require.NoError(t, err)
+
+		actualMap := map[string]interface{}{}
+		err = json.Unmarshal([]byte(actualFields), &actualMap)
+		require.NoError(t, err)
+		expectedMap := map[string]interface{}{}
+		err = json.Unmarshal([]byte(expectedFields), &expectedMap)
+		require.NoError(t, err)
+
+		require.Equal(t, actualMap, expectedMap)
+	}
+
+	expectWorkItemFieldsToBe := func(t *testing.T, wiID uuid.UUID, expectedFields string) {
+		row := sqlDB.QueryRow("SELECT fields FROM work_items WHERE id = $1", wiID.String())
+		require.NotNil(t, row)
+		var actualFields string
+		err := row.Scan(&actualFields)
+		require.NoError(t, err)
+
+		actualMap := map[string]interface{}{}
+		err = json.Unmarshal([]byte(actualFields), &actualMap)
+		require.NoError(t, err)
+		expectedMap := map[string]interface{}{}
+		err = json.Unmarshal([]byte(expectedFields), &expectedMap)
+		require.NoError(t, err)
+
+		require.Equal(t, actualMap, expectedMap)
+	}
+
+	// Create two "impediment" work items, one with and one without the
+	// "resolution" field the fields and one without and check that they've been
+	// created as expected.
+	require.Nil(t, runSQLscript(sqlDB, "097-remove-resolution-field-from-impediment.sql"))
+
+	t.Run("before", func(t *testing.T) {
+		t.Run("impediment", func(t *testing.T) {
+			expectWorkItemTypeFieldsToBe(t, uuid.FromStringOrNil("03b9bb64-4f65-4fa7-b165-494cd4f01401"), `{"resolution": {"type": {"values": ["Done", "Rejected", "Duplicate", "Incomplete Description", "Can not Reproduce", "Partially Completed", "Deferred", "Wont Fix", "Out of Date", "Explained", "Verified"], "base_type": {"kind": "string"}, "simple_type": {"kind": "enum"}, "rewritable_values": false}, "label": "Resolution", "required": false, "read_only": false, "description": "The reason why this work items state was last changed.\n"}, "system.area": {"type": {"kind": "area"}, "label": "Area", "required": false, "read_only": false, "description": "The area to which the work item belongs"}, "system.order": {"type": {"kind": "float"}, "label": "Execution Order", "required": false, "read_only": true, "description": "Execution Order of the workitem"}, "system.state": {"type": {"values": ["New", "Open", "In Progress", "Resolved", "Closed"], "base_type": {"kind": "string"}, "simple_type": {"kind": "enum"}, "rewritable_values": false}, "label": "State", "required": true, "read_only": false, "description": "The state of the impediment."}, "system.title": {"type": {"kind": "string"}, "label": "Title", "required": true, "read_only": false, "description": "The title text of the work item"}, "system.labels": {"type": {"simple_type": {"kind": "list"}, "component_type": {"kind": "label"}}, "label": "Labels", "required": false, "read_only": false, "description": "List of labels attached to the work item"}, "system.number": {"type": {"kind": "integer"}, "label": "Number", "required": false, "read_only": true, "description": "The unique number that was given to this workitem within its space."}, "system.creator": {"type": {"kind": "user"}, "label": "Creator", "required": true, "read_only": false, "description": "The user that created the work item"}, "system.codebase": {"type": {"kind": "codebase"}, "label": "Codebase", "required": false, "read_only": false, "description": "Contains codebase attributes to which this WI belongs to"}, "system.assignees": {"type": {"simple_type": {"kind": "list"}, "component_type": {"kind": "user"}}, "label": "Assignees", "required": false, "read_only": false, "description": "The users that are assigned to the work item"}, "system.iteration": {"type": {"kind": "iteration"}, "label": "Iteration", "required": false, "read_only": false, "description": "The iteration to which the work item belongs"}, "system.created_at": {"type": {"kind": "instant"}, "label": "Created at", "required": false, "read_only": true, "description": "The date and time when the work item was created"}, "system.updated_at": {"type": {"kind": "instant"}, "label": "Updated at", "required": false, "read_only": true, "description": "The date and time when the work item was last updated"}, "system.description": {"type": {"kind": "markup"}, "label": "Description", "required": false, "read_only": false, "description": "A descriptive text of the work item"}, "system.remote_item_id": {"type": {"kind": "string"}, "label": "Remote item", "required": false, "read_only": false, "description": "The ID of the remote work item"}}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("24ed462d-0430-4ffe-ba4f-7b5725b6a411"), `{"system.title": "Work item 1", "resolution": "Rejected"}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("6a870ee3-e57c-4f98-9c7a-3cdf2ef5c222"), `{"system.title": "Work item 2"}`)
+		})
+	})
+
+	// Migrate to the current version. That removes the "resolution" field from
+	// the "impediment" work items and their work item type. We then check that
+	// the "resolution" field has actually been removed from the work items and
+	// their type.
+	migrateToVersion(t, sqlDB, migrations[:98], 98)
+
+	t.Run("after", func(t *testing.T) {
+		t.Run("impediment", func(t *testing.T) {
+			expectWorkItemTypeFieldsToBe(t, uuid.FromStringOrNil("03b9bb64-4f65-4fa7-b165-494cd4f01401"), `{"system.area": {"type": {"kind": "area"}, "label": "Area", "required": false, "read_only": false, "description": "The area to which the work item belongs"}, "system.order": {"type": {"kind": "float"}, "label": "Execution Order", "required": false, "read_only": true, "description": "Execution Order of the workitem"}, "system.state": {"type": {"values": ["New", "Open", "In Progress", "Resolved", "Closed"], "base_type": {"kind": "string"}, "simple_type": {"kind": "enum"}, "rewritable_values": false}, "label": "State", "required": true, "read_only": false, "description": "The state of the impediment."}, "system.title": {"type": {"kind": "string"}, "label": "Title", "required": true, "read_only": false, "description": "The title text of the work item"}, "system.labels": {"type": {"simple_type": {"kind": "list"}, "component_type": {"kind": "label"}}, "label": "Labels", "required": false, "read_only": false, "description": "List of labels attached to the work item"}, "system.number": {"type": {"kind": "integer"}, "label": "Number", "required": false, "read_only": true, "description": "The unique number that was given to this workitem within its space."}, "system.creator": {"type": {"kind": "user"}, "label": "Creator", "required": true, "read_only": false, "description": "The user that created the work item"}, "system.codebase": {"type": {"kind": "codebase"}, "label": "Codebase", "required": false, "read_only": false, "description": "Contains codebase attributes to which this WI belongs to"}, "system.assignees": {"type": {"simple_type": {"kind": "list"}, "component_type": {"kind": "user"}}, "label": "Assignees", "required": false, "read_only": false, "description": "The users that are assigned to the work item"}, "system.iteration": {"type": {"kind": "iteration"}, "label": "Iteration", "required": false, "read_only": false, "description": "The iteration to which the work item belongs"}, "system.created_at": {"type": {"kind": "instant"}, "label": "Created at", "required": false, "read_only": true, "description": "The date and time when the work item was created"}, "system.updated_at": {"type": {"kind": "instant"}, "label": "Updated at", "required": false, "read_only": true, "description": "The date and time when the work item was last updated"}, "system.description": {"type": {"kind": "markup"}, "label": "Description", "required": false, "read_only": false, "description": "A descriptive text of the work item"}, "system.remote_item_id": {"type": {"kind": "string"}, "label": "Remote item", "required": false, "read_only": false, "description": "The ID of the remote work item"}}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("24ed462d-0430-4ffe-ba4f-7b5725b6a411"), `{"system.title": "Work item 1"}`)
+			expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("6a870ee3-e57c-4f98-9c7a-3cdf2ef5c222"), `{"system.title": "Work item 2"}`)
 		})
 	})
 }
