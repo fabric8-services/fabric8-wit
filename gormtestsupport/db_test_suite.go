@@ -4,6 +4,7 @@ import (
 	"os"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
@@ -30,6 +31,7 @@ type DBTestSuite struct {
 	suite.Suite
 	Configuration *config.Registry
 	DB            *gorm.DB
+	GormDB        *gormapplication.GormDB
 	clean         func()
 	Ctx           context.Context
 }
@@ -53,6 +55,7 @@ func (s *DBTestSuite) SetupSuite() {
 				"postgres_config": configuration.GetPostgresConfigString(),
 			}, "failed to connect to the database")
 		}
+		s.GormDB = gormapplication.NewGormDB(s.DB)
 	}
 	s.Ctx = migration.NewMigrationContext(context.Background())
 	s.populateDBTestSuite(s.Ctx)
