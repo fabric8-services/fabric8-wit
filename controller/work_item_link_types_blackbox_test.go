@@ -8,7 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -42,7 +41,7 @@ func (s *workItemLinkTypesSuite) SetupSuite() {
 
 func (s *workItemLinkTypesSuite) UnSecuredController() (*goa.Service, *WorkItemLinkTypesController) {
 	svc := goa.New("WorkItemLinkTypes-Service")
-	return svc, NewWorkItemLinkTypesController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	return svc, NewWorkItemLinkTypesController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *workItemLinkTypesSuite) TestList() {

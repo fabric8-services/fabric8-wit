@@ -14,7 +14,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/codebase/che"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -38,13 +37,11 @@ func TestCodebaseController(t *testing.T) {
 // ========== CodebaseControllerTestSuite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type CodebaseControllerTestSuite struct {
 	gormtestsupport.DBTestSuite
-	db      *gormapplication.GormDB
 	testDir string
 }
 
 func (s *CodebaseControllerTestSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	s.db = gormapplication.NewGormDB(s.DB)
 	s.testDir = filepath.Join("test-files", "codebase")
 }
 
@@ -64,7 +61,7 @@ func withShowTenant(f account.CodebaseInitTenantProvider) ConfigureCodebaseContr
 
 func (s *CodebaseControllerTestSuite) UnsecuredController(settings ...ConfigureCodebaseController) (*goa.Service, *CodebaseController) {
 	svc := goa.New("Codebases-service")
-	codebaseCtrl := NewCodebaseController(svc, s.db, s.Configuration)
+	codebaseCtrl := NewCodebaseController(svc, s.GormDB, s.Configuration)
 	for _, set := range settings {
 		set(codebaseCtrl)
 	}
@@ -73,7 +70,7 @@ func (s *CodebaseControllerTestSuite) UnsecuredController(settings ...ConfigureC
 
 func (s *CodebaseControllerTestSuite) SecuredControllers(identity account.Identity, settings ...ConfigureCodebaseController) (*goa.Service, *CodebaseController) {
 	svc := testsupport.ServiceAsUser("Codebase-Service", identity)
-	codebaseCtrl := NewCodebaseController(svc, s.db, s.Configuration)
+	codebaseCtrl := NewCodebaseController(svc, s.GormDB, s.Configuration)
 	for _, set := range settings {
 		set(codebaseCtrl)
 	}

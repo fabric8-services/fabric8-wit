@@ -8,8 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -23,8 +21,6 @@ import (
 
 type TestSpaceAreaREST struct {
 	gormtestsupport.DBTestSuite
-	db             *gormapplication.GormDB
-	clean          func()
 	svcSpaceAreas  *goa.Service
 	ctrlSpaceAreas *SpaceAreasController
 }
@@ -35,33 +31,27 @@ func TestRunSpaceAreaREST(t *testing.T) {
 }
 
 func (rest *TestSpaceAreaREST) SetupTest() {
-	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	rest.svcSpaceAreas, rest.ctrlSpaceAreas = rest.SecuredController()
-}
-
-func (rest *TestSpaceAreaREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestSpaceAreaREST) SecuredController() (*goa.Service, *SpaceAreasController) {
 	svc := testsupport.ServiceAsUser("Space-Area-Service", testsupport.TestIdentity)
-	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
+	return svc, NewSpaceAreasController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestSpaceAreaREST) SecuredAreasController() (*goa.Service, *AreaController) {
 	svc := testsupport.ServiceAsUser("Area-Service", testsupport.TestIdentity)
-	return svc, NewAreaController(svc, rest.db, rest.Configuration)
+	return svc, NewAreaController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestSpaceAreaREST) SecuredAreasControllerWithIdentity(idn *account.Identity) (*goa.Service, *AreaController) {
 	svc := testsupport.ServiceAsUser("Area-Service-With-Identity", *idn)
-	return svc, NewAreaController(svc, rest.db, rest.Configuration)
+	return svc, NewAreaController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestSpaceAreaREST) UnSecuredController() (*goa.Service, *SpaceAreasController) {
 	svc := goa.New("Area-Service")
-	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
+	return svc, NewSpaceAreasController(svc, rest.GormDB, rest.Configuration)
 }
 
 func searchInAreaSlice(searchKey uuid.UUID, areaList *app.AreaList) *app.Area {

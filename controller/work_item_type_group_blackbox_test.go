@@ -9,7 +9,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -36,8 +35,8 @@ func TestWorkItemTypeGroupSuite(t *testing.T) {
 func (s *workItemTypeGroupSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.svc = testsupport.ServiceAsUser("WITG-Service", testsupport.TestIdentity)
-	s.typeGroupCtrl = NewWorkItemTypeGroupController(s.svc, gormapplication.NewGormDB(s.DB))
-	s.typeGroupsCtrl = NewWorkItemTypeGroupsController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.typeGroupCtrl = NewWorkItemTypeGroupController(s.svc, s.GormDB)
+	s.typeGroupsCtrl = NewWorkItemTypeGroupsController(s.svc, s.GormDB)
 	s.testDir = filepath.Join("test-files", "work_item_type_group")
 }
 

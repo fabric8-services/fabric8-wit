@@ -8,7 +8,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/rendering"
@@ -109,7 +108,6 @@ func TestSetPagingLinks(t *testing.T) {
 
 type TestWorkItemREST struct {
 	gormtestsupport.DBTestSuite
-	db *gormapplication.GormDB
 }
 
 func TestRunWorkItemREST(t *testing.T) {
@@ -118,7 +116,6 @@ func TestRunWorkItemREST(t *testing.T) {
 
 func (rest *TestWorkItemREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 }
 
 func prepareWI2(attributes map[string]interface{}, witID, spaceID uuid.UUID) app.WorkItem {
@@ -154,7 +151,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithLegacyDescription(
 	}
 	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	// assert
@@ -178,7 +175,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	}
 	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	require.NoError(t, err)
@@ -200,7 +197,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	}
 	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	require.NoError(t, err)
@@ -222,7 +219,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithTitle() {
 	}
 	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	require.NoError(t, err)
@@ -241,7 +238,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithMissingTitle() {
 	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	// then: no error expected at this level, even though the title is missing
@@ -259,7 +256,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithEmptyTitle() {
 	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	// then: no error expected at this level, even though the title is missing
@@ -306,7 +303,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItems() {
 		request := &http.Request{Host: "localhost"}
 		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(3))
 		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
-		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.db, fxt.WorkItems)
+		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, fxt.WorkItems)
 		require.NoError(t, err)
 		// when
 		convertedWIs, err := ConvertWorkItems(request, wits, wis)
@@ -343,7 +340,7 @@ func (rest *TestWorkItemREST) TestLoadWorkItemTypes() {
 			// given
 			wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
 			// when
-			wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.db, wis)
+			wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.GormDB, wis)
 			// then
 			require.NoError(t, err)
 			toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID, fxt.WorkItemTypes[2].ID}.ToMap()
@@ -358,7 +355,7 @@ func (rest *TestWorkItemREST) TestLoadWorkItemTypes() {
 			// given
 			wis := []workitem.WorkItem{}
 			// when
-			wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.db, wis)
+			wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.GormDB, wis)
 			// then
 			require.NoError(t, err)
 			require.Empty(t, wits)
@@ -367,7 +364,7 @@ func (rest *TestWorkItemREST) TestLoadWorkItemTypes() {
 			// given
 			var wis []workitem.WorkItem
 			// when
-			wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.db, wis)
+			wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.GormDB, wis)
 			// then
 			require.NoError(t, err)
 			require.Empty(t, wits)
@@ -378,7 +375,7 @@ func (rest *TestWorkItemREST) TestLoadWorkItemTypes() {
 			// given
 			wis := []*workitem.WorkItem{fxt.WorkItems[0], fxt.WorkItems[1], fxt.WorkItems[2]}
 			// when
-			wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.db, wis)
+			wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, wis)
 			// then
 			require.NoError(t, err)
 			toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID, fxt.WorkItemTypes[2].ID}.ToMap()
@@ -393,7 +390,7 @@ func (rest *TestWorkItemREST) TestLoadWorkItemTypes() {
 			// given
 			wis := []*workitem.WorkItem{}
 			// when
-			wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.db, wis)
+			wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, wis)
 			// then
 			require.NoError(t, err)
 			require.Empty(t, wits)
@@ -402,7 +399,7 @@ func (rest *TestWorkItemREST) TestLoadWorkItemTypes() {
 			// given
 			var wis []*workitem.WorkItem
 			// when
-			wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.db, wis)
+			wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, wis)
 			// then
 			require.NoError(t, err)
 			require.Empty(t, wits)

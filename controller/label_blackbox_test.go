@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -24,7 +23,6 @@ import (
 
 type TestLabelREST struct {
 	gormtestsupport.DBTestSuite
-	db      *gormapplication.GormDB
 	testDir string
 }
 
@@ -35,7 +33,6 @@ func TestRunLabelREST(t *testing.T) {
 
 func (rest *TestLabelREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.testDir = filepath.Join("test-files", "label")
 }
 
@@ -48,7 +45,7 @@ func (rest *TestLabelREST) TestCreateLabel() {
 	require.Nil(rest.T(), c.Check())
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
-	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+	ctrl := NewLabelController(svc, rest.GormDB, rest.Configuration)
 	color := "some color"
 	pl := app.CreateLabelPayload{
 		Data: &app.Label{
@@ -73,7 +70,7 @@ func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 	require.Nil(rest.T(), c.Check())
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
-	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+	ctrl := NewLabelController(svc, rest.GormDB, rest.Configuration)
 	color := "	  some color  "
 	pl := app.CreateLabelPayload{
 		Data: &app.Label{
@@ -93,7 +90,7 @@ func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 func (rest *TestLabelREST) TestUpdate() {
 	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Identities(1))
 	svc := testsupport.ServiceAsUser("Label-Service", *testFxt.Identities[0])
-	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+	ctrl := NewLabelController(svc, rest.GormDB, rest.Configuration)
 
 	rest.T().Run("update label", func(t *testing.T) {
 		testFxt := tf.NewTestFixture(t, rest.DB, tf.Labels(1)) // 1 for each test, without conflict of changes during each test execution, isolated or not :)
@@ -192,7 +189,7 @@ func (rest *TestLabelREST) TestUpdate() {
 	rest.T().Run("update label with unauthorized", func(t *testing.T) {
 		testFxt := tf.NewTestFixture(t, rest.DB, tf.Labels(1))
 		svc := goa.New("Label-Service")
-		ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+		ctrl := NewLabelController(svc, rest.GormDB, rest.Configuration)
 
 		payload := app.UpdateLabelPayload{
 			Data: &app.Label{
@@ -239,7 +236,7 @@ func (rest *TestLabelREST) TestListLabel() {
 	require.Nil(rest.T(), c.Check())
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
-	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+	ctrl := NewLabelController(svc, rest.GormDB, rest.Configuration)
 
 	_, labels := test.ListLabelOK(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, nil, nil)
 	require.Empty(rest.T(), labels.Data, "labels found")
@@ -263,7 +260,7 @@ func (rest *TestLabelREST) TestShowLabel() {
 	require.NoError(rest.T(), err)
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
-	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+	ctrl := NewLabelController(svc, rest.GormDB, rest.Configuration)
 
 	_, labels2 := test.ShowLabelOK(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, nil, nil)
 	assertLabelLinking(rest.T(), labels2.Data)
