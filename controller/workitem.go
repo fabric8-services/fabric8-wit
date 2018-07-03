@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/ptr"
 
 	"context"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -318,26 +319,26 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 		// Pass empty array to remove all boardcolumns
 		// null is treated as bad param
 		if source.Relationships.SystemBoardcolumns.Data == nil {
-			return errors.NewBadParameterError("data.relationships.systemboardcolumns.data", nil)
+			return errors.NewBadParameterError(workitem.SystemBoardcolumns, nil)
 		}
-		distinctIDs := make(map[string]struct{})
+		distinctIDs := map[uuid.UUID]struct{}{}
 		for _, d := range source.Relationships.SystemBoardcolumns.Data {
 			columnUUID, err := uuid.FromString(*d.ID)
 			if err != nil {
-				return errors.NewBadParameterError("data.relationships.systemboardcolumns.data.id", *d.ID)
+				return errors.NewBadParameterError(workitem.SystemBoardcolumns, *d.ID)
 			}
 			/* TODO(michaelkleinhenz): check if columnID is valid
 			if ok := appl.Boards().validColumn(ctx, columnUUID); !ok {
-				return errors.NewBadParameterError("data.relationships.boardcolumns.data.id", *d.ID)
+				return errors.NewBadParameterError(workitem.SystemBoardcolumns, *d.ID)
 			}
 			*/
-			if _, ok := distinctIDs[columnUUID.String()]; !ok {
-				distinctIDs[columnUUID.String()] = struct{}{}
+			if _, ok := distinctIDs[columnUUID]; !ok {
+				distinctIDs[columnUUID] = struct{}{}
 			}
 		}
 		ids := make([]string, 0, len(distinctIDs))
 		for k := range distinctIDs {
-			ids = append(ids, k)
+			ids = append(ids, k.String())
 		}
 		target.Fields[workitem.SystemBoardcolumns] = ids
 	}
