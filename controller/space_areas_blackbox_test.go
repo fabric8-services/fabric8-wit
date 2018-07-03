@@ -176,12 +176,9 @@ func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfNoneMatchHeader() 
 	)
 	parentArea := fxt.Areas[0]
 	// when
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{
-		fxt.Areas[0],
-		fxt.Areas[1],
-		fxt.Areas[2],
-	})
-	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, &ifNoneMatch)
+	res, _ := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, nil)
+	ifNoneMatch := res.Header()[app.ETag][0]
+	res = test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }

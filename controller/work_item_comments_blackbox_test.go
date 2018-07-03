@@ -21,12 +21,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
-	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,30 +76,6 @@ func (rest *TestCommentREST) newCreateWorkItemCommentsPayload(body string, marku
 	}
 }
 
-func (rest *TestCommentREST) createDefaultWorkItem() *workitem.WorkItem {
-	rest.T().Log("Creating work item with modifier ID:", rest.testIdentity.ID)
-	var workItem *workitem.WorkItem
-	err := application.Transactional(rest.GormDB, func(appl application.Application) error {
-		repo := appl.WorkItems()
-		wi, err := repo.Create(
-			rest.ctx,
-			space.SystemSpace,
-			workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle: "A",
-				workitem.SystemState: "new",
-			},
-			rest.testIdentity.ID)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		workItem = wi
-		return nil
-	})
-	require.NoError(rest.T(), err)
-	return workItem
-}
-
 func assertWorkItemComment(t *testing.T, c *app.Comment, expectedBody string, expectedMarkup string) {
 	assert.NotNil(t, c)
 	assert.Equal(t, "comments", c.Type)
@@ -120,7 +95,8 @@ func assertWorkItemComment(t *testing.T, c *app.Comment, expectedBody string, ex
 
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithParentComment() {
 	// given
-	wi := rest.createDefaultWorkItem()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wi := fxt.WorkItems[0]
 
 	// create parent
 	markup := rendering.SystemMarkupMarkdown
@@ -151,7 +127,8 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithParentComment() {
 
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
 	// given
-	wi := rest.createDefaultWorkItem()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wi := fxt.WorkItems[0]
 
 	// when
 	markup := rendering.SystemMarkupMarkdown
@@ -164,7 +141,8 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
 
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 	// given
-	wi := rest.createDefaultWorkItem()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wi := fxt.WorkItems[0]
 	// when
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	svc, ctrl := rest.SecuredController()
@@ -175,7 +153,8 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 
 func (rest *TestCommentREST) TestNotificationSentOnCreate() {
 	// given
-	wi := rest.createDefaultWorkItem()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wi := fxt.WorkItems[0]
 	// when
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	svc, ctrl := rest.SecuredController()
@@ -187,7 +166,8 @@ func (rest *TestCommentREST) TestNotificationSentOnCreate() {
 }
 
 func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comment) {
-	wi := rest.createDefaultWorkItem()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wi := fxt.WorkItems[0]
 	comments := make([]*comment.Comment, 4)
 	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Test 1", Creator: rest.testIdentity.ID}
 	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", Creator: rest.testIdentity.ID}
@@ -204,7 +184,8 @@ func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comm
 }
 
 func (rest *TestCommentREST) setupCommentsWithParentComments() (workitem.WorkItem, []*comment.Comment) {
-	wi := rest.createDefaultWorkItem()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wi := fxt.WorkItems[0]
 	comments := make([]*comment.Comment, 3)
 	// first entry is the parent comment
 	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Parent Comment", Creator: rest.testIdentity.ID}
@@ -322,7 +303,8 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemNotModifiedUsingIfN
 
 func (rest *TestCommentREST) TestEmptyListCommentsByParentWorkItem() {
 	// given
-	wi := rest.createDefaultWorkItem()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wi := fxt.WorkItems[0]
 	// when
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
@@ -342,7 +324,8 @@ func (rest *TestCommentREST) TestCreateSingleCommentMissingWorkItem() {
 
 func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
 	// given
-	wi := rest.createDefaultWorkItem()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wi := fxt.WorkItems[0]
 	// when/then
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	svc, ctrl := rest.UnSecuredController()

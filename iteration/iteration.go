@@ -187,14 +187,16 @@ func (m *GormIterationRepository) Root(ctx context.Context, spaceID uuid.UUID) (
 	var itr Iteration
 
 	tx := m.db.Where("space_id = ? and path = ?", spaceID, "").First(&itr)
-	if tx.Error != nil && tx.Error != gorm.ErrRecordNotFound {
+	if tx.Error != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
 			"err":      tx.Error,
 		}, "unable to get the root iteration")
+		if tx.Error == gorm.ErrRecordNotFound {
+			return nil, errors.NewNotFoundError("root iteration for space", spaceID.String())
+		}
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
-
 	return &itr, nil
 }
 
