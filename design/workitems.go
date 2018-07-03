@@ -205,6 +205,10 @@ var _ = a.Resource("workitems", func() {
 			a.Param("filter[expression]", d.String, "accepts query in JSON format and redirects to /api/search? API", func() {
 				a.Example(`{$AND: [{"space": "f73988a2-1916-4572-910b-2df23df4dcc3"}, {"state": "NEW"}]}`)
 			})
+			a.Param("sort", d.String, func() {
+				a.Enum("execution", "created", "updated",
+					"-execution", "-created", "-updated")
+			})
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemList)

@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/query"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -24,33 +23,31 @@ import (
 
 type TestQueryREST struct {
 	gormtestsupport.DBTestSuite
-	db      *gormapplication.GormDB
 	testDir string
 	policy  *auth.KeycloakPolicy
 }
 
 func TestRunQueryREST(t *testing.T) {
-	suite.Run(t, &TestQueryREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestQueryREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestQueryREST) SecuredController() (*goa.Service, *QueryController) {
 	svc := testsupport.ServiceAsUser("Query-Service", testsupport.TestIdentity)
-	return svc, NewQueryController(svc, rest.db, rest.Configuration)
+	return svc, NewQueryController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestQueryREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *QueryController) {
 	svc := testsupport.ServiceAsUser("Query-Service", *idn)
-	return svc, NewQueryController(svc, rest.db, rest.Configuration)
+	return svc, NewQueryController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestQueryREST) UnSecuredController() (*goa.Service, *QueryController) {
 	svc := goa.New("Query-Service")
-	return svc, NewQueryController(svc, rest.db, rest.Configuration)
+	return svc, NewQueryController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestQueryREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.testDir = filepath.Join("test-files", "query")
 	rest.policy = &auth.KeycloakPolicy{
 		Name:             "TestCollaborators-" + uuid.NewV4().String(),
@@ -424,7 +421,7 @@ func (rest *TestQueryREST) TestUpdate() {
 			tf.CreateWorkItemEnvironment(),
 			tf.Queries(1))
 		svc := goa.New("Query-Service")
-		ctrl := NewQueryController(svc, rest.db, rest.Configuration)
+		ctrl := NewQueryController(svc, rest.GormDB, rest.Configuration)
 		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
 
 		payload := app.UpdateQueryPayload{

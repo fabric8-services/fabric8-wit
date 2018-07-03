@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/goadesign/goa"
@@ -29,17 +28,15 @@ import (
 type TestTrackerREST struct {
 	gormtestsupport.DBTestSuite
 	RwiScheduler *remoteworkitem.Scheduler
-	db           *gormapplication.GormDB
 	clean        func()
 }
 
 func TestRunTrackerREST(t *testing.T) {
-	suite.Run(t, &TestTrackerREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestTrackerREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestTrackerREST) SetupTest() {
 	rest.RwiScheduler = remoteworkitem.NewScheduler(rest.DB)
-	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 }
 
@@ -49,12 +46,12 @@ func (rest *TestTrackerREST) TearDownTest() {
 
 func (rest *TestTrackerREST) SecuredController() (*goa.Service, *TrackerController) {
 	svc := testsupport.ServiceAsUser("Tracker-Service", testsupport.TestIdentity)
-	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
+	return svc, NewTrackerController(svc, rest.GormDB, rest.RwiScheduler, rest.Configuration)
 }
 
 func (rest *TestTrackerREST) UnSecuredController() (*goa.Service, *TrackerController) {
 	svc := goa.New("Tracker-Service")
-	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
+	return svc, NewTrackerController(svc, rest.GormDB, rest.RwiScheduler, rest.Configuration)
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
@@ -62,7 +59,7 @@ func (rest *TestTrackerREST) TestUnauthorizeTrackerCUD() {
 	UnauthorizeCreateUpdateDeleteTest(rest.T(), getTrackerTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedTracker-Service")
 	}, func(service *goa.Service) error {
-		controller := NewTrackerController(service, rest.db, rest.RwiScheduler, rest.Configuration)
+		controller := NewTrackerController(service, rest.GormDB, rest.RwiScheduler, rest.Configuration)
 		app.MountTrackerController(service, controller)
 		return nil
 	})

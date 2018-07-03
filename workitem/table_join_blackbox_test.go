@@ -17,7 +17,7 @@ type tableJoinTestSuite struct {
 
 func Test_TableJoinSuite(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &tableJoinTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &tableJoinTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *tableJoinTestSuite) TestIsValidate() {

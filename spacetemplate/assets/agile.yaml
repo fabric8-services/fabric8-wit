@@ -22,7 +22,7 @@ work_item_types:
 - id: &impedimentID "03b9bb64-4f65-4fa7-b165-494cd4f01401"
   extends: *agileCommonTypeID
   name: Impediment
-  can_construct: no
+  can_construct: yes
   description: >
     This describes an impediment blocking work on the project.
   icon: fa fa-stumbleupon
@@ -52,17 +52,15 @@ work_item_types:
           kind: enum
         base_type:
           kind: string
-        values: 
+        values:
+        - None
         - Done
-        - Rejected
         - Duplicate
         - Incomplete Description
         - Can not Reproduce
-        - Partially Completed
         - Deferred
         - Won't Fix
         - Out of Date
-        - Explained
         - Verified
 
 - id: &themeID "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a"
@@ -89,13 +87,13 @@ work_item_types:
         - In Progress
         - Resolved
         - Closed
-    "effort":
-      label: Effort
-      description: 
-        The effort needed to implement this theme.
+    "business_value":
+      label: Business Value
+      description:
+        Business value for this theme.
       required: no
       type:
-        kind: float
+        kind: string
     "target_date": 
       label: Target date
       description: 
@@ -103,22 +101,6 @@ work_item_types:
       required: no
       type:
         kind: instant
-    "business_value": 
-      label: Business value
-      description: 
-        The business value of the theme.
-      required: no
-      type:
-        kind: integer
-    "time_criticality": 
-      label: Time criticality
-      description: >
-        Time Criticality captures how the business value decreases over time for
-        a theme or epic. Higher values indicate that the item is inherently
-        more time critical than those items with lower values.
-      required: no
-      type:
-        kind: float
     "acceptance_criteria": 
       label: Acceptance criteria
       description: 
@@ -130,6 +112,7 @@ work_item_types:
   child_types:
   - *defectID
   - *epicID
+  - *impedimentID
 
 - id: &epicID "2c169431-a55d-49eb-af74-cc19e895356f"
   extends: *agileCommonTypeID
@@ -154,26 +137,10 @@ work_item_types:
         - In Progress
         - Resolved
         - Closed
-    "effort":
-      label: Effort
+    "storypoints":
+      label: Storypoints
       description: 
         The effort needed to implement the epic.
-      required: no
-      type:
-        kind: float
-    "business_value": 
-      label: Business value
-      description: 
-        The business value of the epic.
-      required: no
-      type:
-        kind: integer
-    "time_criticality": 
-      label: Time criticality
-      description: >
-        Time Criticality captures how the business value decreases over time for
-        a Feature or Epic. Higher values indicate that the item is inherently
-        more time critical than those items with lower values.
       required: no
       type:
         kind: float
@@ -185,16 +152,10 @@ work_item_types:
       required: no
       type:
         kind: markup
-    "component":
-      label: Component
-      description:
-        The component for this area of work.
-      required: no
-      type:
-        kind: string
   child_types:
   - *defectID
   - *storyID
+  - *impedimentID
 
 - id: &storyID "6ff83406-caa7-47a9-9200-4ca796be11bb"
   extends: *agileCommonTypeID
@@ -220,8 +181,8 @@ work_item_types:
         - In Progress
         - Resolved
         - Closed
-    "effort":
-      label: Effort
+    "storypoints":
+      label: Storypoints
       description: 
         The effort needed to implement this user story.
       required: no
@@ -245,6 +206,7 @@ work_item_types:
   child_types:
   - *taskID
   - *defectID
+  - *impedimentID
 
 - id: &taskID "2853459d-60ef-4fbe-aaf4-eccb9f554b34"
   extends: *agileCommonTypeID
@@ -269,6 +231,13 @@ work_item_types:
         - In Progress
         - Resolved
         - Closed
+    "effort":
+      label: Effort
+      description: 
+        The effort needed to implement this user story.
+      required: no
+      type:
+        kind: float
 
 - id: &defectID "fce0921f-ea70-4513-bb91-31d3aa8017f1"
   extends: *agileCommonTypeID
@@ -372,6 +341,7 @@ work_item_type_groups:
   - *storyID
   - *taskID
   - *defectID
+  - *impedimentID
   bucket: portfolio
   icon: fa fa-bullseye
 
@@ -383,5 +353,16 @@ work_item_type_groups:
   - *storyID
   - *taskID
   - *defectID
+  - *impedimentID
   bucket: iteration
   icon: fa fa-repeat
+
+work_item_link_types:
+
+- id: "48b1b953-ddf3-473d-8527-e705f7c5f943"
+  name: Impedes
+  description: One work item item impedes another one
+  forward_name: impedes
+  reverse_name: is impeded by
+  topology: dependency
+  

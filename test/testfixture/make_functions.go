@@ -239,6 +239,7 @@ func makeCodebases(fxt *TestFixture) error {
 			StackID:           &stackID,
 			LastUsedWorkspace: "my-used-last-workspace",
 			URL:               "git@github.com:fabric8-services/fabric8-wit.git",
+			CVEScan:           true,
 		}
 		if !fxt.isolatedCreation {
 			fxt.Codebases[i].SpaceID = fxt.Spaces[0].ID
