@@ -53,45 +53,51 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoBoardcolumn() {
 	fxt := tf.NewTestFixture(l.T(), l.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(wiCnt), tf.WorkItemBoards(boardCnt))
 	svc, ctrl := l.SecuredController(*fxt.Identities[0])
 
-	// Fetch WI and verify boardcolumns Relationship
-	_, fetchedWI := test.ShowWorkitemOK(l.T(), svc.Context, svc, ctrl, fxt.WorkItems[0].ID, nil, nil)
-	require.NotNil(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns)
-	assert.Empty(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
+	l.T().Run("Fetch WI and verify boardcolumns Relationship", func(t *testing.T) {
+		_, fetchedWI := test.ShowWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, nil, nil)
+		require.NotNil(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns)
+		assert.Empty(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
+	})
 
-	u := app.UpdateWorkitemPayload{
-		Data: &app.WorkItem{
-			ID:   &fxt.WorkItems[0].ID,
-			Type: APIStringTypeWorkItem,
-			Attributes: map[string]interface{}{
-				"version": fxt.WorkItems[0].Version,
+	l.T().Run("add a column reference", func(t *testing.T) {
+		// given
+		u := app.UpdateWorkitemPayload{
+			Data: &app.WorkItem{
+				ID:   &fxt.WorkItems[0].ID,
+				Type: APIStringTypeWorkItem,
+				Attributes: map[string]interface{}{
+					"version": fxt.WorkItems[0].Version,
+				},
+				Relationships: &app.WorkItemRelationships{
+					SystemBoardcolumns: &app.RelationGenericList{
+						Data: []*app.GenericData{
+							{
+								ID:   ptr.String(fxt.WorkItemBoards[0].Columns[0].ID.String()),
+								Type: ptr.String("boardcolumns"),
+							},
+							{
+								ID:   ptr.String(fxt.WorkItemBoards[1].Columns[1].ID.String()),
+								Type: ptr.String("boardcolumns"),
+							},
+						},
+					},
+				},
 			},
-			Relationships: &app.WorkItemRelationships{},
-		},
-	}
-	// add a column reference
-	u.Data.Relationships.SystemBoardcolumns = &app.RelationGenericList{
-		Data: []*app.GenericData{
-			{
-				ID:   ptr.String(fxt.WorkItemBoards[0].Columns[0].ID.String()),
-				Type: ptr.String("boardcolumns"),
-			},
-			{
-				ID:   ptr.String(fxt.WorkItemBoards[1].Columns[1].ID.String()),
-				Type: ptr.String("boardcolumns"),
-			},
-		},
-	}
-	_, updatedWI := test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fxt.WorkItems[0].ID, &u)
-	assert.NotNil(l.T(), updatedWI)
-	assert.Len(l.T(), updatedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
-	mustHave := map[string]struct{}{
-		*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
-		*u.Data.Relationships.SystemBoardcolumns.Data[1].ID: {},
-	}
-	for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {
-		delete(mustHave, *lblData.ID)
-	}
-	require.Empty(l.T(), mustHave)
+		}
+		// when
+		_, updatedWI := test.UpdateWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, &u)
+		// then
+		assert.NotNil(t, updatedWI)
+		assert.Len(t, updatedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
+		mustHave := map[string]struct{}{
+			*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
+			*u.Data.Relationships.SystemBoardcolumns.Data[1].ID: {},
+		}
+		for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {
+			delete(mustHave, *lblData.ID)
+		}
+		require.Empty(t, mustHave)
+	})
 }
 
 func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
@@ -140,10 +146,10 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 			},
 		}
 		// when
-		_, updatedWI := test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fxt.WorkItems[0].ID, &u)
+		_, updatedWI := test.UpdateWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, &u)
 		// then
-		assert.NotNil(l.T(), updatedWI)
-		assert.Len(l.T(), updatedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
+		assert.NotNil(t, updatedWI)
+		assert.Len(t, updatedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
 		mustHave := map[string]struct{}{
 			*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
 			*u.Data.Relationships.SystemBoardcolumns.Data[2].ID: {},
@@ -151,7 +157,7 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 		for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {
 			delete(mustHave, *lblData.ID)
 		}
-		require.Empty(l.T(), mustHave)
+		require.Empty(t, mustHave)
 	})
 }
 
@@ -213,10 +219,10 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 				Data: []*app.GenericData{},
 			}
 			// when
-			_, updatedWI = test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fxt.WorkItems[0].ID, &u)
+			_, updatedWI = test.UpdateWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, &u)
 			// then
-			assert.NotNil(l.T(), updatedWI)
-			assert.Empty(l.T(), updatedWI.Data.Relationships.SystemBoardcolumns.Data)
+			assert.NotNil(t, updatedWI)
+			assert.Empty(t, updatedWI.Data.Relationships.SystemBoardcolumns.Data)
 		})
 	})
 }
