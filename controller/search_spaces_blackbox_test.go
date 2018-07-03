@@ -13,7 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -42,33 +41,31 @@ type okScenario struct {
 
 type TestSearchSpacesREST struct {
 	gormtestsupport.DBTestSuite
-	db *gormapplication.GormDB
 }
 
 func TestRunSearchSpacesREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestSearchSpacesREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestSearchSpacesREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestSearchSpacesREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 }
 
 func (rest *TestSearchSpacesREST) SecuredController() (*goa.Service, *SearchController) {
 	svc := testsupport.ServiceAsUser("Search-Service", testsupport.TestIdentity)
-	return svc, NewSearchController(svc, rest.db, rest.Configuration)
+	return svc, NewSearchController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestSearchSpacesREST) UnSecuredController() (*goa.Service, *SearchController) {
 	svc := goa.New("Search-Service")
-	return svc, NewSearchController(svc, rest.db, rest.Configuration)
+	return svc, NewSearchController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 	// given
 	prefix := time.Now().Format("2006_Jan_2_15_04_05_") // using a unique prefix to make sure the test data will not collide with existing, older spaces.
-	idents, err := createTestData(rest.db, prefix)
+	idents, err := createTestData(rest.GormDB, prefix)
 	require.NoError(rest.T(), err)
 	tests := []okScenario{
 		{"With uppercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},

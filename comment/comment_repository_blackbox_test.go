@@ -24,7 +24,7 @@ type TestCommentRepository struct {
 
 func TestRunCommentRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestCommentRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestCommentRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *TestCommentRepository) SetupTest() {

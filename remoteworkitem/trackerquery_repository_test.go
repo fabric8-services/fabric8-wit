@@ -1,4 +1,4 @@
-package remoteworkitem
+package remoteworkitem_test
 
 import (
 	"net/http"
@@ -9,6 +9,7 @@ import (
 
 	errs "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	uuid "github.com/satori/go.uuid"
@@ -22,18 +23,18 @@ import (
 type TestTrackerQueryRepository struct {
 	gormtestsupport.DBTestSuite
 
-	trackerRepo TrackerRepository
-	queryRepo   TrackerQueryRepository
+	trackerRepo remoteworkitem.TrackerRepository
+	queryRepo   remoteworkitem.TrackerQueryRepository
 }
 
 func TestRunTrackerQueryRepository(t *testing.T) {
-	suite.Run(t, &TestTrackerQueryRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestTrackerQueryRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (test *TestTrackerQueryRepository) SetupTest() {
 	test.DBTestSuite.SetupTest()
-	test.trackerRepo = NewTrackerRepository(test.DB)
-	test.queryRepo = NewTrackerQueryRepository(test.DB)
+	test.trackerRepo = remoteworkitem.NewTrackerRepository(test.DB)
+	test.queryRepo = remoteworkitem.NewTrackerQueryRepository(test.DB)
 }
 
 func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
@@ -45,12 +46,12 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 
 	query, err := test.queryRepo.Create(ctx, "abc", "xyz", uuid.NewV4(), space.SystemSpace)
-	assert.IsType(t, InternalError{}, err)
+	assert.IsType(t, remoteworkitem.InternalError{}, err)
 	assert.Nil(t, query)
 
-	tracker := Tracker{
+	tracker := remoteworkitem.Tracker{
 		URL:  "http://issues.jboss.com",
-		Type: ProviderJira,
+		Type: remoteworkitem.ProviderJira,
 	}
 	err = test.trackerRepo.Create(ctx, &tracker)
 	query, err = test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
@@ -74,9 +75,9 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
 
-		tracker := Tracker{
+		tracker := remoteworkitem.Tracker{
 			URL:  "http://issues.jboss.com",
-			Type: ProviderJira,
+			Type: remoteworkitem.ProviderJira,
 		}
 		err := test.trackerRepo.Create(ctx, &tracker)
 		require.NoError(t, err)
@@ -109,17 +110,17 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 
 	query, err := test.queryRepo.Load(ctx, "abcd")
-	assert.IsType(t, NotFoundError{}, err)
+	assert.IsType(t, remoteworkitem.NotFoundError{}, err)
 	assert.Nil(t, query)
 
-	tracker := Tracker{
+	tracker := remoteworkitem.Tracker{
 		URL:  "http://issues.jboss.com",
-		Type: ProviderJira,
+		Type: remoteworkitem.ProviderJira,
 	}
 	err = test.trackerRepo.Create(ctx, &tracker)
-	tracker2 := Tracker{
+	tracker2 := remoteworkitem.Tracker{
 		URL:  "http://api.github.com",
-		Type: ProviderGithub,
+		Type: remoteworkitem.ProviderGithub,
 	}
 	err = test.trackerRepo.Create(ctx, &tracker2)
 	query, err = test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
@@ -144,7 +145,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 
 	query.TrackerID = uuid.NewV4()
 	query2, err = test.queryRepo.Save(ctx, *query)
-	assert.IsType(t, InternalError{}, err)
+	assert.IsType(t, remoteworkitem.InternalError{}, err)
 	assert.Nil(t, query2)
 }
 
@@ -157,11 +158,11 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 
 	err := test.queryRepo.Delete(ctx, "asdf")
-	assert.IsType(t, NotFoundError{}, err)
+	assert.IsType(t, remoteworkitem.NotFoundError{}, err)
 
-	tracker := Tracker{
+	tracker := remoteworkitem.Tracker{
 		URL:  "http://api.github.com",
-		Type: ProviderGithub,
+		Type: remoteworkitem.ProviderGithub,
 	}
 	err = test.trackerRepo.Create(ctx, &tracker)
 	tq, _ := test.queryRepo.Create(ctx, "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker.ID, space.SystemSpace)
@@ -170,11 +171,11 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	require.NoError(t, err)
 
 	tq, err = test.queryRepo.Load(ctx, tq.ID)
-	assert.IsType(t, NotFoundError{}, err)
+	assert.IsType(t, remoteworkitem.NotFoundError{}, err)
 	assert.Nil(t, tq)
 
 	tq, err = test.queryRepo.Load(ctx, "100000")
-	assert.IsType(t, NotFoundError{}, err)
+	assert.IsType(t, remoteworkitem.NotFoundError{}, err)
 	assert.Nil(t, tq)
 }
 
@@ -188,18 +189,18 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 
 	trackerqueries1, _ := test.queryRepo.List(ctx)
 
-	tracker1 := Tracker{
+	tracker1 := remoteworkitem.Tracker{
 		URL:  "http://api.github.com",
-		Type: ProviderGithub,
+		Type: remoteworkitem.ProviderGithub,
 	}
 	err := test.trackerRepo.Create(ctx, &tracker1)
 	require.NoError(t, err)
 	test.queryRepo.Create(ctx, "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID, space.SystemSpace)
 	test.queryRepo.Create(ctx, "is:close is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID, space.SystemSpace)
 
-	tracker2 := Tracker{
+	tracker2 := remoteworkitem.Tracker{
 		URL:  "http://issues.jboss.com",
-		Type: ProviderJira,
+		Type: remoteworkitem.ProviderJira,
 	}
 	err = test.trackerRepo.Create(ctx, &tracker2)
 	require.NoError(t, err)

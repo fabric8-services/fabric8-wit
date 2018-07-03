@@ -24,7 +24,7 @@ import (
 
 func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type searchRepositoryBlackboxTest struct {
