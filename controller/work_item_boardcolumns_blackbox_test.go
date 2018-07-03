@@ -112,7 +112,7 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 		assert.Empty(t, fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
 	})
 
-	l.T().Run("add a column reference duplicate", func(*testing.T) {
+	l.T().Run("add a column reference duplicate", func(t *testing.T) {
 		// given
 		u := app.UpdateWorkitemPayload{
 			Data: &app.WorkItem{
