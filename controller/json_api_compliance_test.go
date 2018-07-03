@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -28,7 +27,7 @@ type JSONComplianceTestSuite struct {
 
 func TestJSONAPICompliance(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &JSONComplianceTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &JSONComplianceTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *JSONComplianceTestSuite) SetupSuite() {
@@ -69,7 +68,7 @@ func (s *JSONComplianceTestSuite) TestListSpaces() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 	svc := NewService(*fxt.Identities[0])
-	spaceCtrl := NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
+	spaceCtrl := NewSpaceController(svc, s.GormDB, s.Configuration, &DummyResourceManager{})
 	// when
 	_, spaceList := test.ListSpaceOK(s.T(), svc.Context, svc, spaceCtrl, nil, nil, nil, nil)
 	// then
@@ -87,7 +86,7 @@ func (s *JSONComplianceTestSuite) TestSearchCodebases() {
 			}),
 		)
 		svc := NewService(*fxt.Identities[0])
-		searchCtrl := NewSearchController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		searchCtrl := NewSearchController(svc, s.GormDB, s.Configuration)
 		// when
 		_, codebaseList := test.CodebasesSearchOK(t, nil, svc, searchCtrl, nil, nil, "http://foo.com/single/0")
 		// then
@@ -106,7 +105,7 @@ func (s *JSONComplianceTestSuite) TestSearchCodebases() {
 			}),
 		)
 		svc := NewService(*fxt.Identities[0])
-		searchCtrl := NewSearchController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		searchCtrl := NewSearchController(svc, s.GormDB, s.Configuration)
 		// when
 		_, codebaseList := test.CodebasesSearchOK(t, nil, svc, searchCtrl, nil, nil, "http://foo.com/multi/0")
 		// then

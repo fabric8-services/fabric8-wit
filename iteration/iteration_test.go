@@ -23,7 +23,7 @@ type TestIterationRepository struct {
 }
 
 func TestRunIterationRepository(t *testing.T) {
-	suite.Run(t, &TestIterationRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestIterationRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *TestIterationRepository) TestCreateIteration() {

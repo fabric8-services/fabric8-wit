@@ -18,8 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -36,21 +34,17 @@ import (
 
 type TestCommentREST struct {
 	gormtestsupport.DBTestSuite
-	db           *gormapplication.GormDB
-	clean        func()
 	testIdentity account.Identity
 	ctx          context.Context
 	notification notificationsupport.FakeNotificationChannel
 }
 
 func TestRunCommentREST(t *testing.T) {
-	suite.Run(t, &TestCommentREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestCommentREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestCommentREST) SetupTest() {
 	resource.Require(rest.T(), resource.Database)
-	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestCommentREST setup user", "test provider")
 	require.NoError(rest.T(), err)
 	rest.testIdentity = *testIdentity
@@ -60,18 +54,14 @@ func (rest *TestCommentREST) SetupTest() {
 	rest.notification = notificationsupport.FakeNotificationChannel{}
 }
 
-func (rest *TestCommentREST) TearDownTest() {
-	rest.clean()
-}
-
 func (rest *TestCommentREST) SecuredController() (*goa.Service, *WorkItemCommentsController) {
 	svc := testsupport.ServiceAsUser("WorkItemComment-Service", rest.testIdentity)
-	return svc, NewNotifyingWorkItemCommentsController(svc, rest.db, &rest.notification, rest.Configuration)
+	return svc, NewNotifyingWorkItemCommentsController(svc, rest.GormDB, &rest.notification, rest.Configuration)
 }
 
 func (rest *TestCommentREST) UnSecuredController() (*goa.Service, *WorkItemCommentsController) {
 	svc := goa.New("WorkItemComment-Service")
-	return svc, NewWorkItemCommentsController(svc, rest.db, rest.Configuration)
+	return svc, NewWorkItemCommentsController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestCommentREST) newCreateWorkItemCommentsPayload(body string, markup *string) *app.CreateWorkItemCommentsPayload {
@@ -183,7 +173,7 @@ func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comm
 	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", Creator: rest.testIdentity.ID}
 	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Test 3", Creator: rest.testIdentity.ID}
 	comments[3] = &comment.Comment{ParentID: uuid.NewV4(), Body: "Test 1", Creator: rest.testIdentity.ID}
-	application.Transactional(rest.db, func(app application.Application) error {
+	application.Transactional(rest.GormDB, func(app application.Application) error {
 		repo := app.Comments()
 		for _, c := range comments {
 			repo.Create(rest.ctx, c, rest.testIdentity.ID)
@@ -199,7 +189,7 @@ func (rest *TestCommentREST) setupCommentsWithParentComments() (workitem.WorkIte
 	comments := make([]*comment.Comment, 3)
 	// first entry is the parent comment
 	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Parent Comment", Creator: rest.testIdentity.ID}
-	application.Transactional(rest.db, func(app application.Application) error {
+	application.Transactional(rest.GormDB, func(app application.Application) error {
 		repo := app.Comments()
 		repo.Create(rest.ctx, comments[0], rest.testIdentity.ID)
 		return nil
@@ -211,7 +201,7 @@ func (rest *TestCommentREST) setupCommentsWithParentComments() (workitem.WorkIte
 	}
 	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Child Comment 1", Creator: rest.testIdentity.ID, ParentCommentID: parentCommentID}
 	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Child Comment 2", Creator: rest.testIdentity.ID, ParentCommentID: parentCommentID}
-	application.Transactional(rest.db, func(app application.Application) error {
+	application.Transactional(rest.GormDB, func(app application.Application) error {
 		repo := app.Comments()
 		repo.Create(rest.ctx, comments[1], rest.testIdentity.ID)
 		repo.Create(rest.ctx, comments[2], rest.testIdentity.ID)

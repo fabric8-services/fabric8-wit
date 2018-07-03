@@ -8,7 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -20,38 +19,36 @@ import (
 
 type TestNamedSpaceREST struct {
 	gormtestsupport.DBTestSuite
-	db      *gormapplication.GormDB
 	testDir string
 }
 
 func TestRunNamedSpacesREST(t *testing.T) {
-	suite.Run(t, &TestNamedSpaceREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestNamedSpaceREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestNamedSpaceREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.testDir = filepath.Join("test-files", "namedspaces")
 }
 
 func (rest *TestNamedSpaceREST) SecuredNamedSpaceController(identity account.Identity) (*goa.Service, *NamedspacesController) {
 	svc := testsupport.ServiceAsUser("NamedSpace-Service", identity)
-	return svc, NewNamedspacesController(svc, rest.db)
+	return svc, NewNamedspacesController(svc, rest.GormDB)
 }
 
 func (rest *TestNamedSpaceREST) UnSecuredNamedSpaceController() (*goa.Service, *NamedspacesController) {
 	svc := goa.New("NamedSpace-Service")
-	return svc, NewNamedspacesController(svc, rest.db)
+	return svc, NewNamedspacesController(svc, rest.GormDB)
 }
 
 func (rest *TestNamedSpaceREST) SecuredSpaceController() (*goa.Service, *SpaceController) {
 	svc := testsupport.ServiceAsUser("Space-Service", testsupport.TestIdentity)
-	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
+	return svc, NewSpaceController(svc, rest.GormDB, rest.Configuration, &DummyResourceManager{})
 }
 
 func (rest *TestNamedSpaceREST) UnSecuredSpaceController() (*goa.Service, *SpaceController) {
 	svc := goa.New("Space-Service")
-	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
+	return svc, NewSpaceController(svc, rest.GormDB, rest.Configuration, &DummyResourceManager{})
 }
 
 func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {

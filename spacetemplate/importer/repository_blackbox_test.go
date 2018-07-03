@@ -32,7 +32,7 @@ type repoSuite struct {
 
 func TestRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &repoSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../../config.yaml")})
+	suite.Run(t, &repoSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *repoSuite) SetupSuite() {

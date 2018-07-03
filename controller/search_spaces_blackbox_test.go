@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -36,27 +35,25 @@ type okScenario struct {
 
 type TestSearchSpacesREST struct {
 	gormtestsupport.DBTestSuite
-	db *gormapplication.GormDB
 }
 
 func TestRunSearchSpacesREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestSearchSpacesREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestSearchSpacesREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestSearchSpacesREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 }
 
 func (rest *TestSearchSpacesREST) SecuredController() (*goa.Service, *SearchController) {
 	svc := testsupport.ServiceAsUser("Search-Service", testsupport.TestIdentity)
-	return svc, NewSearchController(svc, rest.db, rest.Configuration)
+	return svc, NewSearchController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestSearchSpacesREST) UnSecuredController() (*goa.Service, *SearchController) {
 	svc := goa.New("Search-Service")
-	return svc, NewSearchController(svc, rest.db, rest.Configuration)
+	return svc, NewSearchController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
