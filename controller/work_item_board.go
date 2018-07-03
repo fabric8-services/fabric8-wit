@@ -38,12 +38,12 @@ func NewWorkItemBoardController(service *goa.Service, db application.DB) *WorkIt
 // Show runs the show action.
 func (c *WorkItemBoardController) Show(ctx *app.ShowWorkItemBoardContext) error {
 	var board *workitem.Board
-	var err error
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		board, err = appl.Boards().Load(ctx, ctx.BoardID)
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		b, err := appl.Boards().Load(ctx, ctx.BoardID)
 		if err != nil {
 			return errs.WithStack(err)
 		}
+		board = b
 		return nil
 	})
 	if err != nil {
@@ -74,22 +74,18 @@ func ConvertColumnsFromModel(request *http.Request, column workitem.BoardColumn)
 // ConvertBoardFromModel converts WorkitemTypeBoard model to a response resource
 // object for jsonapi.org specification
 func ConvertBoardFromModel(request *http.Request, b workitem.Board) *app.WorkItemBoardData {
-	workItemBoardRelatedURL := rest.AbsoluteURL(request, app.WorkItemBoardHref(b.ID))
-	createdAt := b.CreatedAt.UTC()
-	updatedAt := b.UpdatedAt.UTC()
-
 	res := &app.WorkItemBoardData{
 		ID:   &b.ID,
 		Type: APIWorkItemBoards,
 		Links: &app.GenericLinks{
-			Related: &workItemBoardRelatedURL,
+			Related: ptr.String(rest.AbsoluteURL(request, app.WorkItemBoardHref(b.ID))),
 		},
 		Attributes: &app.WorkItemBoardAttributes{
 			Context:     b.Context,
 			ContextType: b.ContextType,
 			Name:        b.Name,
-			CreatedAt:   &createdAt,
-			UpdatedAt:   &updatedAt,
+			CreatedAt:   ptr.Time(b.CreatedAt.UTC()),
+			UpdatedAt:   ptr.Time(b.UpdatedAt.UTC()),
 		},
 		Relationships: &app.WorkItemBoardRelationships{
 			Columns: &app.RelationGenericList{
@@ -106,12 +102,10 @@ func ConvertBoardFromModel(request *http.Request, b workitem.Board) *app.WorkIte
 
 	// iterate over the columns and attach them as an
 	// included relationship
-	columnType := "boardcolumns"
 	for i, column := range b.Columns {
-		idStr := column.ID.String()
 		res.Relationships.Columns.Data[i] = &app.GenericData{
-			ID:   &idStr,
-			Type: &columnType,
+			ID:   ptr.String(column.ID.String()),
+			Type: ptr.String(APIBoardColumns),
 		}
 	}
 

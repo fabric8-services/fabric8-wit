@@ -73,7 +73,7 @@ var workItemBoardAttributes = a.Type("WorkItemBoardAttributes", func() {
 
 var workItemBoardRelationships = a.Type("WorkItemBoardRelationships", func() {
 	a.Attribute("columns", relationGenericList, "List of work item board columns attached to the board")
-	a.Attribute("spaceTemplate", relationGeneric, "The space template to which this group belongs")
+	a.Attribute("spaceTemplate", relationGeneric, "The space template to which this board belongs")
 })
 
 var _ = a.Resource("work_item_boards", func() {
@@ -84,7 +84,7 @@ var _ = a.Resource("work_item_boards", func() {
 		a.Routing(
 			a.GET(""),
 		)
-		a.Description("List of work item boards")
+		a.Description("List work item boards")
 		a.Response(d.OK, workItemBoardList)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
