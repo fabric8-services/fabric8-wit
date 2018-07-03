@@ -75,7 +75,7 @@ func (rest *TestPlannerBacklogREST) TestCountPlannerBacklogWorkItemsOK() {
 
 func (rest *TestPlannerBacklogREST) TestCountZeroPlannerBacklogWorkItemsOK() {
 	// given
-	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1))
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Iterations(1))
 	svc, _ := rest.unSecuredController()
 	// when
 	count, err := countBacklogItems(svc.Context, rest.GormDB, fxt.Spaces[0].ID)
