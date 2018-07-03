@@ -33,7 +33,7 @@ type TestWorkItemBoardcolumnREST struct {
 
 func TestRunWorkItemBoardcolumnREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestWorkItemBoardcolumnREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestWorkItemBoardcolumnREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (l *TestWorkItemBoardcolumnREST) SetupTest() {

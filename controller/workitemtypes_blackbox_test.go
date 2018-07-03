@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -40,9 +39,7 @@ type workItemTypesSuite struct {
 
 func TestSuiteWorkItemTypes(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemTypesSuite{
-		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
-	})
+	suite.Run(t, &workItemTypesSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *workItemTypesSuite) SetupSuite() {
@@ -58,11 +55,11 @@ func (s *workItemTypesSuite) SetupTest() {
 		ProviderType: "test provider",
 	}
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", *idn)
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
+	s.spaceCtrl = NewSpaceController(s.svc, s.GormDB, s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
-	s.typeCtrl = NewWorkitemtypesController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.typeCtrl = NewWorkitemtypesController(s.svc, s.GormDB, s.Configuration)
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, s.GormDB, s.Configuration)
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, s.GormDB)
 }
 
 func (s *workItemTypesSuite) TestList() {

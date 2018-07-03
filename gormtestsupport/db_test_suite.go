@@ -4,6 +4,7 @@ import (
 	"os"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
@@ -21,16 +22,16 @@ var _ suite.SetupAllSuite = &DBTestSuite{}
 var _ suite.TearDownAllSuite = &DBTestSuite{}
 
 // NewDBTestSuite instanciate a new DBTestSuite
-func NewDBTestSuite(configFilePath string) DBTestSuite {
-	return DBTestSuite{configFile: configFilePath}
+func NewDBTestSuite() DBTestSuite {
+	return DBTestSuite{}
 }
 
 // DBTestSuite is a base for tests using a gorm db
 type DBTestSuite struct {
 	suite.Suite
-	configFile    string
 	Configuration *config.Registry
 	DB            *gorm.DB
+	GormDB        *gormapplication.GormDB
 	clean         func()
 	Ctx           context.Context
 }
@@ -38,7 +39,8 @@ type DBTestSuite struct {
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
-	configuration, err := config.New(s.configFile)
+	// Get default configuration
+	configuration, err := config.Get()
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
@@ -53,6 +55,7 @@ func (s *DBTestSuite) SetupSuite() {
 				"postgres_config": configuration.GetPostgresConfigString(),
 			}, "failed to connect to the database")
 		}
+		s.GormDB = gormapplication.NewGormDB(s.DB)
 	}
 	s.Ctx = migration.NewMigrationContext(context.Background())
 	s.populateDBTestSuite(s.Ctx)

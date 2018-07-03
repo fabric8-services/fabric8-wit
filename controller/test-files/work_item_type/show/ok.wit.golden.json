@@ -83,7 +83,7 @@
         "system.metastate": {
           "description": "The meta-state of the work item",
           "label": "Meta State",
-          "required": true,
+          "required": false,
           "type": {
             "baseType": "string",
             "kind": "enum",

@@ -30,7 +30,7 @@ type workItemBoardSuite struct {
 func TestWorkItemBoardSuite(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &workItemBoardSuite{
-		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
+		DBTestSuite: gormtestsupport.NewDBTestSuite(),
 	})
 }
 

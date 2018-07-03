@@ -77,8 +77,16 @@ func (j TableJoin) Validate(db *gorm.DB) error {
 	dialect.SetDB(db.CommonDB())
 	if j.Active {
 		for _, f := range j.HandledFields {
-			if !dialect.HasColumn(j.TableName, f) {
-				return errs.Errorf(`table "%s" has no column "%s"`, j.TableName, f)
+			var allowed bool
+			for _, allowedColumn := range j.AllowedColumns {
+				if allowedColumn == f {
+					allowed = true
+				}
+			}
+			if !allowed {
+				if !dialect.HasColumn(j.TableName, f) {
+					return errs.Errorf(`table "%s" has no column "%s"`, j.TableName, f)
+				}
 			}
 		}
 	}

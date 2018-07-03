@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -28,7 +27,7 @@ import (
 
 func TestSuiteWorkItemChildren(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 // The workItemChildSuite has state the is relevant to all tests.
@@ -41,7 +40,6 @@ type workItemChildSuite struct {
 	svc              *goa.Service
 	typeCtrl         *WorkitemtypeController
 	fxt              *tf.TestFixture
-	db               *gormapplication.GormDB
 	testDir          string
 }
 
@@ -54,7 +52,6 @@ const (
 // It will make sure that some resources that we rely on do exists.
 func (s *workItemChildSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	s.db = gormapplication.NewGormDB(s.DB)
 	s.testDir = filepath.Join("test-files", "work_item")
 
 	s.fxt = tf.NewTestFixture(s.T(), s.DB,
@@ -64,19 +61,19 @@ func (s *workItemChildSuite) SetupTest() {
 
 	svc := testsupport.ServiceAsUser("WorkItemLink-Service", *s.fxt.Identities[0])
 	require.NotNil(s.T(), svc)
-	s.workitemLinkCtrl = NewWorkItemLinkController(svc, s.db, s.Configuration)
+	s.workitemLinkCtrl = NewWorkItemLinkController(svc, s.GormDB, s.Configuration)
 	require.NotNil(s.T(), s.workitemLinkCtrl)
 
 	svc = testsupport.ServiceAsUser("TestWorkItem-Service", *s.fxt.Identities[0])
 	require.NotNil(s.T(), svc)
 	s.svc = svc
-	s.workItemCtrl = NewWorkitemController(svc, s.db, s.Configuration)
+	s.workItemCtrl = NewWorkitemController(svc, s.GormDB, s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
 
 	svc = testsupport.ServiceAsUser("TestWorkItems-Service", *s.fxt.Identities[0])
 	require.NotNil(s.T(), svc)
 	s.svc = svc
-	s.workItemsCtrl = NewWorkitemsController(svc, s.db, s.Configuration)
+	s.workItemsCtrl = NewWorkitemsController(svc, s.GormDB, s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
 
 	// Create a test user identity
@@ -782,12 +779,12 @@ func (s *searchParentExistsSuite) SetupTest() {
 	s.workItemChildSuite.SetupTest()
 
 	s.svc = testsupport.ServiceAsUser("Search-Service", *s.fxt.Identities[0])
-	s.searchCtrl = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.searchCtrl = NewSearchController(s.svc, s.GormDB, s.Configuration)
 }
 
 func TestSearchParentExists(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchParentExistsSuite{workItemChildSuite: workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}})
+	suite.Run(t, &searchParentExistsSuite{workItemChildSuite: workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()}})
 }
 
 func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists() {
