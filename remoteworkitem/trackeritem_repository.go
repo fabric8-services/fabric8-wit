@@ -15,8 +15,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// upload imports the items into database
-func upload(db *gorm.DB, tID uuid.UUID, item TrackerItemContent) error {
+// Upload imports the items into database
+func Upload(db *gorm.DB, tID uuid.UUID, item TrackerItemContent) error {
 	remoteID := item.ID
 	content := string(item.Content)
 

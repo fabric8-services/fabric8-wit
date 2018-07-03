@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 
@@ -17,24 +16,22 @@ import (
 
 type TestTransaction struct {
 	gormtestsupport.DBTestSuite
-	db *gormapplication.GormDB
 }
 
 func TestRunTransaction(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestTransaction{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestTransaction{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (test *TestTransaction) SetupTest() {
 	test.DBTestSuite.SetupTest()
-	test.db = gormapplication.NewGormDB(test.DB)
 }
 
 func (test *TestTransaction) TestTransactionInTime() {
 	// given
 	computeTime := 10 * time.Second
 	// then
-	err := application.Transactional(test.db, func(appl application.Application) error {
+	err := application.Transactional(test.GormDB, func(appl application.Application) error {
 		time.Sleep(computeTime)
 		return nil
 	})
@@ -47,7 +44,7 @@ func (test *TestTransaction) TestTransactionOut() {
 	computeTime := 6 * time.Minute
 	application.SetDatabaseTransactionTimeout(5 * time.Second)
 	// then
-	err := application.Transactional(test.db, func(appl application.Application) error {
+	err := application.Transactional(test.GormDB, func(appl application.Application) error {
 		time.Sleep(computeTime)
 		return nil
 	})
@@ -58,7 +55,7 @@ func (test *TestTransaction) TestTransactionOut() {
 
 func (test *TestTransaction) TestTransactionPanicAndRecoverWithStack() {
 	// then
-	err := application.Transactional(test.db, func(appl application.Application) error {
+	err := application.Transactional(test.GormDB, func(appl application.Application) error {
 		bar := func(a, b interface{}) {
 			// This comparison while legal at compile time will cause a runtime
 			// error like this: "comparing uncomparable type

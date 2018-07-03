@@ -2,8 +2,9 @@ package comment_test
 
 import (
 	"context"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"testing"
+
+	"github.com/fabric8-services/fabric8-wit/id"
 
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -17,7 +18,7 @@ import (
 
 func TestRunCommentRevisionRepositoryBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &revisionRepositoryBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &revisionRepositoryBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type revisionRepositoryBlackBoxTest struct {

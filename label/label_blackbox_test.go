@@ -24,7 +24,7 @@ type TestLabelRepository struct {
 
 func TestRunLabelRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestLabelRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestLabelRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *TestLabelRepository) TestCreateLabel() {

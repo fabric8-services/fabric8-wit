@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"context"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -12,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -29,35 +27,29 @@ import (
 
 type TestSpaceCodebaseREST struct {
 	gormtestsupport.DBTestSuite
-	db *gormapplication.GormDB
 }
 
 func TestRunSpaceCodebaseREST(t *testing.T) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		require.NoError(t, err)
-	}
-	suite.Run(t, &TestSpaceCodebaseREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestSpaceCodebaseREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestSpaceCodebaseREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 }
 
 func (rest *TestSpaceCodebaseREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *SpaceCodebasesController) {
 	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", *idn)
-	return svc, NewSpaceCodebasesController(svc, rest.db)
+	return svc, NewSpaceCodebasesController(svc, rest.GormDB)
 }
 
 func (rest *TestSpaceCodebaseREST) SecuredController() (*goa.Service, *SpaceCodebasesController) {
 	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", testsupport.TestIdentity)
-	return svc, NewSpaceCodebasesController(svc, rest.db)
+	return svc, NewSpaceCodebasesController(svc, rest.GormDB)
 }
 
 func (rest *TestSpaceCodebaseREST) UnSecuredController() (*goa.Service, *SpaceCodebasesController) {
 	svc := goa.New("SpaceCodebase-Service")
-	return svc, NewSpaceCodebasesController(svc, rest.db)
+	return svc, NewSpaceCodebasesController(svc, rest.GormDB)
 }
 
 func (rest *TestSpaceCodebaseREST) TestCreateCodebaseCreated() {
@@ -224,7 +216,7 @@ func createSpaceCodebase(url string, stackId *string) *app.CreateSpaceCodebasesP
 func (rest *TestSpaceCodebaseREST) createSpace(ownerID uuid.UUID) *space.Space {
 	var sp *space.Space
 	var err error
-	err = application.Transactional(rest.db, func(app application.Application) error {
+	err = application.Transactional(rest.GormDB, func(app application.Application) error {
 		repo := app.Spaces()
 		newSpace := &space.Space{
 			Name:            "TestSpaceCodebase " + uuid.NewV4().String(),

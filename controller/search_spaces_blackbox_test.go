@@ -1,25 +1,18 @@
 package controller_test
 
 import (
-	"context"
-	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
-	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	"github.com/stretchr/testify/require"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/goadesign/goa"
@@ -42,44 +35,49 @@ type okScenario struct {
 
 type TestSearchSpacesREST struct {
 	gormtestsupport.DBTestSuite
-	db *gormapplication.GormDB
 }
 
 func TestRunSearchSpacesREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestSearchSpacesREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestSearchSpacesREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestSearchSpacesREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 }
 
 func (rest *TestSearchSpacesREST) SecuredController() (*goa.Service, *SearchController) {
 	svc := testsupport.ServiceAsUser("Search-Service", testsupport.TestIdentity)
-	return svc, NewSearchController(svc, rest.db, rest.Configuration)
+	return svc, NewSearchController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestSearchSpacesREST) UnSecuredController() (*goa.Service, *SearchController) {
 	svc := goa.New("Search-Service")
-	return svc, NewSearchController(svc, rest.db, rest.Configuration)
+	return svc, NewSearchController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 	// given
-	prefix := time.Now().Format("2006_Jan_2_15_04_05_") // using a unique prefix to make sure the test data will not collide with existing, older spaces.
-	idents, err := createTestData(rest.db, prefix)
-	require.NoError(rest.T(), err)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.Spaces(2, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Spaces[idx].Description = strings.ToTitle("description for " + fxt.Spaces[idx].Name)
+			return nil
+		}),
+		tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Iterations[idx].SpaceID = fxt.Spaces[idx].ID
+			return nil
+		}),
+	)
 	tests := []okScenario{
-		{"With uppercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},
-		{"With lowercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},
-		{"With uppercase description query", args{offset("0"), limit(10), "DESCRIPTION FOR " + prefix + "TEST_AB"}, expects{totalCount(1)}},
-		{"With lowercase description query", args{offset("0"), limit(10), "description for " + prefix + "test_ab"}, expects{totalCount(1)}},
+		{"With uppercase fullname query", args{offset("0"), limit(10), strings.ToUpper(fxt.Spaces[0].Name)}, expects{totalCount(1)}},
+		{"With lowercase fullname query", args{offset("0"), limit(10), strings.ToLower(fxt.Spaces[0].Name)}, expects{totalCount(1)}},
+		{"With uppercase description query", args{offset("0"), limit(10), "DESCRIPTION FOR " + fxt.Spaces[0].Name}, expects{totalCount(1)}},
+		{"With lowercase description query", args{offset("0"), limit(10), "description for " + fxt.Spaces[0].Name}, expects{totalCount(1)}},
 		{"with special chars", args{offset("0"), limit(10), "&:\n!#%?*"}, expects{totalCount(0)}},
-		{"with * to list all", args{offset("0"), limit(10), "*"}, expects{totalCountAtLeast(len(idents))}},
-		{"with multi page", args{offset("0"), limit(10), prefix + "TEST"}, expects{hasLinks("Next")}},
-		{"with last page", args{offset(strconv.Itoa(len(idents) - 1)), limit(10), prefix + "TEST"}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
-		{"with different values", args{offset("0"), limit(10), prefix + "TEST"}, expects{differentValues()}},
+		{"with * to list all", args{offset("0"), limit(10), "*"}, expects{totalCountAtLeast(len(fxt.Spaces))}},
+		{"with multi page", args{offset("0"), limit(1), "space"}, expects{hasLinks("Next")}},
+		{"with last page", args{offset(strconv.Itoa(len(fxt.Spaces) - 1)), limit(10), "space"}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
+		{"with different values", args{offset("0"), limit(10), fxt.Spaces[0].Name}, expects{differentValues()}},
 	}
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
@@ -89,35 +87,6 @@ func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 			expect(rest.T(), tt, result)
 		}
 	}
-}
-
-func createTestData(db application.DB, prefix string) ([]space.Space, error) {
-	names := []string{prefix + "TEST_A", prefix + "TEST_AB", prefix + "TEST_B", prefix + "TEST_C"}
-	for i := 0; i < 20; i++ {
-		names = append(names, prefix+"TEST_"+strconv.Itoa(i))
-	}
-
-	spaces := []space.Space{}
-
-	err := application.Transactional(db, func(app application.Application) error {
-		for _, name := range names {
-			space := space.Space{
-				Name:            name,
-				Description:     strings.ToTitle("description for " + name),
-				SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
-			}
-			newSpace, err := app.Spaces().Create(context.Background(), &space)
-			if err != nil {
-				return err
-			}
-			spaces = append(spaces, *newSpace)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("Failed to insert testdata %v", err)
-	}
-	return spaces, nil
 }
 
 func totalCount(count int) expect {

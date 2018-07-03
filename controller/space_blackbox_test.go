@@ -15,7 +15,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -79,19 +78,17 @@ func init() {
 
 type SpaceControllerTestSuite struct {
 	gormtestsupport.DBTestSuite
-	db            *gormapplication.GormDB
 	iterationRepo iteration.Repository
 	testDir       string
 }
 
 func TestSpaceController(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &SpaceControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &SpaceControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *SpaceControllerTestSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	s.db = gormapplication.NewGormDB(s.DB)
 	s.iterationRepo = iteration.NewIterationRepository(s.DB)
 	s.testDir = filepath.Join("test-files", "space")
 }
@@ -119,7 +116,7 @@ func (s *SpaceControllerTestSuite) SecuredController(
 	settings ...ConfigureSpaceController) (*goa.Service, *SpaceController) {
 
 	svc := testsupport.ServiceAsUser("Space-Service", identity)
-	ctrl := NewSpaceController(svc, s.db, spaceConfiguration, &DummyResourceManager{})
+	ctrl := NewSpaceController(svc, s.GormDB, spaceConfiguration, &DummyResourceManager{})
 	for _, set := range settings {
 		set(ctrl)
 	}
@@ -132,7 +129,7 @@ func (s *SpaceControllerTestSuite) SecuredControllerWithDummyResourceManager(
 	settings ...ConfigureSpaceController) (*goa.Service, *SpaceController) {
 
 	svc := testsupport.ServiceAsUser("Space-Service", identity)
-	ctrl := NewSpaceController(svc, s.db, spaceConfiguration, &dummyResourceManager)
+	ctrl := NewSpaceController(svc, s.GormDB, spaceConfiguration, &dummyResourceManager)
 	for _, set := range settings {
 		set(ctrl)
 	}
@@ -141,17 +138,17 @@ func (s *SpaceControllerTestSuite) SecuredControllerWithDummyResourceManager(
 
 func (s *SpaceControllerTestSuite) UnSecuredController() (*goa.Service, *SpaceController) {
 	svc := goa.New("Space-Service")
-	return svc, NewSpaceController(svc, s.db, spaceConfiguration, &DummyResourceManager{})
+	return svc, NewSpaceController(svc, s.GormDB, spaceConfiguration, &DummyResourceManager{})
 }
 
 func (s *SpaceControllerTestSuite) SecuredSpaceAreaController(identity account.Identity) (*goa.Service, *SpaceAreasController) {
 	svc := testsupport.ServiceAsUser("Area-Service", identity)
-	return svc, NewSpaceAreasController(svc, s.db, s.Configuration)
+	return svc, NewSpaceAreasController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *SpaceControllerTestSuite) SecuredSpaceIterationController(identity account.Identity) (*goa.Service, *SpaceIterationsController) {
 	svc := testsupport.ServiceAsUser("Iteration-Service", identity)
-	return svc, NewSpaceIterationsController(svc, s.db, s.Configuration)
+	return svc, NewSpaceIterationsController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *SpaceControllerTestSuite) TestValidateSpaceName() {
