@@ -72,7 +72,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 			switch fieldType := field.Type.(type) {
 			case workitem.ListType:
 				switch fieldType.ComponentType.Kind {
-				case workitem.KindLabel, workitem.KindUser:
+				case workitem.KindLabel, workitem.KindUser, workitem.KindBoardColumn:
 					var p []interface{}
 					var n []interface{}
 
