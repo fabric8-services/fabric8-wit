@@ -2,52 +2,6 @@
   "data": [
     {
       "attributes": {
-        "context": "49d1a19f-02b4-4a10-a774-5723299f8944",
-        "contextType": "TypeLevelContext",
-        "created-at": "0001-01-01T00:00:00Z",
-        "name": "Execution Board",
-        "updated-at": "0001-01-01T00:00:00Z"
-      },
-      "id": "0331cca0-0c6c-48fb-b2cd-002f957f9e31",
-      "links": {
-        "related": "http:///api/workitemboards/0331cca0-0c6c-48fb-b2cd-002f957f9e31"
-      },
-      "relationships": {
-        "columns": {
-          "data": [
-            {
-              "id": "7e3bbf09-44c4-419e-8d43-10e00400ca80",
-              "type": "boardcolumns"
-            },
-            {
-              "id": "29124ef0-d651-47c4-84a7-28acb7a4ab7a",
-              "type": "boardcolumns"
-            },
-            {
-              "id": "a30fc0e0-bfa9-43b1-a83d-b62ae2d5d0f7",
-              "type": "boardcolumns"
-            },
-            {
-              "id": "ca1ea842-1650-4435-88b3-560e5bf47d42",
-              "type": "boardcolumns"
-            },
-            {
-              "id": "c3589823-203c-4890-b548-f003ba77af53",
-              "type": "boardcolumns"
-            }
-          ]
-        },
-        "spaceTemplate": {
-          "data": {
-            "id": "f405fa41-a8bb-46db-8800-2dbe13da1418",
-            "type": "spacetemplates"
-          }
-        }
-      },
-      "type": "workitemboards"
-    },
-    {
-      "attributes": {
         "context": "1c21af72-59ab-43d7-a84c-e76ee8ed3342",
         "contextType": "TypeLevelContext",
         "created-at": "0001-01-01T00:00:00Z",
@@ -91,49 +45,55 @@
         }
       },
       "type": "workitemboards"
+    },
+    {
+      "attributes": {
+        "context": "49d1a19f-02b4-4a10-a774-5723299f8944",
+        "contextType": "TypeLevelContext",
+        "created-at": "0001-01-01T00:00:00Z",
+        "name": "Execution Board",
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "0331cca0-0c6c-48fb-b2cd-002f957f9e31",
+      "links": {
+        "related": "http:///api/workitemboards/0331cca0-0c6c-48fb-b2cd-002f957f9e31"
+      },
+      "relationships": {
+        "columns": {
+          "data": [
+            {
+              "id": "7e3bbf09-44c4-419e-8d43-10e00400ca80",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "29124ef0-d651-47c4-84a7-28acb7a4ab7a",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "a30fc0e0-bfa9-43b1-a83d-b62ae2d5d0f7",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "ca1ea842-1650-4435-88b3-560e5bf47d42",
+              "type": "boardcolumns"
+            },
+            {
+              "id": "c3589823-203c-4890-b548-f003ba77af53",
+              "type": "boardcolumns"
+            }
+          ]
+        },
+        "spaceTemplate": {
+          "data": {
+            "id": "f405fa41-a8bb-46db-8800-2dbe13da1418",
+            "type": "spacetemplates"
+          }
+        }
+      },
+      "type": "workitemboards"
     }
   ],
   "included": [
-    {
-      "attributes": {
-        "columnOrder": 0,
-        "name": "New"
-      },
-      "id": "7e3bbf09-44c4-419e-8d43-10e00400ca80",
-      "type": "boardcolumns"
-    },
-    {
-      "attributes": {
-        "columnOrder": 0,
-        "name": "Open"
-      },
-      "id": "29124ef0-d651-47c4-84a7-28acb7a4ab7a",
-      "type": "boardcolumns"
-    },
-    {
-      "attributes": {
-        "columnOrder": 0,
-        "name": "In Progress"
-      },
-      "id": "a30fc0e0-bfa9-43b1-a83d-b62ae2d5d0f7",
-      "type": "boardcolumns"
-    },
-    {
-      "attributes": {
-        "columnOrder": 0,
-        "name": "Done"
-      },
-      "id": "ca1ea842-1650-4435-88b3-560e5bf47d42",
-      "type": "boardcolumns"
-    },
-    {
-      "attributes": {
-        "columnOrder": 0,
-        "name": "Verified"
-      },
-      "id": "c3589823-203c-4890-b548-f003ba77af53",
-      "type": "boardcolumns"
-    },
     {
       "attributes": {
         "columnOrder": 0,
@@ -172,6 +132,46 @@
         "name": "Verified"
       },
       "id": "b454daf3-d7f4-44d2-a8fb-c767984ecd9d",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 0,
+        "name": "New"
+      },
+      "id": "7e3bbf09-44c4-419e-8d43-10e00400ca80",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 0,
+        "name": "Open"
+      },
+      "id": "29124ef0-d651-47c4-84a7-28acb7a4ab7a",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 0,
+        "name": "In Progress"
+      },
+      "id": "a30fc0e0-bfa9-43b1-a83d-b62ae2d5d0f7",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 0,
+        "name": "Done"
+      },
+      "id": "ca1ea842-1650-4435-88b3-560e5bf47d42",
+      "type": "boardcolumns"
+    },
+    {
+      "attributes": {
+        "columnOrder": 0,
+        "name": "Verified"
+      },
+      "id": "c3589823-203c-4890-b548-f003ba77af53",
       "type": "boardcolumns"
     }
   ],
