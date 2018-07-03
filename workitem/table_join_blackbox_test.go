@@ -22,7 +22,7 @@ func Test_TableJoinSuite(t *testing.T) {
 
 func (s *tableJoinTestSuite) TestIsValidate() {
 	// given
-	j := workitem.TableJoin{
+	iterations := workitem.TableJoin{
 		Active:           true,
 		TableName:        "iterations",
 		TableAlias:       "iter",
@@ -30,16 +30,33 @@ func (s *tableJoinTestSuite) TestIsValidate() {
 		PrefixActivators: []string{"iteration."},
 	}
 	s.T().Run("valid", func(t *testing.T) {
-		//given
-		j.HandledFields = []string{"name"}
-		// when/then
-		require.NoError(t, j.Validate(s.DB))
+		t.Run("column exists", func(t *testing.T) {
+			//given
+			iterations.HandledFields = []string{"name"}
+			// when/then
+			require.NoError(t, iterations.Validate(s.DB))
+		})
+		t.Run("column doesn't exist but was allowed", func(t *testing.T) {
+			//given
+			spaces := workitem.TableJoin{
+				Active:           true,
+				TableName:        "spaces",
+				TableAlias:       "space",
+				On:               workitem.Column(workitem.WorkItemStorage{}.TableName(), "space_id") + "=" + workitem.Column("spaces", "id"),
+				PrefixActivators: []string{"space."},
+				AllowedColumns:   []string{"foobar"},
+			}
+			spaces.HandledFields = []string{"foobar"}
+			// when/then
+			require.NoError(t, spaces.Validate(s.DB))
+		})
 	})
+
 	s.T().Run("not valid", func(t *testing.T) {
 		//given
-		j.HandledFields = []string{"some_field_that_definitively_does_not_exist_in_the_iterations_table"}
+		iterations.HandledFields = []string{"some_field_that_definitively_does_not_exist_in_the_iterations_table_and_is_not_allowed"}
 		// when/then
-		require.Error(t, j.Validate(s.DB))
+		require.Error(t, iterations.Validate(s.DB))
 	})
 }
 
