@@ -846,7 +846,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 					]}
 				]}`,
 			spaceIDStr, workitem.SystemStateOpen, fakeIterationID)
-		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		_, _ = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		// assert.Empty(t, result.Data)
 	})
 
