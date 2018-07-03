@@ -130,7 +130,7 @@ func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
 
 func (rest *TestNamedSpaceREST) TestShow() {
 	rest.T().Run("ok", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Identities(2))
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
 
 		namedSpaceSvc, namedSpacectrl := rest.SecuredNamedSpaceController(*fxt.Identities[0])
 		res, namedspace := test.ShowNamedspacesOK(t, namedSpaceSvc.Context, namedSpaceSvc, namedSpacectrl, fxt.Identities[0].Username, fxt.Spaces[0].Name)
