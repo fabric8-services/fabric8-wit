@@ -9,7 +9,7 @@ This implements the backend support for board views. It contains changes to the 
 
 ## Changes to the JSONAPI
 
-This section describes the API of the new service changes. It defines new entities available thru JSONAPI as well as the changes to existing endpoints.
+This section describes the API of the new service changes. It defines new entities available through JSONAPI as well as the changes to existing endpoints.
 
 ### Board/Column Definition in the Space Template Response
 
@@ -100,7 +100,7 @@ The response to `/workitems` and `/workitems/:id` is updated to contain the posi
       # [...]
 ```
 
-The ID reference of the board column is alwasy referring to the UUID of a column. The board is given implicitly as we're dealing with UUIDs. The column positions are described as an embedded JSONAPI relationship.
+The ID reference of the board column is always referring to the UUID of a column. The board is given implicitly as we're dealing with UUIDs. The column positions are described as an embedded JSONAPI relationship.
 
 ### Meta State on the Work Item
 
@@ -156,7 +156,7 @@ The rule/action being executed on the WIT side is defined by `transRuleID` and `
 
 ### Update of Work Item Data
 
-When a Work Item is updated (either attributes or relationships), the WIT will re-calculate the board positions of the particular Work Item. The client is expected to send a `PATCH` request to `/workitems/:id` as ususal to update Work Item data. *The response of the `PATCH` request contains an updated Work Item that may contain updated attribute and/or relationship values* (for example, an updated `boardcolumns` relationship). The client is expected to update the local Work Item data from that response.
+When a Work Item is updated (either attributes or relationships), the WIT will re-calculate the board positions of the particular Work Item. The client is expected to send a `PATCH` request to `/workitems/:id` as usual to update Work Item data. *The response of the `PATCH` request contains an updated Work Item that may contain updated attribute and/or relationship values* (for example, an updated `boardcolumns` relationship). The client is expected to update the local Work Item data from that response.
 
 The rule/action being executed on the WIT side is defined by the `onUpdateActions` relationship on the Work Item Type definition (see above). If a Work Item is updated, the rules/actions are executed and the new board positions for the Work Item are calculated.
  
@@ -190,7 +190,7 @@ The new criterias `column` and `board` can be used with other query language fea
 
 ### Default Board Definition in the Space Templates
 
-The default board definition has to be added to the Space Template definition. This is done thru the YAML definition files:
+The default board definition has to be added to the Space Template definition. This is done through the YAML definition files:
 
 ```yaml
 board_config:
@@ -234,7 +234,7 @@ The default board definitions get loaded/updated into the database on launch in 
 
 ### New Database Table holding the Column Definitions
 
-This is the table that holds the board definition for a specific board of a specific Space. A Work Item placed in a column links back to exactly one `boardcolumn` entry per `boardID`. A Work Item may be in multiple columns but only in one column per board. The `boardcolumns` defintions link back to a Space template (`spaceTemplateID`), not a Space as we don’t allow customization yet and the schema is modelles the same way the Work Item Types are modelled. That means that `columnID` and `boardID` are the same for Spaces using the same Space template. This is not an issue as the Work Item definition links back to the Space, so the context is given.
+This is the table that holds the board definition for a specific board of a specific Space. A Work Item placed in a column links back to exactly one `boardcolumn` entry per `boardID`. A Work Item may be in multiple columns but only in one column per board. The `boardcolumns` defintions link back to a Space template (`spaceTemplateID`), not a Space as we don’t allow customization yet and the schema is modelled the same way the Work Item Types are modelled. That means that `columnID` and `boardID` are the same for Spaces using the same Space template. This is not an issue as the Work Item definition links back to the Space, so the context is given.
 
 (Pseudocode)
 ```sql

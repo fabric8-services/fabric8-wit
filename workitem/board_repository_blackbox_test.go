@@ -2,7 +2,6 @@ package workitem_test
 
 import (
 	"testing"
-	//"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -41,7 +40,7 @@ func (s *workItemBoardRepoTest) TestExists() {
 		require.NoError(s.T(), err)
 	})
 
-	s.T().Run("group doesn't exist", func(t *testing.T) {
+	s.T().Run("board doesn't exist", func(t *testing.T) {
 		// given
 		nonExistingWorkItemBoardID := uuid.NewV4()
 		// when

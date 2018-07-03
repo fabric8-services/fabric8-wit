@@ -269,24 +269,6 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardID() {
 			}
 			require.Empty(t, mustHave)
 		})
-		/*
-			t.Run("multiple match, boolean expression", func(t *testing.T) {
-				filter := fmt.Sprintf(`{ "$OR": [ {"board": "%s"}, {"board": "%s"} ] }`, fxt.WorkItemBoards[0].ID.String(), fxt.WorkItemBoards[1].ID.String())
-				res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
-				require.NoError(t, err)
-				require.Equal(t, 3, count)
-				require.Len(t, res, count)
-				mustHave := map[string]struct{}{
-					fxt.WorkItems[0].ID.String(): {},
-					fxt.WorkItems[1].ID.String(): {},
-					fxt.WorkItems[2].ID.String(): {},
-				}
-				for _, workItem := range res {
-					delete(mustHave, workItem.ID.String())
-				}
-				require.Empty(t, mustHave)
-			})
-		*/
 	})
 }
 

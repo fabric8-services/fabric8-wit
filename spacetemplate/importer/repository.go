@@ -341,7 +341,7 @@ func (r *GormRepository) createOrUpdateWIBs(ctx context.Context, s *ImportHelper
 	// it is just a linkage of work item type groups.
 	db := r.db.Unscoped().Delete(workitem.Board{}, "space_template_id = ?", s.Template.ID)
 	if db.Error != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to deleted previous work item boards for space template '%s'", s.Template.ID))
+		return errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to delete previous work item boards for space template '%s'", s.Template.ID))
 	}
 	repo := workitem.NewBoardRepository(r.db)
 	for _, board := range s.WIBs {
