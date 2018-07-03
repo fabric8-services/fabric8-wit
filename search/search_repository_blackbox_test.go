@@ -177,14 +177,16 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {
 			filter := fmt.Sprintf(`{"boardcolumn": "%s"}`, fxt.WorkItemBoards[1].Columns[0].ID.String())
 			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
-			assert.Equal(t, 1, count)
+			require.Equal(t, 1, count)
+			require.Len(t, res, count)
 			assert.Equal(t, fxt.WorkItems[2].ID, res[0].ID)
 		})
 		t.Run("multiple match, atomic expression", func(t *testing.T) {
 			filter := fmt.Sprintf(`{"boardcolumn": "%s"}`, fxt.WorkItemBoards[1].Columns[1].ID.String())
 			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
-			assert.Equal(t, 2, count)
+			require.Equal(t, 2, count)
+			require.Len(t, res, count)
 			mustHave := map[string]struct{}{
 				fxt.WorkItems[0].ID.String(): {},
 				fxt.WorkItems[1].ID.String(): {},
@@ -195,17 +197,27 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {
 			require.Empty(t, mustHave)
 		})
 		t.Run("single match, boolean expression", func(t *testing.T) {
-			filter := fmt.Sprintf(`{ "$OR": [ {"boardcolumn": "%s"}, {"boardcolumn": "%s"} ] }`, fxt.WorkItemBoards[1].Columns[0].ID.String(), fxt.WorkItemBoards[0].Columns[1].ID.String())
+			filter := fmt.Sprintf(`
+				{ "$OR": [ {"boardcolumn": "%s"}, {"boardcolumn": "%s"} ] }`,
+				fxt.WorkItemBoards[1].Columns[0].ID.String(),
+				fxt.WorkItemBoards[0].Columns[1].ID.String(),
+			)
 			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
-			assert.Equal(t, 1, count)
+			require.Equal(t, 1, count)
+			require.Len(t, res, count)
 			assert.Equal(t, fxt.WorkItems[2].ID, res[0].ID)
 		})
 		t.Run("multiple match, boolean expression", func(t *testing.T) {
-			filter := fmt.Sprintf(`{ "$OR": [ {"boardcolumn": "%s"}, {"boardcolumn": "%s"} ] }`, fxt.WorkItemBoards[0].Columns[0].ID.String(), fxt.WorkItemBoards[1].Columns[1].ID.String())
+			filter := fmt.Sprintf(`
+				{ "$OR": [ {"boardcolumn": "%s"}, {"boardcolumn": "%s"} ] }`,
+				fxt.WorkItemBoards[0].Columns[0].ID.String(),
+				fxt.WorkItemBoards[1].Columns[1].ID.String(),
+			)
 			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
-			assert.Equal(t, 2, count)
+			require.Equal(t, 2, count)
+			require.Len(t, res, count)
 			mustHave := map[string]struct{}{
 				fxt.WorkItems[0].ID.String(): {},
 				fxt.WorkItems[1].ID.String(): {},
@@ -246,7 +258,8 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardID() {
 			filter := fmt.Sprintf(`{"board.id": "%s"}`, fxt.WorkItemBoards[0].ID.String())
 			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
-			assert.Equal(t, 2, count)
+			require.Equal(t, 2, count)
+			require.Len(t, res, count)
 			mustHave := map[string]struct{}{
 				fxt.WorkItems[0].ID.String(): {},
 				fxt.WorkItems[2].ID.String(): {},
@@ -261,7 +274,8 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardID() {
 				filter := fmt.Sprintf(`{ "$OR": [ {"board": "%s"}, {"board": "%s"} ] }`, fxt.WorkItemBoards[0].ID.String(), fxt.WorkItemBoards[1].ID.String())
 				res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 				require.NoError(t, err)
-				assert.Equal(t, 3, count)
+				require.Equal(t, 3, count)
+				require.Len(t, res, count)
 				mustHave := map[string]struct{}{
 					fxt.WorkItems[0].ID.String(): {},
 					fxt.WorkItems[1].ID.String(): {},
