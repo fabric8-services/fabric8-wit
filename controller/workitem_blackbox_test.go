@@ -21,7 +21,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -82,11 +81,11 @@ func (s *WorkItemSuite) SetupTest() {
 	s.testIdentity = *testIdentity
 
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", s.testIdentity)
-	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
-
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	s.workitemCtrl = NewWorkitemController(s.svc, s.GormDB, s.Configuration)
+	s.workitemsCtrl = NewWorkitemsController(s.svc, s.GormDB, s.Configuration)
+	s.spaceCtrl = NewSpaceController(s.svc, s.GormDB, s.Configuration, &DummyResourceManager{})
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	log.Info(nil, nil, "Creating work item during test setup...")
@@ -97,35 +96,28 @@ func (s *WorkItemSuite) SetupTest() {
 }
 
 func (s *WorkItemSuite) TestPagingLinks() {
-	workitemsCtrl := NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	workitemsCtrl := NewWorkitemsController(s.svc, s.GormDB, s.Configuration)
+	// fxt.Spaces[0] has ONE workitem and fxt.Spaces[1] has TEN workitems and fxt.Spaces[2] has ZERO workitems
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(3), tf.WorkItems(11, func(fxt *tf.TestFixture, idx int) error {
+		if idx == 0 {
+			fxt.WorkItems[idx].SpaceID = fxt.Spaces[0].ID
+		} else {
+			fxt.WorkItems[idx].SpaceID = fxt.Spaces[1].ID
+		}
+		fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+		return nil
+	}))
 	// With only ONE work item
-	pagingTest := createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, space.SystemSpace, 1)
+	pagingTest := createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, fxt.Spaces[0].ID, 1)
 	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "")
 
-	// With only TEN work items
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	for i := 1; i <= 9; i++ {
-		payload.Data.Attributes[workitem.SystemTitle] = fmt.Sprintf("Paging WI %d", i)
-		test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	}
-	pagingTest = createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, space.SystemSpace, 10)
+	pagingTest = createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, fxt.Spaces[1].ID, 10)
 	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5", "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5")
 	pagingTest(1, 10, "page[offset]=0&page[limit]=1", "page[offset]=1&page[limit]=10", "page[offset]=0&page[limit]=1", "")
 	pagingTest(0, 4, "page[offset]=0&page[limit]=4", "page[offset]=8&page[limit]=4", "", "page[offset]=4&page[limit]=4")
 
 	// With only ZERO work items
-	spaceName := "paging zero space " + uuid.NewV4().String()
-	sp := &app.CreateSpacePayload{
-		Data: &app.Space{
-			Type: "spaces",
-			Attributes: &app.SpaceAttributes{
-				Name: &spaceName,
-			},
-		},
-	}
-	_, customSpace := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, sp)
-	pagingTest = createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, *customSpace.Data.ID, 0)
+	pagingTest = createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, fxt.Spaces[2].ID, 0)
 	pagingTest(10, 2, "page[offset]=0&page[limit]=0", "page[offset]=0&page[limit]=0", "", "")
 	pagingTest(0, 2, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=0", "", "")
 }
@@ -245,7 +237,7 @@ func (s *WorkItemSuite) TestCreateWI() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
 		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
-		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
 		// given
 		payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 		payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
@@ -286,8 +278,8 @@ func (s *WorkItemSuite) TestCreateWI() {
 			}),
 		)
 		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
-		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
+		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		_ = workitemCtrl
 
 		// when
@@ -719,9 +711,9 @@ func (s *WorkItemSuite) TestUnauthorizeWorkItemCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemTestDataFunc(*s.Configuration), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWI-Service")
 	}, func(service *goa.Service) error {
-		workitemCtrl := NewWorkitemController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemCtrl := NewWorkitemController(service, s.GormDB, s.Configuration)
 		app.MountWorkitemController(service, workitemCtrl)
-		workitemsCtrl := NewWorkitemsController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemsCtrl := NewWorkitemsController(service, s.GormDB, s.Configuration)
 		app.MountWorkitemsController(service, workitemsCtrl)
 		return nil
 	})
@@ -860,7 +852,7 @@ func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iterat
 // a normal test function that will kick off WorkItem2Suite
 func TestSuiteWorkItem2(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &WorkItem2Suite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &WorkItem2Suite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func ident(id uuid.UUID) *app.GenericData {
@@ -895,13 +887,13 @@ func (s *WorkItem2Suite) SetupTest() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
 	require.NoError(s.T(), err)
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *testIdentity)
-	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
-	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
-	s.witCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, s.GormDB, &s.notification, s.Configuration)
+	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, s.GormDB, &s.notification, s.Configuration)
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, s.GormDB)
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, s.GormDB, s.Configuration)
+	s.linkCtrl = NewWorkItemLinkController(s.svc, s.GormDB, s.Configuration)
+	s.spaceCtrl = NewSpaceController(s.svc, s.GormDB, s.Configuration, &DummyResourceManager{})
+	s.witCtrl = NewWorkitemtypeController(s.svc, s.GormDB, s.Configuration)
 
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.Spaces(1), tf.WorkItemTypes(1))
 	//payload := minimumRequiredCreateWithType(workitem.SystemBug)
@@ -3015,19 +3007,19 @@ func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitem
 func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	require.NoError(s.T(), err)
-	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
+	space := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, *testIdentity, "")
 	// Create new workitem
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *space.ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity, ""})
-	workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
+	workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity, ""})
-	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
-	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
+	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
+	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, s.GormDB, s.Configuration)
 
 	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	// Not a space owner is not authorized to create
@@ -3054,7 +3046,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	}
 	err = testsupport.CreateTestIdentityForAccountIdentity(s.DB, &openshiftioTestIdentity)
 	require.NoError(s.T(), err)
-	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, openshiftioTestIdentity, "")
+	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, openshiftioTestIdentity, "")
 	payload3 := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *openshiftioTestIdentitySpace.ID)
 	payload3.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload3.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew

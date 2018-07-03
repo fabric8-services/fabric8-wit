@@ -8,7 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -42,7 +41,7 @@ func (rest *TestPlannerBacklogBlackboxREST) SetupTest() {
 
 func (rest *TestPlannerBacklogBlackboxREST) UnSecuredController() (*goa.Service, *PlannerBacklogController) {
 	svc := goa.New("PlannerBacklog-Service")
-	return svc, NewPlannerBacklogController(svc, gormapplication.NewGormDB(rest.DB), rest.Configuration)
+	return svc, NewPlannerBacklogController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration *iteration.Iteration, createdWI *workitem.WorkItem) {

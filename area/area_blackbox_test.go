@@ -24,7 +24,7 @@ type TestAreaRepository struct {
 
 func TestRunAreaRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestAreaRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestAreaRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *TestAreaRepository) TestCreateAreaWithSameNameFail() {
