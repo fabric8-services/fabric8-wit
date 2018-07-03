@@ -18,7 +18,7 @@ import (
 )
 
 func TestSpaceRepository(t *testing.T) {
-	suite.Run(t, &SpaceRepositoryTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &SpaceRepositoryTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type SpaceRepositoryTestSuite struct {

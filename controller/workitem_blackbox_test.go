@@ -21,13 +21,13 @@ import (
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -81,11 +81,11 @@ func (s *WorkItemSuite) SetupTest() {
 	s.testIdentity = *testIdentity
 
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", s.testIdentity)
-	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
-
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	s.workitemCtrl = NewWorkitemController(s.svc, s.GormDB, s.Configuration)
+	s.workitemsCtrl = NewWorkitemsController(s.svc, s.GormDB, s.Configuration)
+	s.spaceCtrl = NewSpaceController(s.svc, s.GormDB, s.Configuration, &DummyResourceManager{})
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	log.Info(nil, nil, "Creating work item during test setup...")
@@ -96,35 +96,28 @@ func (s *WorkItemSuite) SetupTest() {
 }
 
 func (s *WorkItemSuite) TestPagingLinks() {
-	workitemsCtrl := NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	workitemsCtrl := NewWorkitemsController(s.svc, s.GormDB, s.Configuration)
+	// fxt.Spaces[0] has ONE workitem and fxt.Spaces[1] has TEN workitems and fxt.Spaces[2] has ZERO workitems
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(3), tf.WorkItems(11, func(fxt *tf.TestFixture, idx int) error {
+		if idx == 0 {
+			fxt.WorkItems[idx].SpaceID = fxt.Spaces[0].ID
+		} else {
+			fxt.WorkItems[idx].SpaceID = fxt.Spaces[1].ID
+		}
+		fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+		return nil
+	}))
 	// With only ONE work item
-	pagingTest := createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, space.SystemSpace, 1)
+	pagingTest := createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, fxt.Spaces[0].ID, 1)
 	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "")
 
-	// With only TEN work items
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	for i := 1; i <= 9; i++ {
-		payload.Data.Attributes[workitem.SystemTitle] = fmt.Sprintf("Paging WI %d", i)
-		test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	}
-	pagingTest = createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, space.SystemSpace, 10)
+	pagingTest = createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, fxt.Spaces[1].ID, 10)
 	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5", "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5")
 	pagingTest(1, 10, "page[offset]=0&page[limit]=1", "page[offset]=1&page[limit]=10", "page[offset]=0&page[limit]=1", "")
 	pagingTest(0, 4, "page[offset]=0&page[limit]=4", "page[offset]=8&page[limit]=4", "", "page[offset]=4&page[limit]=4")
 
 	// With only ZERO work items
-	spaceName := "paging zero space " + uuid.NewV4().String()
-	sp := &app.CreateSpacePayload{
-		Data: &app.Space{
-			Type: "spaces",
-			Attributes: &app.SpaceAttributes{
-				Name: &spaceName,
-			},
-		},
-	}
-	_, customSpace := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, sp)
-	pagingTest = createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, *customSpace.Data.ID, 0)
+	pagingTest = createPagingTest(s.T(), s.svc.Context, workitemsCtrl, &s.repoWit, fxt.Spaces[2].ID, 0)
 	pagingTest(10, 2, "page[offset]=0&page[limit]=0", "page[offset]=0&page[limit]=0", "", "")
 	pagingTest(0, 2, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=0", "", "")
 }
@@ -132,28 +125,28 @@ func (s *WorkItemSuite) TestPagingLinks() {
 func (s *WorkItemSuite) TestPagingErrors() {
 	var offset string = "-1"
 	var limit int = 2
-	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[offset]=0") {
 		assert.Fail(s.T(), "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = 0
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is 0", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = -1
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "-3"
 	limit = -1
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
@@ -163,7 +156,7 @@ func (s *WorkItemSuite) TestPagingErrors() {
 
 	offset = "ALPHA"
 	limit = 40
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=40") {
 		assert.Fail(s.T(), "Limit is within range", "Expected limit to be size %d, but was %s", 40, *result.Links.First)
 	}
@@ -174,10 +167,11 @@ func (s *WorkItemSuite) TestPagingErrors() {
 
 func (s *WorkItemSuite) TestPagingLinksHasAbsoluteURL() {
 	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 	offset := "10"
 	limit := 10
 	// when
-	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	// then
 	if !strings.HasPrefix(*result.Links.First, "http://") {
 		assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
@@ -195,21 +189,21 @@ func (s *WorkItemSuite) TestPagingDefaultAndMaxSize() {
 	offset := "0"
 	var limit int
 	// when
-	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, nil, &offset, nil, nil)
+	_, result := test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, nil, &offset, nil, nil, nil)
 	// then
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is nil", "Expected limit to be default size %d, got %v", 20, *result.Links.First)
 	}
 	// when
 	limit = 1000
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	// then
 	if !strings.Contains(*result.Links.First, "page[limit]=100") {
 		assert.Fail(s.T(), "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
 	}
 	// when
 	limit = 50
-	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	// then
 	if !strings.Contains(*result.Links.First, "page[limit]=50") {
 		assert.Fail(s.T(), "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)
@@ -244,7 +238,7 @@ func (s *WorkItemSuite) TestCreateWI() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
 		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
-		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
 		// given
 		payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 		payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
@@ -285,8 +279,8 @@ func (s *WorkItemSuite) TestCreateWI() {
 			}),
 		)
 		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
-		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
+		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		_ = workitemCtrl
 
 		// when
@@ -339,7 +333,8 @@ func (s *WorkItemSuite) TestCreateWI() {
 // TestReorderAbove is positive test which tests successful reorder by providing valid input
 // This case reorders one workitem -> result3 and places it **above** result2
 func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
@@ -355,7 +350,7 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	payload2.Data = dataArray
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result3.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -364,7 +359,8 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 
 // TestReorder is in error because of version conflict
 func (s *WorkItemSuite) TestReorderWorkitemConflict() {
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
@@ -382,7 +378,7 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 
-	_, jerrs := test.ReorderWorkitemsConflict(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, jerrs := test.ReorderWorkitemsConflict(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 
 	require.NotNil(s.T(), jerrs)
 }
@@ -390,7 +386,8 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 // TestReorderBelow is positive test which tests successful reorder by providing valid input
 // This case reorders one workitem -> result1 and places it **below** result1
 func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
@@ -408,7 +405,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionBelow)
 
-	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -418,7 +415,8 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 // TestReorderTop is positive test which tests successful reorder by providing valid input
 // This case reorders one workitem -> result2 and places it to the top of the list
 func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	// There are two workitems in the list -> result1 and result2
@@ -431,7 +429,7 @@ func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	payload2.Position.Direction = string(workitem.DirectionTop)
-	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -441,7 +439,8 @@ func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
 // TestReorderBottom is positive test which tests successful reorder by providing valid input
 // This case reorders one workitem -> result1 and places it to the bottom of the list
 func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
@@ -456,7 +455,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 	payload2.Data = dataArray
 	payload2.Position.Direction = string(workitem.DirectionBottom)
 
-	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -467,7 +466,8 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 // This case reorders two workitems -> result3 and result4 and places them above result2
 func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 	// given
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
@@ -481,7 +481,7 @@ func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 	// when
-	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
 	// then
 	require.NotNil(s.T(), reordered1)
 	require.NotNil(s.T(), reordered1.Data)
@@ -494,7 +494,8 @@ func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 
 // TestReorderWorkitemBadRequest is negative test which tests unsuccessful reorder by providing invalid input
 func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	_, result1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
@@ -508,12 +509,13 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 	payload2.Data = dataArray
 	payload2.Position.ID = result1.Data.ID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	test.ReorderWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2)
+	test.ReorderWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2)
 }
 
 // TestReorderWorkitemNotFound is negative test which tests unsuccessful reorder by providing invalid input
 func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	_, result1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
@@ -529,14 +531,15 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	randomID := uuid.NewV4()
 	payload2.Position.ID = &randomID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	test.ReorderWorkitemsNotFound(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2)
+	test.ReorderWorkitemsNotFound(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2)
 }
 
 // TestUpdateWorkitemWithoutReorder tests that when workitem is updated, execution order of workitem doesnot change.
 func (s *WorkItemSuite) TestUpdateWorkitemWithoutReorder() {
 
 	// Create new workitem
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
@@ -568,7 +571,8 @@ func (s *WorkItemSuite) TestCreateWorkItemWithoutContext() {
 
 func (s *WorkItemSuite) TestListByFields() {
 	// given
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "run integration test"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
@@ -576,14 +580,14 @@ func (s *WorkItemSuite) TestListByFields() {
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
 	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
 	// then
-	_, result = test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 }
@@ -718,9 +722,9 @@ func (s *WorkItemSuite) TestUnauthorizeWorkItemCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemTestDataFunc(*s.Configuration), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWI-Service")
 	}, func(service *goa.Service) error {
-		workitemCtrl := NewWorkitemController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemCtrl := NewWorkitemController(service, s.GormDB, s.Configuration)
 		app.MountWorkitemController(service, workitemCtrl)
-		workitemsCtrl := NewWorkitemsController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemsCtrl := NewWorkitemsController(service, s.GormDB, s.Configuration)
 		app.MountWorkitemsController(service, workitemsCtrl)
 		return nil
 	})
@@ -730,7 +734,7 @@ func createPagingTest(t *testing.T, ctx context.Context, controller *WorkitemsCo
 	return func(start int, limit int, first string, last string, prev string, next string) {
 		offset := strconv.Itoa(start)
 
-		_, response := test.ListWorkitemsOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+		_, response := test.ListWorkitemsOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
@@ -859,7 +863,7 @@ func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iterat
 // a normal test function that will kick off WorkItem2Suite
 func TestSuiteWorkItem2(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &WorkItem2Suite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &WorkItem2Suite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func ident(id uuid.UUID) *app.GenericData {
@@ -894,13 +898,13 @@ func (s *WorkItem2Suite) SetupTest() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
 	require.NoError(s.T(), err)
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *testIdentity)
-	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
-	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
-	s.witCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, s.GormDB, &s.notification, s.Configuration)
+	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, s.GormDB, &s.notification, s.Configuration)
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, s.GormDB)
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, s.GormDB, s.Configuration)
+	s.linkCtrl = NewWorkItemLinkController(s.svc, s.GormDB, s.Configuration)
+	s.spaceCtrl = NewSpaceController(s.svc, s.GormDB, s.Configuration, &DummyResourceManager{})
+	s.witCtrl = NewWorkitemtypeController(s.svc, s.GormDB, s.Configuration)
 
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.Spaces(1), tf.WorkItemTypes(1))
 	//payload := minimumRequiredCreateWithType(workitem.SystemBug)
@@ -1462,7 +1466,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
 	newUserID := newUser.ID.String()
-	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	assert.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
@@ -1488,7 +1492,7 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	assignee := none
 
 	s.T().Run("default work item created in fixture", func(t *testing.T) {
-		_, list0 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list0 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		// data coming from test fixture
 		assert.Len(t, list0.Data, 3)
 		assert.True(t, strings.Contains(*list0.Links.First, "filter[assignee]=none"))
@@ -1503,7 +1507,7 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 		assert.NotNil(t, wi.Data.Relationships.Assignees.Data)
 		assert.NotNil(t, wi.Data.Relationships.Assignees.Data[0].ID)
 
-		_, list := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		assert.Len(t, list.Data, 1)
 		require.NotNil(t, *list.Data[0].Relationships.Assignees.Data[0])
 		assert.Equal(t, newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
@@ -1511,13 +1515,13 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	})
 
 	s.T().Run("work item with assignee value as none", func(t *testing.T) {
-		_, list2 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list2 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		assert.Len(t, list2.Data, 3)
 		assert.True(t, strings.Contains(*list2.Links.First, "filter[assignee]=none"))
 	})
 
 	s.T().Run("work item without specifying assignee", func(t *testing.T) {
-		_, list3 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list3 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		assert.Len(t, list3.Data, 4)
 		assert.False(t, strings.Contains(*list3.Links.First, "filter[assignee]=none"))
 	})
@@ -1532,7 +1536,7 @@ func (s *WorkItem2Suite) TestWI2ListByTypeFilter() {
 		}),
 	)
 	// when
-	_, actual := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, nil, &fxt.WorkItemTypes[0].ID, nil, nil, nil, nil)
+	_, actual := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, nil, &fxt.WorkItemTypes[0].ID, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actual)
 	require.Len(s.T(), actual.Data, 1)
@@ -1566,7 +1570,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOK() {
 	}))
 	// when
 	stateNew := workitem.SystemStateNew
-	_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
 	require.Len(s.T(), actualWIs.Data, 1)
@@ -1592,7 +1596,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfMo
 	// inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
 	// when
 	stateNew := workitem.SystemStateNew
-	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
 	require.Len(s.T(), actualWIs.Data, 1)
@@ -1603,7 +1607,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfMo
 	// retain conditional headers in response and submit the request again
 	etag, lastModified, _ := assertResponseHeaders(s.T(), res)
 	// when calling again
-	res = test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
+	res = test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, &lastModified, &etag)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
@@ -1622,7 +1626,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 	}))
 	// when
 	stateNew := workitem.SystemStateNew
-	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
 	require.Len(s.T(), actualWIs.Data, 1)
@@ -1642,7 +1646,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 	update.Data.Attributes["version"] = fxt.WorkItems[1].Version
 	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[1].ID, &update)
 	// when calling again (with expired validation headers)
-	res, actualWIs = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
+	res, actualWIs = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, &lastModified, &etag)
 	// then expect the new data
 	assertResponseHeaders(s.T(), res)
 	require.NotNil(s.T(), actualWIs)
@@ -1659,6 +1663,170 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 	require.Empty(s.T(), toBeFound, "failed to find these work items in list: %+v", toBeFound)
 }
 
+func (s *WorkItem2Suite) TestListOrder() {
+	s.T().Run("list with explicit order", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Iterations(1),
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2, 3, 4, 5, 6:
+					fxt.WorkItems[idx].Fields[workitem.SystemState] = "open"
+				default:
+					fxt.WorkItems[idx].Fields[workitem.SystemState] = "new"
+				}
+				return nil
+			}),
+		)
+
+		t.Run("by created descending", func(t *testing.T) {
+			// when
+			exp := ptr.String(`{"system.state": "open"}`)
+			sort := ptr.String("-created")
+			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
+			// then
+			require.NotNil(s.T(), actualWIs)
+			require.Len(s.T(), actualWIs.Data, 7)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+
+			for i := 0; i <= 6; i++ {
+				require.Equal(t, fxt.WorkItems[i].ID, *actualWIs.Data[6-i].ID)
+			}
+
+			for _, wi := range actualWIs.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("by created ascending", func(t *testing.T) {
+			exp := ptr.String(`{"system.state": "open"}`)
+			sort := ptr.String("created")
+			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
+			// then
+			require.NotNil(s.T(), actualWIs)
+			require.Len(s.T(), actualWIs.Data, 7)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+
+			for i := 0; i <= 6; i++ {
+				require.Equal(t, fxt.WorkItems[i].ID, *actualWIs.Data[i].ID)
+			}
+
+			for _, wi := range actualWIs.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+
+		t.Run("by updated descending", func(t *testing.T) {
+			// when
+			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				payload := app.UpdateWorkitemPayload{
+					Data: &app.WorkItem{
+						Type: APIStringTypeWorkItem,
+						ID:   &fxt.WorkItems[v].ID,
+						Attributes: map[string]interface{}{
+							workitem.SystemState:   "resolved",
+							workitem.SystemVersion: fxt.WorkItems[v].Version,
+						},
+					},
+				}
+
+				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[v].ID, &payload)
+			}
+
+			exp := ptr.String(`{"system.state": "resolved"}`)
+			sort := ptr.String("-updated")
+			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
+			// then
+			require.NotNil(s.T(), actualWIs)
+			require.Len(s.T(), actualWIs.Data, 7)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for i, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				require.Equal(t, fxt.WorkItems[v].ID, *actualWIs.Data[6-i].ID)
+			}
+
+			for _, wi := range actualWIs.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+
+		})
+		t.Run("by updated ascending", func(t *testing.T) {
+			// when
+			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				payload := app.UpdateWorkitemPayload{
+					Data: &app.WorkItem{
+						Type: APIStringTypeWorkItem,
+						ID:   &fxt.WorkItems[v].ID,
+						Attributes: map[string]interface{}{
+							workitem.SystemState:   "resolved",
+							workitem.SystemVersion: fxt.WorkItems[v].Version + 1,
+						},
+					},
+				}
+
+				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[v].ID, &payload)
+			}
+
+			exp := ptr.String(`{"system.state": "resolved"}`)
+			sort := ptr.String("updated")
+			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
+			// then
+			require.NotNil(s.T(), actualWIs)
+			require.Len(s.T(), actualWIs.Data, 7)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+
+			for i, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				require.Equal(t, fxt.WorkItems[v].ID, *actualWIs.Data[i].ID)
+			}
+
+			for _, wi := range actualWIs.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+
+		})
+	})
+}
 func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (uuid.UUID, string, *app.WorkItemSingle) {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1))
 	tempArea := fxt.Areas[0]
@@ -1699,7 +1867,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOK() {
 	// given
 	spaceID, areaID, _ := s.setupAreaWorkItem(true)
 	// when
-	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	// then
 	assertAreaWorkItems(s.T(), areaID, workitems)
 	assertResponseHeaders(s.T(), res)
@@ -1709,7 +1877,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKEmptyList() {
 	// given
 	spaceID, areaID, _ := s.setupAreaWorkItem(false)
 	// when
-	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), *workitems)
 	require.Empty(s.T(), workitems.Data)
@@ -1725,7 +1893,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfModifiedSinceHea
 	// when
 	updatedAt := wi.Data.Attributes[workitem.SystemUpdatedAt].(time.Time)
 	ifModifiedSince := app.ToHTTPTime(updatedAt.Add(-1 * time.Hour))
-	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
+	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
 	// then
 	assertAreaWorkItems(s.T(), areaID, workitems)
 	assertResponseHeaders(s.T(), res)
@@ -1736,7 +1904,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfNoneMatchHeader(
 	spaceID, areaID, _ := s.setupAreaWorkItem(true)
 	// when
 	ifNoneMatch := "foo"
-	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
+	res, workitems := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertAreaWorkItems(s.T(), areaID, workitems)
 	assertResponseHeaders(s.T(), res)
@@ -1748,7 +1916,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfModifiedSinceH
 	// when
 	updatedAt := wi.Data.Attributes[workitem.SystemUpdatedAt].(time.Time)
 	ifModifiedSince := app.ToHTTPTime(updatedAt)
-	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
+	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
@@ -1758,7 +1926,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeade
 	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
 	ifNoneMatch := app.GenerateEntityTag(ConvertWorkItemToConditionalRequestEntity(*wi))
-	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
+	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
@@ -1785,7 +1953,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 
-	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, nil, &iterationID, nil, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, nil, &iterationID, nil, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), iterationID, *list.Data[0].Relationships.Iteration.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[iteration]"))
@@ -2055,7 +2223,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Areas(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 	testSpace := fxt.Spaces[0]
 	rootArea := fxt.Areas[0]
 	log.Info(nil, nil, "creating child area...")
@@ -2082,7 +2250,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 				BaseType: &app.RelationBaseType{
 					Data: &app.BaseTypeData{
 						Type: "workitemtypes",
-						ID:   workitem.SystemBug,
+						ID:   fxt.WorkItemTypes[0].ID,
 					},
 				},
 				Area: &app.RelationGeneric{
@@ -2223,7 +2391,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 				BaseType: &app.RelationBaseType{
 					Data: &app.BaseTypeData{
 						Type: "workitemtypes",
-						ID:   workitem.SystemBug,
+						ID:   fxt.WorkItemTypes[0].ID,
 					},
 				},
 				Iteration: &app.RelationGeneric{
@@ -2371,12 +2539,13 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 
 func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 	c := minimumRequiredCreatePayload()
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
+	c.Data.Relationships.Space = app.NewSpaceRelation(fxt.Spaces[0].ID, "")
 	branch := "earth-recycle-101"
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
@@ -2411,21 +2580,13 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 // this test aims at checking different codebaseIDs for
 // two CodebaseContent with same Repository but in two different spaces
 func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
-
-	// create one space
-	spaceInstance, _, _ := createSpaceWithDefaults(s.svc.Context, s.DB)
-	space1ID := spaceInstance.ID
-	assert.NotEqual(s.T(), uuid.Nil, space1ID)
-
-	// create a WI in above space
-	// this WI should get a new CodebaseID for itself
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 	c := minimumRequiredCreatePayload()
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
-	c.Data.Relationships.Space = app.NewSpaceRelation(space1ID, "")
+	c.Data.Relationships.Space = app.NewSpaceRelation(fxt.Spaces[0].ID, "")
 	branch := "earth-recycle-101"
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
@@ -2437,16 +2598,15 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 		LineNumber: line,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
-	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space1ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &c)
 	require.NotNil(s.T(), createdWI)
 	cb := createdWI.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	codebaseID1 := cb.CodebaseID
 	require.NotEmpty(s.T(), codebaseID1)
 
 	// create another space
-	spaceInstance2, _, _ := createSpaceWithDefaults(s.svc.Context, s.DB)
-	space2ID := spaceInstance2.ID
-	assert.NotEqual(s.T(), uuid.Nil, space2ID)
+	// fxt1 is created because we cannot create more than one space in a single test fixture while using tf.CreateWorkItemEnvironment()
+	fxt1 := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 
 	// create a WI in new space with same Repo value
 	// this WI should get a new CodebaseID for itself and not the same as before
@@ -2455,10 +2615,8 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	branch = "earth-recycle-102"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
-	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
-		ID: &space2ID,
-	}}
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt1.WorkItemTypes[0].ID)
+	c.Data.Relationships.Space = app.NewSpaceRelation(fxt1.Spaces[0].ID, "")
 	cbase = codebase.Content{
 		Branch:     branch,
 		Repository: repo,
@@ -2466,7 +2624,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 		LineNumber: line,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
-	_, createdWI2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space2ID, &c)
+	_, createdWI2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt1.Spaces[0].ID, &c)
 	require.NotNil(s.T(), createdWI2)
 	cb2 := createdWI2.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	codebaseID2 := cb2.CodebaseID
@@ -2482,9 +2640,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
-	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
-		ID: &space1ID,
-	}}
+	c.Data.Relationships.Space = app.NewSpaceRelation(fxt.Spaces[0].ID, "")
 	cbase = codebase.Content{
 		Branch:     branch,
 		Repository: repo,
@@ -2492,7 +2648,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 		LineNumber: line,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
-	_, createdWI3 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space1ID, &c)
+	_, createdWI3 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &c)
 	require.NotNil(s.T(), createdWI3)
 	cb3 := createdWI3.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	codebaseID3 := cb3.CodebaseID
@@ -2641,7 +2797,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(workitem.SystemBug)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
 	*c.Data.Relationships.Space.Data.ID = sp.ID
 	_, wiCreated := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, sp.ID, &c)
 	assert.NotNil(s.T(), wiCreated.Data.Relationships.Iteration)
@@ -2795,15 +2951,15 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 	}
 
 	// list workitems for grandParentIteration
-	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 7)
 
 	// list workitems for parentIteration
-	_, list = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &parentIterationID, nil, nil, nil, nil, nil, nil, nil)
+	_, list = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &parentIterationID, nil, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 4)
 
 	// list workitems for childIteraiton
-	_, list = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &childIteraitonID, nil, nil, nil, nil, nil, nil, nil)
+	_, list = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, &childIteraitonID, nil, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 2)
 }
 
@@ -2811,7 +2967,7 @@ func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	c := minimumRequiredCreatePayload()
 	queryExpression := fmt.Sprintf(`{"iteration" : "%s"}`, uuid.NewV4().String())
 	expectedLocation := fmt.Sprintf(`/api/search?filter[expression]={"%s":[{"space": "%s" }, %s]}`, search.AND, *c.Data.Relationships.Space.Data.ID, queryExpression)
-	respWriter := test.ListWorkitemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, &queryExpression, nil, nil, nil, nil, nil, nil, nil, nil)
+	respWriter := test.ListWorkitemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, &queryExpression, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	location := respWriter.Header().Get("location")
 	assert.Contains(s.T(), location, expectedLocation)
 }
@@ -2862,19 +3018,19 @@ func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitem
 func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	require.NoError(s.T(), err)
-	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
+	space := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, *testIdentity, "")
 	// Create new workitem
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *space.ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity, ""})
-	workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
+	workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity, ""})
-	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
-	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
+	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
+	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, s.GormDB, s.Configuration)
 
 	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	// Not a space owner is not authorized to create
@@ -2901,7 +3057,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	}
 	err = testsupport.CreateTestIdentityForAccountIdentity(s.DB, &openshiftioTestIdentity)
 	require.NoError(s.T(), err)
-	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, openshiftioTestIdentity, "")
+	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, openshiftioTestIdentity, "")
 	payload3 := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *openshiftioTestIdentitySpace.ID)
 	payload3.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload3.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew

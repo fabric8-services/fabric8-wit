@@ -20,7 +20,7 @@ type workItemTypeRepoBlackBoxTest struct {
 }
 
 func TestRunWorkItemTypeRepoBlackBoxTest(t *testing.T) {
-	suite.Run(t, &workItemTypeRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemTypeRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *workItemTypeRepoBlackBoxTest) SetupTest() {

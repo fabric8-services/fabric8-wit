@@ -323,7 +323,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			}, "assigning the work item to the root iteration of the space.")
 			rootIteration, err := appl.Iterations().Root(ctx, spaceID)
 			if err != nil {
-				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
+				return errors.NewInternalError(ctx, err)
 			}
 			if method == http.MethodPost {
 				target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
@@ -350,9 +350,16 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 				"wi_id":    target.ID,
 				"space_id": spaceID,
 			}, "assigning the work item to the root area of the space.")
+			err := appl.Spaces().CheckExists(ctx, spaceID)
+			if err != nil {
+				return errors.NewInternalError(ctx, err)
+			}
+			log.Debug(ctx, map[string]interface{}{
+				"space_id": spaceID,
+			}, "Loading root area for the space")
 			rootArea, err := appl.Areas().Root(ctx, spaceID)
 			if err != nil {
-				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
+				return err
 			}
 			if method == http.MethodPost {
 				target.Fields[workitem.SystemArea] = rootArea.ID.String()

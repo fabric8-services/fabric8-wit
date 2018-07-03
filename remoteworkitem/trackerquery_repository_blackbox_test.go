@@ -18,7 +18,7 @@ type trackerQueryRepoBlackBoxTest struct {
 }
 
 func TestRunTrackerQueryRepoBlackBoxTest(t *testing.T) {
-	suite.Run(t, &trackerQueryRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &trackerQueryRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *trackerQueryRepoBlackBoxTest) SetupTest() {

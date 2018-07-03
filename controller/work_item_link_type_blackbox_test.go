@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -24,9 +23,7 @@ import (
 
 func TestSuiteWorkItemLinkType(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemLinkTypeSuite{
-		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
-	})
+	suite.Run(t, &workItemLinkTypeSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func TestNewWorkItemLinkTypeControllerDBNull(t *testing.T) {
@@ -47,7 +44,7 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 
 func (s *workItemLinkTypeSuite) UnSecuredController() (*goa.Service, *WorkItemLinkTypeController) {
 	svc := goa.New("WorkItemLinkType-Service")
-	return svc, NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	return svc, NewWorkItemLinkTypeController(svc, s.GormDB, s.Configuration)
 }
 
 func createWorkItemLinkTypeInRepo(t *testing.T, db application.DB, ctx context.Context, payload *app.CreateWorkItemLinkTypePayload) *app.WorkItemLinkTypeSingle {

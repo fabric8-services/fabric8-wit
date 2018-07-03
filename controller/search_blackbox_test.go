@@ -12,12 +12,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -40,12 +41,11 @@ import (
 
 func TestSearchController(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type searchControllerTestSuite struct {
 	gormtestsupport.DBTestSuite
-	db                             *gormapplication.GormDB
 	svc                            *goa.Service
 	testIdentity                   account.Identity
 	wiRepo                         *workitem.GormWorkItemRepository
@@ -57,7 +57,6 @@ type searchControllerTestSuite struct {
 func (s *searchControllerTestSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.testDir = filepath.Join("test-files", "search")
-	s.db = gormapplication.NewGormDB(s.DB)
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "searchControllerTestSuite user", "test provider")
 	require.NoError(s.T(), err)
@@ -68,7 +67,7 @@ func (s *searchControllerTestSuite) SetupTest() {
 	require.NoError(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", s.testIdentity)
-	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
+	s.controller = NewSearchController(s.svc, s.GormDB, spaceBlackBoxTestConfiguration)
 }
 
 func (s *searchControllerTestSuite) TestSearchWorkItems() {
@@ -289,7 +288,7 @@ func (s *searchControllerTestSuite) verifySearchByKnownURLs(wi *app.WorkItemSing
 // TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
 // Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
 func (s *searchControllerTestSuite) TestAutoRegisterHostURL() {
-	wiCtrl := NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	wiCtrl := NewWorkitemsController(s.svc, s.GormDB, s.Configuration)
 	// create a WI, search by `list view URL` of newly created item
 	//fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 	newWI := s.getWICreatePayload()
@@ -411,6 +410,10 @@ func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[idx].SpaceTemplateID = spacetemplate.SystemLegacyTemplateID
+				return nil
+			}),
 			tf.CreateWorkItemEnvironment(),
 			// TODO(kwk): Decide if these type groups should go to CreateWorkItemEnvironment()
 			tf.WorkItemTypeGroups(4, func(fxt *tf.TestFixture, idx int) error {
@@ -447,7 +450,7 @@ func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 			}),
 		)
 		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
-		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
 		// given work items of different types and in different states
 		type testWI struct {
 			Title          string
@@ -1411,7 +1414,7 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 
 			t.Run("assignee should be nil if assignee field is not touched during update", func(t *testing.T) {
 				wi := result.Data[0]
-				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+				workitemCtrl := NewWorkitemController(s.svc, s.GormDB, s.Configuration)
 
 				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
 				payload2 := app.UpdateWorkitemPayload{Data: wi}
@@ -1450,7 +1453,7 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 
 			t.Run("assignee should be nil if label field is not touched during update", func(t *testing.T) {
 				wi := result.Data[0]
-				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+				workitemCtrl := NewWorkitemController(s.svc, s.GormDB, s.Configuration)
 				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
 				payload2 := app.UpdateWorkitemPayload{Data: wi}
 				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)

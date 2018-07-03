@@ -23,7 +23,7 @@ type TestIterationRepository struct {
 }
 
 func TestRunIterationRepository(t *testing.T) {
-	suite.Run(t, &TestIterationRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestIterationRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *TestIterationRepository) TestCreateIteration() {
@@ -281,6 +281,14 @@ func (s *TestIterationRepository) TestLoad() {
 		// then
 		require.Error(t, err)
 		assert.Equal(t, reflect.TypeOf(errors.NotFoundError{}), reflect.TypeOf(err))
+	})
+
+	t.Run("fail - doesn't exists", func(t *testing.T) {
+		// Test fixture doesn't create root iteration and root area
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
+		rootIteration, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
+		assert.EqualError(t, err, errors.NewNotFoundError("root iteration for space", fxt.Spaces[0].ID.String()).Error())
+		assert.Nil(t, rootIteration)
 	})
 
 }
