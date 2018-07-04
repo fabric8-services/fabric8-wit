@@ -41,12 +41,14 @@ func (s *workItemLinkCategorySuite) SetupSuite() {
 }
 
 func createWorkItemLinkCategoryInRepo(t *testing.T, db application.DB, ctx context.Context, linkCat link.WorkItemLinkCategory) uuid.UUID {
-	err := application.Transactional(db, func(appl application.Application) error {
-		_, err := appl.WorkItemLinkCategories().Create(ctx, &linkCat)
+	var cat *link.WorkItemLinkCategory
+	var err error
+	err = application.Transactional(db, func(appl application.Application) error {
+		cat, err = appl.WorkItemLinkCategories().Create(ctx, linkCat)
 		return err
 	})
 	require.NoError(t, err)
-	return linkCat.ID
+	return cat.ID
 }
 
 func (s *workItemLinkCategorySuite) TestShow() {

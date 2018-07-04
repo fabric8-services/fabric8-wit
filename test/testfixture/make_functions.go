@@ -61,10 +61,11 @@ func makeWorkItemLinkCategories(fxt *TestFixture) error {
 		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemLinkCategories); err != nil {
 			return errs.WithStack(err)
 		}
-		_, err := wilcRepo.Create(fxt.ctx, fxt.WorkItemLinkCategories[i])
+		cat, err := wilcRepo.Create(fxt.ctx, *fxt.WorkItemLinkCategories[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item link category: %+v", fxt.WorkItemLinkCategories[i])
 		}
+		fxt.WorkItemLinkCategories[i] = cat
 	}
 	return nil
 }

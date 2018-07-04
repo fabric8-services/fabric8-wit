@@ -599,7 +599,7 @@ func NewMigrationContext(ctx context.Context) context.Context {
 	return ctx
 }
 
-func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkCat *link.WorkItemLinkCategory) (*link.WorkItemLinkCategory, error) {
+func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkCat link.WorkItemLinkCategory) (*link.WorkItemLinkCategory, error) {
 	cat, err := linkCatRepo.Load(ctx, linkCat.ID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
@@ -642,7 +642,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 		Description: ptr.String("The user category is reserved for link types that can to be manipulated by the user."),
 	}}
 	for _, linkCat := range linkCategories {
-		_, err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, &linkCat)
+		_, err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, linkCat)
 		if err != nil {
 			return errs.WithStack(err)
 		}
