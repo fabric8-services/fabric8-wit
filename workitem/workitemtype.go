@@ -37,6 +37,8 @@ const (
 	SystemLabels              = "system.labels"
 	SystemBoardcolumns        = "system.boardcolumns"
 
+	SystemBoard = "Board"
+
 	SystemStateOpen       = "open"
 	SystemStateNew        = "new"
 	SystemStateInProgress = "in progress"

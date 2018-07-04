@@ -6,7 +6,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -34,7 +33,7 @@ func TestWorkItemBoardSuite(t *testing.T) {
 func (s *workItemBoardSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.svc = testsupport.ServiceAsUser("Board-Service", testsupport.TestIdentity)
-	s.ctrl = NewWorkItemBoardController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.ctrl = NewWorkItemBoardController(s.svc, s.GormDB)
 	s.testDir = filepath.Join("test-files", "work_item_board")
 }
 

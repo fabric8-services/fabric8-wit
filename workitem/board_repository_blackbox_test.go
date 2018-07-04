@@ -52,7 +52,7 @@ func (s *workItemBoardRepoTest) TestExists() {
 
 func (s *workItemBoardRepoTest) TestCreate() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemBoards(3))
+	fxt := tf.NewTestFixture(s.T(), s.DB)
 	ID := uuid.NewV4()
 	expected := workitem.Board{
 		ID:              ID,

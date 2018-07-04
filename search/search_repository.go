@@ -401,7 +401,7 @@ var searchKeyMap = map[string]string{
 
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
 	switch key {
-	case workitem.SystemAssignees, workitem.SystemLabels, workitem.SystemBoardcolumns, "Board":
+	case workitem.SystemAssignees, workitem.SystemLabels, workitem.SystemBoardcolumns, workitem.SystemBoard:
 		return criteria.Literal([]string{val})
 	default:
 		return criteria.Literal(val)

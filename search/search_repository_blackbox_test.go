@@ -1,7 +1,6 @@
 package search_test
 
 import (
-	//"github.com/fabric8-services/fabric8-wit/app/test"
 	"context"
 	"fmt"
 	"math"

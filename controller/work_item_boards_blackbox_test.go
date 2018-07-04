@@ -69,9 +69,9 @@ func (s *workItemBoardsSuite) TestList() {
 	})
 	s.T().Run("not found", func(t *testing.T) {
 		// given
-		sapcetemplateID := uuid.NewV4()
+		spacetemplateID := uuid.NewV4()
 		// when
-		res, jerrs := test.ListWorkItemBoardsNotFound(t, nil, s.svc, s.ctrl, sapcetemplateID)
+		res, jerrs := test.ListWorkItemBoardsNotFound(t, nil, s.svc, s.ctrl, spacetemplateID)
 		// then
 		ignoreMe := "IGNOREME"
 		jerrs.Errors[0].ID = &ignoreMe
