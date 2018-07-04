@@ -371,7 +371,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		// update state
 		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateResolved
 		fxt.WorkItems[0].Version = fxt.WorkItems[0].Version + 1
-		_, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		_, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
@@ -380,13 +380,13 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 2)
 
 		assert.Equal(t, eventList[0].Name, workitem.SystemLabels)
-		labelValue, err := eventList[0].New.([]interface{})
-		require.NoError(t, err)
+		labelValue, ok := eventList[0].New.([]interface{})
+		assert.True(t, ok)
 		assert.Equal(t, label[0], labelValue[0])
 
 		assert.Equal(t, eventList[1].Name, workitem.SystemState)
-		stateValue, err := eventList[1].New.(string)
-		require.NoError(t, err)
+		stateValue, ok := eventList[1].New.(string)
+		assert.True(t, ok)
 		assert.EqualValues(t, workitem.SystemStateResolved, stateValue)
 	})
 }
