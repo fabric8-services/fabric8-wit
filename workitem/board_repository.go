@@ -45,7 +45,7 @@ func (r *GormBoardRepository) Load(ctx context.Context, boardID uuid.UUID) (*Boa
 	}
 	columns, err := r.loadColumns(ctx, res.ID)
 	if err != nil {
-		return nil, errs.WithStack(err)
+		return nil, errs.Wrapf(err, "failed to load board columns for board with ID %s", res.ID)
 	}
 	res.Columns = columns
 	return &res, nil
@@ -85,7 +85,7 @@ func (r *GormBoardRepository) List(ctx context.Context, spaceTemplateID uuid.UUI
 	for _, board := range res {
 		columns, err := r.loadColumns(ctx, board.ID)
 		if err != nil {
-			return nil, errs.WithStack(err)
+			return nil, errs.Wrapf(err, "failed to load columns for board with ID %s", board.ID)
 		}
 		board.Columns = columns
 	}
