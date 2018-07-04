@@ -341,7 +341,7 @@ func makeWorkItemBoards(fxt *TestFixture) error {
 	for i := range fxt.WorkItemBoards {
 		fxt.WorkItemBoards[i] = &workitem.Board{
 			ID:          uuid.NewV4(),
-			Name:        testsupport.CreateRandomValidTestName("work item board "),
+			Name:        testsupport.CreateRandomValidTestName(fmt.Sprintf("work item board %d ", i)),
 			Description: testsupport.CreateRandomValidTestName("work item board description "),
 			// we only support this context for now.
 			ContextType: "TypeLevelContext",

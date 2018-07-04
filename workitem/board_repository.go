@@ -74,7 +74,7 @@ func (r *GormBoardRepository) List(ctx context.Context, spaceTemplateID uuid.UUI
 		return nil, errors.NewNotFoundError("space template", spaceTemplateID.String())
 	}
 	res := []*Board{}
-	db := r.db.Model(&res).Where("space_template_id=?", spaceTemplateID).Find(&res)
+	db := r.db.Model(&res).Where("space_template_id=?", spaceTemplateID).Order("name ASC").Find(&res)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{"space_template_id": spaceTemplateID}, "work item boards not found")
 		return nil, errors.NewNotFoundError("work item boards for space template", spaceTemplateID.String())
