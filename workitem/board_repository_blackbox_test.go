@@ -2,9 +2,11 @@ package workitem_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -188,59 +190,97 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 	t.Run("equality", func(t *testing.T) {
 		t.Parallel()
 		b := a
-		assert.True(t, a.Equal(b))
+		require.True(t, a.Equal(b))
 	})
 	t.Run("types", func(t *testing.T) {
 		t.Parallel()
 		b := convert.DummyEqualer{}
-		assert.False(t, a.Equal(b))
+		require.False(t, a.Equal(b))
 	})
-	t.Run("Name", func(t *testing.T) {
+	t.Run("lifecycle", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Lifecycle.CreatedAt = time.Now()
+		require.False(t, a.Equal(b))
+	})
+	t.Run("name", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Name = "bar"
-		assert.False(t, a.Equal(b))
+		require.False(t, a.Equal(b))
 	})
-	t.Run("SpaceTemplateID", func(t *testing.T) {
+	t.Run("space template ID", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.SpaceTemplateID = uuid.NewV4()
-		assert.False(t, a.Equal(b))
+		require.False(t, a.Equal(b))
 	})
-	t.Run("Columns", func(t *testing.T) {
+	t.Run("columns", func(t *testing.T) {
 		t.Parallel()
-		b := a
-		// different IDs
-		b.Columns = []workitem.BoardColumn{
-			{
+		t.Run("different IDs", func(t *testing.T) {
+			t.Parallel()
+			b := a
+			b.Columns = []workitem.BoardColumn{
+				{
+					ID:                uuid.NewV4(),
+					Name:              "New",
+					ColumnOrder:       0,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mNew' }",
+					BoardID:           ID,
+				},
+				{
+					ID:                uuid.NewV4(),
+					Name:              "Done",
+					ColumnOrder:       1,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mDone' }",
+					BoardID:           ID,
+				},
+			}
+			require.False(t, a.Equal(b))
+		})
+		t.Run("different length (shorter)", func(t *testing.T) {
+			t.Parallel()
+			b := a
+			b.Columns = []workitem.BoardColumn{
+				{
+					ID:                uuid.NewV4(),
+					Name:              "New",
+					ColumnOrder:       0,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mNew' }",
+					BoardID:           ID,
+				},
+			}
+			require.False(t, a.Equal(b))
+		})
+		t.Run("different length (longer)", func(t *testing.T) {
+			t.Parallel()
+			b := a
+			b.Columns = append(b.Columns, workitem.BoardColumn{
 				ID:                uuid.NewV4(),
-				Name:              "New",
+				Name:              "New 1",
 				ColumnOrder:       0,
 				TransRuleKey:      "updateStateFromColumnMove",
 				TransRuleArgument: "{ 'metastate': 'mNew' }",
 				BoardID:           ID,
-			},
-			{
-				ID:                uuid.NewV4(),
-				Name:              "Done",
-				ColumnOrder:       1,
-				TransRuleKey:      "updateStateFromColumnMove",
-				TransRuleArgument: "{ 'metastate': 'mDone' }",
-				BoardID:           ID,
-			},
-		}
-		assert.False(t, a.Equal(b))
-		// different length
-		b.Columns = []workitem.BoardColumn{
-			{
-				ID:                uuid.NewV4(),
-				Name:              "New",
-				ColumnOrder:       0,
-				TransRuleKey:      "updateStateFromColumnMove",
-				TransRuleArgument: "{ 'metastate': 'mNew' }",
-				BoardID:           ID,
-			},
-		}
-		assert.False(t, a.Equal(b))
+			})
+			require.False(t, a.Equal(b))
+		})
+		t.Run("column lifecycle", func(t *testing.T) {
+			t.Parallel()
+			// given two identical boards
+			col1 := workitem.BoardColumn{Lifecycle: gormsupport.Lifecycle{CreatedAt: time.Now()}}
+			a := workitem.Board{Columns: []workitem.BoardColumn{col1}}
+			b := workitem.Board{Columns: []workitem.BoardColumn{col1}}
+			require.True(t, a.Equal(b))
+			// when changing the creation date of a column
+			col2 := col1
+			col2.Lifecycle.CreatedAt = time.Now().Add(time.Hour)
+			b.Columns[0] = col2
+			// then expect the board comparison to fail
+			require.False(t, a.Equal(b))
+		})
 	})
 }
