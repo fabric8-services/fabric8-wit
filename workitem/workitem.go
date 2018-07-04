@@ -1,11 +1,8 @@
 package workitem
 
 import (
-	"errors"
-	"reflect"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/actions"
 	"github.com/fabric8-services/fabric8-wit/log"
 
 	uuid "github.com/satori/go.uuid"
@@ -55,26 +52,4 @@ func (wi WorkItem) GetLastModified() time.Time {
 
 	log.Debug(nil, map[string]interface{}{"wi_id": wi.ID}, "Last modified value: %v", lastModified)
 	return *lastModified
-}
-
-// ChangeSet derives a changeset between this workitem and a given workitem.
-func (wi WorkItem) ChangeSet(other actions.ActionEntity) ([]actions.Change, error) {
-	otherWorkItem, ok := other.(WorkItem)
-	if !ok {
-		return nil, errors.New("Other entity is not a WorkItem: " + reflect.TypeOf(other).String())
-	}
-	changes := []actions.Change{}
-	// CAUTION: we're only supporting changes to the system.state and to the
-	// board position relationship for now. If we need to support more
-	// attribute changes, this has to be added here. This will be likely
-	// necessary when adding new Actions.
-	if wi.Fields["system.state"] != otherWorkItem.Fields["system.state"] {
-		changes = append(changes, actions.Change{
-			AttributeName: "system.state",
-			NewValue:      nil,
-			OldValue:      nil,
-		})
-	}
-	// TODO(michaelkleinhenz): Implement
-	return changes, nil
 }
