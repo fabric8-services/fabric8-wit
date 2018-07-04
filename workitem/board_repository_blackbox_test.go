@@ -132,9 +132,17 @@ func (s *workItemBoardRepoTest) TestList() {
 		// then
 		require.NoError(t, err)
 		require.Len(t, actual, len(fxt.WorkItemBoards))
-		for idx := range fxt.WorkItemBoards {
-			require.True(t, fxt.WorkItemBoards[idx].Equal(*actual[idx]))
+		toBeFound := map[uuid.UUID]struct{}{
+			fxt.WorkItemBoards[0].ID: {},
+			fxt.WorkItemBoards[1].ID: {},
+			fxt.WorkItemBoards[2].ID: {},
 		}
+		for _, b := range actual {
+			_, ok := toBeFound[b.ID]
+			assert.True(t, ok, "found unexpected board (%+v)", b.ID)
+			delete(toBeFound, b.ID)
+		}
+		require.Empty(t, toBeFound, "failed to find these boards: %+v", toBeFound)
 	})
 	s.T().Run("space template not found", func(t *testing.T) {
 		// when
