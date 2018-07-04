@@ -363,10 +363,11 @@ func TestParseMap(t *testing.T) {
 func TestParseFilterString(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
+
 	t.Run("OPTS with other query", func(t *testing.T) {
 
 		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"state":"new"}],"%s": {"parent-exists": true, "tree-view": true}}`, OPTS)
-		actualExpr, options, err := ParseFilterString(context.Background(), input)
+		actualExpr, options, _, err := ParseFilterString(context.Background(), input)
 		expectedExpr := c.And(
 			c.Equals(
 				c.Field("system.title"),
@@ -382,6 +383,28 @@ func TestParseFilterString(t *testing.T) {
 		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true}
 		assert.Equal(t, expectedOptions, options)
 	})
+
+	t.Run("OPTS with child iterations", func(t *testing.T) {
+
+		input := fmt.Sprintf(`{"$AND":[{"iteration":"1c2937e1-75a7-48e3-b36a-ef34a0637e27"}, {"$AND": [{"iteration":"5d61f8a2-7d99-4719-8545-77c1009e430a"}]}],"%s": {"child-iterations": true}}`, OPTS)
+		actualExpr, options, iterations, err := ParseFilterString(context.Background(), input)
+		expectedExpr := c.And(
+			c.Equals(
+				c.Field("system.iteration"),
+				c.Literal("1c2937e1-75a7-48e3-b36a-ef34a0637e27"),
+			),
+			c.Equals(
+				c.Field("system.iteration"),
+				c.Literal("5d61f8a2-7d99-4719-8545-77c1009e430a"),
+			),
+		)
+		expectEqualExpr(t, expectedExpr, actualExpr)
+		assert.Nil(t, err)
+		expectedOptions := &QueryOptions{ChildIterations: true}
+		assert.Equal(t, expectedOptions, options)
+		assert.Equal(t, []string{"1c2937e1-75a7-48e3-b36a-ef34a0637e27", "5d61f8a2-7d99-4719-8545-77c1009e430a"}, iterations)
+	})
+
 }
 
 func TestGenerateExpression(t *testing.T) {
@@ -393,7 +416,7 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName}
 		// when
-		actualExpr, _ := q.generateExpression()
+		actualExpr, _, _ := q.generateExpression()
 		// then
 		expectedExpr := c.Equals(
 			c.Field("SpaceID"),
@@ -408,7 +431,7 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName, Negate: true}
 		// when
-		actualExpr, _ := q.generateExpression()
+		actualExpr, _, _ := q.generateExpression()
 		// then
 		expectedExpr := c.Not(
 			c.Field("SpaceID"),
@@ -429,7 +452,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr, _ := q.generateExpression()
+		actualExpr, _, _ := q.generateExpression()
 		// then
 		expectedExpr := c.And(
 			c.Equals(
@@ -457,7 +480,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr, _ := q.generateExpression()
+		actualExpr, _, _ := q.generateExpression()
 		// then
 		expectedExpr := c.Or(
 			c.Equals(
@@ -485,7 +508,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr, _ := q.generateExpression()
+		actualExpr, _, _ := q.generateExpression()
 		// then
 		expectedExpr := c.And(
 			c.Not(
@@ -512,7 +535,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr, _ := q.generateExpression()
+		actualExpr, _, _ := q.generateExpression()
 		// then
 		expectedExpr := c.And(
 			c.Equals(
@@ -532,7 +555,7 @@ func TestGenerateExpression(t *testing.T) {
 			Name: "assignee", Value: nil,
 		}
 		// when
-		actualExpr, _ := q.generateExpression()
+		actualExpr, _, _ := q.generateExpression()
 		// then
 		expectedExpr := c.IsNull("system.assignees")
 
@@ -546,7 +569,7 @@ func TestGenerateExpression(t *testing.T) {
 			Name: "assignee", Value: nil, Negate: true,
 		}
 		// when
-		actualExpr, err := q.generateExpression()
+		actualExpr, _, err := q.generateExpression()
 		// then
 		require.Error(t, err)
 		require.Nil(t, actualExpr)
@@ -565,7 +588,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr, err := q.generateExpression()
+		actualExpr, _, err := q.generateExpression()
 		// then
 		require.Error(t, err)
 		require.Nil(t, actualExpr)
@@ -600,7 +623,7 @@ func TestWorkItemNumber(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr, _ := q.generateExpression()
+		actualExpr, _, _ := q.generateExpression()
 		// then
 		expectedExpr := c.And(
 			c.Equals(
@@ -624,7 +647,7 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		// given
 		q := Query{}
 		// when
-		actualExpr, err := q.generateExpression()
+		actualExpr, _, err := q.generateExpression()
 		// then
 		require.Error(t, err)
 		require.Nil(t, actualExpr)
@@ -635,7 +658,7 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{Name: "", Value: &spaceName}
 		// when
-		actualExpr, err := q.generateExpression()
+		actualExpr, _, err := q.generateExpression()
 		// then
 		require.Error(t, err)
 		require.Nil(t, actualExpr)
@@ -647,7 +670,7 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{Name: "nonexistingkey", Value: &spaceName}
 		// when
-		actualExpr, err := q.generateExpression()
+		actualExpr, _, err := q.generateExpression()
 		// then
 		require.Error(t, err)
 		require.Nil(t, actualExpr)

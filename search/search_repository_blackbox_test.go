@@ -69,6 +69,29 @@ func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
 	)
 }
 
+func (s *searchRepositoryBlackboxTest) TestSearchWithChildIterationWorkItems() {
+	s.T().Run("iterations", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Iterations(2),
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2, 3, 4, 5, 6:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+				default:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				}
+				return nil
+			}),
+		)
+		t.Run("without child iteration", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": true}}`, fxt.Iterations[0].ID)
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+		})
+	})
+}
+
 func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 	s.T().Run("join iterations", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
@@ -290,6 +313,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			assert.Empty(t, ancestors)
 			assert.Empty(t, childLinks)
 		})
+
 	})
 
 	s.T().Run("with parent-exists filter", func(t *testing.T) {
@@ -355,7 +379,6 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			assert.Empty(t, ancestors)
 			assert.Empty(t, childLinks)
 		})
-
 	})
 }
 
