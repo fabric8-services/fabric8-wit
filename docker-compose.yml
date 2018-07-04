@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
   core:
-    image: docker.io/fabric8/fabric8-wit:latest
+    image: quay.io/openshiftio/fabric8-services-fabric8-wit:latest
 #    command: -config /usr/local/wit/etc/config.yaml
     environment:
       F8_AUTH_URL: "http://localhost:8089"
@@ -25,7 +25,7 @@ services:
     environment:
       POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
   auth:
-    image: docker.io/fabric8/fabric8-auth:latest
+    image: quay.io/openshiftio/fabric8-services-fabric8-auth:latest
 #    command: -config /usr/local/auth/etc/config.yaml
     environment:
       AUTH_WIT_URL: "http://localhost:8080"
