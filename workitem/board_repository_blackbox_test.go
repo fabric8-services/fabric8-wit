@@ -105,6 +105,13 @@ func (s *workItemBoardRepoTest) TestCreate() {
 			_, err := s.repo.Create(s.Ctx, g)
 			require.Error(t, err)
 		})
+		t.Run("two boards with the same name are not allowed within the same space template", func(t *testing.T) {
+			g := expected
+			g.ID = uuid.NewV4()
+			_, err := s.repo.Create(s.Ctx, g)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "work_item_board_name_space_template_id_unique")
+		})
 	})
 }
 
@@ -197,12 +204,6 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 		b := convert.DummyEqualer{}
 		require.False(t, a.Equal(b))
 	})
-	t.Run("lifecycle", func(t *testing.T) {
-		t.Parallel()
-		b := a
-		b.Lifecycle.CreatedAt = time.Now()
-		require.False(t, a.Equal(b))
-	})
 	t.Run("name", func(t *testing.T) {
 		t.Parallel()
 		b := a
@@ -280,7 +281,67 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 			col2.Lifecycle.CreatedAt = time.Now().Add(time.Hour)
 			b.Columns[0] = col2
 			// then expect the board comparison to fail
-			require.False(t, a.Equal(b))
+			require.True(t, a.Equal(b))
 		})
+	})
+}
+
+func TestWorkItemBoardColumn_Equal(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	// given
+	a := workitem.BoardColumn{
+		ID:                uuid.NewV4(),
+		Name:              "New",
+		ColumnOrder:       0,
+		TransRuleKey:      "updateStateFromColumnMove",
+		TransRuleArgument: "{ 'metastate': 'mNew' }",
+		BoardID:           uuid.NewV4(),
+	}
+	t.Run("equality", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		require.True(t, a.Equal(b))
+	})
+	t.Run("types", func(t *testing.T) {
+		t.Parallel()
+		b := convert.DummyEqualer{}
+		require.False(t, a.Equal(b))
+	})
+	t.Run("name", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Name = "bar"
+		require.False(t, a.Equal(b))
+	})
+	t.Run("id", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.ID = uuid.NewV4()
+		require.False(t, a.Equal(b))
+	})
+	t.Run("column order", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.ColumnOrder = 1234
+		require.False(t, a.Equal(b))
+	})
+	t.Run("trans rule key", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.TransRuleKey = "foo"
+		require.False(t, a.Equal(b))
+	})
+	t.Run("trans rule argument", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.TransRuleArgument = "bar"
+		require.False(t, a.Equal(b))
+	})
+	t.Run("board ID", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.BoardID = uuid.NewV4()
+		require.False(t, a.Equal(b))
 	})
 }

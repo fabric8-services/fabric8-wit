@@ -35,9 +35,6 @@ func (wib Board) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !wib.Lifecycle.Equal(other.Lifecycle) {
-		return false
-	}
 	if wib.ID != other.ID {
 		return false
 	}
@@ -101,9 +98,6 @@ var _ convert.Equaler = (*BoardColumn)(nil)
 func (wibc BoardColumn) Equal(u convert.Equaler) bool {
 	other, ok := u.(BoardColumn)
 	if !ok {
-		return false
-	}
-	if !wibc.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
 	if wibc.ID != other.ID {

@@ -258,7 +258,7 @@ func (r *GormRepository) createOrUpdateWILTs(ctx context.Context, s *ImportHelpe
 				if uuid.Equal(wilt.ID, uuid.Nil) {
 					wilt.ID = uuid.NewV4()
 				}
-				_, err := wiltRepo.Create(ctx, &link.WorkItemLinkType{
+				_, err := wiltRepo.Create(ctx, link.WorkItemLinkType{
 					ID:              wilt.ID,
 					Name:            wilt.Name,
 					Description:     wilt.Description,

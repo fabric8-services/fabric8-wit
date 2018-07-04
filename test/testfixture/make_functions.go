@@ -158,10 +158,11 @@ func makeWorkItemLinkTypes(fxt *TestFixture) error {
 				return errs.New("you must specify a link category for each work item link type")
 			}
 		}
-		_, err := wiltRepo.Create(fxt.ctx, fxt.WorkItemLinkTypes[i])
+		typ, err := wiltRepo.Create(fxt.ctx, *fxt.WorkItemLinkTypes[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item link type: %+v", fxt.WorkItemLinkTypes[i])
 		}
+		fxt.WorkItemLinkTypes[i] = typ
 	}
 	return nil
 }

@@ -19,7 +19,7 @@ import (
 // WorkItemLinkTypeRepository encapsulates storage & retrieval of work item link types
 type WorkItemLinkTypeRepository interface {
 	repository.Exister
-	Create(ctx context.Context, linkType *WorkItemLinkType) (*WorkItemLinkType, error)
+	Create(ctx context.Context, linkType WorkItemLinkType) (*WorkItemLinkType, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error)
 	List(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemLinkType, error)
 	Save(ctx context.Context, linkCat WorkItemLinkType) (*WorkItemLinkType, error)
@@ -37,7 +37,7 @@ type GormWorkItemLinkTypeRepository struct {
 
 // Create creates a new work item link type in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *WorkItemLinkType) (*WorkItemLinkType, error) {
+func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType WorkItemLinkType) (*WorkItemLinkType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "create"}, time.Now())
 	if err := linkType.CheckValidForCreation(); err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -61,7 +61,7 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *W
 			return nil, errors.NewInternalError(ctx, errs.WithStack(err))
 		}
 	}
-	db := r.db.Create(linkType)
+	db := r.db.Create(&linkType)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_link_types_name_idx") {
 			log.Error(ctx, map[string]interface{}{
@@ -80,7 +80,7 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *W
 	log.Info(ctx, map[string]interface{}{
 		"wilt_id": linkType.ID.String(),
 	}, "created work item link type")
-	return linkType, nil
+	return &linkType, nil
 }
 
 // Load returns the work item link type for the given ID.
