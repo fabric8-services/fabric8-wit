@@ -363,24 +363,30 @@ func (s *eventRepoBlackBoxTest) TestList() {
 
 	s.T().Run("multiple events", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+		// add label
 		label := []string{"label1"}
 		fxt.WorkItems[0].Fields[workitem.SystemLabels] = label
+		_, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		// update state
 		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateResolved
+		fxt.WorkItems[0].Version = fxt.WorkItems[0].Version + 1
 		_, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
+
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 2)
-		c := 0
-		for _, k := range eventList {
-			switch k.Name {
-			case workitem.SystemState:
-				c = c + 1
-			case workitem.SystemLabels:
-				c = c + 1
-			}
-		}
-		assert.Equal(t, 2, c)
+
+		assert.Equal(t, eventList[0].Name, workitem.SystemLabels)
+		labelValue, err := eventList[0].New.([]interface{})
+		require.NoError(t, err)
+		assert.Equal(t, label[0], labelValue[0])
+
+		assert.Equal(t, eventList[1].Name, workitem.SystemState)
+		stateValue, err := eventList[1].New.(string)
+		require.NoError(t, err)
+		assert.EqualValues(t, workitem.SystemStateResolved, stateValue)
 	})
 }
