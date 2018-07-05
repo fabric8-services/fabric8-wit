@@ -104,7 +104,7 @@
     },
     {
       "attributes": {
-        "columnOrder": 0,
+        "columnOrder": 1,
         "name": "Open"
       },
       "id": "7063ae46-994d-49e8-99f9-2ad867dd340e",
@@ -112,7 +112,7 @@
     },
     {
       "attributes": {
-        "columnOrder": 0,
+        "columnOrder": 2,
         "name": "In Progress"
       },
       "id": "f7243e68-1d2b-4256-b6e7-3c657c944ff1",
@@ -120,7 +120,7 @@
     },
     {
       "attributes": {
-        "columnOrder": 0,
+        "columnOrder": 3,
         "name": "Done"
       },
       "id": "9f780106-4d71-41bf-b017-001ca7e19162",
@@ -128,7 +128,7 @@
     },
     {
       "attributes": {
-        "columnOrder": 0,
+        "columnOrder": 4,
         "name": "Verified"
       },
       "id": "b454daf3-d7f4-44d2-a8fb-c767984ecd9d",
@@ -144,7 +144,7 @@
     },
     {
       "attributes": {
-        "columnOrder": 0,
+        "columnOrder": 1,
         "name": "Open"
       },
       "id": "29124ef0-d651-47c4-84a7-28acb7a4ab7a",
@@ -152,7 +152,7 @@
     },
     {
       "attributes": {
-        "columnOrder": 0,
+        "columnOrder": 2,
         "name": "In Progress"
       },
       "id": "a30fc0e0-bfa9-43b1-a83d-b62ae2d5d0f7",
@@ -160,7 +160,7 @@
     },
     {
       "attributes": {
-        "columnOrder": 0,
+        "columnOrder": 3,
         "name": "Done"
       },
       "id": "ca1ea842-1650-4435-88b3-560e5bf47d42",
@@ -168,7 +168,7 @@
     },
     {
       "attributes": {
-        "columnOrder": 0,
+        "columnOrder": 4,
         "name": "Verified"
       },
       "id": "c3589823-203c-4890-b548-f003ba77af53",
