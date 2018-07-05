@@ -97,22 +97,22 @@ work_item_boards:
   columns:
   - id: "b4edad70-1d77-4e5a-b973-0f0d599fd20d"
     name: "New"
-    column_order: 0
+    order: 0
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mNew' }"
   - id: "ce5cd7bd-1eb3-4945-821f-ebfedebf5958"
     name: "Approved"
-    column_order: 1
+    order: 1
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mOpen' }"
   - id: "42120527-5a99-4913-9917-58450008b770"
     name: "Committed"
-    column_order: 2
+    order: 2
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mInprogress' }"
   - id: "b7ef0df4-2253-47ee-9e60-4f768a5d7c81"
     name: "Done"
-    column_order: 3
+    order: 3
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mResolved' }"
 
@@ -124,22 +124,22 @@ work_item_boards:
   columns:
   - id: "8faebb8a-3748-44c6-a691-27633dde571c"
     name: "New"
-    column_order: 0
+    order: 0
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mNew' }"
   - id: "907dad6c-f117-4ad6-b6dd-e21fb198e56d"
     name: "Approved"
-    column_order: 1
+    order: 1
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mOpen' }"
   - id: "90a0a0b1-3e9c-4921-8430-25ff56fd1996"
     name: "Committed"
-    column_order: 2
+    order: 2
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mInprogress' }"
   - id: "86a2aaaa-4a80-433b-b390-b8f42eec2d32"
     name: "Done"
-    column_order: 3
+    order: 3
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mResolved' }"
 
@@ -151,22 +151,22 @@ work_item_boards:
   columns:
   - id: "6c314706-f562-494d-91b9-b7d2c36672ba"
     name: "New"
-    column_order: 0
+    order: 0
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mNew' }"
   - id: "6b06a763-cdef-400e-98d3-8db46e633c92"
     name: "Approved"
-    column_order: 1
+    order: 1
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mOpen' }"
   - id: "92f48297-062b-4605-9f30-2e546af4d898"
     name: "Committed"
-    column_order: 2
+    order: 2
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mInprogress' }"
   - id: "572c67ef-c550-4084-bd8a-a6d722a3278a"
     name: "Done"
-    column_order: 3
+    order: 3
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mResolved' }"
 
@@ -178,27 +178,27 @@ work_item_boards:
   columns:
   - id: "4953fd3a-32dd-4943-8dcf-4b4c9bfcfef1"
     name: "New"
-    column_order: 0
+    order: 0
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mNew' }"
   - id: "eea309e2-8caf-4dc0-98cd-8bb5de3dedb3"
     name: "Committed"
-    column_order: 1
+    order: 1
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mOpen' }"
   - id: "616e8d49-09a9-4ffa-903f-61f215862ee2"
     name: "In Progress"
-    column_order: 2
+    order: 2
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mInprogress' }"
   - id: "c3c4a46e-13d6-4dbb-b82d-bcec22e76275"
     name: "Completed"
-    column_order: 3
+    order: 3
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mInprogress' }"
   - id: "0defb62a-863d-4040-9650-a6e05f744e81"
     name: "Verified"
-    column_order: 4
+    order: 4
     trans_rule_key: "updateStateFromColumnMove"
     trans_rule_argument: "{ metaState: 'mResolved' }"
 

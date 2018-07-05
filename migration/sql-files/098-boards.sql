@@ -27,7 +27,8 @@ CREATE TABLE work_item_board_columns (
     column_order integer DEFAULT 0 NOT NULL,
     trans_rule_key text NOT NULL CHECK(trans_rule_key <> ''),
     trans_rule_argument text NOT NULL CHECK(trans_rule_argument <> ''),
-    CONSTRAINT work_item_board_column_name_board_id_unique UNIQUE(board_id, name)
+    CONSTRAINT work_item_board_column_name_board_id_unique UNIQUE(board_id, name),
+    CONSTRAINT work_item_board_id_order_unique UNIQUE(board_id, column_order)
 );
 
 CREATE INDEX work_item_board_columns_board_uidx ON work_item_board_columns (board_id) WHERE deleted_at IS NULL;

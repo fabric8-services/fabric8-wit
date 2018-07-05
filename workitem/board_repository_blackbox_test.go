@@ -103,7 +103,7 @@ func (s *workItemBoardRepoTest) TestCreate() {
 			g.ID = uuid.NewV4()
 			g.SpaceTemplateID = uuid.NewV4()
 			_, err := s.repo.Create(s.Ctx, g)
-			require.Error(t, err)
+			require.Contains(t, err.Error(), "work_item_boards_space_template_id_fkey")
 		})
 		t.Run("two boards with the same name are not allowed within the same space template", func(t *testing.T) {
 			g := expected
@@ -111,6 +111,18 @@ func (s *workItemBoardRepoTest) TestCreate() {
 			_, err := s.repo.Create(s.Ctx, g)
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "work_item_board_name_space_template_id_unique")
+		})
+		t.Run("two columns with the same order in the same board", func(t *testing.T) {
+			g := expected
+			g.ID = uuid.NewV4()
+			g.Name = uuid.NewV4().String()
+			g.Columns[0].ID = uuid.NewV4()
+			g.Columns[1].ID = uuid.NewV4()
+			g.Columns[0].ColumnOrder = 123
+			g.Columns[1].ColumnOrder = 123
+			_, err := s.repo.Create(s.Ctx, g)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "work_item_board_id_order_unique")
 		})
 	})
 }
