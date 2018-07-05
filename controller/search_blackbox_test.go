@@ -1109,6 +1109,80 @@ func (s *searchControllerTestSuite) TestSearchByJoinedData() {
 	})
 }
 
+// TestSearchWorkItemsWithChildIterationsOption verifies the Included list of parents
+func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption() {
+	s.T().Run("iterations", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
+				i := fxt.Iterations[idx]
+				switch idx {
+				case 0:
+					i.Name = "Top level iteration"
+				case 1:
+					i.Name = "Level 1 iteration"
+					i.MakeChildOf(*fxt.Iterations[idx-1])
+				case 2:
+					i.Name = "Level 2 iteration"
+					i.MakeChildOf(*fxt.Iterations[idx-1])
+				}
+				return nil
+			}),
+
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+				case 3, 4:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				case 5, 6, 7, 8:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				}
+				return nil
+			}),
+		)
+
+		spaceIDStr := fxt.Spaces[0].ID.String()
+
+		t.Run("without child iteration", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": true}}`, fxt.Iterations[2].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 4)
+		})
+		t.Run("with one child iteration", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": true}}`, fxt.Iterations[1].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 6)
+		})
+		t.Run("with two child iteration", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": true}}`, fxt.Iterations[0].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 9)
+		})
+		t.Run("without child iteration - false option", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": false}}`, fxt.Iterations[2].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 4)
+		})
+		t.Run("with one child iteration - false option", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": false}}`, fxt.Iterations[1].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 2)
+		})
+		t.Run("with two child iteration - false option", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": false}}`, fxt.Iterations[0].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 3)
+		})
+	})
+
+}
+
 // TestIncludedParents verifies the Included list of parents
 func (s *searchControllerTestSuite) TestIncludedParents() {
 
