@@ -329,13 +329,13 @@ work_item_boards:
     - id: "` + colID1 + `"
       board_id: "` + wibID.String() + `"
       name: "New"
-      column_order: 0
+      order: 0
       trans_rule_key: "updateStateFromColumnMove"
       trans_rule_argument: "{ 'metastate': 'mNew' }"
     - id: "` + colID2 + `"
       board_id: "` + wibID.String() + `"
       name: "Done"
-      column_order: 1
+      order: 1
       trans_rule_key: "updateStateFromColumnMove"
       trans_rule_argument: "{ 'metastate': 'mDone' }"
 `
