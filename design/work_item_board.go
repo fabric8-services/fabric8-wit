@@ -41,7 +41,7 @@ var workItemBoardColumnData = a.Type("WorkItemBoardColumnData", func() {
 
 var workItemBoardColumnAttributes = a.Type("WorkItemBoardColumnAttributes", func() {
 	a.Attribute("name", d.String)
-	a.Attribute("columnOrder", d.Integer)
+	a.Attribute("order", d.Integer)
 	// TODO(michaelkleinhenz): as soon as we allow column customization, we need
 	// to also provide transRuleKey and transRuleArguments.
 	a.Required("name")

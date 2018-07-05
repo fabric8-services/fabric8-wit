@@ -359,7 +359,7 @@ func makeWorkItemBoards(fxt *TestFixture) error {
 				{
 					ID:                uuid.NewV4(),
 					Name:              testsupport.CreateRandomValidTestName("New"),
-					ColumnOrder:       0,
+					Order:             0,
 					TransRuleKey:      "updateStateFromColumnMove",
 					TransRuleArgument: "{ 'metastate': 'mNew' }",
 					BoardID:           fxt.WorkItemBoards[i].ID,
@@ -367,7 +367,7 @@ func makeWorkItemBoards(fxt *TestFixture) error {
 				{
 					ID:                uuid.NewV4(),
 					Name:              testsupport.CreateRandomValidTestName("In Progress"),
-					ColumnOrder:       1,
+					Order:             1,
 					TransRuleKey:      "updateStateFromColumnMove",
 					TransRuleArgument: "{ 'metastate': 'mInprogress' }",
 					BoardID:           fxt.WorkItemBoards[i].ID,
@@ -375,7 +375,7 @@ func makeWorkItemBoards(fxt *TestFixture) error {
 				{
 					ID:                uuid.NewV4(),
 					Name:              testsupport.CreateRandomValidTestName("Resolved"),
-					ColumnOrder:       2,
+					Order:             2,
 					TransRuleKey:      "updateStateFromColumnMove",
 					TransRuleArgument: "{ 'metastate': 'mResolved' }",
 					BoardID:           fxt.WorkItemBoards[i].ID,
@@ -383,7 +383,7 @@ func makeWorkItemBoards(fxt *TestFixture) error {
 				{
 					ID:                uuid.NewV4(),
 					Name:              testsupport.CreateRandomValidTestName("Approved"),
-					ColumnOrder:       3,
+					Order:             3,
 					TransRuleKey:      "updateStateFromColumnMove",
 					TransRuleArgument: "{ 'metastate': 'mResolved' }",
 					BoardID:           fxt.WorkItemBoards[i].ID,

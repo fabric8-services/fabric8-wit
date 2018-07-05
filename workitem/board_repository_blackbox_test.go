@@ -67,7 +67,7 @@ func (s *workItemBoardRepoTest) TestCreate() {
 			{
 				ID:                uuid.NewV4(),
 				Name:              "New",
-				ColumnOrder:       0,
+				Order:             0,
 				TransRuleKey:      "updateStateFromColumnMove",
 				TransRuleArgument: "{ 'metastate': 'mNew' }",
 				BoardID:           ID,
@@ -75,7 +75,7 @@ func (s *workItemBoardRepoTest) TestCreate() {
 			{
 				ID:                uuid.NewV4(),
 				Name:              "Done",
-				ColumnOrder:       1,
+				Order:             1,
 				TransRuleKey:      "updateStateFromColumnMove",
 				TransRuleArgument: "{ 'metastate': 'mDone' }",
 				BoardID:           ID,
@@ -118,8 +118,8 @@ func (s *workItemBoardRepoTest) TestCreate() {
 			g.Name = uuid.NewV4().String()
 			g.Columns[0].ID = uuid.NewV4()
 			g.Columns[1].ID = uuid.NewV4()
-			g.Columns[0].ColumnOrder = 123
-			g.Columns[1].ColumnOrder = 123
+			g.Columns[0].Order = 123
+			g.Columns[1].Order = 123
 			_, err := s.repo.Create(s.Ctx, g)
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "work_item_board_id_order_unique")
@@ -191,7 +191,7 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 			{
 				ID:                uuid.NewV4(),
 				Name:              "New",
-				ColumnOrder:       0,
+				Order:             0,
 				TransRuleKey:      "updateStateFromColumnMove",
 				TransRuleArgument: "{ 'metastate': 'mNew' }",
 				BoardID:           ID,
@@ -199,7 +199,7 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 			{
 				ID:                uuid.NewV4(),
 				Name:              "Done",
-				ColumnOrder:       1,
+				Order:             1,
 				TransRuleKey:      "updateStateFromColumnMove",
 				TransRuleArgument: "{ 'metastate': 'mDone' }",
 				BoardID:           ID,
@@ -237,7 +237,7 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 				{
 					ID:                uuid.NewV4(),
 					Name:              "New",
-					ColumnOrder:       0,
+					Order:             0,
 					TransRuleKey:      "updateStateFromColumnMove",
 					TransRuleArgument: "{ 'metastate': 'mNew' }",
 					BoardID:           ID,
@@ -245,7 +245,7 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 				{
 					ID:                uuid.NewV4(),
 					Name:              "Done",
-					ColumnOrder:       1,
+					Order:             1,
 					TransRuleKey:      "updateStateFromColumnMove",
 					TransRuleArgument: "{ 'metastate': 'mDone' }",
 					BoardID:           ID,
@@ -260,7 +260,7 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 				{
 					ID:                uuid.NewV4(),
 					Name:              "New",
-					ColumnOrder:       0,
+					Order:             0,
 					TransRuleKey:      "updateStateFromColumnMove",
 					TransRuleArgument: "{ 'metastate': 'mNew' }",
 					BoardID:           ID,
@@ -274,7 +274,7 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 			b.Columns = append(b.Columns, workitem.BoardColumn{
 				ID:                uuid.NewV4(),
 				Name:              "New 1",
-				ColumnOrder:       0,
+				Order:             0,
 				TransRuleKey:      "updateStateFromColumnMove",
 				TransRuleArgument: "{ 'metastate': 'mNew' }",
 				BoardID:           ID,
@@ -305,7 +305,7 @@ func TestWorkItemBoardColumn_Equal(t *testing.T) {
 	a := workitem.BoardColumn{
 		ID:                uuid.NewV4(),
 		Name:              "New",
-		ColumnOrder:       0,
+		Order:             0,
 		TransRuleKey:      "updateStateFromColumnMove",
 		TransRuleArgument: "{ 'metastate': 'mNew' }",
 		BoardID:           uuid.NewV4(),
@@ -332,10 +332,10 @@ func TestWorkItemBoardColumn_Equal(t *testing.T) {
 		b.ID = uuid.NewV4()
 		require.False(t, a.Equal(b))
 	})
-	t.Run("column order", func(t *testing.T) {
+	t.Run("order", func(t *testing.T) {
 		t.Parallel()
 		b := a
-		b.ColumnOrder = 1234
+		b.Order = 1234
 		require.False(t, a.Equal(b))
 	})
 	t.Run("trans rule key", func(t *testing.T) {

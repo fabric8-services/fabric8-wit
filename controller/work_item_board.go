@@ -65,8 +65,8 @@ func ConvertColumnsFromModel(request *http.Request, column workitem.BoardColumn)
 		ID:   column.ID,
 		Type: APIBoardColumns,
 		Attributes: &app.WorkItemBoardColumnAttributes{
-			Name:        column.Name,
-			ColumnOrder: &column.ColumnOrder,
+			Name:  column.Name,
+			Order: &column.Order,
 		},
 	}
 }

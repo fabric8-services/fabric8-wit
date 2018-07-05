@@ -176,136 +176,136 @@
   "included": [
     {
       "attributes": {
-        "columnOrder": 0,
-        "name": "New"
+        "name": "New",
+        "order": 0
       },
       "id": "a890100d-f9dc-4193-bc4a-82ecbda6c0fb",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 1,
-        "name": "Approved"
+        "name": "Approved",
+        "order": 1
       },
       "id": "355cf395-80f4-4a01-b19a-a6d0314c5e37",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 2,
-        "name": "Committed"
+        "name": "Committed",
+        "order": 2
       },
       "id": "6dc1d2b0-5e57-4b43-a642-868d7030b4c9",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 3,
-        "name": "Done"
+        "name": "Done",
+        "order": 3
       },
       "id": "7ddd8062-e445-4480-b20c-d3b02c880c41",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 0,
-        "name": "New"
+        "name": "New",
+        "order": 0
       },
       "id": "c7bc916d-1176-4f2d-ab72-8502c1c17447",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 1,
-        "name": "Approved"
+        "name": "Approved",
+        "order": 1
       },
       "id": "fe382c1a-9571-4ff3-8d1e-bddebf68b488",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 2,
-        "name": "Committed"
+        "name": "Committed",
+        "order": 2
       },
       "id": "58c0dc28-1fa9-4307-9183-ff7b1774129e",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 3,
-        "name": "Done"
+        "name": "Done",
+        "order": 3
       },
       "id": "26d598a0-689d-4be3-be5f-458b004b37bb",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 0,
-        "name": "To Do"
+        "name": "To Do",
+        "order": 0
       },
       "id": "b6ac1be7-dbb4-403a-8124-d283446293a9",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 1,
-        "name": "Approved"
+        "name": "Approved",
+        "order": 1
       },
       "id": "f47a5947-e555-4d5b-8039-6f9a5bb050dd",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 2,
-        "name": "Committed"
+        "name": "Committed",
+        "order": 2
       },
       "id": "5e21dd9c-785b-4306-88ea-59383d77bb53",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 3,
-        "name": "In Progress"
+        "name": "In Progress",
+        "order": 3
       },
       "id": "2ef7b3de-2f82-4c0e-8f8a-bfda9e10db6a",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 4,
-        "name": "Done"
+        "name": "Done",
+        "order": 4
       },
       "id": "eabc7c5d-6309-4414-afeb-318b7ded1c09",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 0,
-        "name": "New"
+        "name": "New",
+        "order": 0
       },
       "id": "c26a9bdb-c992-4f7a-9642-5bb4cd7c519f",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 1,
-        "name": "Approved"
+        "name": "Approved",
+        "order": 1
       },
       "id": "f4002963-6491-49ef-800a-14a8e8a7375c",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 2,
-        "name": "Committed"
+        "name": "Committed",
+        "order": 2
       },
       "id": "a3f9fbff-2b07-46de-b745-a1901cea62d6",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 3,
-        "name": "Done"
+        "name": "Done",
+        "order": 3
       },
       "id": "b5e5093e-df33-499a-9b93-2eec6646def3",
       "type": "boardcolumns"

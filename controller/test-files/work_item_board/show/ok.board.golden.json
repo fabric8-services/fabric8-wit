@@ -44,32 +44,32 @@
   "included": [
     {
       "attributes": {
-        "columnOrder": 0,
-        "name": "New00000000-0000-0000-0000-000000000009"
+        "name": "New00000000-0000-0000-0000-000000000009",
+        "order": 0
       },
       "id": "00000000-0000-0000-0000-000000000004",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 1,
-        "name": "In Progress00000000-0000-0000-0000-000000000010"
+        "name": "In Progress00000000-0000-0000-0000-000000000010",
+        "order": 1
       },
       "id": "00000000-0000-0000-0000-000000000005",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 2,
-        "name": "Resolved00000000-0000-0000-0000-000000000011"
+        "name": "Resolved00000000-0000-0000-0000-000000000011",
+        "order": 2
       },
       "id": "00000000-0000-0000-0000-000000000006",
       "type": "boardcolumns"
     },
     {
       "attributes": {
-        "columnOrder": 3,
-        "name": "Approved00000000-0000-0000-0000-000000000012"
+        "name": "Approved00000000-0000-0000-0000-000000000012",
+        "order": 3
       },
       "id": "00000000-0000-0000-0000-000000000007",
       "type": "boardcolumns"

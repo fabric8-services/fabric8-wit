@@ -80,7 +80,7 @@ type BoardColumn struct {
 	ID                    uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id"`
 	BoardID               uuid.UUID `sql:"type:uuid" json:"board_id"`
 	Name                  string    `json:"name"`
-	ColumnOrder           int       `json:"order"`
+	Order                 int       `json:"order" gorm:"column:column_order"`
 	TransRuleKey          string    `json:"trans_rule_key"`
 	TransRuleArgument     string    `json:"trans_rule_argument"` // TODO: this is a JSON, not a string
 }
@@ -109,7 +109,7 @@ func (wibc BoardColumn) Equal(u convert.Equaler) bool {
 	if wibc.Name != other.Name {
 		return false
 	}
-	if wibc.ColumnOrder != other.ColumnOrder {
+	if wibc.Order != other.Order {
 		return false
 	}
 	if wibc.TransRuleKey != other.TransRuleKey {
