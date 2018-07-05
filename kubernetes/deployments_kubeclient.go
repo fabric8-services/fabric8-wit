@@ -941,71 +941,60 @@ func (kc *kubeClient) getDeploymentConfigNameForApp(namespace string, appName st
 		return "", errs.New("malformed response from endpoint")
 	}
 
-	// Look for a matching deployment config within latest completed build
-	var latestCompletedBuild map[string]interface{}
-	var latestCompletionTime time.Time
+	// Fall back to application name, if we can't find a name in the annotations
+	result := appName
+	// Look for latest build that contains desired annotation
+	var latestCreationTime time.Time
 	for _, item := range items {
 		build, ok := item.(map[string]interface{})
 		if !ok {
 			return "", errs.New("malformed build object")
 		}
-		status, ok := build["status"].(map[string]interface{})
-		if !ok {
-			return "", errs.New("status missing from build object")
-		}
-		phase, ok := status["phase"].(string)
-		if ok && phase == "Complete" {
-			completionTimeStr, ok := status["completionTimestamp"].(string)
-			if ok {
-				completionTime, err := time.Parse(time.RFC3339, completionTimeStr)
-				if err != nil {
-					return "", errs.Wrapf(err, "build completion time uses an invalid date")
-				}
-				if completionTime.After(latestCompletionTime) {
-					latestCompletedBuild = build
-					latestCompletionTime = completionTime
-				}
-			}
-		}
-	}
-
-	// Fall back to application name, if we can't find a name in the annotations
-	result := appName
-	if latestCompletedBuild != nil {
-		metadata, ok := latestCompletedBuild["metadata"].(map[string]interface{})
+		metadata, ok := build["metadata"].(map[string]interface{})
 		if !ok {
 			return "", errs.New("metadata missing from build object")
 		}
-		annotations, ok := metadata["annotations"].(map[string]interface{})
+		creationTimeStr, ok := metadata["creationTimestamp"].(string)
 		if ok {
-			envAnnotationName := fmt.Sprintf(envServicesAnnotationPrefix+"/%s", namespace)
-			envServices, pres := annotations[envAnnotationName]
-			if pres {
-				envServicesStr, ok := envServices.(string)
-				if !ok {
-					log.Warn(nil, map[string]interface{}{
-						"namespace":   namespace,
-						"appName":     appName,
-						"spaceName":   spaceName,
-						"envServices": envServicesStr,
-					}, "%s annotation does not contain a string", envServicesAnnotationPrefix)
-				} else {
-					dcName, err := getNameFromEnvServices([]byte(envServicesStr))
-					if err != nil {
-						log.Warn(nil, map[string]interface{}{
-							"err":         err,
-							"namespace":   namespace,
-							"appName":     appName,
-							"spaceName":   spaceName,
-							"envServices": envServicesStr,
-						}, "failed to determine Deployment Config name")
-					} else if len(dcName) > 0 {
-						result = dcName
+			creationTime, err := time.Parse(time.RFC3339, creationTimeStr)
+			if err != nil {
+				return "", errs.Wrapf(err, "build creation time uses an invalid date")
+			}
+			if creationTime.After(latestCreationTime) {
+				annotations, ok := metadata["annotations"].(map[string]interface{})
+				if ok {
+					envAnnotationName := fmt.Sprintf(envServicesAnnotationPrefix+"/%s", namespace)
+					envServices, pres := annotations[envAnnotationName]
+					if pres {
+						envServicesStr, ok := envServices.(string)
+						if !ok {
+							log.Warn(nil, map[string]interface{}{
+								"namespace":   namespace,
+								"appName":     appName,
+								"spaceName":   spaceName,
+								"envServices": envServicesStr,
+							}, "%s annotation does not contain a string", envServicesAnnotationPrefix)
+						} else {
+							dcName, err := getNameFromEnvServices([]byte(envServicesStr))
+							if err != nil {
+								log.Warn(nil, map[string]interface{}{
+									"err":         err,
+									"namespace":   namespace,
+									"appName":     appName,
+									"spaceName":   spaceName,
+									"envServices": envServicesStr,
+								}, "failed to determine Deployment Config name")
+							} else if len(dcName) > 0 {
+								result = dcName
+								latestCreationTime = creationTime
+							}
+						}
 					}
 				}
 			}
 		}
 	}
+
 	return result, nil
 }
 
