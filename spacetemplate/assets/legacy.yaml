@@ -145,7 +145,7 @@ work_item_boards:
 
 - id: "29493abe-02eb-4e4b-ac3b-a4c1390fa5cd"
   name: Requirements Board
-  description: This is the default board config for the SDD template (Experiences).
+  description: This is the default board config for the SDD template (Requirements).
   context: "8e4c995d-8e5f-4ad6-85bd-3cfbe718f908"
   context_type: "TypeLevelContext"
   columns:
@@ -172,7 +172,7 @@ work_item_boards:
 
 - id: "0e842bef-ac2a-4071-b97a-b07a6b29965d"
   name: Execution Board
-  description: This is the default board config for the SDD template (Experiences).
+  description: This is the default board config for the SDD template (Execution).
   context: "8e4c995d-8e5f-4ad6-85bd-3cfbe718f908"
   context_type: "TypeLevelContext"
   columns:
