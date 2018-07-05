@@ -437,7 +437,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 					{
 						ID:                uuid.FromStringOrNil(colID1),
 						Name:              "New",
-						ColumnOrder:       0,
+						Order:             0,
 						TransRuleKey:      "updateStateFromColumnMove",
 						TransRuleArgument: "{ 'metastate': 'mNew' }",
 						BoardID:           wibID,
@@ -445,7 +445,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 					{
 						ID:                uuid.FromStringOrNil(colID2),
 						Name:              "Done",
-						ColumnOrder:       1,
+						Order:             1,
 						TransRuleKey:      "updateStateFromColumnMove",
 						TransRuleArgument: "{ 'metastate': 'mDone' }",
 						BoardID:           wibID,
