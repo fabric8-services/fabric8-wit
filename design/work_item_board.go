@@ -67,7 +67,10 @@ var workItemBoardAttributes = a.Type("WorkItemBoardAttributes", func() {
 	a.Attribute("created-at", d.DateTime, "timestamp of entity creation")
 	a.Attribute("updated-at", d.DateTime, "timestamp of last entity update")
 	a.Attribute("context", d.String, "Context of this board")
-	a.Attribute("contextType", d.String, "Type of the context, used in addition to the context value")
+	a.Attribute("contextType", d.String, "Type of the context, used in addition to the context value", func() {
+		// TODO(kwk): once we allow more context types, this can be relaxed.
+		a.Enum("TypeLevelContext")
+	})
 	a.Required("name", "context", "contextType")
 })
 
