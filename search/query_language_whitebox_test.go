@@ -327,7 +327,7 @@ func TestParseMap(t *testing.T) {
 		// when
 		actualOptions := parseOptions(fm)
 		// then
-		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true}
+		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true, ChildIterations: true}
 		assert.Equal(t, expectedOptions, actualOptions)
 	})
 	t.Run(OPTS+" complex query", func(t *testing.T) {
@@ -343,13 +343,13 @@ func TestParseMap(t *testing.T) {
 		actualQuery := Query{Options: options}
 
 		// then
-		expectedQuery := Query{Options: &QueryOptions{ParentExists: true, TreeView: true}}
+		expectedQuery := Query{Options: &QueryOptions{ParentExists: true, TreeView: true, ChildIterations: true}}
 		assert.Equal(t, expectedQuery, actualQuery)
 
 		parseMap(fm, &actualQuery)
 		title := "some"
 		state := "new"
-		expectedQuery = Query{Options: &QueryOptions{ParentExists: true, TreeView: true},
+		expectedQuery = Query{Options: &QueryOptions{ParentExists: true, TreeView: true, ChildIterations: true},
 			Name: AND, Children: []Query{
 				{Name: "title", Value: &title},
 				{Name: "state", Value: &state}},
@@ -380,7 +380,7 @@ func TestParseFilterString(t *testing.T) {
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
 		assert.Nil(t, err)
-		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true}
+		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true, ChildIterations: true}
 		assert.Equal(t, expectedOptions, options)
 	})
 
