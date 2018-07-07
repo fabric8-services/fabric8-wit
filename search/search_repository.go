@@ -322,9 +322,10 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 }
 
 func parseOptions(queryMap map[string]interface{}) *QueryOptions {
+	options := QueryOptions{}
+	options.ChildIterations = true
 	for key, val := range queryMap {
 		if ifArr, ok := val.(map[string]interface{}); key == OPTS && ok {
-			options := QueryOptions{}
 			for k, v := range ifArr {
 				switch k {
 				case OptParentExistsKey:
@@ -338,7 +339,7 @@ func parseOptions(queryMap map[string]interface{}) *QueryOptions {
 			return &options
 		}
 	}
-	return &QueryOptions{}
+	return &options
 }
 
 func parseArray(anArray []interface{}, l *[]Query) {
@@ -418,6 +419,9 @@ func (q Query) generateExpression() (criteria.Expression, []string, error) {
 	currentOperator := q.Name
 
 	if !isOperator(currentOperator) || currentOperator == OPTS {
+		if q.Name == "iteration" {
+			myitrs = append(myitrs, *q.Value)
+		}
 		key, ok := searchKeyMap[q.Name]
 		// check that none of the default table joins handles this column:
 		var handledByJoin bool
@@ -696,7 +700,6 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	if childIterations {
 		itrRepo := iteration.NewIterationRepository(r.db)
 
-		where += fmt.Sprintf(` AND `)
 		allitrs := []string{}
 		for _, itr := range iterations {
 			i, _ := uuid.FromString(itr)
@@ -706,7 +709,10 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 				allitrs = append(allitrs, fmt.Sprintf("Fields->>'system.iteration' = '%s'", v.ID.String()))
 			}
 		}
-		where += strings.Join(allitrs, " OR ")
+		if len(allitrs) > 1 {
+			where += fmt.Sprintf(` AND `)
+			where += strings.Join(allitrs, " OR ")
+		}
 	}
 
 	if parentExists != nil && !*parentExists {

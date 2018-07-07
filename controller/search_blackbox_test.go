@@ -1161,6 +1161,27 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 9)
 		})
+
+		t.Run("without child iteration - implicit", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[2].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 4)
+		})
+		t.Run("with one child iteration - implicit", func(t *testing.T) {
+			//filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}]}`, fxt.Iterations[1].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[1].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 6)
+		})
+		t.Run("with two child iteration - implicit", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[0].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 9)
+		})
+
 		t.Run("without child iteration - false option", func(t *testing.T) {
 			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": false}}`, fxt.Iterations[2].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
