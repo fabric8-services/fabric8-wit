@@ -119,7 +119,7 @@ work_item_boards:
 - id: "56d62801-798a-4bb0-9c97-89f136f3d539"
   name: Experiences Board
   description: This is the default board config for the SDD template (Experiences).
-  context: "8e4c995d-8e5f-4ad6-85bd-3cfbe718f908"
+  context: "6d254168-6937-447f-a093-0c38404bd072"
   context_type: "TypeLevelContext"
   columns:
   - id: "8faebb8a-3748-44c6-a691-27633dde571c"
@@ -146,7 +146,7 @@ work_item_boards:
 - id: "29493abe-02eb-4e4b-ac3b-a4c1390fa5cd"
   name: Requirements Board
   description: This is the default board config for the SDD template (Requirements).
-  context: "8e4c995d-8e5f-4ad6-85bd-3cfbe718f908"
+  context: "44795662-db7a-44f7-a4e7-c6d41d3eff27"
   context_type: "TypeLevelContext"
   columns:
   - id: "6c314706-f562-494d-91b9-b7d2c36672ba"
@@ -173,7 +173,7 @@ work_item_boards:
 - id: "0e842bef-ac2a-4071-b97a-b07a6b29965d"
   name: Execution Board
   description: This is the default board config for the SDD template (Execution).
-  context: "8e4c995d-8e5f-4ad6-85bd-3cfbe718f908"
+  context: "5c3ee317-3cdd-4ee6-a27f-85965f777ee3"
   context_type: "TypeLevelContext"
   columns:
   - id: "4953fd3a-32dd-4943-8dcf-4b4c9bfcfef1"
