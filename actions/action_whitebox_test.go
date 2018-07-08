@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"fmt"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	uuid "github.com/satori/go.uuid"
@@ -95,34 +96,32 @@ func (s *ActionSuite) TestChangeSet() {
 		changes, err := fixture.WorkItems[0].ChangeSet(wiCopy)
 		require.Nil(s.T(), err)
 		require.Len(s.T(), changes, 1)
+		fmt.Println(changes[0].OldValue)
+		fmt.Println(changes[0].NewValue)
 		require.Equal(s.T(), changes[0].AttributeName, "system.boardcolumns")
 		require.Equal(s.T(), changes[0].OldValue, wiCopy.Fields["system.boardcolumns"])
 		require.Equal(s.T(), changes[0].NewValue, fixture.WorkItems[0].Fields["system.boardcolumns"])
 	})
-	/*
 
 	s.T().Run("multiple changes", func(t *testing.T) {
+		wiCopy := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0"})
 		fixture.WorkItems[0].Fields["system.state"] = "new"
-		fixture.WorkItems[1].Fields["system.state"] = "open"
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
-		fixture.WorkItems[1].Fields["system.boardcolumns"] = []string{"bcid0"}
-		changes, err := fixture.WorkItems[0].ChangeSet(fixture.WorkItems[1])
-		require.NoError(s.T(), err)
+		changes, err := fixture.WorkItems[0].ChangeSet(wiCopy)
+		require.Nil(s.T(), err)
 		require.Len(s.T(), changes, 2)
 		// we intentionally test the order here as the code under test needs
 		// to be expanded later, supporting more changes and this is an
 		// integrity test on the current impl.
 		require.Equal(s.T(), changes[0].AttributeName, "system.state")
 		require.Equal(s.T(), changes[0].NewValue, "new")
-		require.Equal(s.T(), changes[0].NewValue, "open")
+		require.Equal(s.T(), changes[0].OldValue, "open")
 		require.Equal(s.T(), changes[1].AttributeName, "system.boardcolumns")
-		require.Equal(s.T(), changes[2].NewValue, fixture.WorkItems[0].Fields["system.boardcolumns"])
-		require.Equal(s.T(), changes[3].NewValue, fixture.WorkItems[1].Fields["system.boardcolumns"])
+		require.Equal(s.T(), changes[1].NewValue, fixture.WorkItems[0].Fields["system.boardcolumns"])
+		require.Equal(s.T(), changes[1].OldValue, wiCopy.Fields["system.boardcolumns"])
 	})
-	*/
 }
 
-/*
 func (s *ActionSuite) TestActionExecution() {
 	fixture := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
 	require.NotNil(s.T(), fixture)
@@ -130,12 +129,17 @@ func (s *ActionSuite) TestActionExecution() {
 
 	s.T().Run("byOldNew", func(t *testing.T) {
 		fixture.WorkItems[0].Fields["system.state"] = "new"
-		fixture.WorkItems[1].Fields["system.state"] = "open"
-		//action.ExecuteActionsByOldNew(oldContext convert.ChangeDetector, newContext convert.ChangeDetector, actionConfigList map[string]string) (convert.ChangeDetector, *[]convert.Change, error)
+		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
+		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
+		afterActionWI, changes, err := ExecuteActionsByOldNew(fixture.WorkItems[0], newVersion, map[string]string {
+			"updateStateFromColumnMove": "{ metaState: 'mResolved' }",
+		})
+		require.Nil(s.T(), err)
+		require.Len(s.T(), changes, 1)
+		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.state"], "open")
 	})
 
 	s.T().Run("byChangeSet", func(t *testing.T) {
 		//action.ExecuteActionsByOldNew(oldContext convert.ChangeDetector, newContext convert.ChangeDetector, actionConfigList map[string]string) (convert.ChangeDetector, *[]convert.Change, error)
 	})
 }
-*/

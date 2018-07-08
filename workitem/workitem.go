@@ -99,8 +99,8 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 	if len(bcThis) != len(bcOlder) {
 		changes = append(changes, convert.Change{
 			AttributeName: "system.boardcolumns",
-			NewValue:      wi.Fields["system.state"],
-			OldValue:      olderWorkItem.Fields["system.state"],
+			NewValue:      wi.Fields["system.boardcolumns"],
+			OldValue:      olderWorkItem.Fields["system.boardcolumns"],
 		})
 		return changes, nil
 	}
@@ -113,8 +113,8 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 	if !reflect.DeepEqual(thisCopy, olderCopy) {
 		changes = append(changes, convert.Change{
 			AttributeName: "system.boardcolumns",
-			NewValue:      wi.Fields["system.state"],
-			OldValue:      olderWorkItem.Fields["system.state"],
+			NewValue:      wi.Fields["system.boardcolumns"],
+			OldValue:      olderWorkItem.Fields["system.boardcolumns"],
 		})
 		return changes, nil
 	}

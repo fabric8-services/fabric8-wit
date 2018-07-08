@@ -18,7 +18,6 @@ type Action interface {
 	onChange(newContext convert.ChangeDetector, contextChanges []convert.Change, configuration string, actionChanges *[]convert.Change) (convert.ChangeDetector, []convert.Change, error)
 }
 
-
 // ExecuteActionsByOldNew executes all actions given in the actionConfigList
 // using the mapped configuration strings and returns the new context entity.
 func ExecuteActionsByOldNew(oldContext convert.ChangeDetector, newContext convert.ChangeDetector, actionConfigList map[string]string) (convert.ChangeDetector, *[]convert.Change, error) {
