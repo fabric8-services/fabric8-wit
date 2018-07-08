@@ -476,7 +476,7 @@ func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 			payload := minimumRequiredCreateWithTypeAndSpace(wi.WorkItemTypeID, wi.SpaceID)
 			payload.Data.Attributes[workitem.SystemTitle] = wi.Title
 			payload.Data.Attributes[workitem.SystemState] = wi.State
-			_, _ = test.CreateWorkitemsCreated(t, svc.Context, svc, workitemsCtrl, wi.SpaceID, &payload)
+			test.CreateWorkitemsCreated(t, svc.Context, svc, workitemsCtrl, wi.SpaceID, &payload)
 		}
 
 		// helper function that checks if the given to be found work item titles
@@ -846,7 +846,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 					]}
 				]}`,
 			spaceIDStr, workitem.SystemStateOpen, fakeIterationID)
-		_, _ = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	})
 
 	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID) using NE", func(t *testing.T) {
