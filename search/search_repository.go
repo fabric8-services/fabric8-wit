@@ -703,7 +703,10 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 		allitrs := []string{}
 		for _, itr := range iterations {
 			i, _ := uuid.FromString(itr)
-			citrs, _ := itrRepo.LoadChildren(ctx, i)
+			citrs, err := itrRepo.LoadChildren(ctx, i)
+			if err != nil {
+				return nil, 0, errors.NewInternalError(ctx, errs.Wrap("failed to load child iteration"))
+			}
 			allitrs = append(allitrs, fmt.Sprintf("Fields->>'system.iteration' = '%s'", itr))
 			for _, v := range citrs {
 				allitrs = append(allitrs, fmt.Sprintf("Fields->>'system.iteration' = '%s'", v.ID.String()))

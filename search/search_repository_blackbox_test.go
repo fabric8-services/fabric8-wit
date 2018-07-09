@@ -100,37 +100,37 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithChildIterationWorkItems() {
 			}),
 		)
 		t.Run("without child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": true}}`, fxt.Iterations[2].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": true}}`, fxt.Iterations[2].ID)
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
 			assert.Equal(t, 4, count)
 		})
 		t.Run("with one child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": true}}`, fxt.Iterations[1].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": true}}`, fxt.Iterations[1].ID)
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
 			assert.Equal(t, 6, count)
 		})
 		t.Run("with two child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": true}}`, fxt.Iterations[0].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": true}}`, fxt.Iterations[0].ID)
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
 			assert.Equal(t, 9, count)
 		})
 		t.Run("without child iteration - false option", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": false}}`, fxt.Iterations[2].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": false}}`, fxt.Iterations[2].ID)
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
 			assert.Equal(t, 4, count)
 		})
 		t.Run("with one child iteration - false option", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": false}}`, fxt.Iterations[1].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": false}}`, fxt.Iterations[1].ID)
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
 			assert.Equal(t, 2, count)
 		})
 		t.Run("with two child iteration - false option", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}], "$OPTS":{"child-iterations": false}}`, fxt.Iterations[0].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": false}}`, fxt.Iterations[0].ID)
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
 			assert.Equal(t, 3, count)
