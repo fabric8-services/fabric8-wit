@@ -101,6 +101,14 @@ var envStats = a.Type("EnvStats", func() {
 	a.Description("resource usage and quotas for an environment")
 	a.Attribute("cpucores", envStatCores)
 	a.Attribute("memory", envStatMemory)
+	a.Attribute("pods", envStatObjects)
+	a.Attribute("replication_controllers", envStatObjects)
+	a.Attribute("resource_quotas", envStatObjects)
+	a.Attribute("services", envStatObjects)
+	a.Attribute("secrets", envStatObjects)
+	a.Attribute("config_maps", envStatObjects)
+	a.Attribute("persistent_volume_claims", envStatObjects)
+	a.Attribute("image_streams", envStatObjects)
 })
 
 var envStatCores = a.Type("EnvStatCores", func() {
@@ -114,6 +122,12 @@ var envStatMemory = a.Type("EnvStatMemory", func() {
 	a.Attribute("used", d.Number)
 	a.Attribute("quota", d.Number)
 	a.Attribute("units", d.String)
+})
+
+var envStatObjects = a.Type("EnvStatObjects", func() {
+	a.Description(`environment object counts`)
+	a.Attribute("used", d.Number)
+	a.Attribute("quota", d.Number)
 })
 
 var timedNumberTuple = a.Type("TimedNumberTuple", func() {

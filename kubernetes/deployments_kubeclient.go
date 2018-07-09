@@ -1209,52 +1209,169 @@ func (kc *kubeClient) getReplicationControllers(namespace string, deploy *deploy
 }
 
 func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) {
+	// Get both resource quotas in one API call
 	const computeResources string = "compute-resources"
-	quota, err := kc.ResourceQuotas(namespace).Get(computeResources, metaV1.GetOptions{})
+	const objectCounts string = "object-counts"
+	quotas, err := kc.ResourceQuotas(namespace).List(metaV1.ListOptions{})
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":       err,
 			"namespace": namespace,
-		}, "failed to get '%s' resource quota", computeResources)
-		return nil, convertError(errs.WithStack(err), "failed to get resource quota '%s' from %s",
-			computeResources, namespace)
+		}, "failed to list resource quotas")
+		return nil, convertError(errs.WithStack(err), "failed to list resource quotas from %s",
+			namespace)
 	}
 
-	// Convert quantities to floating point, as this should provide enough
-	// precision in practice
-	cpuLimit, err := quantityToFloat64(quota.Status.Hard[v1.ResourceLimitsCPU])
-	if err != nil {
-		return nil, err
-	}
-	cpuUsed, err := quantityToFloat64(quota.Status.Used[v1.ResourceLimitsCPU])
-	if err != nil {
-		return nil, err
-	}
-
-	memLimit, err := quantityToFloat64(quota.Status.Hard[v1.ResourceLimitsMemory])
-	if err != nil {
-		return nil, err
+	var computeQuota, objectQuota *v1.ResourceQuota
+	for idx := range quotas.Items {
+		quota := &quotas.Items[idx]
+		if quota.Name == computeResources {
+			computeQuota = quota
+		} else if quota.Name == objectCounts {
+			objectQuota = quota
+		}
 	}
 
-	memUsed, err := quantityToFloat64(quota.Status.Used[v1.ResourceLimitsMemory])
+	if computeQuota == nil {
+		log.Error(nil, map[string]interface{}{
+			"namespace":  namespace,
+			"quota_name": computeResources,
+		}, "resource quota not found")
+		return nil, errors.NewNotFoundErrorFromString(fmt.Sprintf("resource quota '%s' not found in %s",
+			computeResources, namespace))
+	} else if objectQuota == nil {
+		log.Error(nil, map[string]interface{}{
+			"namespace":  namespace,
+			"quota_name": objectCounts,
+		}, "resource quota not found")
+		return nil, errors.NewNotFoundErrorFromString(fmt.Sprintf("resource quota '%s' not found in %s",
+			objectCounts, namespace))
+	}
+
+	// Collect compute-based resource usage and quotas
+	cpuUsed, cpuLimit, err := getResourceUsageAndLimit(computeQuota, v1.ResourceLimitsCPU)
 	if err != nil {
 		return nil, err
+	} else if cpuUsed == nil || cpuLimit == nil {
+		log.Error(nil, map[string]interface{}{
+			"namespace":     namespace,
+			"quota_name":    computeResources,
+			"resource_name": v1.ResourceLimitsCPU,
+		}, "CPU resource not found in quota")
+		return nil, errors.NewNotFoundErrorFromString(fmt.Sprintf("CPU missing from resource quota in %s",
+			namespace))
+	}
+	memUsed, memLimit, err := getResourceUsageAndLimit(computeQuota, v1.ResourceLimitsMemory)
+	if err != nil {
+		return nil, err
+	} else if memUsed == nil || memLimit == nil {
+		log.Error(nil, map[string]interface{}{
+			"namespace":     namespace,
+			"quota_name":    computeResources,
+			"resource_name": v1.ResourceLimitsMemory,
+		}, "memory resource not found in quota")
+		return nil, errors.NewNotFoundErrorFromString(fmt.Sprintf("memory missing from resource quota in %s",
+			namespace))
 	}
 	memUnits := "bytes"
 
 	result := &app.EnvStats{
 		Cpucores: &app.EnvStatCores{
-			Quota: &cpuLimit,
-			Used:  &cpuUsed,
+			Quota: cpuLimit,
+			Used:  cpuUsed,
 		},
 		Memory: &app.EnvStatMemory{
-			Quota: &memLimit,
-			Used:  &memUsed,
+			Quota: memLimit,
+			Used:  memUsed,
 			Units: &memUnits,
 		},
 	}
 
+	// Get object-based resource usage and quotas where they exist
+	objStats, err := getObjectQuota(objectQuota, v1.ResourcePods)
+	if err != nil {
+		return nil, err
+	}
+	result.Pods = objStats
+	objStats, err = getObjectQuota(objectQuota, v1.ResourceReplicationControllers)
+	if err != nil {
+		return nil, err
+	}
+	result.ReplicationControllers = objStats
+	objStats, err = getObjectQuota(objectQuota, v1.ResourceQuotas)
+	if err != nil {
+		return nil, err
+	}
+	result.ResourceQuotas = objStats
+	objStats, err = getObjectQuota(objectQuota, v1.ResourceServices)
+	if err != nil {
+		return nil, err
+	}
+	result.Services = objStats
+	objStats, err = getObjectQuota(objectQuota, v1.ResourceSecrets)
+	if err != nil {
+		return nil, err
+	}
+	result.Secrets = objStats
+	objStats, err = getObjectQuota(objectQuota, v1.ResourceConfigMaps)
+	if err != nil {
+		return nil, err
+	}
+	result.ConfigMaps = objStats
+	objStats, err = getObjectQuota(objectQuota, v1.ResourcePersistentVolumeClaims)
+	if err != nil {
+		return nil, err
+	}
+	result.PersistentVolumeClaims = objStats
+	// OpenShift-specific object type
+	const resourceImageStreams v1.ResourceName = "openshift.io/imagestreams"
+	objStats, err = getObjectQuota(objectQuota, resourceImageStreams)
+	if err != nil {
+		return nil, err
+	}
+	result.ImageStreams = objStats
+
 	return result, nil
+}
+
+func getObjectQuota(quota *v1.ResourceQuota, resourceName v1.ResourceName) (*app.EnvStatObjects, error) {
+	var result *app.EnvStatObjects
+	used, limit, err := getResourceUsageAndLimit(quota, resourceName)
+	if err != nil {
+		return nil, err
+	} else if used != nil || limit != nil {
+		result = &app.EnvStatObjects{
+			Quota: limit,
+			Used:  used,
+		}
+	}
+	return result, nil
+}
+
+func getResourceUsageAndLimit(quota *v1.ResourceQuota, resourceName v1.ResourceName) (used, limit *float64, err error) {
+	// Return nil if no resource by that name is present
+	quantity, pres := quota.Status.Hard[resourceName]
+	if pres {
+		// Convert quantities to floating point, as this should provide enough
+		// precision in practice
+		limitVal, err := quantityToFloat64(quantity)
+		if err != nil {
+			return nil, nil, err
+		}
+		limit = &limitVal
+	}
+
+	// Do the same for usage
+	quantity, pres = quota.Status.Used[resourceName]
+	if pres {
+		usedVal, err := quantityToFloat64(quantity)
+		if err != nil {
+			return nil, nil, err
+		}
+		used = &usedVal
+	}
+
+	return used, limit, nil
 }
 
 func quantityToFloat64(q resource.Quantity) (float64, error) {
