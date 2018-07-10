@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"fmt"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -22,18 +21,14 @@ type TestRootREST struct {
 	db *gormapplication.GormDB
 }
 
-func TestRunRootTinaREST(t *testing.T) {
-	fmt.Println("TINA JERRY KURIAN ")
+func TestRunRootREST(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pwd, err := os.Getwd()
-	fmt.Println("TINA JERRY KURIAN ", pwd)
 	require.NoError(t, err)
-	fmt.Println("TINA JERRY KURIAN ", t)
 	suite.Run(t, &TestRootREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 
-func (rest *TestRootREST) TestListRootTinaOK() {
-	fmt.Println("TINA SUSAN KURIAN ")
+func (rest *TestRootREST) TestListRootOK() {
 
 	// given
 	svc := goa.New("rootService")
@@ -41,7 +36,6 @@ func (rest *TestRootREST) TestListRootTinaOK() {
 
 	// when
 	res, root := test.ListRootOK(rest.T(), svc.Context, svc, ctrl)
-	fmt.Println("TINA KURIAN ", res)
 
 	// then
 	compareWithGoldenAgnostic(rest.T(), filepath.Join("test-files", "root", "list", "ok_root_endpoint.golden.json"), root)
