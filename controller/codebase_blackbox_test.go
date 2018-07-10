@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account/tenant"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
+	gemini "github.com/fabric8-services/fabric8-wit/codebase/analytics-gemini"
 	"github.com/fabric8-services/fabric8-wit/codebase/che"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -56,6 +57,16 @@ func withCheClient(f CodebaseCheClientProvider) ConfigureCodebaseController {
 func withShowTenant(f account.CodebaseInitTenantProvider) ConfigureCodebaseController {
 	return func(codebaseCtrl *CodebaseController) {
 		codebaseCtrl.ShowTenant = f
+	}
+}
+
+// withAnalyticsGeminiClient takes in the function that can initialize
+// the Analytics Gemini Service Client and it returns a closure which
+// takes in the CodebaseController object and initializes this object
+// with the Analytics Gemini Client
+func withAnalyticsGeminiClient(f AnalyticsGeminiClientProvider) ConfigureCodebaseController {
+	return func(codebaseCtrl *CodebaseController) {
+		codebaseCtrl.AnalyticsGeminiClient = f
 	}
 }
 
@@ -107,6 +118,23 @@ func MockShowTenant() func(context.Context) (*tenant.TenantSingle, error) {
 	}
 }
 
+// MockAnalyticsGeminiClient takes in the transport objects for
+// Gemini service and the Codebase service and returns function when
+// called returns the Gemini Service Client
+func MockAnalyticsGeminiClient(geminiTransport, codebaseTransport http.RoundTripper) func() *gemini.ScanRepoClient {
+	config, _ := configuration.New("")
+	return func() *gemini.ScanRepoClient {
+
+		return gemini.NewScanRepoClient(
+			config.GetAnalyticsGeminiServiceURL(),
+			&http.Client{Transport: geminiTransport},
+			config.GetCodebaseServiceURL(),
+			&http.Client{Transport: codebaseTransport},
+			false,
+		)
+	}
+}
+
 func (s *CodebaseControllerTestSuite) TestShowCodebase() {
 
 	s.T().Run("success without stackId", func(t *testing.T) {
@@ -153,7 +181,12 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
-		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity, withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
+		svc, ctrl := s.SecuredControllers(
+			testsupport.TestIdentity,
+			withCheClient(NewMockCheClient(m, s.Configuration)),
+			withShowTenant(MockShowTenant()),
+			withAnalyticsGeminiClient(MockAnalyticsGeminiClient(m, m)),
+		)
 		// when
 		test.DeleteCodebaseNoContent(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 		// verify that a `DELETE workspace` request was sent by the Che client
@@ -167,7 +200,14 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 				RequestMethod: "DELETE",
 				RequestURL:    "che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo",
 				StatusCode:    200,
-			})
+			},
+			httpmonitor.Exchange{
+				RequestMethod: "GET",
+				RequestURL:    "http://core/api/search/codebases?url=git%40github.com%3Abar%2Ffoo",
+				StatusCode:    200,
+			},
+		)
+
 		require.NoError(t, err)
 
 	})
@@ -188,7 +228,12 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
-		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity, withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
+		svc, ctrl := s.SecuredControllers(
+			testsupport.TestIdentity,
+			withCheClient(NewMockCheClient(m, s.Configuration)),
+			withShowTenant(MockShowTenant()),
+			withAnalyticsGeminiClient(MockAnalyticsGeminiClient(m, m)),
+		)
 		// when
 		test.DeleteCodebaseNoContent(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 		// then verify that the Che client emitted the expected requests
@@ -202,7 +247,13 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 				RequestMethod: "DELETE",
 				RequestURL:    "che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo",
 				StatusCode:    500,
-			})
+			},
+			httpmonitor.Exchange{
+				RequestMethod: "GET",
+				RequestURL:    "http://core/api/search/codebases?url=git%40github.com%3Abar%2Ffoo",
+				StatusCode:    200,
+			},
+		)
 		require.NoError(t, err)
 	})
 
@@ -292,12 +343,19 @@ func (s *CodebaseControllerTestSuite) TestUpdateCodebase() {
 			},
 		}
 	}
+	r, err := recorder.New("../test/data/gemini-scan/codebase-update-ok")
+	require.NoError(t, err)
+	defer r.Stop()
+	m := httpmonitor.NewTransportMonitor(r.Transport)
 
 	t.Run("OK", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1))
 		codebase := fxt.Codebases[0]
-		svc, ctrl := s.SecuredControllers(*fxt.Identities[0])
+		svc, ctrl := s.SecuredControllers(
+			*fxt.Identities[0],
+			withAnalyticsGeminiClient(MockAnalyticsGeminiClient(m, m)),
+		)
 
 		// input
 		newType := "svn"
