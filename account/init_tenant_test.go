@@ -35,7 +35,7 @@ func TestShowTenant(t *testing.T) {
 
 	t.Run("ok", func(t *testing.T) {
 		// given
-		ctx, err := testjwt.NewJWTContext("bcdd0b29-123d-11e8-a8bc-b69930b94f5c")
+		ctx, err := testjwt.NewJWTContext("bcdd0b29-123d-11e8-a8bc-b69930b94f5c", "")
 		require.NoError(t, err)
 		// when
 		result, err := account.ShowTenant(ctx, config, configuration.WithRoundTripper(r.Transport))
@@ -47,7 +47,7 @@ func TestShowTenant(t *testing.T) {
 
 	t.Run("not found", func(t *testing.T) {
 		// given
-		ctx, err := testjwt.NewJWTContext("83fdcae2-634f-4a52-958a-f723cb621700")
+		ctx, err := testjwt.NewJWTContext("83fdcae2-634f-4a52-958a-f723cb621700", "")
 		require.NoError(t, err)
 		// when
 		result, err := account.ShowTenant(ctx, config, configuration.WithRoundTripper(r.Transport))
@@ -74,7 +74,7 @@ func TestCleanTenant(t *testing.T) {
 
 	t.Run("ok", func(t *testing.T) {
 		// given
-		ctx, err := testjwt.NewJWTContext("bcdd0b29-123d-11e8-a8bc-b69930b94f5c")
+		ctx, err := testjwt.NewJWTContext("bcdd0b29-123d-11e8-a8bc-b69930b94f5c", "")
 		require.NoError(t, err)
 		// when
 		err = account.CleanTenant(ctx, config, false, configuration.WithRoundTripper(r.Transport))
@@ -86,7 +86,7 @@ func TestCleanTenant(t *testing.T) {
 
 		t.Run("internal server error", func(t *testing.T) {
 			// given
-			ctx, err := testjwt.NewJWTContext("83fdcae2-634f-4a52-958a-f723cb621700")
+			ctx, err := testjwt.NewJWTContext("83fdcae2-634f-4a52-958a-f723cb621700", "")
 			require.NoError(t, err)
 			// when
 			err = account.CleanTenant(ctx, config, false, configuration.WithRoundTripper(r.Transport))
@@ -97,7 +97,7 @@ func TestCleanTenant(t *testing.T) {
 
 		t.Run("other error with a message", func(t *testing.T) {
 			// given
-			ctx, err := testjwt.NewJWTContext("2610c5dc-d700-4b86-b979-2b103e0b1144")
+			ctx, err := testjwt.NewJWTContext("2610c5dc-d700-4b86-b979-2b103e0b1144", "")
 			require.NoError(t, err)
 			// when
 			err = account.CleanTenant(ctx, config, false, configuration.WithRoundTripper(r.Transport))
@@ -108,7 +108,7 @@ func TestCleanTenant(t *testing.T) {
 
 		t.Run("other error without a message", func(t *testing.T) {
 			// given
-			ctx, err := testjwt.NewJWTContext("73a3b0ce-4917-44db-9979-90b1219ca2c6")
+			ctx, err := testjwt.NewJWTContext("73a3b0ce-4917-44db-9979-90b1219ca2c6", "")
 			require.NoError(t, err)
 			// when
 			err = account.CleanTenant(ctx, config, false, configuration.WithRoundTripper(r.Transport))
