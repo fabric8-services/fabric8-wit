@@ -75,7 +75,7 @@ clean-docker-build-dir:
 ## by prefixing them with "docker-". For example to execute "make deps"
 ## inside the build container, just run "make docker-deps".
 ## To remove the container when no longer needed, call "make docker-rm".
-docker-start: docker-build-dir docker-image-builder
+docker-start: docker-rm docker-build-dir docker-image-builder
 ifneq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
 	@echo "Docker container \"$(DOCKER_CONTAINER_NAME)\" already exists. To recreate, run \"make docker-rm\"."
 else
