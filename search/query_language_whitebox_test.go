@@ -386,7 +386,7 @@ func TestParseFilterString(t *testing.T) {
 
 	t.Run("OPTS with child iterations", func(t *testing.T) {
 
-		input := fmt.Sprintf(`{"$AND":[{"iteration":"1c2937e1-75a7-48e3-b36a-ef34a0637e27"}, {"$AND": [{"iteration":"5d61f8a2-7d99-4719-8545-77c1009e430a"}]}],"%s": {"child-iterations": true}}`, OPTS)
+		input := fmt.Sprintf(`{"$AND":[{"iteration":"1c2937e1-75a7-48e3-b36a-ef34a0637e27"}, {"iteration":"5d61f8a2-7d99-4719-8545-77c1009e430a"}],"%s": {"child-iterations": true}}`, OPTS)
 		actualExpr, options, iterations, err := ParseFilterString(context.Background(), input)
 		expectedExpr := c.And(
 			c.Equals(

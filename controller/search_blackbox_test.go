@@ -1122,7 +1122,6 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			assert.Len(t, result.Data, 4)
 		})
 		t.Run("with one child iteration - implicit", func(t *testing.T) {
-			//filter := fmt.Sprintf(`{"$AND":[{"iteration": "%s"}]}`, fxt.Iterations[1].ID)
 			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[1].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
