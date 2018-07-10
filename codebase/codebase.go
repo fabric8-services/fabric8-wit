@@ -152,7 +152,9 @@ type Repository interface {
 
 // NewCodebaseRepository creates a new storage type.
 func NewCodebaseRepository(db *gorm.DB) Repository {
-	return &GormCodebaseRepository{db: db}
+	return &GormCodebaseRepository{
+		db: db,
+	}
 }
 
 // GormCodebaseRepository is the implementation of the storage interface for Codebases.
