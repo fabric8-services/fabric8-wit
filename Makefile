@@ -188,6 +188,15 @@ spacetemplate/template_assets.go: $(GO_BINDATA_BIN) $(wildcard spacetemplate/ass
 		-nocompress \
 		spacetemplate/assets
 
+# TINA KURIAN
+swagger/swagger.json: $(GO_BINDATA_BIN) $(wildcard swagger/*.json)
+	$(GO_BINDATA_BIN) \
+		-o swagger/swagger.json \
+		-pkg swagger \
+		-prefix swagger \
+		-nocompress \
+		swagger
+
 # These are binary tools from our vendored packages
 $(GOAGEN_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
