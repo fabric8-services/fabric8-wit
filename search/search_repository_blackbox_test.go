@@ -100,7 +100,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithChildIterationWorkItems() {
 			}),
 		)
 		t.Run("without child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": true}}`, fxt.Iterations[2].ID)
+			filter := fmt.Sprintf(`{"$AND": [{"iteration": "%s"},{"space": "%s"}],  "$OPTS":{"child-iterations": true}}`, fxt.Iterations[2].ID, fxt.Spaces[0].ID)
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
 			assert.Equal(t, 4, count)
