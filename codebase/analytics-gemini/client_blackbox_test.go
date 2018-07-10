@@ -145,31 +145,6 @@ func TestRegister(t *testing.T) {
 		require.Error(t, err)
 		t.Log("successfully errored as: ", err)
 	})
-
-	t.Run("unknown response on 200", func(t *testing.T) {
-		// given
-		// the server returns 200 but some other output
-		r, err := testrecorder.New(
-			"../../test/data/gemini-scan/register-unknown-response-200",
-			testrecorder.WithJWTMatcher("../../test/jwt/public_key.pem"),
-		)
-		require.NoError(t, err)
-		defer r.Stop()
-
-		httpClient := &http.Client{
-			Transport: r.Transport,
-		}
-
-		cli := gemini.NewScanRepoClient(url, httpClient, "", nil, false)
-
-		req := gemini.NewScanRepoRequest(repoURL)
-		ctx, err := testjwt.NewJWTContext("bcdd0b29-123d-11e8-a8bc-b69930b94f5c", "../../test/jwt/private_key.pem")
-		require.NoError(t, err)
-
-		err = cli.Register(ctx, req)
-		require.Error(t, err)
-		t.Log("successfully errored as: ", err)
-	})
 }
 
 func TestDeRegister(t *testing.T) {
