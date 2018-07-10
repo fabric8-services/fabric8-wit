@@ -711,7 +711,8 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 				return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load child iteration"))
 
 			}
-			allitrs = append(allitrs, fmt.Sprintf("Fields->>'system.iteration' = '%s'", itr))
+			allitrs = append(allitrs, fmt.Sprintf("%s->>'%s' = '%s'", workitem.Column(workitem.WorkItemStorage{}.TableName(), "fields"), workitem.SystemIteration, itr))
+
 			for _, v := range childItrs {
 				allitrs = append(allitrs, fmt.Sprintf("Fields->>'system.iteration' = '%s'", v.ID.String()))
 			}
