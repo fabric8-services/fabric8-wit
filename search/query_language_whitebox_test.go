@@ -10,6 +10,7 @@ import (
 	c "github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -402,7 +403,7 @@ func TestParseFilterString(t *testing.T) {
 		assert.Nil(t, err)
 		expectedOptions := &QueryOptions{ChildIterations: true}
 		assert.Equal(t, expectedOptions, options)
-		assert.Equal(t, []string{"1c2937e1-75a7-48e3-b36a-ef34a0637e27", "5d61f8a2-7d99-4719-8545-77c1009e430a"}, iterations)
+		assert.Equal(t, []uuid.UUID{uuid.FromStringOrNil("1c2937e1-75a7-48e3-b36a-ef34a0637e27"), uuid.FromStringOrNil("5d61f8a2-7d99-4719-8545-77c1009e430a")}, iterations)
 	})
 
 }

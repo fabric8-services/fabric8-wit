@@ -413,14 +413,14 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 	}
 }
 
-func (q Query) generateExpression() (criteria.Expression, []string, error) {
+func (q Query) generateExpression() (criteria.Expression, []uuid.UUID, error) {
 	var myexpr []criteria.Expression
-	var myitrs []string
+	var itrList []uuid.UUID
 	currentOperator := q.Name
 
 	if !isOperator(currentOperator) || currentOperator == OPTS {
 		if q.Name == "iteration" {
-			myitrs = append(myitrs, *q.Value)
+			itrList = append(itrList, uuid.FromStringOrNil(*q.Value))
 		}
 		key, ok := searchKeyMap[q.Name]
 		// check that none of the default table joins handles this column:
@@ -434,7 +434,7 @@ func (q Query) generateExpression() (criteria.Expression, []string, error) {
 			}
 		}
 		if !ok && !handledByJoin {
-			return nil, []string{}, errors.NewBadParameterError("key not found", q.Name)
+			return nil, []uuid.UUID{}, errors.NewBadParameterError("key not found", q.Name)
 		}
 		left := criteria.Field(key)
 		if q.Value != nil {
@@ -450,7 +450,7 @@ func (q Query) generateExpression() (criteria.Expression, []string, error) {
 			}
 		} else {
 			if q.Negate {
-				return nil, []string{}, errors.NewBadParameterError("negate for null not supported", q.Name)
+				return nil, []uuid.UUID{}, errors.NewBadParameterError("negate for null not supported", q.Name)
 			}
 			myexpr = append(myexpr, criteria.IsNull(key))
 		}
@@ -459,13 +459,13 @@ func (q Query) generateExpression() (criteria.Expression, []string, error) {
 		if isOperator(child.Name) || currentOperator == OPTS {
 			exp, itrs, err := child.generateExpression()
 			if err != nil {
-				return nil, []string{}, err
+				return nil, []uuid.UUID{}, err
 			}
 			myexpr = append(myexpr, exp)
-			myitrs = append(myitrs, itrs...)
+			itrList = append(itrList, itrs...)
 		} else {
 			if child.Name == "iteration" {
-				myitrs = append(myitrs, *child.Value)
+				itrList = append(itrList, uuid.FromStringOrNil(*child.Value))
 			}
 			key, ok := searchKeyMap[child.Name]
 			// check that none of the default table joins handles this column:
@@ -479,7 +479,7 @@ func (q Query) generateExpression() (criteria.Expression, []string, error) {
 				}
 			}
 			if !ok && !handledByJoin {
-				return nil, []string{}, errors.NewBadParameterError("key not found", child.Name)
+				return nil, []uuid.UUID{}, errors.NewBadParameterError("key not found", child.Name)
 			}
 			left := criteria.Field(key)
 			if child.Value != nil {
@@ -495,7 +495,7 @@ func (q Query) generateExpression() (criteria.Expression, []string, error) {
 				}
 			} else {
 				if child.Negate {
-					return nil, []string{}, errors.NewBadParameterError("negate for null not supported", child.Name)
+					return nil, []uuid.UUID{}, errors.NewBadParameterError("negate for null not supported", child.Name)
 				}
 				myexpr = append(myexpr, criteria.IsNull(key))
 
@@ -527,11 +527,11 @@ func (q Query) generateExpression() (criteria.Expression, []string, error) {
 			}
 		}
 	}
-	return res, myitrs, nil
+	return res, itrList, nil
 }
 
 // ParseFilterString accepts a raw string and generates a criteria expression
-func ParseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, *QueryOptions, []string, error) {
+func ParseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, *QueryOptions, []uuid.UUID, error) {
 	fm := map[string]interface{}{}
 	// Parsing/Unmarshalling JSON encoding/json
 	err := json.Unmarshal([]byte(rawSearchString), &fm)
@@ -541,7 +541,7 @@ func ParseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 			"err":             err,
 			"rawSearchString": rawSearchString,
 		}, "failed to unmarshal raw search string")
-		return nil, nil, []string{}, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
+		return nil, nil, []uuid.UUID{}, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
 	}
 	q := Query{}
 	parseMap(fm, &q)
@@ -687,7 +687,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	return result, count, nil
 }
 
-func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, parentExists *bool, childIterations bool, iterations []string, start *int, limit *int) ([]workitem.WorkItemStorage, int, error) {
+func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, parentExists *bool, childIterations bool, iterations []uuid.UUID, start *int, limit *int) ([]workitem.WorkItemStorage, int, error) {
 	where, parameters, joins, compileError := workitem.Compile(criteria)
 	if compileError != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -702,13 +702,17 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 
 		allitrs := []string{}
 		for _, itr := range iterations {
-			i, _ := uuid.FromString(itr)
-			citrs, err := itrRepo.LoadChildren(ctx, i)
+			childItrs, err := itrRepo.LoadChildren(ctx, itr)
 			if err != nil {
+				// Since this is a search, missing iteration is not really an error.
+				if ok, _ := errors.IsNotFoundError(err); ok {
+					continue
+				}
 				return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load child iteration"))
+
 			}
 			allitrs = append(allitrs, fmt.Sprintf("Fields->>'system.iteration' = '%s'", itr))
-			for _, v := range citrs {
+			for _, v := range childItrs {
 				allitrs = append(allitrs, fmt.Sprintf("Fields->>'system.iteration' = '%s'", v.ID.String()))
 			}
 		}

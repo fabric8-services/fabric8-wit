@@ -819,6 +819,53 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 		assert.Len(t, result.Data, 0)
 	})
 
+	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID)", func(t *testing.T) {
+		fakeIterationID := uuid.NewV4()
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space": {"$EQ": "%s"}},
+					{"$AND": [
+						{"state": "%s", "negate": true},
+						{"iteration": "%s", "negate": true}
+					]}
+				]}`,
+			spaceIDStr, workitem.SystemStateOpen, fakeIterationID)
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 9) // all items are other than open state & in other thatn fake itr
+	})
+
+	s.T().Run("space!=ID AND (state!=open AND iteration!=fake-iterationID)", func(t *testing.T) {
+		fakeIterationID := uuid.NewV4()
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space": {"$NE": "%s"}},
+					{"$AND": [
+						{"state": "%s", "negate": true},
+						{"iteration": "%s", "negate": true}
+					]}
+				]}`,
+			spaceIDStr, workitem.SystemStateOpen, fakeIterationID)
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		assert.Empty(t, result.Data)
+	})
+
+	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID) using NE", func(t *testing.T) {
+		fakeIterationID := uuid.NewV4()
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"$AND": [
+						{"state": {"$NE": "%s"}},
+						{"iteration": {"$NE": "%s"}}
+					]}
+				]}`,
+			spaceIDStr, workitem.SystemStateOpen, fakeIterationID)
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 9) // all items are other than open state & in other thatn fake itr
+	})
+
 	s.T().Run("space=FakeID AND state=closed", func(t *testing.T) {
 		fakeSpaceID1 := uuid.NewV4().String()
 		filter := fmt.Sprintf(`
