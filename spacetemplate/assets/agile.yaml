@@ -343,27 +343,27 @@ work_item_boards:
     name: "New"
     order: 0
     trans_rule_key: "updateStateFromColumnMove"
-    trans_rule_argument: "{ metaState: 'mNew' }"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
   - id: "7063ae46-994d-49e8-99f9-2ad867dd340e"
     name: "Open"
     order: 1
     trans_rule_key: "updateStateFromColumnMove"
-    trans_rule_argument: "{ metaState: 'mOpen' }"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
   - id: "f7243e68-1d2b-4256-b6e7-3c657c944ff1"
     name: "In Progress"
     order: 2
     trans_rule_key: "updateStateFromColumnMove"
-    trans_rule_argument: "{ metaState: 'mInprogress' }"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
   - id: "9f780106-4d71-41bf-b017-001ca7e19162"
     name: "Done"
     order: 3
     trans_rule_key: "updateStateFromColumnMove"
-    trans_rule_argument: "{ metaState: 'mResolved' }"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
   - id: "b454daf3-d7f4-44d2-a8fb-c767984ecd9d"
     name: "Verified"
     order: 4
     trans_rule_key: "updateStateFromColumnMove"
-    trans_rule_argument: "{ metaState: 'mResolved' }"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
 
 - id: "0331cca0-0c6c-48fb-b2cd-002f957f9e31"
   name: Execution Board
@@ -375,27 +375,27 @@ work_item_boards:
     name: "New"
     order: 0
     trans_rule_key: "updateStateFromColumnMove"
-    trans_rule_argument: "{ metaState: 'mNew' }"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
   - id: "29124ef0-d651-47c4-84a7-28acb7a4ab7a"
     name: "Open"
     order: 1
     trans_rule_key: "updateStateFromColumnMove"
-    trans_rule_argument: "{ metaState: 'mOpen' }"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
   - id: "a30fc0e0-bfa9-43b1-a83d-b62ae2d5d0f7"
     name: "In Progress"
     order: 2
     trans_rule_key: "updateStateFromColumnMove"
-    trans_rule_argument: "{ metaState: 'mInprogress' }"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
   - id: "ca1ea842-1650-4435-88b3-560e5bf47d42"
     name: "Done"
     order: 3
     trans_rule_key: "updateStateFromColumnMove"
-    trans_rule_argument: "{ metaState: 'mResolved' }"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
   - id: "c3589823-203c-4890-b548-f003ba77af53"
     name: "Verified"
     order: 4
     trans_rule_key: "updateStateFromColumnMove"
-    trans_rule_argument: "{ metaState: 'mResolved' }"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
 
 work_item_type_groups:
 
