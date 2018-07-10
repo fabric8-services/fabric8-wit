@@ -6,17 +6,11 @@ import (
 	"fmt"
 	)
 
-// genericLinksForWorkItem defines generic relations links that are specific to a workitem
-var genericLinksForRoot = a.Type("GenericLinksForRoot", func() {
-	a.Attribute("self", d.String)
-})
-
 var root = a.Type("Root", func() {
 
-	a.Description(`JSONAPI store for the data of a Label. See also http://jsonapi.org/format/#document-resource-object`)
-	//a.Attribute("relationships", d.Any)
+	a.Description(`JSONAPI store for the data of a Root. See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("relationships", a.HashOf(d.String, d.Any), "User context information of any type as a json", func() {
-		a.Example(map[string]interface{}{"last_visited_url": "https://a.openshift.io", "space": "3d6dab8d-f204-42e8-ab29-cdb1c93130ad"})
+		a.Example(map[string]interface{}{"codebases_che_start": "{}"})
 	})
 	a.Attribute("attributes", d.Any)
 	a.Attribute("id", d.UUID, "ID of root", func() {
@@ -26,8 +20,13 @@ var root = a.Type("Root", func() {
 
 })
 
+// genericLinksForRoot defines generic relations links that are specific to a root
+var genericLinksForRoot = a.Type("GenericLinksForRoot", func() {
+	a.Attribute("self", d.String)
+})
+
 var rootSingle = JSONSingle(
-	"Root", "Holds a single Area",
+	"Root", "Holds a single Root",
 	root,
 	nil)
 
@@ -38,7 +37,7 @@ var _ = a.Resource("root", func() {
 		a.Routing(
 			a.GET(""),
 		)
-		a.Description("List collaborators for the given space ID. ")
+		a.Description("List all endpoints. ")
 		a.Response(d.OK, rootSingle)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})

@@ -26,20 +26,20 @@ const (
 	BASE_PATH = "basePath"
 )
 
-// Label describes a single Label
+// Root describes a single Root
 type Root struct {
 	Relationships	map[string]interface{}
 	Attributes   	interface{}
-	ID              uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
+	ID              uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	BasePath      	string
 }
 
-// FilterController implements the filter resource.
+// RootController implements the root resource.
 type RootController struct {
 	*goa.Controller
 }
 
-// NewFilterController creates a filter controller.
+// NewRootController creates a root controller.
 func NewRootController(service *goa.Service) *RootController {
 	return &RootController{
 		Controller: service.NewController(ROOT_CONTROLLER),
@@ -59,7 +59,7 @@ func (c *RootController) List(ctx *app.ListRootContext) error {
 	return ctx.OK(res)
 }
 
-// ConvertLabel converts from internal to external REST representation
+// ConvertRoot converts from internal to external REST representation
 func convertRoot(request *http.Request, root Root) *app.Root {
 	selfURL := request.Host + root.BasePath
 	l := &app.Root{
@@ -80,7 +80,7 @@ func getRoot() (Root, error) {
 	swaggerJSON, err := ioutil.ReadFile(s)
 
 	if err != nil && e != nil {
-		//fmt.Println("swagger.json .Get err   #%v ", err)
+		// TODO: log error
 	}
 
 	var result map[string]interface{}
