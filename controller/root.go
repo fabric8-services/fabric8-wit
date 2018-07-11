@@ -77,10 +77,13 @@ func convertRoot(request *http.Request, root Root) *app.Root {
 func getRoot() (Root, error) {
 
 	s, e := filepath.Abs(SWAGGER)
-	swaggerJSON, err := ioutil.ReadFile(s)
+	if e != nil {
+		return Root{}, e
+	}
 
-	if err != nil && e != nil {
-		// TODO: log error
+	swaggerJSON, err := ioutil.ReadFile(s)
+	if err != nil {
+		return Root{}, err
 	}
 
 	var result map[string]interface{}
