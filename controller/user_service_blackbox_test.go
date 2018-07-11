@@ -40,7 +40,7 @@ func TestShowUser(t *testing.T) {
 
 	t.Run("ok", func(t *testing.T) {
 		// given
-		ctx, err := testjwt.NewJWTContext("bcdd0b29-123d-11e8-a8bc-b69930b94f5c")
+		ctx, err := testjwt.NewJWTContext("bcdd0b29-123d-11e8-a8bc-b69930b94f5c", "")
 		require.NoError(t, err)
 		// when/then
 		test.ShowUserServiceOK(t, ctx, goa.New("test"), ctrl)
@@ -48,7 +48,7 @@ func TestShowUser(t *testing.T) {
 
 	t.Run("not found", func(t *testing.T) {
 		// given
-		ctx, err := testjwt.NewJWTContext("83fdcae2-634f-4a52-958a-f723cb621700")
+		ctx, err := testjwt.NewJWTContext("83fdcae2-634f-4a52-958a-f723cb621700", "")
 		require.NoError(t, err)
 		// when/then
 		test.ShowUserServiceNotFound(t, ctx, goa.New("test"), ctrl)
