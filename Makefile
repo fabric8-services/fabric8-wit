@@ -24,6 +24,9 @@ DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
 MINIMOCK_BIN=$(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock/minimock
 
+# Define and get the vakue for UNAME_S variable from shell
+UNAME_S := $(shell uname -s)
+
 # This is a fix for a non-existing user in passwd file when running in a docker
 # container and trying to clone repos of dependencies
 GIT_COMMITTER_NAME ?= "user"
@@ -249,7 +252,7 @@ $(DEP_BIN):
 ifeq ($(UNAME_S),Darwin)
 	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-darwin-amd64 -o $(DEP_BIN) 
 	@cd $(DEP_BIN_DIR) && \
-	echo "f170008e2bf8b196779c361a4eaece1b03450d23bbf32d1a0beaa9b00b6a5ab4  dep" > dep-darwin-amd64.sha256 && \
+	echo "1544afdd4d543574ef8eabed343d683f7211202a65380f8b32035d07ce0c45ef  dep" > dep-darwin-amd64.sha256 && \
 	shasum -a 256 --check dep-darwin-amd64.sha256
 else
 	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-linux-amd64 -o $(DEP_BIN)

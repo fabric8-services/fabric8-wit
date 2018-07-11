@@ -25,8 +25,7 @@ import (
 // response is the struct which will be used to read the response
 // from the analytics gemini service
 type response struct {
-	Summary string `json:"summary"`
-	Error   string `json:"error"`
+	Error string `json:"error"`
 }
 
 // request is the struct used to form the request to the analytics
@@ -116,12 +115,10 @@ func logErrors(ctx context.Context, d *Request, err error, bespokeError string) 
 // callGemini is a generic method that makes http call to the gemini
 // service, here you can define if the call is to register or deregister
 // using the 'path' attribute and check if the request was successful
-// using the 'finalResponse' attribute
 func (sr *ScanRepoClient) callGemini(
 	ctx context.Context,
 	d *Request,
 	path string,
-	finalResponse string,
 ) error {
 	dBytes, err := json.Marshal(d)
 	if err != nil {
@@ -178,10 +175,6 @@ func (sr *ScanRepoClient) callGemini(
 		}
 	}
 
-	if r.Summary != finalResponse {
-		return fmt.Errorf("got unknown response: %s", string(body))
-	}
-
 	return nil
 }
 
@@ -191,7 +184,7 @@ func (sr *ScanRepoClient) Register(ctx context.Context, d *Request) error {
 	if sr.devMode {
 		return nil
 	}
-	return sr.callGemini(ctx, d, "/api/v1/user-repo/scan", "Repository scan initiated")
+	return sr.callGemini(ctx, d, "/api/v1/user-repo/scan")
 }
 
 // DeRegister unsubscribes you from the analytics Gemini service so that the
@@ -215,7 +208,7 @@ func (sr *ScanRepoClient) DeRegister(ctx context.Context, d *Request) error {
 	}
 
 	// now deregister the repo from gemini server for scanning
-	return sr.callGemini(ctx, d, "/api/v1/user-repo/drop", "Repository scan unsubscribed")
+	return sr.callGemini(ctx, d, "/api/v1/user-repo/drop")
 }
 
 // keepScanningThisCodebase returns true if there is even one codebase
