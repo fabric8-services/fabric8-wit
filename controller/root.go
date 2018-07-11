@@ -2,7 +2,7 @@ package controller
 
 import (
 	"github.com/fabric8-services/fabric8-wit/app"
-		"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/goadesign/goa"
 	"net/http"
 	"github.com/satori/go.uuid"
@@ -25,14 +25,6 @@ const (
 	ROOT_CONTROLLER = "RootController"
 	BASE_PATH = "basePath"
 )
-
-// Root describes a single Root
-type Root struct {
-	Relationships	map[string]interface{}
-	Attributes   	interface{}
-	ID              uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	BasePath      	string
-}
 
 // RootController implements the root resource.
 type RootController struct {
@@ -60,30 +52,30 @@ func (c *RootController) List(ctx *app.ListRootContext) error {
 }
 
 // ConvertRoot converts from internal to external REST representation
-func convertRoot(request *http.Request, root Root) *app.Root {
-	selfURL := request.Host + root.BasePath
+func convertRoot(request *http.Request, root app.Root) *app.Root {
+	selfURL := request.Host + *root.BasePath
 	l := &app.Root{
 		Relationships:root.Relationships,
-		Attributes:&root.Attributes,
+		Attributes:root.Attributes,
 		Links: &app.GenericLinksForRoot{
 			Self: &selfURL,
 		},
-		ID: &root.ID,
+		ID: root.ID,
 	}
 	return l
 }
 
 // Get a list of all endpoints formatted to json api format
-func getRoot() (Root, error) {
+func getRoot() (app.Root, error) {
 
-	s, e := filepath.Abs(SWAGGER)
-	if e != nil {
-		return Root{}, e
+	swaggerSpec, error := filepath.Abs(SWAGGER)
+	if error != nil {
+		return app.Root{}, error
 	}
 
-	swaggerJSON, err := ioutil.ReadFile(s)
+	swaggerJSON, err := ioutil.ReadFile(swaggerSpec)
 	if err != nil {
-		return Root{}, err
+		return app.Root{}, err
 	}
 
 	var result map[string]interface{}
@@ -115,6 +107,8 @@ func getRoot() (Root, error) {
 		}
 	}
 
-	root := Root{Relationships: namedPaths, Attributes: map[string]string{}, ID: uuid.NewV4(), BasePath:result[BASE_PATH].(string)}
+	basePath := result[BASE_PATH].(string)
+	id := uuid.NewV4()
+	root := app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath}
 	return root, err
 }

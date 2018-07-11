@@ -12,6 +12,7 @@ var root = a.Type("Root", func() {
 	a.Attribute("relationships", a.HashOf(d.String, d.Any), "User context information of any type as a json", func() {
 		a.Example(map[string]interface{}{"codebases_che_start": "{}"})
 	})
+	a.Attribute("basePath", d.String)
 	a.Attribute("attributes", d.Any)
 	a.Attribute("id", d.UUID, "ID of root", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
