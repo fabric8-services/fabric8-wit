@@ -31,6 +31,7 @@ func TestRunSpaceAreaREST(t *testing.T) {
 }
 
 func (rest *TestSpaceAreaREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.svcSpaceAreas, rest.ctrlSpaceAreas = rest.SecuredController()
 }
 

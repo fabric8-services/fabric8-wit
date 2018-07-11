@@ -322,7 +322,7 @@ MINISHIFT_URL = http://$(MINISHIFT_IP)
 MINISHIFT_HOSTS_ENTRY = http://minishift.local
 
 # Setup AUTH image URL, use default image path and default tag if not provided
-AUTH_IMAGE_DEFAULT=docker.io/fabric8/fabric8-auth
+AUTH_IMAGE_DEFAULT=quay.io/openshiftio/fabric8-services-fabric8-auth
 AUTH_IMAGE_TAG ?= latest
 AUTH_IMAGE_URL=$(AUTH_IMAGE_DEFAULT):$(AUTH_IMAGE_TAG)
 
