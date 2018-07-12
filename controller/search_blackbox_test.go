@@ -368,7 +368,6 @@ func (s *searchControllerTestSuite) TestSearchFilter() {
 
 func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
-		// given
 		// given work items of different types and in different states
 		type testWI struct {
 			Title          string
