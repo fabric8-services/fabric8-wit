@@ -3,13 +3,12 @@ package controller
 import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/swagger"
 	"github.com/goadesign/goa"
 	"net/http"
 	"github.com/satori/go.uuid"
-	"path/filepath"
 	"encoding/json"
 	"strings"
-	"io/ioutil"
 	)
 
 const (
@@ -21,7 +20,7 @@ const (
 	BRACKET = "{"
 	UNDERSCORE = "_"
 	EMPTY_STR = ""
-	SWAGGER = "swagger/swagger.json"
+	SWAGGER = "swagger.json"
 	ROOT_CONTROLLER = "RootController"
 	BASE_PATH = "basePath"
 )
@@ -68,12 +67,7 @@ func convertRoot(request *http.Request, root app.Root) *app.Root {
 // Get a list of all endpoints formatted to json api format
 func getRoot() (app.Root, error) {
 
-	swaggerSpec, error := filepath.Abs(SWAGGER)
-	if error != nil {
-		return app.Root{}, error
-	}
-
-	swaggerJSON, err := ioutil.ReadFile(swaggerSpec)
+	swaggerJSON, err := swagger.Asset(SWAGGER)
 	if err != nil {
 		return app.Root{}, err
 	}
