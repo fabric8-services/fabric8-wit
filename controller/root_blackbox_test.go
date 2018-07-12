@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+const currentUser = "current_user"
+
 type TestRootREST struct {
 	// composing with the DBTestSuite to get the Configuration out-of-the-box, even though this particular Controller
 	// does not need an access to the DB.
@@ -35,9 +37,12 @@ func (rest *TestRootREST) TestListRootOK() {
 	ctrl := controller.NewRootController(svc)
 
 	// when
-	res, root := test.ListRootOK(rest.T(), svc.Context, svc, ctrl)
+	_, root := test.ListRootOK(rest.T(), svc.Context, svc, ctrl)
 
 	// then
-	compareWithGoldenAgnostic(rest.T(), filepath.Join("test-files", "root", "list", "ok_root_endpoint.golden.json"), root)
-	assertResponseHeaders(rest.T(), res)
+	compareWithGoldenAgnostic(rest.T(), filepath.Join("test-files", "root", "list", "ok_root.res.payload.golden.json"), root)
+	relationships := root.Data.Relationships
+	require.NotNil(rest.T(), relationships)
+	current_user := relationships[currentUser]
+	require.NotNil(rest.T(), current_user)
 }

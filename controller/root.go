@@ -12,17 +12,17 @@ import (
 	)
 
 const (
-	X_TAG = "x-tag"
-	PATHS = "paths"
-	LINKS = "links"
-	RELATED = "related"
-	FRWD_SLASH = "/"
-	BRACKET = "{"
-	UNDERSCORE = "_"
-	EMPTY_STR = ""
-	SWAGGER = "swagger.json"
-	ROOT_CONTROLLER = "RootController"
-	BASE_PATH = "basePath"
+	xTag = "x-tag"
+	paths = "paths"
+	links = "links"
+	related = "related"
+	frwdSlash = "/"
+	bracket = "{"
+	underscore = "_"
+	emptyStr = ""
+	swaggerFile = "swagger.json"
+	rootController = "RootController"
+	basePath = "basePath"
 )
 
 // RootController implements the root resource.
@@ -33,7 +33,7 @@ type RootController struct {
 // NewRootController creates a root controller.
 func NewRootController(service *goa.Service) *RootController {
 	return &RootController{
-		Controller: service.NewController(ROOT_CONTROLLER),
+		Controller: service.NewController(rootController),
 	}
 }
 
@@ -66,8 +66,7 @@ func convertRoot(request *http.Request, root app.Root) *app.Root {
 
 // Get a list of all endpoints formatted to json api format
 func getRoot() (app.Root, error) {
-
-	swaggerJSON, err := swagger.Asset(SWAGGER)
+	swaggerJSON, err := swagger.Asset(swaggerFile)
 	if err != nil {
 		return app.Root{}, err
 	}
@@ -75,14 +74,14 @@ func getRoot() (app.Root, error) {
 	var result map[string]interface{}
 	json.Unmarshal([]byte(swaggerJSON), &result)
 
-	swaggerPaths := result[PATHS].(map[string]interface{})
+	swaggerPaths := result[paths].(map[string]interface{})
 	namedPaths := make(map[string]interface{})
 	for path, pathObj := range swaggerPaths {
 
-		if !strings.Contains(path, BRACKET) {
-			key := strings.Replace(path, FRWD_SLASH, UNDERSCORE, -1)
-			key = strings.Replace(key, UNDERSCORE, EMPTY_STR, 1)
-			xtag := pathObj.(map[string]interface{})[X_TAG]
+		if !strings.Contains(path, bracket) {
+			key := strings.Replace(path, frwdSlash, underscore, -1)
+			key = strings.Replace(key, underscore, emptyStr, 1)
+			xtag := pathObj.(map[string]interface{})[xTag]
 
 			// If xtag doesn't exist, result to using first path segment
 			// otherwise, use the xtag
@@ -91,17 +90,17 @@ func getRoot() (app.Root, error) {
 			}
 
 			name := map[string]string{
-				RELATED: path,
+				related: path,
 			}
 
 			links := map[string]interface{}{
-				LINKS: name,
+				links: name,
 			}
 			namedPaths[key] = links
 		}
 	}
 
-	basePath := result[BASE_PATH].(string)
+	basePath := result[basePath].(string)
 	id := uuid.NewV4()
 	root := app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath}
 	return root, err
