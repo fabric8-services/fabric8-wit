@@ -308,7 +308,7 @@ migrate-database: $(BINARY_SERVER_BIN)
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: app/controllers.go migration/sqlbindata.go spacetemplate/template_assets.go generate-minimock 
+generate: app/controllers.go migration/sqlbindata.go spacetemplate/template_assets.go generate-minimock swagger/swagger_assets.go
 
 .PHONY: regenerate
 ## Runs the "clean-generated" and the "generate" target
