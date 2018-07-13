@@ -17,7 +17,7 @@ import (
 
 func TestRunTestFixtureSuite(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &testFixtureSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../../config.yaml")})
+	suite.Run(t, &testFixtureSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type testFixtureSuite struct {

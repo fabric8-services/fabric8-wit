@@ -6,9 +6,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/closeable"
-
 	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/closeable"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -130,6 +129,7 @@ type Codebase struct {
 	URL               string
 	StackID           *string
 	LastUsedWorkspace string
+	CVEScan           bool
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -152,7 +152,9 @@ type Repository interface {
 
 // NewCodebaseRepository creates a new storage type.
 func NewCodebaseRepository(db *gorm.DB) Repository {
-	return &GormCodebaseRepository{db: db}
+	return &GormCodebaseRepository{
+		db: db,
+	}
 }
 
 // GormCodebaseRepository is the implementation of the storage interface for Codebases.

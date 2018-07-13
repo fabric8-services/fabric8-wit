@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -28,7 +27,7 @@ func TestRunPlannerBacklogREST(t *testing.T) {
 
 func (rest *TestPlannerBacklogREST) unSecuredController() (*goa.Service, *PlannerBacklogController) {
 	svc := goa.New("PlannerBacklog-Service")
-	return svc, NewPlannerBacklogController(svc, gormapplication.NewGormDB(rest.DB), rest.Configuration)
+	return svc, NewPlannerBacklogController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestPlannerBacklogREST) TestCountPlannerBacklogWorkItemsOK() {
@@ -68,7 +67,7 @@ func (rest *TestPlannerBacklogREST) TestCountPlannerBacklogWorkItemsOK() {
 	)
 	svc, _ := rest.unSecuredController()
 	// when
-	count, err := countBacklogItems(svc.Context, gormapplication.NewGormDB(rest.DB), fxt.Spaces[0].ID)
+	count, err := countBacklogItems(svc.Context, rest.GormDB, fxt.Spaces[0].ID)
 	// we expect the count to be equal to 1
 	require.NoError(rest.T(), err)
 	assert.Equal(rest.T(), 1, count)
@@ -76,10 +75,10 @@ func (rest *TestPlannerBacklogREST) TestCountPlannerBacklogWorkItemsOK() {
 
 func (rest *TestPlannerBacklogREST) TestCountZeroPlannerBacklogWorkItemsOK() {
 	// given
-	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1))
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Iterations(1))
 	svc, _ := rest.unSecuredController()
 	// when
-	count, err := countBacklogItems(svc.Context, gormapplication.NewGormDB(rest.DB), fxt.Spaces[0].ID)
+	count, err := countBacklogItems(svc.Context, rest.GormDB, fxt.Spaces[0].ID)
 	// we expect the count to be equal to 0
 	require.NoError(rest.T(), err)
 	assert.Equal(rest.T(), 0, count)

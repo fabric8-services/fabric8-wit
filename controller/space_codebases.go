@@ -1,9 +1,12 @@
 package controller
 
 import (
+	"context"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
+	gemini "github.com/fabric8-services/fabric8-wit/codebase/analytics-gemini"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/login"
@@ -15,7 +18,8 @@ import (
 // SpaceCodebasesController implements the space-codebases resource.
 type SpaceCodebasesController struct {
 	*goa.Controller
-	db application.DB
+	db                    application.DB
+	AnalyticsGeminiClient AnalyticsGeminiClientProvider
 }
 
 // NewSpaceCodebasesController creates a space-codebases controller.
@@ -40,6 +44,12 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 	if reqIter.Attributes.URL == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.url", nil).Expected("not nil"))
 	}
+	// the default value of cveScan
+	cveScan := true
+	if reqIter.Attributes.CveScan != nil {
+		cveScan = *reqIter.Attributes.CveScan
+	}
+
 	var cdb *codebase.Codebase
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		sp, err := appl.Spaces().Load(ctx, ctx.SpaceID)
@@ -54,17 +64,32 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 			Type:    *reqIter.Attributes.Type,
 			URL:     *reqIter.Attributes.URL,
 			StackID: reqIter.Attributes.StackID,
+			CVEScan: cveScan,
 		}
 		return appl.Codebases().Create(ctx, cdb)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+
+	// new codebase is added register with analytics service
+	if err = c.registerCodebaseToGeminiForScan(ctx, cdb.URL); err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
 	res := &app.CodebaseSingle{
 		Data: ConvertCodebase(ctx.Request, *cdb),
 	}
 	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.CodebaseHref(res.Data.ID)))
 	return ctx.Created(res)
+}
+
+// registerCodebaseToGeminiForScan when given the codebase URL, subscribes this codebase
+// to enable code scanning to find CVEs with the analytics gemini service
+func (c *SpaceCodebasesController) registerCodebaseToGeminiForScan(ctx context.Context, repoURL string) error {
+	scanClient := c.AnalyticsGeminiClient()
+	req := gemini.NewScanRepoRequest(repoURL)
+	return scanClient.Register(ctx, req)
 }
 
 // List runs the list action.

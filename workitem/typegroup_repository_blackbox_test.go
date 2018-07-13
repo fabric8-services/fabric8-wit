@@ -24,7 +24,7 @@ type workItemTypeGroupRepoTest struct {
 }
 
 func TestWorkItemTypeGroupRepository(t *testing.T) {
-	suite.Run(t, &workItemTypeGroupRepoTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemTypeGroupRepoTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *workItemTypeGroupRepoTest) SetupTest() {

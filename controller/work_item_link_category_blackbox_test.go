@@ -8,7 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -24,9 +23,7 @@ import (
 
 func TestSuiteWorkItemLinkCategory(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemLinkCategorySuite{
-		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
-	})
+	suite.Run(t, &workItemLinkCategorySuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type workItemLinkCategorySuite struct {
@@ -39,7 +36,7 @@ type workItemLinkCategorySuite struct {
 func (s *workItemLinkCategorySuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", testsupport.TestIdentity)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, s.GormDB)
 	s.testDir = filepath.Join("test-files", "work_item_link_category")
 }
 

@@ -24,7 +24,7 @@ type eventRepoBlackBoxTest struct {
 func TestRunEventRepoBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &eventRepoBlackBoxTest{
-		DBTestSuite: gormtestsupport.NewDBTestSuite("../../config.yaml"),
+		DBTestSuite: gormtestsupport.NewDBTestSuite(),
 	})
 }
 
