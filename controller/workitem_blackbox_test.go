@@ -198,8 +198,8 @@ func (s *WorkItemSuite) TestPagingDefaultAndMaxSize() {
 	limit = 1000
 	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	// then
-	if !strings.Contains(*result.Links.First, "page[limit]=500") {
-		assert.Fail(s.T(), "Limit is more than max", "Expected limit to be %d, got %v", 1000, *result.Links.First)
+	if !strings.Contains(*result.Links.First, fmt.Sprintf("page[limit]=%d", PageSizeMax)) {
+		assert.Fail(s.T(), "Limit is more than max", "Expected limit to be %d, got %v", PageSizeMax, *result.Links.First)
 	}
 	// when
 	limit = 50
