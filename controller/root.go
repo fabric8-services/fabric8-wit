@@ -82,23 +82,30 @@ func getRoot(fileHandler asseter) (app.Root, error) {
 	for path, pathObj := range swaggerPaths {
 
 		if !strings.Contains(path, "{") {
-			key := strings.Replace(path, "/", "_", -1)
-			key = strings.Replace(key, "_", "", 1)
-			xtag := pathObj.(map[string]interface{})["x-tag"]
 
-			// If xtag doesn't exist, result to using first path segment
-			// otherwise, use the xtag
-			if xtag != nil {
-				key = xtag.(string)
+			key := pathObj.(map[string]interface{})["x-tag"].(string)
+
+			// If the xtag doesn't exist in the swagger spec, result to using
+			// path segments to construct a meaningful name.
+			// See
+			if len(key) <= 0 {
+				// Use the segments in the path to construct
+				// a name to use for the path
+				key := strings.Replace(path, "/", "_", -1)
+				key = strings.Replace(key, "_", "", 1)
 			}
 
+			// Set the related field to the path
 			name := map[string]string{
 				"related": path,
 			}
 
+			// Set the links object to contain the related field
 			links := map[string]interface{}{
 				"links": name,
 			}
+
+			// Set the name to contain the links object
 			namedPaths[key] = links
 		}
 	}
