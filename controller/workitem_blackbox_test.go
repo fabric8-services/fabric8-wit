@@ -1268,7 +1268,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithLegacyDescription() {
 }
 
 // TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is provided
-func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() {
+func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithTitleDescriptionAndMarkup() {
 	// given
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1286,6 +1286,26 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), "<p>Description</p>\n", wi.Data.Attributes[workitem.SystemDescriptionRendered])
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
+}
+
+// TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is provided
+func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithTitleToEncode() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "A 'Title' with a &"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
+	// when
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	// then
+	require.NotNil(s.T(), wi.Data)
+	require.NotNil(s.T(), wi.Data.Attributes)
+	s.T().Logf("rendered title: %s", wi.Data.Attributes[workitem.SystemTitleRendered])
+	assert.NotNil(s.T(), wi.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), c.Data.Attributes[workitem.SystemTitle], wi.Data.Attributes[workitem.SystemTitle])
+	assert.NotNil(s.T(), wi.Data.Attributes[workitem.SystemTitleRendered])
+	assert.Equal(s.T(), "A &#39;Title&#39; with a &amp;", wi.Data.Attributes[workitem.SystemTitleRendered])
 }
 
 // TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set as a MarkupContent element
@@ -2495,7 +2515,9 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithLe
 	// then
 	require.NotNil(s.T(), fetchedWI.Data)
 	require.NotNil(s.T(), fetchedWI.Data.Attributes)
-	assert.Equal(s.T(), html.EscapeString(title), fetchedWI.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), title, fetchedWI.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), html.EscapeString(title), fetchedWI.Data.Attributes[workitem.SystemTitleRendered])
+	assert.Equal(s.T(), description, fetchedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), html.EscapeString(description), fetchedWI.Data.Attributes[workitem.SystemDescriptionRendered])
 }
 
@@ -2514,7 +2536,9 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithPl
 	// then
 	require.NotNil(s.T(), fetchedWI.Data)
 	require.NotNil(s.T(), fetchedWI.Data.Attributes)
-	assert.Equal(s.T(), html.EscapeString(title), fetchedWI.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), title, fetchedWI.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), html.EscapeString(title), fetchedWI.Data.Attributes[workitem.SystemTitleRendered])
+	assert.Equal(s.T(), description.Content, fetchedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), html.EscapeString(description.Content), fetchedWI.Data.Attributes[workitem.SystemDescriptionRendered])
 }
 
@@ -2533,7 +2557,9 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 	// then
 	require.NotNil(s.T(), fetchedWI.Data)
 	require.NotNil(s.T(), fetchedWI.Data.Attributes)
-	assert.Equal(s.T(), html.EscapeString(title), fetchedWI.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), title, fetchedWI.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), html.EscapeString(title), fetchedWI.Data.Attributes[workitem.SystemTitleRendered])
+	assert.Equal(s.T(), description.Content, fetchedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), "<p>"+html.EscapeString(description.Content)+"</p>\n", fetchedWI.Data.Attributes[workitem.SystemDescriptionRendered])
 }
 
