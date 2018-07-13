@@ -46,6 +46,15 @@
               "kind": "list"
             }
           },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
           "system.codebase": {
             "description": "Contains codebase attributes to which this WI belongs to",
             "label": "Codebase",
@@ -93,6 +102,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {
@@ -228,6 +253,15 @@
               "kind": "list"
             }
           },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
           "system.codebase": {
             "description": "Contains codebase attributes to which this WI belongs to",
             "label": "Codebase",
@@ -275,6 +309,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {
@@ -416,6 +466,15 @@
               "kind": "list"
             }
           },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
           "system.codebase": {
             "description": "Contains codebase attributes to which this WI belongs to",
             "label": "Codebase",
@@ -463,6 +522,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {
@@ -660,6 +735,15 @@
               "kind": "list"
             }
           },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
           "system.codebase": {
             "description": "Contains codebase attributes to which this WI belongs to",
             "label": "Codebase",
@@ -707,6 +791,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {
@@ -882,6 +982,15 @@
               "kind": "list"
             }
           },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
           "system.codebase": {
             "description": "Contains codebase attributes to which this WI belongs to",
             "label": "Codebase",
@@ -929,6 +1038,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {
@@ -1100,6 +1225,15 @@
               "kind": "list"
             }
           },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
           "system.codebase": {
             "description": "Contains codebase attributes to which this WI belongs to",
             "label": "Codebase",
@@ -1147,6 +1281,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {
@@ -1333,6 +1483,15 @@
               "kind": "list"
             }
           },
+          "system.boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
           "system.codebase": {
             "description": "Contains codebase attributes to which this WI belongs to",
             "label": "Codebase",
@@ -1380,6 +1539,22 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
             }
           },
           "system.number": {

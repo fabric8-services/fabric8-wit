@@ -54,6 +54,7 @@ type TestFixture struct {
 	Queries                []*query.Query                 // Queries (if any) that were created for this test fixture.
 	SpaceTemplates         []*spacetemplate.SpaceTemplate // Space templates (if any) that were created for this test fixture.
 	WorkItemTypeGroups     []*workitem.WorkItemTypeGroup  // Work item types groups (if any) that were created for this test fixture.
+	WorkItemBoards         []*workitem.Board              // Work item boards (if any) that were created for this test fixture.
 }
 
 // NewFixture will create a test fixture by executing the recipies from the
@@ -169,6 +170,7 @@ const (
 	kindQueries                kind = "query"
 	kindSpaceTemplates         kind = "space_template"
 	kindWorkItemTypeGroups     kind = "work_item_type_group"
+	kindWorkItemBoards         kind = "work_item_board"
 )
 
 type createInfo struct {
@@ -231,6 +233,7 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		makeCodebases,
 		makeWorkItemTypes,
 		makeWorkItemTypeGroups,
+		makeWorkItemBoards,
 		makeIterations,
 		makeAreas,
 		makeWorkItems,

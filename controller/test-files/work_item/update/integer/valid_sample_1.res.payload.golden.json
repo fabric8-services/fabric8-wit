@@ -3,8 +3,9 @@
     "attributes": {
       "integer_field": 333,
       "system.created_at": "0001-01-01T00:00:00Z",
-      "system.number": 7,
-      "system.order": 7000,
+      "system.metastate": null,
+      "system.number": 8,
+      "system.order": 8000,
       "system.remote_item_id": null,
       "system.state": "new",
       "system.title": "integer_wi",
@@ -73,6 +74,7 @@
           "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
         }
       },
+      "system.boardcolumns": {},
       "workItemLinks": {
         "links": {
           "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/links"
