@@ -69,88 +69,6 @@ func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
 	)
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchWithChildIterationWorkItems() {
-	s.T().Run("iterations", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB,
-			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
-				i := fxt.Iterations[idx]
-				switch idx {
-				case 0:
-					i.Name = "Top level iteration"
-				case 1:
-					i.Name = "Level 1 iteration"
-					i.MakeChildOf(*fxt.Iterations[idx-1])
-				case 2:
-					i.Name = "Level 2 iteration"
-					i.MakeChildOf(*fxt.Iterations[idx-1])
-				}
-				return nil
-			}),
-
-			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
-				switch idx {
-				case 0, 1, 2:
-					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
-				case 3, 4:
-					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
-				case 5, 6, 7, 8:
-					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
-				}
-				return nil
-			}),
-		)
-		t.Run("without child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"$AND": [{"iteration": "%s"},{"space": "%s"}],  "$OPTS":{"child-iterations": true}}`, fxt.Iterations[2].ID, fxt.Spaces[0].ID)
-			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
-			require.NoError(t, err)
-			assert.Equal(t, 4, count)
-		})
-		t.Run("with option and missing iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"space": "%s",  "$OPTS":{"child-iterations": true}}`, fxt.Spaces[0].ID)
-			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
-			require.NoError(t, err)
-			assert.Equal(t, 10, count)
-		})
-
-		t.Run("with one child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": true}}`, fxt.Iterations[1].ID)
-			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
-			require.NoError(t, err)
-			assert.Equal(t, 6, count)
-		})
-		t.Run("with two child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": true}}`, fxt.Iterations[0].ID)
-			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
-			require.NoError(t, err)
-			assert.Equal(t, 9, count)
-		})
-		t.Run("without child iteration - false option", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": false}}`, fxt.Iterations[2].ID)
-			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
-			require.NoError(t, err)
-			assert.Equal(t, 4, count)
-		})
-		t.Run("with one child iteration - false option", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": false}}`, fxt.Iterations[1].ID)
-			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
-			require.NoError(t, err)
-			assert.Equal(t, 2, count)
-		})
-		t.Run("with two child iteration - false option", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "$OPTS":{"child-iterations": false}}`, fxt.Iterations[0].ID)
-			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
-			require.NoError(t, err)
-			assert.Equal(t, 3, count)
-		})
-		t.Run("with two child iteration and space", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"$AND": [{"iteration": "%s"},{"space": "%s"}], "$OPTS":{"child-iterations": true}}`, fxt.Iterations[0].ID, fxt.Spaces[0].ID)
-			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
-			require.NoError(t, err)
-			assert.Equal(t, 9, count)
-		})
-	})
-}
-
 func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 	s.T().Run("join iterations", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
@@ -497,7 +415,6 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			assert.Empty(t, ancestors)
 			assert.Empty(t, childLinks)
 		})
-
 	})
 
 	s.T().Run("with parent-exists filter", func(t *testing.T) {
@@ -563,6 +480,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			assert.Empty(t, ancestors)
 			assert.Empty(t, childLinks)
 		})
+
 	})
 }
 
