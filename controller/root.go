@@ -12,20 +12,6 @@ import (
 	"strings"
 )
 
-const (
-	xTag           = "x-tag"
-	paths          = "paths"
-	links          = "links"
-	related        = "related"
-	frwdSlash      = "/"
-	bracket        = "{"
-	underscore     = "_"
-	emptyStr       = ""
-	swaggerFile    = "swagger.json"
-	rootController = "RootController"
-	basePath       = "basePath"
-)
-
 type asseter interface {
 	Asset(name string) ([]byte, error)
 }
@@ -48,7 +34,7 @@ var _ asseter = (*workingFileFetcher)(nil)
 // NewRootController creates a root controller.
 func NewRootController(service *goa.Service) *RootController {
 	return &RootController{
-		Controller:  service.NewController(rootController),
+		Controller:  service.NewController("RootController"),
 		FileHandler: workingFileFetcher{},
 	}
 }
@@ -82,23 +68,23 @@ func convertRoot(request *http.Request, root app.Root) *app.Root {
 
 // Get a list of all endpoints formatted to json api format
 func getRoot(fileHandler asseter) (app.Root, error) {
-	swaggerJSON, err := fileHandler.Asset(swaggerFile)
+	swaggerJSON, err := fileHandler.Asset("swagger.json")
 	if err != nil {
 		// TODO(tinakurian): log error
-		return app.Root{}, errors.NewNotFoundError("file", swaggerFile)
+		return app.Root{}, errors.NewNotFoundError("file", "swagger.json")
 	}
 
 	var result map[string]interface{}
 	json.Unmarshal([]byte(swaggerJSON), &result)
 
-	swaggerPaths := result[paths].(map[string]interface{})
+	swaggerPaths := result["paths"].(map[string]interface{})
 	namedPaths := make(map[string]interface{})
 	for path, pathObj := range swaggerPaths {
 
-		if !strings.Contains(path, bracket) {
-			key := strings.Replace(path, frwdSlash, underscore, -1)
-			key = strings.Replace(key, underscore, emptyStr, 1)
-			xtag := pathObj.(map[string]interface{})[xTag]
+		if !strings.Contains(path, "{") {
+			key := strings.Replace(path, "/", "_", -1)
+			key = strings.Replace(key, "_", "", 1)
+			xtag := pathObj.(map[string]interface{})["x-tag"]
 
 			// If xtag doesn't exist, result to using first path segment
 			// otherwise, use the xtag
@@ -107,17 +93,17 @@ func getRoot(fileHandler asseter) (app.Root, error) {
 			}
 
 			name := map[string]string{
-				related: path,
+				"related": path,
 			}
 
 			links := map[string]interface{}{
-				links: name,
+				"links": name,
 			}
 			namedPaths[key] = links
 		}
 	}
 
-	basePath := result[basePath].(string)
+	basePath := result["basePath"].(string)
 	id := uuid.NewV4()
 	root := app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath}
 	return root, nil
