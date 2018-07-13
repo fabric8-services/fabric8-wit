@@ -56,6 +56,24 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 	return true
 }
 
+// checkValueSetIsEnclosing checks if a given set is a subset of a superset.
+func (t EnumType) checkValueSetIsEnclosing(subset []interface{}, superset []interface{}) bool {
+	set := make(map[interface{}]int)
+	for _, value := range superset {
+		set[value]++
+	}
+	for _, value := range subset {
+		if count, found := set[value]; !found {
+			return false
+		} else if count < 1 {
+			return false
+		} else {
+			set[value] = count - 1
+		}
+	}
+	return true
+}
+
 func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {
 	converted, err := t.BaseType.ConvertToModel(value)
 	if err != nil {

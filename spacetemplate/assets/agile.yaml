@@ -82,10 +82,9 @@ work_item_types:
         base_type:
           kind: string
         values:
-        - New
         - Open
         - In Progress
-        - Resolved
+        - No Plan to Implement
         - Closed
     "business_value":
       label: Business Value
@@ -136,6 +135,7 @@ work_item_types:
         - Open
         - In Progress
         - Resolved
+        - No Plan to Implement
         - Closed
     "storypoints":
       label: Storypoints
