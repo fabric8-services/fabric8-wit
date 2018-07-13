@@ -3,9 +3,9 @@ package controller
 import (
 	"encoding/json"
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/swagger"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"net/http"
@@ -37,16 +37,18 @@ type RootController struct {
 }
 
 type workingFileFetcher struct{}
+
 func (s workingFileFetcher) Asset(fileName string) ([]byte, error) {
 	return swagger.Asset(fileName)
 }
+
 var _ asseter = workingFileFetcher{}
 var _ asseter = (*workingFileFetcher)(nil)
 
 // NewRootController creates a root controller.
 func NewRootController(service *goa.Service) *RootController {
 	return &RootController{
-		Controller: service.NewController(rootController),
+		Controller:  service.NewController(rootController),
 		FileHandler: workingFileFetcher{},
 	}
 }
