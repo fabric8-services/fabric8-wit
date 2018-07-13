@@ -84,6 +84,7 @@ work_item_types:
         values:
         - Open
         - In Progress
+        - Deferred
         - No Plan to Implement
         - Closed
     "business_value":
@@ -135,6 +136,7 @@ work_item_types:
         - Open
         - In Progress
         - Resolved
+        - Deferred
         - No Plan to Implement
         - Closed
     "storypoints":
@@ -179,6 +181,7 @@ work_item_types:
         - New
         - Open
         - In Progress
+        - Deferred
         - Resolved
         - Closed
     "storypoints":
