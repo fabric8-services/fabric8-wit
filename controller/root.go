@@ -6,6 +6,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/swagger"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
@@ -55,7 +56,7 @@ func (c *RootController) List(ctx *app.ListRootContext) error {
 
 // ConvertRoot converts from internal to external REST representation.
 func convertRoot(request *http.Request, root app.Root) *app.Root {
-	selfURL := request.Host + *root.BasePath
+	selfURL := rest.AbsoluteURL(request, *root.BasePath)
 	l := &app.Root{
 		Relationships: root.Relationships,
 		Attributes:    root.Attributes,
@@ -114,7 +115,7 @@ func getRoot(fileHandler asseter) (app.Root, error) {
 		}
 	}
 
-	basePath := result["basePath"].(string)
 	id := uuid.NewV4()
+	basePath := result["basePath"].(string)
 	return app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath}, nil
 }

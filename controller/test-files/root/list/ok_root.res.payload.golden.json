@@ -2,7 +2,7 @@
   "data": {
     "id": "00000000-0000-0000-0000-000000000001",
     "links": {
-      "self": "/api"
+      "self": "http:///api"
     },
     "relationships": {
       "codebases_che_start": {
