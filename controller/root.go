@@ -5,6 +5,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/swagger"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
@@ -52,7 +53,7 @@ func (c *RootController) List(ctx *app.ListRootContext) error {
 	return ctx.OK(res)
 }
 
-// ConvertRoot converts from internal to external REST representation
+// ConvertRoot converts from internal to external REST representation.
 func convertRoot(request *http.Request, root app.Root) *app.Root {
 	selfURL := request.Host + *root.BasePath
 	l := &app.Root{
@@ -66,51 +67,54 @@ func convertRoot(request *http.Request, root app.Root) *app.Root {
 	return l
 }
 
-// Get a list of all endpoints formatted to json api format
+// Get a list of all endpoints formatted to json api format.
 func getRoot(fileHandler asseter) (app.Root, error) {
 	swaggerJSON, err := fileHandler.Asset("swagger.json")
 	if err != nil {
-		// TODO(tinakurian): log error
+		log.Error(nil, map[string]interface{}{
+			"err":  err,
+			"file": "swagger.json",
+		}, "file with id 'swagger.json' not found")
+
 		return app.Root{}, errors.NewNotFoundError("file", "swagger.json")
 	}
 
 	var result map[string]interface{}
 	json.Unmarshal([]byte(swaggerJSON), &result)
 
+	// Get and iterate over paths from swagger specification.
 	swaggerPaths := result["paths"].(map[string]interface{})
 	namedPaths := make(map[string]interface{})
 	for path, pathObj := range swaggerPaths {
 
 		if !strings.Contains(path, "{") {
 
-			key := pathObj.(map[string]interface{})["x-tag"].(string)
+			// Use the segments in the path to construct a meaningful to use for the path.
+			key := strings.Replace(path, "/", "_", -1)
+			key = strings.Replace(key, "_", "", 1)
+			xtag := pathObj.(map[string]interface{})["x-tag"]
 
-			// If the xtag doesn't exist in the swagger spec, result to using
-			// path segments to construct a meaningful name
-			if len(key) <= 0 {
-				// Use the segments in the path to construct
-				// a name to use for the path
-				key := strings.Replace(path, "/", "_", -1)
-				key = strings.Replace(key, "_", "", 1)
+			// If the tag exists, use it as path name.
+			if xtag != nil {
+				key = xtag.(string)
 			}
 
-			// Set the related field to the path
+			// Set the related field to the path.
 			name := map[string]string{
 				"related": path,
 			}
 
-			// Set the links object to contain the related field
+			// Set the links object to contain the related field.
 			links := map[string]interface{}{
 				"links": name,
 			}
 
-			// Set the name to contain the links object
+			// Set the name to contain the links object.
 			namedPaths[key] = links
 		}
 	}
 
 	basePath := result["basePath"].(string)
 	id := uuid.NewV4()
-	root := app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath}
-	return root, nil
+	return app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath}, nil
 }
