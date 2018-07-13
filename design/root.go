@@ -41,5 +41,6 @@ var _ = a.Resource("root", func() {
 		a.Description("List all endpoints. ")
 		a.Response(d.OK, rootSingle)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 })

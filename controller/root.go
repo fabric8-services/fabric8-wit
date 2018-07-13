@@ -1,45 +1,59 @@
 package controller
 
 import (
+	"encoding/json"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/swagger"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/goadesign/goa"
-	"net/http"
 	"github.com/satori/go.uuid"
-	"encoding/json"
+	"net/http"
 	"strings"
-	)
+)
 
 const (
-	xTag = "x-tag"
-	paths = "paths"
-	links = "links"
-	related = "related"
-	frwdSlash = "/"
-	bracket = "{"
-	underscore = "_"
-	emptyStr = ""
-	swaggerFile = "swagger.json"
+	xTag           = "x-tag"
+	paths          = "paths"
+	links          = "links"
+	related        = "related"
+	frwdSlash      = "/"
+	bracket        = "{"
+	underscore     = "_"
+	emptyStr       = ""
+	swaggerFile    = "swagger.json"
 	rootController = "RootController"
-	basePath = "basePath"
+	basePath       = "basePath"
 )
+
+type asseter interface {
+	Asset(name string) ([]byte, error)
+}
 
 // RootController implements the root resource.
 type RootController struct {
 	*goa.Controller
+	FileHandler asseter
 }
+
+type workingFileFetcher struct{}
+func (s workingFileFetcher) Asset(fileName string) ([]byte, error) {
+	return swagger.Asset(fileName)
+}
+var _ asseter = workingFileFetcher{}
+var _ asseter = (*workingFileFetcher)(nil)
 
 // NewRootController creates a root controller.
 func NewRootController(service *goa.Service) *RootController {
 	return &RootController{
 		Controller: service.NewController(rootController),
+		FileHandler: workingFileFetcher{},
 	}
 }
 
 // List runs the list action.
 func (c *RootController) List(ctx *app.ListRootContext) error {
-	roots, err := getRoot()
+	roots, err := getRoot(c.FileHandler)
 
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -54,8 +68,8 @@ func (c *RootController) List(ctx *app.ListRootContext) error {
 func convertRoot(request *http.Request, root app.Root) *app.Root {
 	selfURL := request.Host + *root.BasePath
 	l := &app.Root{
-		Relationships:root.Relationships,
-		Attributes:root.Attributes,
+		Relationships: root.Relationships,
+		Attributes:    root.Attributes,
 		Links: &app.GenericLinksForRoot{
 			Self: &selfURL,
 		},
@@ -65,10 +79,11 @@ func convertRoot(request *http.Request, root app.Root) *app.Root {
 }
 
 // Get a list of all endpoints formatted to json api format
-func getRoot() (app.Root, error) {
-	swaggerJSON, err := swagger.Asset(swaggerFile)
+func getRoot(fileHandler asseter) (app.Root, error) {
+	swaggerJSON, err := fileHandler.Asset(swaggerFile)
 	if err != nil {
-		return app.Root{}, err
+		// TODO(tinakurian): log error
+		return app.Root{}, errors.NewNotFoundError("file", swaggerFile)
 	}
 
 	var result map[string]interface{}
@@ -103,5 +118,5 @@ func getRoot() (app.Root, error) {
 	basePath := result[basePath].(string)
 	id := uuid.NewV4()
 	root := app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath}
-	return root, err
+	return root, nil
 }
