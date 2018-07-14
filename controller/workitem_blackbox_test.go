@@ -1290,24 +1290,36 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 
 func (s *WorkItem2Suite) TestWI2SuccessUpdateWorkItemWithDescriptionAndMarkup() {
 	// given
+	originalDescription := "` x = 1`"
+	originalDescriptionRendered := "<p><code>x = 1</code></p>\n"
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
-	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown)
+	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent(originalDescription, rendering.SystemMarkupMarkdown)
 	c.Data.Relationships.BaseType = newRelationBaseType(workitem.SystemBug)
 
 	// when
 	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
-	assert.Equal(s.T(), "<p>Description</p>\n", wi.Data.Attributes[workitem.SystemDescriptionRendered])
+
+	assert.Equal(s.T(), originalDescription, wi.Data.Attributes[workitem.SystemDescription])
+	assert.Equal(s.T(), originalDescriptionRendered, wi.Data.Attributes[workitem.SystemDescriptionRendered])
 	updatePayload := minimumRequiredUpdatePayload()
 	updatePayload.Data.ID = wi.Data.ID
 	updatePayload.Data.Attributes["version"] = wi.Data.Attributes["version"]
-	content := "```\n" +
-		"{\n" +
-		`	"data": "hello world"\n` +
-		"}\n" +
-		"```"
-	renderedContent := "<pre><code class=\"prettyprint\"><span class=\"pun\">{</span>\n\t<span class=\"str\">&#34;data&#34;</span><span class=\"pun\">:</span> <span class=\"str\">&#34;hello world&#34;</span><span class=\"pun\">\\</span><span class=\"pln\">n</span><span class=\"pun\">}</span>\n</code></pre>\n"
+	content := `
+	<code>
+	{
+		"data": "Hello World"
+	}
+	</code>
+`
+	renderedContent := "" +
+		`<pre><code class="prettyprint"><span class="pun">&lt;</span><span class="pln">code</span><span class="pun">&gt;</span>
+<span class="pun">{</span>
+    <span class="str">&#34;data&#34;</span><span class="pun">:</span> <span class="str">&#34;Hello World&#34;</span>
+<span class="pun">}</span>
+<span class="pun">&lt;</span><span class="pun">/</span><span class="pln">code</span><span class="pun">&gt;</span>
+</code></pre>
+`
 	updatePayload.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent(content, rendering.SystemMarkupMarkdown)
 	_, newWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *updatePayload.Data.ID, &updatePayload)
 	// then
