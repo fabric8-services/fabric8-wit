@@ -1290,8 +1290,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 
 func (s *WorkItem2Suite) TestWI2SuccessUpdateWorkItemWithDescriptionAndMarkup() {
 	// given
-	originalDescription := "` x = 1`"
-	originalDescriptionRendered := "<p><code>x = 1</code></p>\n"
+	originalDescription := "` x = \"1\"`"
+	originalDescriptionRendered := "<p><code>x = &#34;1&#34;</code></p>\n"
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent(originalDescription, rendering.SystemMarkupMarkdown)
