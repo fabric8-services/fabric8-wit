@@ -461,6 +461,8 @@
                 "New",
                 "Open",
                 "In Progress",
+                "Deferred",
+                "No Plan to Implement",
                 "Resolved",
                 "Closed"
               ]
@@ -661,6 +663,8 @@
                 "Open",
                 "In Progress",
                 "Resolved",
+                "Deferred",
+                "No Plan to Implement",
                 "Closed"
               ]
             }
@@ -859,6 +863,7 @@
                 "New",
                 "Open",
                 "In Progress",
+                "Deferred",
                 "Resolved",
                 "Closed"
               ]

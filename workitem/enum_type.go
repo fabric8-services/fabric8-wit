@@ -77,12 +77,12 @@ func (t EnumType) EqualEnclosing(u convert.Equaler) bool {
 	if !t.BaseType.Equal(other.BaseType) {
 		return false
 	}
-	if t.RewritableValues != other.RewritableValues {
-		return false
-	}
 	// if the local list of values is completely contained
 	// in the other values set, consider it enclosing.
-	return containsAll(t.Values, other.Values)
+	if !t.RewritableValues {
+		return containsAll(t.Values, other.Values)
+	}
+	return true
 }
 
 func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {
