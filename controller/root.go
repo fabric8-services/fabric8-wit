@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/swagger"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	"net/http"
 	"strings"
@@ -81,7 +82,14 @@ func getRoot(fileHandler asseter) (app.Root, error) {
 	}
 
 	var result map[string]interface{}
-	json.Unmarshal([]byte(swaggerJSON), &result)
+	err = json.Unmarshal([]byte(swaggerJSON), &result)
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":  err,
+			"file": "swagger.json",
+		}, "unable to unmarshal json")
+		return app.Root{}, errs.Wrap(err, "Could not unmarshal Swagger.json")
+	}
 
 	// Get and iterate over paths from swagger specification.
 	swaggerPaths := result["paths"].(map[string]interface{})
