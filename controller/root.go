@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
@@ -103,9 +104,6 @@ func getRoot(fileHandler asseter) (app.Root, error) {
 			key := strings.Replace(path, "/", "_", -1)
 			key = strings.Replace(key, "_", "", 1)
 			xtag, ok := pathObj.(map[string]interface{})["x-tag"]
-			if !ok {
-				return app.Root{}, errs.Wrap(err, "Invalid path format in swagger specification")
-			}
 
 			// If the tag exists, use it as path name.
 			if xtag != nil {
@@ -134,6 +132,7 @@ func getRoot(fileHandler asseter) (app.Root, error) {
 
 	id := uuid.NewV4()
 	basePath, ok := result["basePath"].(string)
+
 	if !ok {
 		return app.Root{}, errs.Wrap(err, "Invalid basePath value in swagger specification metadata")
 	}
