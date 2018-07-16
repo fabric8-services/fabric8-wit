@@ -28,6 +28,7 @@ var genericLinksForSpace = a.Type("GenericLinksForSpace", func() {
 	a.Attribute("collaborators", d.String, `URL to the list of the space collaborators`)
 	a.Attribute("filters", d.String, `URL to the list of available filters`)
 	a.Attribute("workitemtypegroups", d.String, "URL to the list all work item type groups")
+	a.Attribute("workitemboards", d.String, "URL to the list all work item boards")
 })
 
 var backlogGenericLinkType = a.Type("BacklogGenericLink", func() {

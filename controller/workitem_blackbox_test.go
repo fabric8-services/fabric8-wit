@@ -2110,6 +2110,8 @@ func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI 
 	require.NotNil(t, fetchedWI.Data.Relationships.Labels.Links)
 	assert.Contains(t, *fetchedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Empty(t, fetchedWI.Data.Relationships.Labels.Data)
+	require.NotNil(t, fetchedWI.Data.Relationships.SystemBoardcolumns)
+	assert.Empty(t, fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
 }
 
 func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (etag string, lastModified string, cacheControl string) {
