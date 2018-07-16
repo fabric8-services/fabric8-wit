@@ -90,7 +90,7 @@ func getRoot(fileHandler asseter) (app.Root, error) {
 
 		if !strings.Contains(path, "{") {
 
-			// Use the segments in the path to construct a meaningful to use for the path.
+			// Use the segments in the path to construct a meaningful name to use for the path.
 			key := strings.Replace(path, "/", "_", -1)
 			key = strings.Replace(key, "_", "", 1)
 			xtag := pathObj.(map[string]interface{})["x-tag"]
