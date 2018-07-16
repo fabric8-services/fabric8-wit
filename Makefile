@@ -191,7 +191,6 @@ spacetemplate/template_assets.go: $(GO_BINDATA_BIN) $(wildcard spacetemplate/ass
 		-nocompress \
 		spacetemplate/assets
 
-# TINA KURIAN
 swagger/swagger_assets.go: $(GO_BINDATA_BIN) $(wildcard swagger/*.json)
 	$(GO_BINDATA_BIN) \
 		-o swagger/swagger_assets.go \
