@@ -88,6 +88,7 @@ func getRoot(fileHandler asseter) (app.Root, error) {
 	namedPaths := make(map[string]interface{})
 	for path, pathObj := range swaggerPaths {
 
+		// Currently not supporting endpoints that contain parameters.
 		if !strings.Contains(path, "{") {
 
 			// Use the segments in the path to construct a meaningful name to use for the path.
