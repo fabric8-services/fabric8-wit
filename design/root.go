@@ -3,7 +3,6 @@ package design
 import (
 	d "github.com/goadesign/goa/design"
 	a "github.com/goadesign/goa/design/apidsl"
-	"fmt"
 	)
 
 var root = a.Type("Root", func() {
@@ -29,7 +28,6 @@ var rootSingle = JSONSingle(
 
 var _ = a.Resource("root", func() {
 	a.BasePath("/root")
-	fmt.Println(root)
 	a.Action("list", func() {
 		a.Routing(
 			a.GET(""),
