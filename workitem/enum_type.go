@@ -40,6 +40,14 @@ var _ convert.Equaler = (*EnumType)(nil)
 
 // Equal returns true if two EnumType objects are equal; otherwise false is returned.
 func (t EnumType) Equal(u convert.Equaler) bool {
+	// for the EnumType, we consider enclosed Values as an equality to
+	// allow changes to the template to be adding new values to the
+	// enum. If a default Equal() behaviour is needed, use DefaultEqual().
+	return t.EqualEnclosing(u)
+}
+
+// DefaultEqual returns true if two EnumType objects are equal; otherwise false is returned.
+func (t EnumType) DefaultEqual(u convert.Equaler) bool {
 	other, ok := u.(EnumType)
 	if !ok {
 		return false
@@ -56,22 +64,25 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 	return true
 }
 
-// checkValueSetIsEnclosing checks if a given set is a subset of a superset.
-func (t EnumType) checkValueSetIsEnclosing(subset []interface{}, superset []interface{}) bool {
-	set := make(map[interface{}]int)
-	for _, value := range superset {
-		set[value]++
+// EqualEnclosing returns true if two EnumType objects are equal and/or the
+// values set is enclosing (larger and containing) the other values set.
+func (t EnumType) EqualEnclosing(u convert.Equaler) bool {
+	other, ok := u.(EnumType)
+	if !ok {
+		return false
 	}
-	for _, value := range subset {
-		if count, found := set[value]; !found {
-			return false
-		} else if count < 1 {
-			return false
-		} else {
-			set[value] = count - 1
-		}
+	if !t.SimpleType.Equal(other.SimpleType) {
+		return false
 	}
-	return true
+	if !t.BaseType.Equal(other.BaseType) {
+		return false
+	}
+	if t.RewritableValues != other.RewritableValues {
+		return false
+	}
+	// if the local list of values is completely contained
+	// in the other values set, consider it enclosing.
+	return containsAll(t.Values, other.Values)
 }
 
 func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {
@@ -93,6 +104,14 @@ func contains(a []interface{}, v interface{}) bool {
 		}
 	}
 	return false
+}
+
+func containsAll(a []interface{}, v []interface{}) bool {
+	result := true
+	for _, element := range v {
+		result = result && contains(a, element)
+	}
+	return result
 }
 
 func (t EnumType) ConvertFromModel(value interface{}) (interface{}, error) {
