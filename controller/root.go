@@ -102,11 +102,19 @@ func getRoot(fileHandler asseter) (app.Root, error) {
 			// Use the segments in the path to construct a meaningful name to use for the path.
 			key := strings.Replace(path, "/", "_", -1)
 			key = strings.Replace(key, "_", "", 1)
-			xtag := pathObj.(map[string]interface{})["x-tag"]
+			xtag, ok := pathObj.(map[string]interface{})["x-tag"]
+			if !ok {
+				return app.Root{}, errs.Wrap(err, "Invalid path format in swagger specification")
+			}
 
 			// If the tag exists, use it as path name.
 			if xtag != nil {
-				key = xtag.(string)
+				xtag, ok := xtag.(string)
+				if !ok {
+					return app.Root{}, errs.Wrap(err, "Invalid x-tag value in swagger specification metadata")
+				}
+
+				key = xtag
 			}
 
 			// Set the related field to the path.
@@ -125,6 +133,10 @@ func getRoot(fileHandler asseter) (app.Root, error) {
 	}
 
 	id := uuid.NewV4()
-	basePath := result["basePath"].(string)
+	basePath, ok := result["basePath"].(string)
+	if !ok {
+		return app.Root{}, errs.Wrap(err, "Invalid basePath value in swagger specification metadata")
+	}
+
 	return app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath}, nil
 }
