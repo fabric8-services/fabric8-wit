@@ -102,12 +102,6 @@ func TestEnumType_EqualEnclosing(t *testing.T) {
 			require.False(t, a.EqualEnclosing(b))
 		})
 
-		t.Run("new type has overwritable values but old not", func(t *testing.T) {
-			b := a
-			b.RewritableValues = true
-			require.False(t, a.EqualEnclosing(b))
-		})
-
 		t.Run("new type has subset values", func(t *testing.T) {
 			b := a
 			b.Values = []interface{}{"foo", "bar"}
