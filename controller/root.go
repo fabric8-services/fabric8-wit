@@ -48,10 +48,7 @@ func (c *RootController) List(ctx *app.ListRootContext) error {
 		return jsonapi.JSONErrorResponse(
 			ctx, err)
 	}
-
-	res := &app.RootSingle{}
-	res.Data = roots
-	return ctx.OK(res)
+	return ctx.OK(&app.RootSingle{Data: roots})
 }
 
 // Get a list of all endpoints formatted to json api format.
