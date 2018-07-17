@@ -103,8 +103,12 @@ func getRoot(request *http.Request, fileHandler asseter) (*app.Root, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	basePath = rest.AbsoluteURL(request, basePath)
-	return &app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath}, nil
+	links := &app.GenericLinksForRoot {
+		Self: &basePath,
+	}
+	return &app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath, Links: links}, nil
 }
 
 // Gets the swagger specification binary and attempts to unmarshal it.
