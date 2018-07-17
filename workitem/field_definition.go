@@ -13,21 +13,22 @@ import (
 
 // constants for describing possible field types
 const (
-	KindString    Kind = "string"
-	KindInteger   Kind = "integer"
-	KindFloat     Kind = "float"
-	KindBoolean   Kind = "bool"
-	KindInstant   Kind = "instant"
-	KindDuration  Kind = "duration"
-	KindURL       Kind = "url"
-	KindIteration Kind = "iteration"
-	KindUser      Kind = "user"
-	KindLabel     Kind = "label"
-	KindEnum      Kind = "enum"
-	KindList      Kind = "list"
-	KindMarkup    Kind = "markup"
-	KindArea      Kind = "area"
-	KindCodebase  Kind = "codebase"
+	KindString      Kind = "string"
+	KindInteger     Kind = "integer"
+	KindFloat       Kind = "float"
+	KindBoolean     Kind = "bool"
+	KindInstant     Kind = "instant"
+	KindDuration    Kind = "duration"
+	KindURL         Kind = "url"
+	KindIteration   Kind = "iteration"
+	KindUser        Kind = "user"
+	KindLabel       Kind = "label"
+	KindBoardColumn Kind = "boardcolumn"
+	KindEnum        Kind = "enum"
+	KindList        Kind = "list"
+	KindMarkup      Kind = "markup"
+	KindArea        Kind = "area"
+	KindCodebase    Kind = "codebase"
 )
 
 // Kind is the kind of field type
@@ -242,7 +243,7 @@ func ConvertAnyToKind(any interface{}) (*Kind, error) {
 func ConvertStringToKind(k string) (*Kind, error) {
 	kind := Kind(k)
 	switch kind {
-	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoolean:
+	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoardColumn, KindBoolean:
 		return &kind, nil
 	}
 	return nil, errs.Errorf("kind '%s' is not a simple type", k)

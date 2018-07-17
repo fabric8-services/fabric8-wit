@@ -198,8 +198,8 @@ func (s *WorkItemSuite) TestPagingDefaultAndMaxSize() {
 	limit = 1000
 	_, result = test.ListWorkitemsOK(s.T(), context.Background(), nil, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	// then
-	if !strings.Contains(*result.Links.First, "page[limit]=100") {
-		assert.Fail(s.T(), "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
+	if !strings.Contains(*result.Links.First, fmt.Sprintf("page[limit]=%d", PageSizeMax)) {
+		assert.Fail(s.T(), "Limit is more than max", "Expected limit to be %d, got %v", PageSizeMax, *result.Links.First)
 	}
 	// when
 	limit = 50
@@ -2110,6 +2110,8 @@ func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI 
 	require.NotNil(t, fetchedWI.Data.Relationships.Labels.Links)
 	assert.Contains(t, *fetchedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Empty(t, fetchedWI.Data.Relationships.Labels.Data)
+	require.NotNil(t, fetchedWI.Data.Relationships.SystemBoardcolumns)
+	assert.Empty(t, fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
 }
 
 func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (etag string, lastModified string, cacheControl string) {

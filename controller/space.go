@@ -218,15 +218,17 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	}
 
 	// now delete the OpenShift resources associated with this space on an
-	// OpenShift cluster
-	err = deleteOpenShiftResource(c.DeploymentsClient, config, ctx.Context, spaceID)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"space_id": spaceID,
-			"error":    err,
-		}, "could not delete OpenShift resources")
-		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, err))
+	// OpenShift cluster, unless otherwise specified
+	if ctx.SkipCluster == nil || !*ctx.SkipCluster {
+		err = deleteOpenShiftResource(c.DeploymentsClient, config, ctx.Context, spaceID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"space_id": spaceID,
+				"error":    err,
+			}, "could not delete OpenShift resources")
+			return jsonapi.JSONErrorResponse(
+				ctx, errors.NewInternalError(ctx, err))
+		}
 	}
 
 	err = application.Transactional(c.db, func(appl application.Application) error {

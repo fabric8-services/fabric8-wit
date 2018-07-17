@@ -165,7 +165,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
-		createdType, err := s.typeRepo.Create(s.Ctx, &typ)
+		createdType, err := s.typeRepo.Create(s.Ctx, typ)
 		// then
 		require.NoError(t, err)
 		require.NotNil(t, createdType)
@@ -191,7 +191,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
-		createdType, err := s.typeRepo.Create(s.Ctx, &typ)
+		createdType, err := s.typeRepo.Create(s.Ctx, typ)
 		// then
 		require.Error(t, err)
 		require.IsType(t, errors.BadParameterError{}, errs.Cause(err))
@@ -212,7 +212,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
-		createdType, err := s.typeRepo.Create(s.Ctx, &typ)
+		createdType, err := s.typeRepo.Create(s.Ctx, typ)
 		// then
 		require.Error(t, err)
 		require.IsType(t, errors.BadParameterError{}, errs.Cause(err))
@@ -224,7 +224,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 		typ := *fxt.WorkItemLinkTypes[0]
 		typ.ID = uuid.NewV4()
 		// when
-		createdType, err := s.typeRepo.Create(s.Ctx, &typ)
+		createdType, err := s.typeRepo.Create(s.Ctx, typ)
 		// then
 		require.Error(t, err)
 		require.IsType(t, errors.DataConflictError{}, errs.Cause(err))
