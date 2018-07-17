@@ -135,6 +135,7 @@
           "related": "/workitemlinks"
         }
       }
-    }
+    },
+    "type": "endpoints"
   }
 }
