@@ -15,7 +15,7 @@ import (
 
 const (
 	pageSizeDefault = 20
-	pageSizeMax     = 100
+	PageSizeMax     = 500
 )
 
 func computePagingLimits(offsetParam *string, limitParam *int) (offset int, limit int) {
@@ -41,8 +41,8 @@ func computePagingLimits(offsetParam *string, limitParam *int) (offset int, limi
 
 	if limit <= 0 {
 		limit = pageSizeDefault
-	} else if limit > pageSizeMax {
-		limit = pageSizeMax
+	} else if limit > PageSizeMax {
+		limit = PageSizeMax
 	}
 	return offset, limit
 }

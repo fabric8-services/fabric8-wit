@@ -56,6 +56,7 @@ var spaceTemplateRelationships = a.Type("SpaceTemplateRelationships", func() {
 	a.Attribute("workitemlinktypes", relationGeneric, "Space template can have one or many work item link types")
 	a.Attribute("workitemtypes", relationGeneric, "Space template can have one or many work item types")
 	a.Attribute("workitemtypegroups", relationGeneric, "Space template can have one or many work item type groups")
+	a.Attribute("workitemboards", relationGeneric, "Space template can have one or maximum count of work item type groups boards")
 })
 
 var spaceTemplateRelation = a.Type("SpaceTemplateRelation", func() {

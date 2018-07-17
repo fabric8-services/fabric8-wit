@@ -47,6 +47,26 @@ work_item_types:
         - in progress
         - resolved
         - closed
+    "system.metastate":
+      label: Meta State
+      description: The meta-state of the work item
+      read_only: yes
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        # This will allow other WITs to overwrite the values of the state.
+        rewritable_values: no
+        # the sequence of the values need to match the sequence of the 
+        # system.state attributes. This encapsulates the mapping.
+        values: 
+        - mNew
+        - mOpen
+        - mInprogress
+        - mResolved
+        - mClosed
     "system.title": 
       label: Title
       description: The title text of the work item
@@ -114,6 +134,15 @@ work_item_types:
           kind: list
         component_type:
           kind: label
+      required: no
+    "system.boardcolumns":
+      label: Boardcolumns
+      description: List of boardcolumns this work item is attached to
+      type:
+        simple_type:
+          kind: list
+        component_type:
+          kind: boardcolumn
       required: no
     "system.number":
       label: Number

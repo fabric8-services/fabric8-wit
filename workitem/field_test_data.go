@@ -123,6 +123,18 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 				0.1,
 			},
 		},
+		KindBoardColumn: {
+			Valid: []interface{}{
+				"d05b66fb-9162-4f7b-ac0f-19d9c41324f4",
+				"400956cf-741c-4b4d-a89b-a44f4dead04e",
+			},
+			Invalid: []interface{}{
+				nil,
+				0,
+				true,
+				0.1,
+			},
+		},
 		KindURL: {
 			Valid: []interface{}{
 				"127.0.0.1",

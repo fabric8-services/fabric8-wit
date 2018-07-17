@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dnaeon/go-vcr/cassette"
 	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -404,9 +405,18 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		)
 		spaceID := fxt.Spaces[0].ID
 		identity := *fxt.Identities[0]
+		expectedDeleteURLs := map[string]struct{}{
+			"http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace1/deployments/stage": {},
+			"http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace1/deployments/run":   {},
+			"http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace2/deployments/stage": {},
+			"http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace2/deployments/run":   {},
+		}
 
 		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.ok")
 		require.NoError(t, err)
+		rDeployments.SetMatcher(func(httpReq *http.Request, vcrReq cassette.Request) bool {
+			return checkDeleteURL(httpReq, expectedDeleteURLs, t)
+		})
 		defer rDeployments.Stop()
 
 		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.ok")
@@ -418,7 +428,80 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
-		test.DeleteSpaceOK(t, svc.Context, svc, ctrl, spaceID)
+		test.DeleteSpaceOK(t, svc.Context, svc, ctrl, spaceID, nil)
+
+		require.Emptyf(t, expectedDeleteURLs, "Expected DELETE request(s) not made: %v", expectedDeleteURLs)
+	})
+
+	s.T().Run("skip cluster - ok", func(t *testing.T) {
+		var err error
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(f *tf.TestFixture, index int) error {
+				f.Spaces[index].ID, err = uuid.FromString("2a75fae9-3131-4dc5-8b43-283aeb2522b6")
+				require.NoError(t, err)
+				return nil
+			}),
+			tf.Codebases(1),
+		)
+		spaceID := fxt.Spaces[0].ID
+		identity := *fxt.Identities[0]
+		skipCluster := true
+
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.ok-skip-cluster")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
+		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.ok-skip-cluster")
+		require.NoError(t, err)
+		defer rCodebase.Stop()
+
+		svc, ctrl := s.SecuredController(
+			identity,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
+			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
+		)
+		test.DeleteSpaceOK(t, svc.Context, svc, ctrl, spaceID, &skipCluster)
+	})
+
+	s.T().Run("skip cluster - false", func(t *testing.T) {
+		var err error
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(f *tf.TestFixture, index int) error {
+				f.Spaces[index].ID, err = uuid.FromString("4d19e0fb-b558-4160-8768-f41cb8169e95")
+				require.NoError(t, err)
+				return nil
+			}),
+			tf.Codebases(1),
+		)
+		spaceID := fxt.Spaces[0].ID
+		identity := *fxt.Identities[0]
+		skipCluster := false
+		expectedDeleteURLs := map[string]struct{}{
+			"http://core/api/deployments/spaces/4d19e0fb-b558-4160-8768-f41cb8169e95/applications/testspace1/deployments/stage": {},
+			"http://core/api/deployments/spaces/4d19e0fb-b558-4160-8768-f41cb8169e95/applications/testspace1/deployments/run":   {},
+			"http://core/api/deployments/spaces/4d19e0fb-b558-4160-8768-f41cb8169e95/applications/testspace2/deployments/stage": {},
+			"http://core/api/deployments/spaces/4d19e0fb-b558-4160-8768-f41cb8169e95/applications/testspace2/deployments/run":   {},
+		}
+
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.ok-skip-cluster-false")
+		require.NoError(t, err)
+		rDeployments.SetMatcher(func(httpReq *http.Request, vcrReq cassette.Request) bool {
+			return checkDeleteURL(httpReq, expectedDeleteURLs, t)
+		})
+		defer rDeployments.Stop()
+
+		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.ok-skip-cluster-false")
+		require.NoError(t, err)
+		defer rCodebase.Stop()
+
+		svc, ctrl := s.SecuredController(
+			identity,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
+			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
+		)
+		test.DeleteSpaceOK(t, svc.Context, svc, ctrl, spaceID, &skipCluster)
+
+		require.Emptyf(t, expectedDeleteURLs, "Expected DELETE request(s) not made: %v", expectedDeleteURLs)
 	})
 
 	s.T().Run("delete space - auth returns 401 Unauthorized", func(t *testing.T) {
@@ -450,7 +533,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
-		test.DeleteSpaceUnauthorized(t, svc.Context, svc, ctrl, spaceID)
+		test.DeleteSpaceUnauthorized(t, svc.Context, svc, ctrl, spaceID, nil)
 	})
 
 	s.T().Run("delete space - auth returns 403 Forbidden", func(t *testing.T) {
@@ -482,7 +565,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
-		test.DeleteSpaceForbidden(t, svc.Context, svc, ctrl, spaceID)
+		test.DeleteSpaceForbidden(t, svc.Context, svc, ctrl, spaceID, nil)
 	})
 
 	s.T().Run("delete space - auth returns 404 Not Found", func(t *testing.T) {
@@ -514,7 +597,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
-		test.DeleteSpaceNotFound(t, svc.Context, svc, ctrl, spaceID)
+		test.DeleteSpaceNotFound(t, svc.Context, svc, ctrl, spaceID, nil)
 	})
 
 	s.T().Run("delete space - auth returns 500 Internal Server Error", func(t *testing.T) {
@@ -546,7 +629,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
-		test.DeleteSpaceInternalServerError(t, svc.Context, svc, ctrl, spaceID)
+		test.DeleteSpaceInternalServerError(t, svc.Context, svc, ctrl, spaceID, nil)
 	})
 
 	s.T().Run("fail - different owner", func(t *testing.T) {
@@ -575,8 +658,19 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
-		test.DeleteSpaceForbidden(t, svc.Context, svc, ctrl, spaceID)
+		test.DeleteSpaceForbidden(t, svc.Context, svc, ctrl, spaceID, nil)
 	})
+}
+
+func checkDeleteURL(httpReq *http.Request, expectedDeleteURLs map[string]struct{}, t *testing.T) bool {
+	// Track delete requests made by this test
+	if httpReq.Method == http.MethodDelete {
+		reqURL := httpReq.URL.String()
+		_, pres := expectedDeleteURLs[reqURL]
+		require.True(t, pres, "Unexpected DELETE request %s", reqURL)
+		delete(expectedDeleteURLs, reqURL)
+	}
+	return true
 }
 
 func (s *SpaceControllerTestSuite) TestUpdateSpace() {

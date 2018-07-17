@@ -147,6 +147,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration95", testMigration95RemoveResolutionFieldFromImpediment)
 	t.Run("TestMigration96", testMigration96ChangesToAgileTemplate)
 	t.Run("TestMigration97", testMigration97RemoveResolutionFieldFromImpediment)
+	t.Run("TestMigration98", testMigration98Boards)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1152,6 +1153,12 @@ func testMigration97RemoveResolutionFieldFromImpediment(t *testing.T) {
 	})
 }
 
+func testMigration98Boards(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:99], 99)
+	assert.True(t, dialect.HasTable("work_item_boards"))
+	assert.True(t, dialect.HasTable("work_item_board_columns"))
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
@@ -1204,6 +1211,12 @@ func executeSQLTestFile(filename string, args ...string) fn {
 
 		return errs.Wrapf(err, "failed to execute SQL query from file %s", filename)
 	}
+}
+
+func testMigration95Boards(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:95], 95)
+	assert.True(t, dialect.HasTable("work_item_boards"))
+	assert.True(t, dialect.HasTable("work_item_board_columns"))
 }
 
 // migrateToVersion runs the migration of all the scripts to a certain version

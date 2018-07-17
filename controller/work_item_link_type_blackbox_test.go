@@ -55,7 +55,7 @@ func createWorkItemLinkTypeInRepo(t *testing.T, db application.DB, ctx context.C
 	require.NoError(t, err)
 	var appLinkTypeResult app.WorkItemLinkTypeSingle
 	err = application.Transactional(db, func(appl application.Application) error {
-		createdModelLinkType, err := appl.WorkItemLinkTypes().Create(ctx, modelLinkType)
+		createdModelLinkType, err := appl.WorkItemLinkTypes().Create(ctx, *modelLinkType)
 		if err != nil {
 			return err
 		}
