@@ -23,9 +23,8 @@ const (
 type SubscriberFunc func(channel, extra string)
 
 // SetupDatabaseListener sets up a Postgres LISTEN/NOTIFY connection and listens
-// on events that we have subscribers for. You can have more than one subscriber
-// for a single event channel.
-func SetupDatabaseListener(config configuration.Registry, subscribers map[string][]SubscriberFunc) error {
+// on events that we have subscribers for.
+func SetupDatabaseListener(config configuration.Registry, subscribers map[string]SubscriberFunc) error {
 	if len(subscribers) == 0 {
 		return nil
 	}
@@ -59,12 +58,10 @@ func SetupDatabaseListener(config configuration.Registry, subscribers map[string
 		for {
 			select {
 			case n := <-listener.Notify:
-				subs, ok := subscribers[n.Channel]
+				sub, ok := subscribers[n.Channel]
 				if ok {
 					log.Logger().Debugf("received notification from postgres channel \"%s\": %s", n.Channel, n.Extra)
-					for _, sub := range subs {
-						sub(n.Channel, n.Extra)
-					}
+					sub(n.Channel, n.Extra)
 				}
 			case <-time.After(90 * time.Second):
 				log.Logger().Infof("received no events for 90 seconds, checking connection")

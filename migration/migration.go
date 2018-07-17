@@ -677,7 +677,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
 
 	// Ensure the WIT cache is cleared in all pods
-	db = db.Debug().Exec("SELECT pg_notify('$1', '')", gormsupport.ChanSpaceTemplateUpdates)
+	db = db.Exec("SELECT pg_notify($1, '')", gormsupport.ChanSpaceTemplateUpdates)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err":     db.Error,
