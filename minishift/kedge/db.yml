@@ -1,9 +1,10 @@
 name: db
-containers:
-- image: registry.centos.org/postgresql/postgresql:9.6
-  env:
-  - name: POSTGRESQL_ADMIN_PASSWORD
-    value: mysecretpassword
+deployments:
+- containers:
+  - image: registry.centos.org/postgresql/postgresql:9.6
+    env:
+    - name: POSTGRESQL_ADMIN_PASSWORD
+      value: mysecretpassword
 services:
 - name: db
   type: NodePort
