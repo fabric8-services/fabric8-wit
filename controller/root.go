@@ -5,6 +5,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/swagger"
@@ -95,7 +96,6 @@ func getRoot(request *http.Request, fileHandler asseter) (*app.Root, error) {
 		}
 	}
 
-	id := uuid.NewV4()
 	basePath, err := getSwaggerFieldAsString("basePath", result, true)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func getRoot(request *http.Request, fileHandler asseter) (*app.Root, error) {
 	links := &app.GenericLinksForRoot{
 		Self: &basePath,
 	}
-	return &app.Root{Relationships: namedPaths, ID: &id, Links: links}, nil
+	return &app.Root{Relationships: namedPaths, ID: ptr.UUID(uuid.NewV4()), Links: links}, nil
 }
 
 // Gets the swagger specification binary and attempts to unmarshal it.
