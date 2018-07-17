@@ -5,13 +5,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/swagger"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
-	"net/http"
 	"strings"
 )
 
@@ -44,7 +43,7 @@ func NewRootController(service *goa.Service) *RootController {
 
 // List runs the list action.
 func (c *RootController) List(ctx *app.ListRootContext) error {
-	roots, err := getRoot(ctx.Request, c.FileHandler)
+	roots, err := getRoot(ctx, c.FileHandler)
 	if err != nil || roots == nil {
 		return jsonapi.JSONErrorResponse(
 			ctx, err)
@@ -53,15 +52,15 @@ func (c *RootController) List(ctx *app.ListRootContext) error {
 }
 
 // Get a list of all endpoints formatted to json api format.
-func getRoot(request *http.Request, fileHandler asseter) (*app.Root, error) {
+func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
 	// Get an unmarshal swagger specification
-	result, err := getUnmarshalledSwagger(fileHandler)
+	result, err := getUnmarshalledSwagger(ctx, fileHandler)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get and iterate over paths from swagger specification.
-	swaggerPaths, err := getSwaggerFieldAsMap("paths", result)
+	swaggerPaths, err := getSwaggerFieldAsMap(ctx, "paths", result)
 	if err != nil {
 		return nil, err
 	}
@@ -76,13 +75,17 @@ func getRoot(request *http.Request, fileHandler asseter) (*app.Root, error) {
 			key := strings.Replace(path, "/", "_", -1)
 			key = strings.Replace(key, "_", "", 1)
 
-			pathsObj, err := swaggerPath.(map[string]interface{})
-			if !err {
-				return nil, errorLogAndReturn("Unable to assert correct format for swagger specifiation")
+			pathsObj, ok := swaggerPath.(map[string]interface{})
+			if !ok {
+				log.Error(ctx, map[string]interface{}{
+					"file": "swagger.json",
+				}, "Unable to assert correct format for swagger specifiation")
+
+				return nil, errors.NewInternalErrorFromString("Unable to assert correct format for swagger specifiation")
 			}
 
 			// Get the x-tag value. If the tag exists, use it as path name.
-			xtag, _ := getSwaggerFieldAsString("x-tag", pathsObj, false)
+			xtag, _ := getSwaggerFieldAsString(ctx, "x-tag", pathsObj, true)
 			if len(xtag) > 0 {
 				key = xtag
 			}
@@ -96,26 +99,28 @@ func getRoot(request *http.Request, fileHandler asseter) (*app.Root, error) {
 		}
 	}
 
-	basePath, err := getSwaggerFieldAsString("basePath", result, true)
+	basePath, err := getSwaggerFieldAsString(ctx, "basePath", result, false)
 	if err != nil {
 		return nil, err
 	}
 
-	basePath = rest.AbsoluteURL(request, basePath)
+	basePath = rest.AbsoluteURL(ctx.Request, basePath)
 	links := &app.GenericLinksForRoot{
 		Self: &basePath,
 	}
-	return &app.Root{Relationships: namedPaths, ID: ptr.UUID(uuid.NewV4()), Links: links}, nil
+	types := "endpoints"
+	return &app.Root{Relationships: namedPaths, ID: ptr.UUID(uuid.NewV4()), Links: links, Type: ptr.String(types)}, nil
 }
 
 // Gets the swagger specification binary and attempts to unmarshal it.
 // Returns the unmarshed specification, or error. Error is returned if
 // the specification could not be found, or the specification was not
 // able to be unmarshalled.
-func getUnmarshalledSwagger(fileHandler asseter) (map[string]interface{}, error) {
+func getUnmarshalledSwagger(ctx *app.ListRootContext, fileHandler asseter) (map[string]interface{}, error) {
 	swaggerJSON, err := fileHandler.Asset("swagger.json")
 	if err != nil {
-		log.Error(nil, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
+			"err":  err,
 			"file": "swagger.json",
 		}, "The file with id 'swagger.json' not found")
 		return nil, errors.NewNotFoundError("file", "swagger.json")
@@ -124,36 +129,34 @@ func getUnmarshalledSwagger(fileHandler asseter) (map[string]interface{}, error)
 	var result map[string]interface{}
 	err = json.Unmarshal([]byte(swaggerJSON), &result)
 	if err != nil {
-		return nil, errorLogAndReturn("Unable to unmarshal json swagger specification")
+		log.Error(ctx, map[string]interface{}{
+			"err":  err,
+			"file": "swagger.json",
+		}, "The file with id 'swagger.json' not found")
 	}
 	return result, nil
-}
-
-// Logs an error with a custom message. Once the error is logged, the
-// error is returned.
-func errorLogAndReturn(message string) error {
-	log.Error(nil, map[string]interface{}{
-		"file": "swagger.json",
-	}, message)
-	return errors.NewInternalErrorFromString(message)
 }
 
 // Gets a field from te swagger specification and asserts the type to
 // string. Returns errors if the key does not exist in the swagger
 // specification, or the field cannot be type asserted to a string.
-func getSwaggerFieldAsString(field string, json map[string]interface{}, isLogged bool) (string, error) {
+func getSwaggerFieldAsString(ctx *app.ListRootContext, field string, json map[string]interface{}, isXtag bool) (string, error) {
 	value, ok := json[field]
 	if !ok {
-		// Do not log for x-tags
-		if !isLogged {
-			return "", errors.NewInternalErrorFromString(" Field " + "'" + field + "'" + " cannot be found in swagger specification")
+		if !isXtag {
+			log.Error(ctx, map[string]interface{}{
+				"file": "swagger.json",
+			}, " Field "+"'"+field+"'"+" cannot be found in swagger specification")
 		}
-		return "", errorLogAndReturn(" Field " + "'" + field + "'" + " cannot be found in swagger specification")
+		return "", errors.NewInternalErrorFromString(" Field " + "'" + field + "'" + " cannot be found in swagger specification")
 	}
 
 	strValue, ok := value.(string)
 	if !ok {
-		return "", errorLogAndReturn("Unable to assert concrete type string for field " + "'" + field + "'" + " in swagger specifiation.")
+		log.Error(ctx, map[string]interface{}{
+			"file": "swagger.json",
+		}, "Unable to assert concrete type string for field "+"'"+field+"'"+" in swagger specifiation.")
+		return "", errors.NewInternalErrorFromString("Unable to assert concrete type string for field " + "'" + field + "'" + " in swagger specifiation.")
 	}
 	return strValue, nil
 }
@@ -161,15 +164,21 @@ func getSwaggerFieldAsString(field string, json map[string]interface{}, isLogged
 // Gets a field from te swagger specification and asserts the type to
 // map. Returns errors if the key does not exist in the swagger
 // specification, or the field cannot be type asserted to a map.
-func getSwaggerFieldAsMap(field string, json map[string]interface{}) (map[string]interface{}, error) {
+func getSwaggerFieldAsMap(ctx *app.ListRootContext, field string, json map[string]interface{}) (map[string]interface{}, error) {
 	value, ok := json[field]
 	if !ok {
-		return nil, errorLogAndReturn(" Field " + "'" + field + "'" + " cannot be found in swagger specification")
+		log.Error(ctx, map[string]interface{}{
+			"file": "swagger.json",
+		}, " Field "+"'"+field+"'"+" cannot be found in swagger specification")
+		return nil, errors.NewInternalErrorFromString("Field " + "'" + field + "'" + " cannot be found in swagger specification")
 	}
 
 	mapValue, err := value.(map[string]interface{})
 	if !err {
-		return nil, errorLogAndReturn("Unable to assert concrete type map for field " + "'" + field + "'" + " in swagger specifiation")
+		log.Error(ctx, map[string]interface{}{
+			"file": "swagger.json",
+		}, "Unable to assert concrete type map for field "+"'"+field+"'"+" in swagger specifiation")
+		return nil, errors.NewInternalErrorFromString("Unable to assert concrete type map for field " + "'" + field + "'" + " in swagger specifiation")
 	}
 	return mapValue, nil
 }

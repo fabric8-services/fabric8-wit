@@ -9,6 +9,7 @@ var root = a.Type("Root", func() {
 
 	a.Description("JSONAPI store for the data of a Root.")
 	a.Attribute("relationships", a.HashOf(d.String, d.Any), "Describes relationship between names and links")
+	a.Attribute("type", d.String)
 	a.Attribute("attributes", d.Any)
 	a.Attribute("id", d.UUID, "ID of root")
 	a.Attribute("links", genericLinksForRoot, "Describes the related path")
