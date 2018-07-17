@@ -13,14 +13,18 @@ const (
 	// ChanSpaceTemplateUpdates is the name for the postgres notification
 	// channel on which subscribers are informed about updates to the space
 	// templates (e.g. when a migration has happened).
-	ChanSpaceTemplateUpdates = "space_template_updates"
+	ChanSpaceTemplateUpdates = "f8_space_template_updates"
 )
 
-// A SubscriberFunc is a callback type
-type SubscriberFunc func(extra string)
+// A SubscriberFunc describes the function signature that a subscriber needs to
+// have. The channel parameter is just an arbitrary identifier string the
+// identities a channel. The extra parameter is can contain optional data that
+// was sent along with the notification.
+type SubscriberFunc func(channel, extra string)
 
 // SetupDatabaseListener sets up a Postgres LISTEN/NOTIFY connection and listens
-// on events that we have subscribers for.
+// on events that we have subscribers for. You can have more than one subscriber
+// for a single event channel.
 func SetupDatabaseListener(config configuration.Registry, subscribers map[string][]SubscriberFunc) error {
 	if len(subscribers) == 0 {
 		return nil
@@ -59,7 +63,7 @@ func SetupDatabaseListener(config configuration.Registry, subscribers map[string
 				if ok {
 					log.Logger().Debugf("received notification from postgres channel \"%s\": %s", n.Channel, n.Extra)
 					for _, sub := range subs {
-						sub(n.Extra)
+						sub(n.Channel, n.Extra)
 					}
 				}
 			case <-time.After(90 * time.Second):

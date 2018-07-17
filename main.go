@@ -146,7 +146,7 @@ func main() {
 	// Ensure we delete the work item cache when we receive a notification from postgres
 	gormsupport.SetupDatabaseListener(*config, map[string][]gormsupport.SubscriberFunc{
 		gormsupport.ChanSpaceTemplateUpdates: []gormsupport.SubscriberFunc{
-			func(extra string) {
+			func(channel, extra string) {
 				workitem.ClearGlobalWorkItemTypeCache()
 			},
 		},
