@@ -124,7 +124,7 @@ func getUnmarshalledSwagger(ctx *app.ListRootContext, fileHandler asseter) (map[
 		log.Error(ctx, map[string]interface{}{
 			"err":  err,
 			"file": embeddedSwaggerSpecFile,
-		}, "The file with id"+"'"+embeddedSwaggerSpecFile+"'"+" not found")
+		}, "The file with id "+"'"+embeddedSwaggerSpecFile+"'"+" not found")
 		return nil, errors.NewNotFoundError("file", embeddedSwaggerSpecFile)
 	}
 
