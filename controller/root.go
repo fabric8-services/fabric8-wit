@@ -103,7 +103,7 @@ func getRoot(fileHandler asseter) (*app.Root, error) {
 				key = xtag
 			}
 
-			// Set the related field, link objects for each name
+			// Set the related field and link objects for each name
 			namedPaths[key] = map[string]interface{}{
 				"links": map[string]string{
 					"related": path,
