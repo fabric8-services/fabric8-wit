@@ -16,6 +16,9 @@ postgres.connection.maxidle: -1
 postgres.connection.maxopen: -1
 # Timeout for a transaction in minutes 
 postgres.transaction.timeout: 5m
+# For LISTEN/NOTIFY connections
+postgres.listennotify.minreconnectinterval: 10s
+postgres.listennotify.maxreconnectinterval: 5m
 
 #------------------------
 # HTTP configuration

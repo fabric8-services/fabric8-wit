@@ -12,6 +12,7 @@ import (
 	"text/template"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -674,5 +675,16 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 		log.Debug(ctx, nil, `imported space template #%d "%s"`, idx, t.Template.Name)
 	}
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
+
+	// Ensure the WIT cache is cleared in all pods
+	db = db.Debug().Exec("SELECT pg_notify('$1', '')", gormsupport.ChanSpaceTemplateUpdates)
+	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":     db.Error,
+			"channel": gormsupport.ChanSpaceTemplateUpdates,
+		}, `failed to notify postgres event subscribers about template updates`)
+		return errs.Wrapf(db.Error, `failed to notify postgres event subscribers about template updates`)
+	}
+
 	return nil
 }

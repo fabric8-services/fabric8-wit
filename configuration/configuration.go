@@ -69,6 +69,10 @@ const (
 	varHeaderMaxLength              = "header.maxlength"
 	varEnvironment                  = "environment"
 
+	// Postgres LISTEN/NOTIFY
+	varPostgresListenNotifyMinReconnectionInterval = "postgres.listennotify.minreconnectinterval"
+	varPostgresListenNotifyMaxReconnectionInterval = "postgres.listennotify.maxreconnectinterval"
+
 	// cache control settings for a list of resources
 	varCacheControlWorkItems         = "cachecontrol.workitems"
 	varCacheControlWorkItemEvents    = "cachecontrol.workitemevents"
@@ -180,6 +184,8 @@ func (c *Registry) setConfigDefaults() {
 	c.v.SetDefault(varPostgresConnectionTimeout, 5)
 	c.v.SetDefault(varPostgresConnectionMaxIdle, -1)
 	c.v.SetDefault(varPostgresConnectionMaxOpen, -1)
+	c.v.SetDefault(varPostgresListenNotifyMinReconnectionInterval, time.Duration(10*time.Second))
+	c.v.SetDefault(varPostgresListenNotifyMaxReconnectionInterval, time.Duration(5*time.Minute))
 
 	// Number of seconds to wait before trying to connect again
 	c.v.SetDefault(varPostgresConnectionRetrySleep, time.Duration(time.Second))
@@ -333,6 +339,20 @@ func (c *Registry) GetPostgresConfigString() string {
 		c.GetPostgresSSLMode(),
 		c.GetPostgresConnectionTimeout(),
 	)
+}
+
+// GetPostgresListenNotifyMinReconnectInterval controls the duration to wait
+// before trying to re-establish the database connection after connection loss.
+// After each consecutive failure this interval is doubled, until
+// GetPostgresListenNotifyMaxReconnectInterval is reached.
+func (c *Registry) GetPostgresListenNotifyMinReconnectInterval() time.Duration {
+	return c.v.GetDuration(varPostgresListenNotifyMinReconnectionInterval)
+}
+
+// GetPostgresListenNotifyMaxReconnectInterval see
+// GetPostgresListenNotifyMinReconnectInterval.
+func (c *Registry) GetPostgresListenNotifyMaxReconnectInterval() time.Duration {
+	return c.v.GetDuration(varPostgresListenNotifyMaxReconnectionInterval)
 }
 
 // GetPopulateCommonTypes returns true if the (as set via default, config file, or environment variable)
