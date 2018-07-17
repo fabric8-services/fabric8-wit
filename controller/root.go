@@ -134,8 +134,8 @@ func getUnmarshalledSwagger(ctx *app.ListRootContext, fileHandler asseter) (map[
 		log.Error(ctx, map[string]interface{}{
 			"err":  err,
 			"file": embeddedSwaggerSpecFile,
-		}, "Unable to unmarshal the file with id"+"'"+embeddedSwaggerSpecFile+"'")
-		return nil, errors.NewInternalErrorFromString("Unable to unmarshal the file with id" + "'" + embeddedSwaggerSpecFile + "'")
+		}, "Unable to unmarshal the file with id "+"'"+embeddedSwaggerSpecFile+"'")
+		return nil, errors.NewInternalErrorFromString("Unable to unmarshal the file with id " + "'" + embeddedSwaggerSpecFile + "'")
 	}
 	return result, nil
 }
