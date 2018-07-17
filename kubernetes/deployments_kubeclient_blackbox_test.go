@@ -375,6 +375,23 @@ func TestGetEnvironment(t *testing.T) {
 			},
 		},
 		{
+			testName:     "All Objects",
+			cassetteName: "getenvironment-all-objects",
+			envTestData: envTestData{
+				envName: "run",
+				cpu:     &quotaData{0.488, 2.0},
+				mem:     &quotaData{262144000.0, 1073741824.0},
+				pod:     &quotaData{31, 40},
+				rc:      &quotaData{19, 25},
+				quota:   &quotaData{2, 3},
+				svc:     &quotaData{4, 5},
+				secret:  &quotaData{17, 20},
+				cm:      &quotaData{9, 10},
+				pvc:     &quotaData{0, 1},
+				is:      &quotaData{14, 15},
+			},
+		},
+		{
 			testName:     "Bad Environment",
 			cassetteName: "getenvironments",
 			envTestData: envTestData{
@@ -385,6 +402,42 @@ func TestGetEnvironment(t *testing.T) {
 		{
 			testName:     "Kubernetes Error",
 			cassetteName: "getenvironments-rq-error",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Compute Resources Missing",
+			cassetteName: "getenvironment-no-compute",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Object Counts Missing",
+			cassetteName: "getenvironment-no-objects",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "CPU Missing",
+			cassetteName: "getenvironment-no-cpu",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Memory Missing",
+			cassetteName: "getenvironment-no-mem",
 			envTestData: envTestData{
 				envName: "run",
 			},
