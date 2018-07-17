@@ -151,8 +151,8 @@ func errorLogReturn(message string) error {
 }
 
 // Gets a field from te swagger specification and asserts the type to
-// string. Returns errors if the key does not exist in the swagger, or
-// the field cannot be type asserted to a string.
+// string. Returns errors if the key does not exist in the swagger
+// specification, or the field cannot be type asserted to a string.
 func getSwaggerFieldAsString(field string, json map[string]interface{}) (string, error) {
 	value, ok := json[field]
 	if !ok {
@@ -167,8 +167,8 @@ func getSwaggerFieldAsString(field string, json map[string]interface{}) (string,
 }
 
 // Gets a field from te swagger specification and asserts the type to
-// map. Returns errors if the key does not exist in the swagger, or
-// the field cannot be type asserted to a map.
+// map. Returns errors if the key does not exist in the swagger
+// specification, or the field cannot be type asserted to a map.
 func getSwaggerFieldAsMap(field string, json map[string]interface{}) (map[string]interface{}, error) {
 	value, ok := json[field]
 	if !ok {
