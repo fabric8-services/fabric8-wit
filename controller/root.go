@@ -108,8 +108,6 @@ func getRoot(request *http.Request, fileHandler asseter) (*app.Root, error) {
 	links := &app.GenericLinksForRoot{
 		Self: &basePath,
 	}
-	type Attributes struct {
-	}
 	return &app.Root{Relationships: namedPaths, ID: &id, Links: links}, nil
 }
 
