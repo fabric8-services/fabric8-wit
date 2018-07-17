@@ -43,33 +43,19 @@ func NewRootController(service *goa.Service) *RootController {
 
 // List runs the list action.
 func (c *RootController) List(ctx *app.ListRootContext) error {
-	roots, err := getRoot(c.FileHandler)
+	roots, err := getRoot(ctx.Request, c.FileHandler)
 	if err != nil || roots == nil {
 		return jsonapi.JSONErrorResponse(
 			ctx, err)
 	}
 
 	res := &app.RootSingle{}
-	res.Data = convertRoot(ctx.Request, *roots)
+	res.Data = roots
 	return ctx.OK(res)
 }
 
-// ConvertRoot converts from internal to external REST representation.
-func convertRoot(request *http.Request, root app.Root) *app.Root {
-	selfURL := rest.AbsoluteURL(request, *root.BasePath)
-	l := &app.Root{
-		Relationships: root.Relationships,
-		Attributes:    root.Attributes,
-		Links: &app.GenericLinksForRoot{
-			Self: &selfURL,
-		},
-		ID: root.ID,
-	}
-	return l
-}
-
 // Get a list of all endpoints formatted to json api format.
-func getRoot(fileHandler asseter) (*app.Root, error) {
+func getRoot(request *http.Request, fileHandler asseter) (*app.Root, error) {
 	// Get an unmarshal swagger specification
 	result, err := getUnmarshalledSwagger(fileHandler)
 	if err != nil {
@@ -117,6 +103,7 @@ func getRoot(fileHandler asseter) (*app.Root, error) {
 	if err != nil {
 		return nil, err
 	}
+	basePath = rest.AbsoluteURL(request, basePath)
 	return &app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath}, nil
 }
 
