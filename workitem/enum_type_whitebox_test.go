@@ -46,7 +46,7 @@ func TestEnumTypeContainsAll(t *testing.T) {
 	// Check empty set (should return true)
 	needles = []interface{}{}
 	assert.True(t, containsAll(haystack, needles))
-	
+
 	// Check for absence, single
 	needles = []interface{}{42}
 	assert.False(t, containsAll(haystack, needles))
@@ -64,21 +64,21 @@ func TestEnumTypeContainsAll(t *testing.T) {
 
 	// Check for different type, struct
 	type needle struct {
-		id int
+		id   int
 		name string
 	}
 	haystack = []interface{}{
-		needle{ id: 1, name: "One" },
-		needle{ id: 2, name: "Two" },
-		needle{ id: 3, name: "Three" },
+		needle{id: 1, name: "One"},
+		needle{id: 2, name: "Two"},
+		needle{id: 3, name: "Three"},
 	}
 	needles = []interface{}{
-		needle{ id: 1, name: "One" },
-		needle{ id: 2, name: "Two" },
+		needle{id: 1, name: "One"},
+		needle{id: 2, name: "Two"},
 	}
 	assert.True(t, containsAll(haystack, needles))
 	needles = []interface{}{
-		needle{ id: 4, name: "Four" },
+		needle{id: 4, name: "Four"},
 	}
 	assert.False(t, containsAll(haystack, needles))
 }
