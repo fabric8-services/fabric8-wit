@@ -29,7 +29,7 @@ func (s *TestListenerSuite) TestSetupDatabaseListener() {
 		wg := sync.WaitGroup{}
 		wg.Add(2)
 
-		gormsupport.SetupDatabaseListener(*s.Configuration, map[string]gormsupport.SubscriberFunc{
+		err := gormsupport.SetupDatabaseListener(*s.Configuration, map[string]gormsupport.SubscriberFunc{
 			// This is the channel we send to from this test
 			channelName: func(channel, extra string) {
 				t.Logf("received notification on channel %s: %s", channel, extra)
@@ -47,6 +47,7 @@ func (s *TestListenerSuite) TestSetupDatabaseListener() {
 				wg.Done()
 			},
 		})
+		require.NoError(t, err)
 
 		// Send a notification from a completely different connection than the
 		// one we established to listen to channels.
