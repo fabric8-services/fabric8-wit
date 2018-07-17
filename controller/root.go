@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
@@ -105,10 +106,15 @@ func getRoot(request *http.Request, fileHandler asseter) (*app.Root, error) {
 	}
 
 	basePath = rest.AbsoluteURL(request, basePath)
-	links := &app.GenericLinksForRoot {
+	links := &app.GenericLinksForRoot{
 		Self: &basePath,
 	}
-	return &app.Root{Relationships: namedPaths, ID: &id, BasePath: &basePath, Links: links}, nil
+	type Attributes struct {
+	}
+
+	var attributes interface{}
+	json.Unmarshal([]byte("{}"), &attributes)
+	return &app.Root{Relationships: namedPaths, ID: &id, Links: links, Attributes: &attributes}, nil
 }
 
 // Gets the swagger specification binary and attempts to unmarshal it.
