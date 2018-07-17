@@ -47,6 +47,8 @@ func (s *TestListenerSuite) TestSetupDatabaseListener() {
 			// },
 		})
 
+		// Send a notification from a completely different connection than the
+		// one we established to listen to channels.
 		s.DB.Debug().Exec("SELECT pg_notify($1, $2)", channelName, payload)
 
 		// wait until notification was received
