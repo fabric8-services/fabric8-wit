@@ -1,13 +1,14 @@
 name: wit
-containers:
-- image: "[[ WIT_IMAGE_URL ]]"
-  env:
-  - name: F8_AUTH_URL
-    value: "[[ F8_AUTH_URL ]]"
-  - name: F8_DEVELOPER_MODE_ENABLED
-    value: "true"
-  - name: F8_POSTGRES_HOST
-    value: "db"
+deployments:
+- containers:
+  - image: "[[ WIT_IMAGE_URL ]]"
+    env:
+    - name: F8_AUTH_URL
+      value: "[[ F8_AUTH_URL ]]"
+    - name: F8_DEVELOPER_MODE_ENABLED
+      value: "true"
+    - name: F8_POSTGRES_HOST
+      value: "db"
 services:
 - name: wit
   type: NodePort

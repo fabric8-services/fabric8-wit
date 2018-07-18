@@ -14,11 +14,11 @@ Minishift.
 == Prerequisites
 
 [[install-kedge]]
-=== Install Kedge (Linux) (Recommended version 0.4.0)
+=== Install Kedge (Linux) (Recommended version `0.12.0`)
 . Follow these steps to download and install Kedge on your machine and add the binary to your `PATH` environment variable. For more detailed information see link:http://kedgeproject.org[kedgeproject.org].
 +
 ----
-curl -L https://github.com/kedgeproject/kedge/releases/download/v0.4.0/kedge-linux-amd64 -o kedge
+curl -L https://github.com/kedgeproject/kedge/releases/download/v0.12.0/kedge-linux-amd64 -o kedge
 chmod +x ./kedge
 sudo mv ./kedge /usr/local/bin/kedge
 ----
@@ -32,7 +32,7 @@ kedge version
 If successfully installed, the Kedge version number is displayed.
 
 [[install-minishift]]
-=== Install Minishift (Linux) (Recommended version 1.10.0)
+=== Install Minishift (Linux) (Recommended version `1.14.0`)
 
 . Make sure you have installed the link:https://docs.openshift.org/latest/minishift/getting-started/installing.html#install-prerequisites[hypervisor] of your choice for Minishift. For more detailed information see link:https://docs.openshift.org/latest/minishift/index.html[Minishift overview].
 . Download and install Minishift by following the steps listed
@@ -54,7 +54,7 @@ minishift version
 If successfully installed, the Minishift version number is displayed.
 
 [[install-kubectl]]
-=== Install Kubectl (Linux) (Recommended version 1.8.2)
+=== Install Kubectl (Linux) (Recommended version `1.10.0`)
 
 . Install and set up Kubectl on your machine as per instructions listed
 https://kubernetes.io/docs/tasks/tools/install-kubectl/[here]
@@ -92,7 +92,7 @@ make dev-openshift
 NOTE: In the background, `minishift ip` provides the IP address on which it runs. This creates a host entry as
 `minishift.local` for that IP. This domain is whitelisted on
 fabric8-keycloak.
-This process uses developer account for creating a project called `planner-services`.
+This process uses developer account for creating a project called `fabric8-services`.
 +
 
 You can use the following `optional` values to add specific tags to your WIT or AUTH image,
@@ -125,7 +125,7 @@ make clean-openshift
 ----
 +
 
-It will remove the project `planner-services` from Minishift.
+It will remove the project `fabric8-services` from Minishift.
 
 [[check-logs-from-services]]
 === Check logs from services

@@ -53,7 +53,7 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	}
 	valueType := reflect.TypeOf(value)
 	switch t.GetKind() {
-	case KindString, KindUser, KindIteration, KindArea, KindLabel:
+	case KindString, KindUser, KindIteration, KindArea, KindLabel, KindBoardColumn:
 		if valueType.Kind() != reflect.String {
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
@@ -129,7 +129,7 @@ func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	}
 	valueType := reflect.TypeOf(value)
 	switch t.GetKind() {
-	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration, KindArea, KindLabel, KindBoolean:
+	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration, KindArea, KindLabel, KindBoardColumn, KindBoolean:
 		return value, nil
 	case KindInstant:
 		switch valueType.Kind() {

@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -11,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/area"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -21,42 +19,37 @@ import (
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
 type TestAreaREST struct {
 	gormtestsupport.DBTestSuite
-	db      *gormapplication.GormDB
 	testDir string
 }
 
 func TestRunAreaREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pwd, err := os.Getwd()
-	require.NoError(t, err)
-	suite.Run(t, &TestAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestAreaREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.testDir = filepath.Join("test-files", "area")
 }
 
 func (rest *TestAreaREST) SecuredController() (*goa.Service, *AreaController) {
 	svc := testsupport.ServiceAsUser("Area-Service", testsupport.TestIdentity)
-	return svc, NewAreaController(svc, rest.db, rest.Configuration)
+	return svc, NewAreaController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestAreaREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *AreaController) {
 	svc := testsupport.ServiceAsUser("Area-Service", *idn)
-	return svc, NewAreaController(svc, rest.db, rest.Configuration)
+	return svc, NewAreaController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestAreaREST) UnSecuredController() (*goa.Service, *AreaController) {
 	svc := goa.New("Area-Service")
-	return svc, NewAreaController(svc, rest.db, rest.Configuration)
+	return svc, NewAreaController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestAreaREST) TestCreateChildArea() {

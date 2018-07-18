@@ -8,8 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -23,14 +21,12 @@ import (
 
 func TestUsers(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestUsersSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestUsersSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type TestUsersSuite struct {
 	gormtestsupport.DBTestSuite
-	db           *gormapplication.GormDB
 	svc          *goa.Service
-	clean        func()
 	controller   *UsersController
 	userRepo     account.UserRepository
 	identityRepo account.IdentityRepository
@@ -39,28 +35,19 @@ type TestUsersSuite struct {
 func (s *TestUsersSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.svc = goa.New("test")
-	s.db = gormapplication.NewGormDB(s.DB)
-	s.controller = NewUsersController(s.svc, s.db, s.Configuration)
-	s.userRepo = s.db.Users()
-	s.identityRepo = s.db.Identities()
-}
-
-func (s *TestUsersSuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-
-func (s *TestUsersSuite) TearDownTest() {
-	s.clean()
+	s.controller = NewUsersController(s.svc, s.GormDB, s.Configuration)
+	s.userRepo = s.GormDB.Users()
+	s.identityRepo = s.GormDB.Identities()
 }
 
 func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
 	svc := testsupport.ServiceAsUser("Users-Service", identity)
-	return svc, NewUsersController(svc, s.db, s.Configuration)
+	return svc, NewUsersController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *TestUsersSuite) SecuredServiceAccountController(identity account.Identity) (*goa.Service, *UsersController) {
 	svc := testsupport.ServiceAsServiceAccountUser("Users-ServiceAccount-Service", identity)
-	return svc, NewUsersController(svc, s.db, s.Configuration)
+	return svc, NewUsersController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {

@@ -315,6 +315,33 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 		}
 		target.Fields[workitem.SystemLabels] = ids
 	}
+	if source.Relationships != nil && source.Relationships.SystemBoardcolumns != nil {
+		// Pass empty array to remove all boardcolumns
+		// null is treated as bad param
+		if source.Relationships.SystemBoardcolumns.Data == nil {
+			return errors.NewBadParameterError(workitem.SystemBoardcolumns, nil)
+		}
+		distinctIDs := map[uuid.UUID]struct{}{}
+		for _, d := range source.Relationships.SystemBoardcolumns.Data {
+			columnUUID, err := uuid.FromString(*d.ID)
+			if err != nil {
+				return errors.NewBadParameterError(workitem.SystemBoardcolumns, *d.ID)
+			}
+			/* TODO(michaelkleinhenz): check if columnID is valid
+			if ok := appl.Boards().validColumn(ctx, columnUUID); !ok {
+				return errors.NewBadParameterError(workitem.SystemBoardcolumns, *d.ID)
+			}
+			*/
+			if _, ok := distinctIDs[columnUUID]; !ok {
+				distinctIDs[columnUUID] = struct{}{}
+			}
+		}
+		ids := make([]string, 0, len(distinctIDs))
+		for k := range distinctIDs {
+			ids = append(ids, k.String())
+		}
+		target.Fields[workitem.SystemBoardcolumns] = ids
+	}
 	if source.Relationships != nil {
 		if source.Relationships.Iteration == nil || (source.Relationships.Iteration != nil && source.Relationships.Iteration.Data == nil) {
 			log.Debug(ctx, map[string]interface{}{
@@ -323,7 +350,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			}, "assigning the work item to the root iteration of the space.")
 			rootIteration, err := appl.Iterations().Root(ctx, spaceID)
 			if err != nil {
-				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
+				return errors.NewInternalError(ctx, err)
 			}
 			if method == http.MethodPost {
 				target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
@@ -352,7 +379,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			}, "assigning the work item to the root area of the space.")
 			err := appl.Spaces().CheckExists(ctx, spaceID)
 			if err != nil {
-				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
+				return errors.NewInternalError(ctx, err)
 			}
 			log.Debug(ctx, map[string]interface{}{
 				"space_id": spaceID,
@@ -554,6 +581,13 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 					Links: &app.GenericLinks{
 						Related: &labelsRelated,
 					},
+				}
+			}
+		case workitem.SystemBoardcolumns:
+			if val != nil {
+				columnIDs := val.([]interface{})
+				op.Relationships.SystemBoardcolumns = &app.RelationGenericList{
+					Data: ConvertLabelsSimple(request, columnIDs),
 				}
 			}
 		case workitem.SystemCreator:

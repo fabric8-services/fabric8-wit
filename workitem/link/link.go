@@ -32,9 +32,6 @@ func (l WorkItemLink) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !l.Lifecycle.Equal(other.Lifecycle) {
-		return false
-	}
 	if !uuid.Equal(l.ID, other.ID) {
 		return false
 	}

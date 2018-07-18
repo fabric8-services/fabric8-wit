@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -13,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
@@ -29,29 +27,23 @@ import (
 
 type testSpaceTemplateSuite struct {
 	gormtestsupport.DBTestSuite
-	db      *gormapplication.GormDB
 	ctx     context.Context
 	testDir string
 }
 
 func TestSpaceTemplateSuite(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pwd, err := os.Getwd()
-	if err != nil {
-		require.Nil(t, err)
-	}
-	suite.Run(t, &testSpaceTemplateSuite{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &testSpaceTemplateSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *testSpaceTemplateSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	s.db = gormapplication.NewGormDB(s.DB)
 	s.testDir = filepath.Join("test-files", "space_templates")
 }
 
 func (s *testSpaceTemplateSuite) SecuredController() (*goa.Service, *SpaceTemplateController) {
 	svc := testsupport.ServiceAsUser("SpaceTemplate-Service", testsupport.TestIdentity)
-	return svc, NewSpaceTemplateController(svc, s.db, s.Configuration)
+	return svc, NewSpaceTemplateController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {

@@ -19,7 +19,6 @@ import (
 	witauth "github.com/fabric8-services/fabric8-wit/auth"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -37,19 +36,17 @@ import (
 
 type TestIterationREST struct {
 	gormtestsupport.DBTestSuite
-	db      *gormapplication.GormDB
 	testDir string
 	policy  *auth.KeycloakPolicy
 }
 
 func TestRunIterationREST(t *testing.T) {
 	// given
-	suite.Run(t, &TestIterationREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestIterationREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestIterationREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.testDir = filepath.Join("test-files", "iteration")
 	rest.policy = &auth.KeycloakPolicy{
 		Name:             "TestCollaborators-" + uuid.NewV4().String(),
@@ -61,17 +58,17 @@ func (rest *TestIterationREST) SetupTest() {
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
 	svc := testsupport.ServiceAsUser("Iteration-Service", testsupport.TestIdentity)
-	return svc, NewIterationController(svc, rest.db, rest.Configuration)
+	return svc, NewIterationController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestIterationREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *IterationController) {
 	svc := testsupport.ServiceAsUser("Iteration-Service", *idn)
-	return svc, NewIterationController(svc, rest.db, rest.Configuration)
+	return svc, NewIterationController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationController) {
 	svc := goa.New("Iteration-Service")
-	return svc, NewIterationController(svc, rest.db, rest.Configuration)
+	return svc, NewIterationController(svc, rest.GormDB, rest.Configuration)
 }
 
 type DummySpaceAuthzService struct {
@@ -239,7 +236,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	// given
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	parent := *fxt.Iterations[1]
-	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
+	_, err := rest.GormDB.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
 	ci := getChildIterationPayload(testsupport.TestOversizedNameObj)
 
@@ -253,7 +250,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	// given
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	parent := *fxt.Iterations[1]
-	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
+	_, err := rest.GormDB.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
 	ci := getChildIterationPayload("_Sprint #21")
 
@@ -332,7 +329,7 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfNoneMatchHeade
 
 func (rest *TestIterationREST) createWorkItem(parentSpace space.Space, wiTypeID uuid.UUID) workitem.WorkItem {
 	var wi *workitem.WorkItem
-	err := application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		fields := map[string]interface{}{
 			workitem.SystemTitle: "Test Item",
 			workitem.SystemState: "new",
@@ -357,7 +354,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
@@ -378,7 +375,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
 	var updatedWI *workitem.WorkItem
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		updatedWI = w
 		return err
@@ -387,7 +384,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	testWI = *updatedWI
 	// read the iteration to compute its current `If-Modified-Since` value
 	var updatedItr *iteration.Iteration
-	err = application.Transactional(rest.db, func(app application.Application) error {
+	err = application.Transactional(rest.GormDB, func(app application.Application) error {
 		i, err := app.Iterations().Load(context.Background(), itr.ID)
 		updatedItr = i
 		return err
@@ -398,7 +395,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	delete(testWI.Fields, workitem.SystemIteration)
 	time.Sleep(1 * time.Second)
-	err = application.Transactional(rest.db, func(app application.Application) error {
+	err = application.Transactional(rest.GormDB, func(app application.Application) error {
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
@@ -417,7 +414,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	// now, create and attach a work item to the iteration
 	testWI := rest.createWorkItem(parentSpace, fxt.WorkItemTypes[0].ID)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
@@ -438,7 +435,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
 	var updatedWI *workitem.WorkItem
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		updatedWI = w
 		return err
@@ -447,7 +444,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	testWI = *updatedWI
 	// read the iteration to compute its current `If-None-Match` value
 	var updatedItr *iteration.Iteration
-	err = application.Transactional(rest.db, func(app application.Application) error {
+	err = application.Transactional(rest.GormDB, func(app application.Application) error {
 		i, err := app.Iterations().Load(context.Background(), itr.ID)
 		updatedItr = i
 		return err
@@ -458,7 +455,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	delete(testWI.Fields, workitem.SystemIteration)
 	time.Sleep(1 * time.Second)
-	err = application.Transactional(rest.db, func(app application.Application) error {
+	err = application.Transactional(rest.GormDB, func(app application.Application) error {
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
@@ -619,7 +616,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 		require.NoError(rest.T(), err)
 		require.NotNil(rest.T(), wi)
 	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
+	owner, errIdn := rest.GormDB.Identities().Load(context.Background(), sp.OwnerID)
 	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
@@ -682,7 +679,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
+	owner, errIdn := rest.GormDB.Identities().Load(context.Background(), sp.OwnerID)
 	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
@@ -693,7 +690,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 		SpaceID: itr1.SpaceID,
 		Path:    itr1.Path,
 	}
-	err := rest.db.Iterations().Create(context.Background(), &itr2)
+	err := rest.GormDB.Iterations().Create(context.Background(), &itr2)
 	require.NoError(rest.T(), err)
 	payload2 := app.UpdateIterationPayload{
 		Data: &app.Iteration{
@@ -721,7 +718,7 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	itr1 := *fxt.Iterations[1]
 	sp := *fxt.Spaces[0]
 	var ri *iteration.Iteration
-	err := application.Transactional(rest.db, func(app application.Application) error {
+	err := application.Transactional(rest.GormDB, func(app application.Application) error {
 		repo := app.Iterations()
 		var err error
 		ri, err = repo.Root(context.Background(), itr1.SpaceID)
@@ -740,7 +737,7 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
+	owner, errIdn := rest.GormDB.Identities().Load(context.Background(), sp.OwnerID)
 	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, ri.ID.String(), &payload)
@@ -750,11 +747,11 @@ func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *accoun
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	parent := *fxt.Iterations[1]
 	sp := *fxt.Spaces[0]
-	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
+	_, err := rest.GormDB.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
 	parentID := parent.ID
 	ci := getChildIterationPayload(testsupport.CreateRandomValidTestName("Iteration-"))
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
+	owner, err := rest.GormDB.Identities().Load(context.Background(), sp.OwnerID)
 	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
@@ -786,7 +783,7 @@ func (rest *TestIterationREST) TestIterationNotActiveInTimeframe() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
+	owner, errIdn := rest.GormDB.Identities().Load(context.Background(), owner.ID)
 	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
@@ -806,7 +803,7 @@ func (rest *TestIterationREST) TestIterationActivatedByUser() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
+	owner, errIdn := rest.GormDB.Identities().Load(context.Background(), owner.ID)
 	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
@@ -892,7 +889,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		iterationToDelete := fxt.IterationByName("first")
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
-		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
+		_, err := rest.GormDB.Iterations().Load(svc.Context, iterationToDelete.ID)
 		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
@@ -928,7 +925,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 			fxt.IterationByName("child 1.2.3.4"),
 		}
 		for _, i := range deletedIterations {
-			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
+			_, err := rest.GormDB.Iterations().Load(svc.Context, i.ID)
 			require.Error(t, err)
 			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		}
@@ -938,7 +935,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 			fxt.IterationByName("child 2"),
 		}
 		for _, i := range iterationsShouldPresent {
-			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
+			_, err := rest.GormDB.Iterations().Load(svc.Context, i.ID)
 			require.NoError(t, err)
 		}
 	})
@@ -961,7 +958,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		iterationToDelete := fxt.Iterations[1]                             // non-root iteration
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0]) // get the space owner
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
-		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
+		_, err := rest.GormDB.Iterations().Load(svc.Context, iterationToDelete.ID)
 		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
@@ -988,7 +985,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		iterationToDelete := fxt.Iterations[1]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
-		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
+		wis, err := rest.GormDB.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
 		require.NoError(t, err)
 		assert.Empty(t, wis)
 	})
@@ -1021,20 +1018,20 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		childIteration := fxt.IterationByName("child")
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, childIteration.ID)
-		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, childIteration.ID)
+		wis, err := rest.GormDB.WorkItems().LoadByIteration(svc.Context, childIteration.ID)
 		require.NoError(t, err)
 		assert.Empty(t, wis)
 
 		// parent should get more 3 WI
 		parentIteration := fxt.IterationByName("parent")
-		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, parentIteration.ID)
+		wis, err = rest.GormDB.WorkItems().LoadByIteration(svc.Context, parentIteration.ID)
 		require.NoError(t, err)
 		// first iteration already have 3 & 3 more from child iteration
 		assert.Len(t, wis, 3+3)
 
 		// verify that root iteration still does not have any WI
 		rootIteration := fxt.IterationByName("root")
-		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, rootIteration.ID)
+		wis, err = rest.GormDB.WorkItems().LoadByIteration(svc.Context, rootIteration.ID)
 		require.NoError(t, err)
 		assert.Empty(t, wis)
 	})
@@ -1089,12 +1086,12 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		iterationToDelete := fxt.Iterations[1]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
-		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
+		wis, err := rest.GormDB.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
 		require.NoError(t, err)
 		assert.Empty(t, wis)
 
 		// Verify that 15 WIs are moved to Root iteration
-		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
+		wis, err = rest.GormDB.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
 		require.NoError(t, err)
 		assert.Len(t, wis, 15)
 
@@ -1115,12 +1112,12 @@ func (rest *TestIterationREST) TestIterationDelete() {
 
 		iterationToDelete = fxt.Iterations[5]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
-		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
+		wis, err = rest.GormDB.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
 		require.NoError(t, err)
 		assert.Empty(t, wis)
 
 		// Verify that 3 WIs are moved to parent of deleted iteration
-		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[4].ID)
+		wis, err = rest.GormDB.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[4].ID)
 		require.NoError(t, err)
 		assert.Len(t, wis, 2+3)
 
@@ -1140,7 +1137,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		require.Empty(t, mustHave)
 
 		// Verify that no more WIs are moved to Root iteration
-		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
+		wis, err = rest.GormDB.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
 		require.NoError(t, err)
 		assert.Len(t, wis, 15)
 
@@ -1167,7 +1164,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 			fxt.Iterations[5],
 		}
 		for _, i := range deletedIterations {
-			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
+			_, err := rest.GormDB.Iterations().Load(svc.Context, i.ID)
 			require.Error(t, err)
 			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		}
@@ -1241,13 +1238,13 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		// 	|---- itr 6
 
 		// when
-		children, err := rest.db.Iterations().LoadChildren(svc.Context, itr2.ID)
+		children, err := rest.GormDB.Iterations().LoadChildren(svc.Context, itr2.ID)
 		// then
 		require.NoError(t, err)
 		require.Len(t, children, 0)
 
 		// when
-		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr1.ID)
+		children, err = rest.GormDB.Iterations().LoadChildren(svc.Context, itr1.ID)
 		// then
 		require.NoError(t, err)
 		require.Len(t, children, 4)
@@ -1265,7 +1262,7 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		require.Empty(t, allChildren)
 
 		// when
-		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr3.ID)
+		children, err = rest.GormDB.Iterations().LoadChildren(svc.Context, itr3.ID)
 		// then
 		require.NoError(t, err)
 		require.Len(t, children, 1)

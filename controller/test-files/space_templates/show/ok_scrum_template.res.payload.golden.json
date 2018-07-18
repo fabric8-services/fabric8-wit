@@ -13,6 +13,11 @@
       "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001"
     },
     "relationships": {
+      "workitemboards": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemboards"
+        }
+      },
       "workitemlinktypes": {
         "links": {
           "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemlinktypes"

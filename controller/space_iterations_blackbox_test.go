@@ -15,7 +15,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -35,19 +34,17 @@ import (
 
 type SpaceIterationControllerTestSuite struct {
 	gormtestsupport.DBTestSuite
-	db           *gormapplication.GormDB
 	testIdentity account.Identity
 	testDir      string
 }
 
 func TestSpaceIterationController(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &SpaceIterationControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &SpaceIterationControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *SpaceIterationControllerTestSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	s.db = gormapplication.NewGormDB(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "SpaceIterationControllerTestSuite user", "test provider")
 	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
@@ -63,17 +60,17 @@ func (s *SpaceIterationControllerTestSuite) SecuredController(identity ...accoun
 		i = identity[0]
 	}
 	svc := testsupport.ServiceAsUser("Iteration-Service", i)
-	return svc, NewSpaceIterationsController(svc, s.db, s.Configuration)
+	return svc, NewSpaceIterationsController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *SpaceIterationControllerTestSuite) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *SpaceIterationsController) {
 	svc := testsupport.ServiceAsUser("Iteration-Service", *idn)
-	return svc, NewSpaceIterationsController(svc, s.db, s.Configuration)
+	return svc, NewSpaceIterationsController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *SpaceIterationControllerTestSuite) UnSecuredController() (*goa.Service, *SpaceIterationsController) {
 	svc := goa.New("Iteration-Service")
-	return svc, NewSpaceIterationsController(svc, s.db, s.Configuration)
+	return svc, NewSpaceIterationsController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *SpaceIterationControllerTestSuite) TestCreate() {
@@ -83,7 +80,7 @@ func (s *SpaceIterationControllerTestSuite) TestCreate() {
 			ci := newCreateSpaceIterationPayload("Sprint #42", nil)
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
 			svc := testsupport.ServiceAsUser("Iteration-Service", *fxt.Identities[0])
-			ctrl := NewSpaceIterationsController(svc, s.db, s.Configuration)
+			ctrl := NewSpaceIterationsController(svc, s.GormDB, s.Configuration)
 			// when
 			resp, iter := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, ci)
 			// then
@@ -96,7 +93,7 @@ func (s *SpaceIterationControllerTestSuite) TestCreate() {
 			ci.Data.Attributes.UserActive = ptr.Bool(true)
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
 			svc := testsupport.ServiceAsUser("Iteration-Service", *fxt.Identities[0])
-			ctrl := NewSpaceIterationsController(svc, s.db, s.Configuration)
+			ctrl := NewSpaceIterationsController(svc, s.GormDB, s.Configuration)
 			// when
 			resp, iter := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, ci)
 			// then
@@ -464,7 +461,7 @@ func newCreateSpaceIterationPayload(name string, desc *string) *app.CreateSpaceI
 }
 
 func (s *SpaceIterationControllerTestSuite) createIterations() (spaceID uuid.UUID, fatherIteration, childIteration, grandChildIteration *iteration.Iteration) {
-	err := application.Transactional(s.db, func(app application.Application) error {
+	err := application.Transactional(s.GormDB, func(app application.Application) error {
 		repo := app.Iterations()
 		newSpace := space.Space{
 			Name:            testsupport.CreateRandomValidTestName("TestListIterationsBySpace-"),
