@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/swagger"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	"strings"
 )
@@ -122,9 +123,9 @@ func getUnmarshalledSwagger(ctx *app.ListRootContext, fileHandler asseter) (map[
 	swaggerJSON, err := fileHandler.Asset(embeddedSwaggerSpecFile)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"err":  err,
+			"err":  errs.WithStack(err),
 			"file": embeddedSwaggerSpecFile,
-		}, "The file with id "+"'"+embeddedSwaggerSpecFile+"'"+" not found")
+		}, `file "%s" not found`, embeddedSwaggerSpecFile)
 		return nil, errors.NewNotFoundError("file", embeddedSwaggerSpecFile)
 	}
 
@@ -132,9 +133,9 @@ func getUnmarshalledSwagger(ctx *app.ListRootContext, fileHandler asseter) (map[
 	err = json.Unmarshal([]byte(swaggerJSON), &result)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"err":  err,
+			"err":  errs.WithStack(err),
 			"file": embeddedSwaggerSpecFile,
-		}, "Unable to unmarshal the file with id "+"'"+embeddedSwaggerSpecFile+"'")
+		}, `Unable to unmarshal the file with id "%s"`, embeddedSwaggerSpecFile)
 		return nil, errors.NewInternalErrorFromString("Unable to unmarshal the file with id " + "'" + embeddedSwaggerSpecFile + "'")
 	}
 	return result, nil
@@ -149,7 +150,7 @@ func getSwaggerFieldAsString(ctx *app.ListRootContext, field string, json map[st
 		if !isXtag {
 			log.Error(ctx, map[string]interface{}{
 				"file": embeddedSwaggerSpecFile,
-			}, " Field "+"'"+field+"'"+" cannot be found in swagger specification")
+			}, `Field "%s" cannot be found in swagger specification`, field)
 		}
 		return "", errors.NewInternalErrorFromString(" Field " + "'" + field + "'" + " cannot be found in swagger specification")
 	}
@@ -158,7 +159,7 @@ func getSwaggerFieldAsString(ctx *app.ListRootContext, field string, json map[st
 	if !ok {
 		log.Error(ctx, map[string]interface{}{
 			"file": embeddedSwaggerSpecFile,
-		}, "Unable to assert concrete type string for field "+"'"+field+"'"+" in swagger specifiation.")
+		}, `Unable to assert concrete type string for field "%s" in swagger specifiation.`, field)
 		return "", errors.NewInternalErrorFromString("Unable to assert concrete type string for field " + "'" + field + "'" + " in swagger specifiation.")
 	}
 	return strValue, nil
@@ -172,7 +173,7 @@ func getSwaggerFieldAsMap(ctx *app.ListRootContext, field string, json map[strin
 	if !ok {
 		log.Error(ctx, map[string]interface{}{
 			"file": embeddedSwaggerSpecFile,
-		}, " Field "+"'"+field+"'"+" cannot be found in swagger specification")
+		}, `Field "%s" cannot be found in swagger specification`, field)
 		return nil, errors.NewInternalErrorFromString("Field " + "'" + field + "'" + " cannot be found in swagger specification")
 	}
 
@@ -180,7 +181,7 @@ func getSwaggerFieldAsMap(ctx *app.ListRootContext, field string, json map[strin
 	if !err {
 		log.Error(ctx, map[string]interface{}{
 			"file": embeddedSwaggerSpecFile,
-		}, "Unable to assert concrete type map for field "+"'"+field+"'"+" in swagger specifiation")
+		}, `Unable to assert concrete type map for field "%s" in swagger specifiation`, field)
 		return nil, errors.NewInternalErrorFromString("Unable to assert concrete type map for field " + "'" + field + "'" + " in swagger specifiation")
 	}
 	return mapValue, nil
