@@ -27,17 +27,15 @@ type RootController struct {
 	FileHandler asseter
 }
 
-type workingFileFetcher struct{}
-
-func (s workingFileFetcher) Asset(fileName string) ([]byte, error) {
-	return swagger.Asset(fileName)
-}
-
-var _ asseter = workingFileFetcher{}
-var _ asseter = (*workingFileFetcher)(nil)
-
 // NewRootController creates a root controller.
 func NewRootController(service *goa.Service) *RootController {
+	type workingFileFetcher struct{}	
+	func (s workingFileFetcher) Asset(fileName string) ([]byte, error) {
+		return swagger.Asset(fileName)
+	}	
+	var _ asseter = workingFileFetcher{}
+	var _ asseter = (*workingFileFetcher)(nil)
+	
 	return &RootController{
 		Controller:  service.NewController("RootController"),
 		FileHandler: workingFileFetcher{},
