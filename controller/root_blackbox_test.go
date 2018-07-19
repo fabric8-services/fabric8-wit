@@ -20,6 +20,7 @@ func (s brokenFileSystemSimulator) Asset(fileName string) ([]byte, error) {
 func TestListRootOK(t *testing.T) {
 	t.Parallel()
 	t.Run("ok", func(t *testing.T) {
+		t.Parallel()
 		// given
 		svc := goa.New("rootService")
 		ctrl := controller.NewRootController(svc)
@@ -46,6 +47,7 @@ func TestListRootOK(t *testing.T) {
 		})
 	})
 	t.Run("file not found", func(t *testing.T) {
+		t.Parallel()
 		// given
 		svc := goa.New("rootService")
 		ctrl := controller.NewRootController(svc)
