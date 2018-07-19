@@ -48,7 +48,7 @@ func (s *ActionSuite) TestChangeSet() {
 	require.NotNil(s.T(), fixture)
 	require.Len(s.T(), fixture.WorkItems, 2)
 
-	s.T().Run("differen ID", func(t *testing.T) {
+	s.T().Run("different ID", func(t *testing.T) {
 		_, err := fixture.WorkItems[0].ChangeSet(*fixture.WorkItems[1])
 		require.NotNil(s.T(), err)
 	})
@@ -127,19 +127,55 @@ func (s *ActionSuite) TestActionExecution() {
 	require.NotNil(s.T(), fixture)
 	require.Len(s.T(), fixture.WorkItems, 2)
 
-	s.T().Run("byOldNew", func(t *testing.T) {
+	s.T().Run("by Old New", func(t *testing.T) {
 		fixture.WorkItems[0].Fields["system.state"] = "new"
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
 		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
 		afterActionWI, changes, err := ExecuteActionsByOldNew(fixture.WorkItems[0], newVersion, map[string]string {
-			"updateStateFromColumnMove": "{ metaState: 'mResolved' }",
+			"nilRule": "{ noConfig: 'none' }",
 		})
 		require.Nil(s.T(), err)
 		require.Len(s.T(), changes, 1)
 		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.state"], "open")
 	})
 
-	s.T().Run("byChangeSet", func(t *testing.T) {
-		//action.ExecuteActionsByOldNew(oldContext convert.ChangeDetector, newContext convert.ChangeDetector, actionConfigList map[string]string) (convert.ChangeDetector, *[]convert.Change, error)
+	s.T().Run("by ChangeSet", func(t *testing.T) {
+		fixture.WorkItems[0].Fields["system.state"] = "new"
+		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
+		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
+		contextChanges, err := fixture.WorkItems[0].ChangeSet(newVersion)
+		require.Nil(s.T(), err)
+		afterActionWI, changes, err := ExecuteActionsByChangeset(newVersion, contextChanges, map[string]string {
+			"nilRule": "{ noConfig: 'none' }",
+		})
+		require.Nil(s.T(), err)
+		require.Len(s.T(), changes, 1)
+		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.state"], "open")
+	})
+
+	s.T().Run("unknown rule", func(t *testing.T) {
+		fixture.WorkItems[0].Fields["system.state"] = "new"
+		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
+		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
+		contextChanges, err := fixture.WorkItems[0].ChangeSet(newVersion)
+		require.Nil(s.T(), err)
+		_, _, err = ExecuteActionsByChangeset(newVersion, contextChanges, map[string]string {
+			"unknownRule": "{ noConfig: 'none' }",
+		})
+		require.NotNil(s.T(), err)
+	})
+
+	s.T().Run("sideffects", func(t *testing.T) {
+		fixture.WorkItems[0].Fields["system.state"] = "new"
+		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
+		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
+		contextChanges, err := fixture.WorkItems[0].ChangeSet(newVersion)
+		require.Nil(s.T(), err)
+		afterActionWI, changes, err := ExecuteActionsByChangeset(newVersion, contextChanges, map[string]string {
+			"FieldSetRule": "{ system.state: 'updatedState' }",
+		})
+		require.Nil(s.T(), err)
+		require.Len(s.T(), changes, 1)
+		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.state"], "updatedState")
 	})
 }
