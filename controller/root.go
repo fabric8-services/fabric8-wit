@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"strings"
+	"sync"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -26,6 +27,11 @@ type asseter interface {
 type RootController struct {
 	*goa.Controller
 	FileHandler asseter
+	// endpoints caches the result of parsing the root endpoints so that
+	// consecutive calls to this API only call the API once
+	endpoints *app.Root
+	// endpointsLock protects the endpoints resource
+	endpointsLock sync.RWMutex
 }
 
 type workingFileFetcher struct{}
@@ -47,12 +53,16 @@ func NewRootController(service *goa.Service) *RootController {
 
 // List runs the list action.
 func (c *RootController) List(ctx *app.ListRootContext) error {
-	roots, err := getRoot(ctx, c.FileHandler)
-	if err != nil || roots == nil {
-		return jsonapi.JSONErrorResponse(
-			ctx, err)
+	c.endpointsLock.Lock()
+	defer c.endpointsLock.Unlock()
+	if c.endpoints == nil {
+		roots, err := getRoot(ctx, c.FileHandler)
+		if err != nil || roots == nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		c.endpoints = roots
 	}
-	return ctx.OK(&app.RootSingle{Data: roots})
+	return ctx.OK(&app.RootSingle{Data: c.endpoints})
 }
 
 // Get a list of all endpoints formatted to json api format.
