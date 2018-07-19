@@ -1,13 +1,13 @@
 package workitem
 
 import (
-	"sort"
 	"errors"
 	"reflect"
+	"sort"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/log"
 
 	uuid "github.com/satori/go.uuid"
 )

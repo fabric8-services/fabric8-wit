@@ -29,16 +29,16 @@ func ExecuteActionsByChangeset(newContext convert.ChangeDetector, contextChanges
 		actionConfig := actionConfigs[actionKey]
 		switch actionKey {
 		case rules.ActionKeyNil:
-			newContext, actionChanges, err = executeAction(rules.ActionNil{}, actionConfig, newContext, contextChanges, &actionChanges)			
+			newContext, actionChanges, err = executeAction(rules.ActionNil{}, actionConfig, newContext, contextChanges, &actionChanges)
 		case rules.ActionKeyFieldSet:
-			newContext, actionChanges, err = executeAction(rules.ActionFieldSet{}, actionConfig, newContext, contextChanges, &actionChanges)			
+			newContext, actionChanges, err = executeAction(rules.ActionFieldSet{}, actionConfig, newContext, contextChanges, &actionChanges)
 		case rules.ActionKeyStateToMetastate:
 			// TODO(michaelkleinhenz): get db, ctx, and user.
 			newContext, actionChanges, err = executeAction(rules.ActionStateToMetaState{
-				Db: nil,
-				Ctx: nil,
+				Db:     nil,
+				Ctx:    nil,
 				UserID: nil,
-			}, actionConfig, newContext, contextChanges, &actionChanges)			
+			}, actionConfig, newContext, contextChanges, &actionChanges)
 		default:
 			return nil, nil, errors.New("Action key " + actionKey + " is unknown")
 		}

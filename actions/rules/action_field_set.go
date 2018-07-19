@@ -2,10 +2,10 @@ package rules
 
 import (
 	"context"
-	"github.com/fabric8-services/fabric8-wit/application"
 	"encoding/json"
-	"reflect"
 	"errors"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"reflect"
 
 	uuid "github.com/satori/go.uuid"
 
@@ -13,13 +13,13 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
-// ActionFieldSet takes a configuration JSON object that has field 
-// names as the keys and a value as the argument. It updates the 
-// given ChangeDetector and sets the Field[key] value to the 
+// ActionFieldSet takes a configuration JSON object that has field
+// names as the keys and a value as the argument. It updates the
+// given ChangeDetector and sets the Field[key] value to the
 // values given. Note that this only works on WorkItems.
 type ActionFieldSet struct {
-	Db application.DB
-	Ctx context.Context
+	Db     application.DB
+	Ctx    context.Context
 	UserID *uuid.UUID
 }
 
@@ -40,12 +40,12 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 		return nil, nil, errors.New("Failed to unmarshall from action configuration to a map: " + configuration)
 	}
 	var convertChanges []convert.Change
-	for k, v := range rawType { 
+	for k, v := range rawType {
 		if wiContext.Fields[k] != v {
 			convertChanges = append(convertChanges, convert.Change{
 				AttributeName: k,
-				NewValue: v,
-				OldValue: wiContext.Fields[k],
+				NewValue:      v,
+				OldValue:      wiContext.Fields[k],
 			})
 			wiContext.Fields[k] = v
 		}

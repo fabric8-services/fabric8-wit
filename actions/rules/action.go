@@ -3,8 +3,8 @@ package rules
 import "github.com/fabric8-services/fabric8-wit/convert"
 
 const (
-	ActionKeyNil = "Nil"
-	ActionKeyFieldSet = "FieldSet"
+	ActionKeyNil              = "Nil"
+	ActionKeyFieldSet         = "FieldSet"
 	ActionKeyStateToMetastate = "BidirectionalStateToColumn"
 
 	ActionKeyStateToMetastateConfigMetastate = "metaState"

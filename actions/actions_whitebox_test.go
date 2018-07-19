@@ -2,8 +2,8 @@ package actions
 
 import (
 	"fmt"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 	"testing"
 
@@ -35,15 +35,15 @@ func (s *ActionSuite) SetupTest() {
 func createWICopy(ID uuid.UUID, state string, boardcolumns []string) workitem.WorkItem {
 	var wiCopy workitem.WorkItem
 	wiCopy.ID = ID
-	fields := map[string]interface{} {
-		"system.state": state,
+	fields := map[string]interface{}{
+		"system.state":        state,
 		"system.boardcolumns": boardcolumns,
 	}
 	wiCopy.Fields = fields
 	return wiCopy
 }
 
-func (s *ActionSuite) TestChangeSet() {	
+func (s *ActionSuite) TestChangeSet() {
 	fixture := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
 	require.NotNil(s.T(), fixture)
 	require.Len(s.T(), fixture.WorkItems, 2)
@@ -131,7 +131,7 @@ func (s *ActionSuite) TestActionExecution() {
 		fixture.WorkItems[0].Fields["system.state"] = "new"
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
 		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
-		afterActionWI, changes, err := ExecuteActionsByOldNew(fixture.WorkItems[0], newVersion, map[string]string {
+		afterActionWI, changes, err := ExecuteActionsByOldNew(fixture.WorkItems[0], newVersion, map[string]string{
 			"nilRule": "{ noConfig: 'none' }",
 		})
 		require.Nil(s.T(), err)
@@ -145,7 +145,7 @@ func (s *ActionSuite) TestActionExecution() {
 		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
 		contextChanges, err := fixture.WorkItems[0].ChangeSet(newVersion)
 		require.Nil(s.T(), err)
-		afterActionWI, changes, err := ExecuteActionsByChangeset(newVersion, contextChanges, map[string]string {
+		afterActionWI, changes, err := ExecuteActionsByChangeset(newVersion, contextChanges, map[string]string{
 			"nilRule": "{ noConfig: 'none' }",
 		})
 		require.Nil(s.T(), err)
@@ -159,7 +159,7 @@ func (s *ActionSuite) TestActionExecution() {
 		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
 		contextChanges, err := fixture.WorkItems[0].ChangeSet(newVersion)
 		require.Nil(s.T(), err)
-		_, _, err = ExecuteActionsByChangeset(newVersion, contextChanges, map[string]string {
+		_, _, err = ExecuteActionsByChangeset(newVersion, contextChanges, map[string]string{
 			"unknownRule": "{ noConfig: 'none' }",
 		})
 		require.NotNil(s.T(), err)
@@ -171,7 +171,7 @@ func (s *ActionSuite) TestActionExecution() {
 		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
 		contextChanges, err := fixture.WorkItems[0].ChangeSet(newVersion)
 		require.Nil(s.T(), err)
-		afterActionWI, changes, err := ExecuteActionsByChangeset(newVersion, contextChanges, map[string]string {
+		afterActionWI, changes, err := ExecuteActionsByChangeset(newVersion, contextChanges, map[string]string{
 			"FieldSetRule": "{ system.state: 'updatedState' }",
 		})
 		require.Nil(s.T(), err)

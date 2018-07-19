@@ -1,20 +1,20 @@
 package rules
 
 import (
-	"encoding/json"
 	"context"
+	"encoding/json"
 	"errors"
 
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
 type ActionStateToMetaState struct {
-	Db application.DB
-	Ctx context.Context
+	Db     application.DB
+	Ctx    context.Context
 	UserID *uuid.UUID
 }
 
@@ -23,19 +23,19 @@ var _ Action = ActionStateToMetaState{}
 
 func (act ActionStateToMetaState) contains(s []uuid.UUID, e uuid.UUID) bool {
 	for _, a := range s {
-			if a == e {
-					return true
-			}
+		if a == e {
+			return true
+		}
 	}
 	return false
 }
 
 func (act ActionStateToMetaState) removeElement(s []uuid.UUID, e uuid.UUID) []uuid.UUID {
 	for idx, a := range s {
-			if a == e {
-				s = append(s[:idx], s[idx+1:]...)
-				// we don't return here as there may be multiple copies of e in s.
-			}
+		if a == e {
+			s = append(s[:idx], s[idx+1:]...)
+			// we don't return here as there may be multiple copies of e in s.
+		}
 	}
 	return s
 }
@@ -151,7 +151,7 @@ func (act ActionStateToMetaState) getValueListFromFieldType(wit *workitem.WorkIt
 	switch t := fieldType.(type) {
 	case workitem.EnumType:
 		return t.Values, nil
-	} 
+	}
 	return nil, errors.New("Given field on workitemtype " + wit.ID.String() + " is not an enum field: " + fieldName)
 }
 
@@ -178,7 +178,7 @@ func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUI
 		if !ok {
 			return nil, errors.New("Metastate value in value list is not of type string")
 		}
-		stateToMetastateMap[thisState] = thisMetastate	
+		stateToMetastateMap[thisState] = thisMetastate
 	}
 	return stateToMetastateMap, nil
 }
@@ -197,15 +197,15 @@ func (act ActionStateToMetaState) getMetastateToStateMap(workitemTypeID uuid.UUI
 
 func (act ActionStateToMetaState) addOrUpdateChange(changes *[]convert.Change, attributeName string, oldValue interface{}, newValue interface{}) []convert.Change {
 	for _, change := range *changes {
-		if (change.AttributeName == attributeName) {
+		if change.AttributeName == attributeName {
 			change.NewValue = newValue
 			return *changes
 		}
 	}
-	newChanges := append(*changes, convert.Change {
+	newChanges := append(*changes, convert.Change{
 		AttributeName: attributeName,
-		OldValue: oldValue,
-		NewValue: newValue,
+		OldValue:      oldValue,
+		NewValue:      newValue,
 	})
 	return newChanges
 }
@@ -217,10 +217,10 @@ func (act ActionStateToMetaState) OnChange(newContext convert.ChangeDetector, co
 		return newContext, *actionChanges, nil
 	}
 	for _, change := range contextChanges {
-		if (change.AttributeName == workitem.SystemState) {
+		if change.AttributeName == workitem.SystemState {
 			return act.OnStateChange(newContext, contextChanges, configuration, actionChanges)
 		}
-		if (change.AttributeName == workitem.SystemBoardcolumns) {
+		if change.AttributeName == workitem.SystemBoardcolumns {
 			return act.OnBoardColumnsChange(newContext, contextChanges, configuration, actionChanges)
 		}
 	}
@@ -276,7 +276,7 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 		}
 		// at this point, we don't check if the board was
 		// relevant (matching the type group) as the move into
-		// the column has already happened. We just make sure 
+		// the column has already happened. We just make sure
 		// this rule applies to the column.
 		if thisColumn.TransRuleKey != ActionKeyStateToMetastate {
 			// this is a column that does not apply to the rule, we don't apply here.
@@ -291,7 +291,7 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 		// extract the column's metastate config.
 		if metaState, ok := config[ActionKeyStateToMetastateConfigMetastate]; ok {
 			if metaState == wi.Fields[workitem.SystemMetaState] {
-				// the WIs metastate is already the same as the columns 
+				// the WIs metastate is already the same as the columns
 				// metastate, so nothing to do.
 				return newContext, *actionChanges, nil
 			}
@@ -330,7 +330,7 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 	// may contain previous changes from the action chain.
 	wiDirty := false
 	// update the workitem accordingly.
-	if (wi.Fields[workitem.SystemMetaState] == mapping[workitem.SystemState]) {
+	if wi.Fields[workitem.SystemMetaState] == mapping[workitem.SystemState] {
 		// metastate remains stable, nothing to do.
 		return newContext, *actionChanges, nil
 	}
@@ -349,7 +349,7 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 		return nil, nil, err
 	}
 	var relevantBoards []*workitem.Board
-	for _, board := range(boards) {
+	for _, board := range boards {
 		// this rule is only dealing with TypeLevelContext boards right now
 		// this may need to be extended when we allow other boards.
 		if board.ContextType == "TypeLevelContext" {
@@ -358,21 +358,21 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 			if err != nil {
 				return nil, nil, err
 			}
-			for _, group := range(groups) {
+			for _, group := range groups {
 				if group.ID == thisBoardContext && act.contains(group.TypeList, wi.Type) {
 					// this board is relevant.
 					relevantBoards = append(relevantBoards, board)
 				}
 			}
-		} 
+		}
 	}
 	// next, iterate over all relevant boards, checking their rule config
 	// and update the WI position accordingly.
 	oldColumnsConfig := make([]uuid.UUID, len(wi.Fields[workitem.SystemBoardcolumns].([]uuid.UUID)))
 	columnsChanged := false
 	copy(oldColumnsConfig, wi.Fields[workitem.SystemBoardcolumns].([]uuid.UUID))
-	for _, board := range(relevantBoards) {
-		for _, column := range(board.Columns) {
+	for _, board := range relevantBoards {
+		for _, column := range board.Columns {
 			columnRuleKey := column.TransRuleKey
 			columnRuleConfig := column.TransRuleArgument
 			if columnRuleKey == ActionKeyStateToMetastate {
@@ -384,7 +384,7 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 				}
 				if metaState, ok := config[ActionKeyStateToMetastateConfigMetastate]; ok {
 					if metaState == wi.Fields[workitem.SystemMetaState] {
-						// the column config matches the *new* metastate, so the WI needs to 
+						// the column config matches the *new* metastate, so the WI needs to
 						// appear in this column.
 						wi.Fields[workitem.SystemBoardcolumns] = append(wi.Fields[workitem.SystemBoardcolumns].([]uuid.UUID), column.ID)
 						columnsChanged = true
@@ -399,7 +399,7 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 					}
 				} else {
 					return nil, nil, errors.New("Invalid configuration for transRuleKey '" + ActionKeyStateToMetastate + "': " + columnRuleConfig)
-				}				
+				}
 			}
 		}
 	}

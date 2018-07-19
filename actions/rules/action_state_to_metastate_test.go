@@ -2,8 +2,8 @@ package rules
 
 import (
 	"github.com/fabric8-services/fabric8-wit/convert"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 	"testing"
 

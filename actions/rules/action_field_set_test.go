@@ -2,8 +2,8 @@ package rules
 
 import (
 	"github.com/fabric8-services/fabric8-wit/convert"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 	"testing"
 
@@ -35,8 +35,8 @@ func (s *ActionFieldSetSuite) SetupTest() {
 func createWICopy(ID uuid.UUID, state string, boardcolumns []string) workitem.WorkItem {
 	var wiCopy workitem.WorkItem
 	wiCopy.ID = ID
-	fields := map[string]interface{} {
-		"system.state": state,
+	fields := map[string]interface{}{
+		"system.state":        state,
 		"system.boardcolumns": boardcolumns,
 	}
 	wiCopy.Fields = fields
