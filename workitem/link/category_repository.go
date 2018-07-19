@@ -18,7 +18,7 @@ import (
 // WorkItemLinkCategoryRepository encapsulates storage & retrieval of work item link categories
 type WorkItemLinkCategoryRepository interface {
 	repository.Exister
-	Create(ctx context.Context, linkCat *WorkItemLinkCategory) (*WorkItemLinkCategory, error)
+	Create(ctx context.Context, linkCat WorkItemLinkCategory) (*WorkItemLinkCategory, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkCategory, error)
 	List(ctx context.Context) ([]WorkItemLinkCategory, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
@@ -37,12 +37,12 @@ type GormWorkItemLinkCategoryRepository struct {
 
 // Create creates a new work item link category in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, linkCat *WorkItemLinkCategory) (*WorkItemLinkCategory, error) {
+func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, linkCat WorkItemLinkCategory) (*WorkItemLinkCategory, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlinkcategory", "create"}, time.Now())
 	if linkCat.Name == "" {
 		return nil, errors.NewBadParameterError("name", linkCat.Name)
 	}
-	db := r.db.Create(linkCat)
+	db := r.db.Create(&linkCat)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_link_categories_name_idx") {
 			log.Error(ctx, map[string]interface{}{
@@ -56,7 +56,7 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, linkCat
 	log.Info(ctx, map[string]interface{}{
 		"wilc_id": linkCat.ID,
 	}, "work item link category created")
-	return linkCat, nil
+	return &linkCat, nil
 }
 
 // Load returns the work item link category for the given ID.

@@ -82,10 +82,12 @@ func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
 	for _, tt := range tests {
-		_, result := test.SpacesSearchOK(rest.T(), svc.Context, svc, ctrl, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)
-		for _, expect := range tt.expects {
-			expect(rest.T(), tt, result)
-		}
+		rest.T().Run(tt.name, func(t *testing.T) {
+			_, result := test.SpacesSearchOK(t, svc.Context, svc, ctrl, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)
+			for _, expect := range tt.expects {
+				expect(t, tt, result)
+			}
+		})
 	}
 }
 

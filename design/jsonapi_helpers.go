@@ -160,8 +160,8 @@ func JSONList(name, description string, data *d.UserTypeDefinition, links *d.Use
 }
 
 // JSONSingle creates a Single
+// WorkItemSingle is the media type for work items
 func JSONSingle(name, description string, data *d.UserTypeDefinition, links *d.UserTypeDefinition) *d.MediaTypeDefinition {
-	// WorkItemSingle is the media type for work items
 	return a.MediaType("application/vnd."+strings.ToLower(name)+"+json", func() {
 		a.UseTrait("jsonapi-media-type")
 		a.TypeName(name + "Single")
