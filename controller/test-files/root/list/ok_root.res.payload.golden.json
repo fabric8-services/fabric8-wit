@@ -120,7 +120,7 @@
           "related": "/users"
         }
       },
-      "userspace_*": {
+      "userspace": {
         "links": {
           "related": "/userspace/*"
         }

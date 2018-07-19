@@ -11,15 +11,9 @@ var root = a.Type("Root", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("endpoints")
 	})
-	a.Attribute("id", d.UUID, "ID of root")
-	a.Attribute("links", genericLinksForRoot, "Describes the related path")
-
+	a.Attribute("id", d.UUID, "ID of root (this is a newly generated UUID upon every call)")
+	a.Attribute("links", genericLinks)
 	a.Required("type", "links", "id", "relationships")
-})
-
-// genericLinksForRoot defines generic relations links that are specific to a root
-var genericLinksForRoot = a.Type("GenericLinksForRoot", func() {
-	a.Attribute("self", d.String)
 })
 
 var rootSingle = JSONSingle(

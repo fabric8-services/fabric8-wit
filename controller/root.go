@@ -113,7 +113,7 @@ func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
 		Type:          "endpoints",
 		ID:            uuid.NewV4(),
 		Relationships: namedPaths,
-		Links: app.GenericLinksForRoot{
+		Links: &app.GenericLinks{
 			Self: ptr.String(rest.AbsoluteURL(ctx.Request, basePath)),
 		},
 	}, nil
