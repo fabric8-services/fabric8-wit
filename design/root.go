@@ -3,17 +3,18 @@ package design
 import (
 	d "github.com/goadesign/goa/design"
 	a "github.com/goadesign/goa/design/apidsl"
-	)
+)
 
 var root = a.Type("Root", func() {
-
 	a.Description("JSONAPI store for the data of a Root.")
 	a.Attribute("relationships", a.HashOf(d.String, d.Any), "Describes relationship between names and links")
-	a.Attribute("type", d.String)
-	a.Attribute("attributes", d.Any)
+	a.Attribute("type", d.String, func() {
+		a.Enum("endpoints")
+	})
 	a.Attribute("id", d.UUID, "ID of root")
 	a.Attribute("links", genericLinksForRoot, "Describes the related path")
 
+	a.Required("type", "links", "id", "relationships")
 })
 
 // genericLinksForRoot defines generic relations links that are specific to a root
