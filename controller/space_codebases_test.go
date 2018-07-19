@@ -130,7 +130,7 @@ func (rest *TestSpaceCodebaseREST) TestCreateCodebaseCreated() {
 	require.NotNil(t, c.Data.Relationships.Space)
 	assert.Equal(t, sp.ID.String(), *c.Data.Relationships.Space.Data.ID)
 	require.NotNil(t, c.Data.Attributes.CveScan)
-	assert.Equal(t, false, *c.Data.Attributes.CveScan)
+	assert.False(t, *c.Data.Attributes.CveScan)
 	assert.Equal(t, "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
 	assert.Equal(t, "stackId", *c.Data.Attributes.StackID)
 }
