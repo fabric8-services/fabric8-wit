@@ -87,7 +87,7 @@ func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
 	// Get and iterate over paths from swagger specification.
 	swaggerPaths, ok := result["paths"]
 	if !ok {
-		return nil, errors.NewInternalErrorFromString(" field `paths` could be found in swagger specification")
+		return nil, errors.NewInternalErrorFromString("field `paths` could be found in swagger specification")
 	}
 
 	swaggerPathz, ok := swaggerPaths.(map[string]interface{})
