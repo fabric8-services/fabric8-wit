@@ -50,7 +50,7 @@ work_item_types:
     "system.metastate":
       label: Meta State
       description: The meta-state of the work item
-      read_only: yes
+      read_only: no
       required: no
       type:
         simple_type:

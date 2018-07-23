@@ -1,7 +1,11 @@
 package actions
 
 import (
+	"context"
+	"github.com/fabric8-services/fabric8-wit/application"
 	"errors"
+
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/fabric8-services/fabric8-wit/actions/rules"
 	"github.com/fabric8-services/fabric8-wit/convert"
@@ -9,7 +13,7 @@ import (
 
 // ExecuteActionsByOldNew executes all actions given in the actionConfigList
 // using the mapped configuration strings and returns the new context entity.
-func ExecuteActionsByOldNew(oldContext convert.ChangeDetector, newContext convert.ChangeDetector, actionConfigList map[string]string) (convert.ChangeDetector, []convert.Change, error) {
+func ExecuteActionsByOldNew(ctx context.Context, db application.DB, userID uuid.UUID, oldContext convert.ChangeDetector, newContext convert.ChangeDetector, actionConfigList map[string]string) (convert.ChangeDetector, []convert.Change, error) {
 	if oldContext == nil || newContext == nil {
 		return nil, nil, errors.New("Execute actions called with nil entities")
 	}
@@ -17,12 +21,12 @@ func ExecuteActionsByOldNew(oldContext convert.ChangeDetector, newContext conver
 	if err != nil {
 		return nil, nil, err
 	}
-	return ExecuteActionsByChangeset(newContext, contextChanges, actionConfigList)
+	return ExecuteActionsByChangeset(ctx, db, userID, newContext, contextChanges, actionConfigList)
 }
 
 // ExecuteActionsByChangeset executes all actions given in the actionConfigs
 // using the mapped configuration strings and returns the new context entity.
-func ExecuteActionsByChangeset(newContext convert.ChangeDetector, contextChanges []convert.Change, actionConfigs map[string]string) (convert.ChangeDetector, []convert.Change, error) {
+func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uuid.UUID, newContext convert.ChangeDetector, contextChanges []convert.Change, actionConfigs map[string]string) (convert.ChangeDetector, []convert.Change, error) {
 	var actionChanges []convert.Change
 	var err error
 	for actionKey := range actionConfigs {
@@ -31,13 +35,17 @@ func ExecuteActionsByChangeset(newContext convert.ChangeDetector, contextChanges
 		case rules.ActionKeyNil:
 			newContext, actionChanges, err = executeAction(rules.ActionNil{}, actionConfig, newContext, contextChanges, &actionChanges)
 		case rules.ActionKeyFieldSet:
-			newContext, actionChanges, err = executeAction(rules.ActionFieldSet{}, actionConfig, newContext, contextChanges, &actionChanges)
+			newContext, actionChanges, err = executeAction(rules.ActionFieldSet{
+				Db:     db,
+				Ctx:    ctx,
+				UserID: &userID,
+			}, actionConfig, newContext, contextChanges, &actionChanges)
 		case rules.ActionKeyStateToMetastate:
 			// TODO(michaelkleinhenz): get db, ctx, and user.
-			newContext, actionChanges, err = executeAction(rules.ActionStateToMetaState{
-				Db:     nil,
-				Ctx:    nil,
-				UserID: nil,
+			newContext, actionChanges, err = executeAction(rules.ActionStateToMetaState {
+				Db:     db,
+				Ctx:    ctx,
+				UserID: &userID,
 			}, actionConfig, newContext, contextChanges, &actionChanges)
 		default:
 			return nil, nil, errors.New("Action key " + actionKey + " is unknown")

@@ -21,7 +21,19 @@ type ActionStateToMetaState struct {
 // make sure the rule is implementing the interface.
 var _ Action = ActionStateToMetaState{}
 
-func (act ActionStateToMetaState) contains(s []uuid.UUID, e uuid.UUID) bool {
+/* func (act ActionStateToMetaState) toStringSlice(s []interface{}) ([]string, error) {
+	strArr := make([]string, len(s))
+	for i, ts := range s {
+		tss, ok := ts.(string)
+		if !ok {
+			return nil, errors.New("Error converting element to string")
+		}
+		strArr[i] = tss
+	}
+	return strArr, nil
+}
+ */
+func (act ActionStateToMetaState) containsUUID(s []uuid.UUID, e uuid.UUID) bool {
 	for _, a := range s {
 		if a == e {
 			return true
@@ -30,7 +42,16 @@ func (act ActionStateToMetaState) contains(s []uuid.UUID, e uuid.UUID) bool {
 	return false
 }
 
-func (act ActionStateToMetaState) removeElement(s []uuid.UUID, e uuid.UUID) []uuid.UUID {
+func (act ActionStateToMetaState) contains(s []interface{}, e interface{}) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func (act ActionStateToMetaState) removeElement(s []interface{}, e interface{}) []interface{} {
 	for idx, a := range s {
 		if a == e {
 			s = append(s[:idx], s[idx+1:]...)
@@ -40,9 +61,9 @@ func (act ActionStateToMetaState) removeElement(s []uuid.UUID, e uuid.UUID) []uu
 	return s
 }
 
-func (act ActionStateToMetaState) difference(old []uuid.UUID, new []uuid.UUID) ([]uuid.UUID, []uuid.UUID) {
-	var added []uuid.UUID
-	var removed []uuid.UUID
+func (act ActionStateToMetaState) difference(old []interface{}, new []interface{}) ([]interface{}, []interface{}) {
+	var added []interface{}
+	var removed []interface{}
 	// added in slice2
 	for _, elem := range new {
 		if !act.contains(old, elem) {
@@ -178,7 +199,16 @@ func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUI
 		if !ok {
 			return nil, errors.New("Metastate value in value list is not of type string")
 		}
-		stateToMetastateMap[thisState] = thisMetastate
+		// this is important: we only add a new entry if there
+		// is not an entry already existing. Therefore, we're only
+		// using the first mapping, satisfying the req for getting the
+		// first matching metastate for a state.
+		// this is done here even if the usecase where we have 
+		// multiple states with the same value (duplicate states) 
+		// might be not that common.
+		if _, ok := stateToMetastateMap[thisState]; !ok {
+			stateToMetastateMap[thisState] = thisMetastate
+		}
 	}
 	return stateToMetastateMap, nil
 }
@@ -190,19 +220,25 @@ func (act ActionStateToMetaState) getMetastateToStateMap(workitemTypeID uuid.UUI
 	}
 	metastateToStateMap := make(map[string]string)
 	for state, metastate := range stateToMetastate {
-		metastateToStateMap[metastate] = state
+		// this is important: we only add a new entry if there
+		// is not an entry already existing. Therefore, we're only
+		// using the first mapping, satisfying the req for getting the
+		// first matching state for a metastate.
+		if _, ok := metastateToStateMap[metastate]; !ok {
+			metastateToStateMap[metastate] = state
+		}
 	}
 	return metastateToStateMap, nil
 }
 
-func (act ActionStateToMetaState) addOrUpdateChange(changes *[]convert.Change, attributeName string, oldValue interface{}, newValue interface{}) []convert.Change {
-	for _, change := range *changes {
+func (act ActionStateToMetaState) addOrUpdateChange(changes []convert.Change, attributeName string, oldValue interface{}, newValue interface{}) []convert.Change {
+	for _, change := range changes {
 		if change.AttributeName == attributeName {
 			change.NewValue = newValue
-			return *changes
+			return changes
 		}
 	}
-	newChanges := append(*changes, convert.Change{
+	newChanges := append(changes, convert.Change{
 		AttributeName: attributeName,
 		OldValue:      oldValue,
 		NewValue:      newValue,
@@ -237,10 +273,21 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 		return nil, nil, errors.New("Given context is not a WorkItem instance")
 	}
 	// extract columns that changed from oldValue newValue
-	var columnsAdded []uuid.UUID
+	var columnsAdded []interface{}
 	for _, change := range contextChanges {
 		if change.AttributeName == workitem.SystemBoardcolumns {
-			columnsAdded, _ = act.difference(change.OldValue.([]uuid.UUID), change.NewValue.([]uuid.UUID))
+			var oldValue []interface{}
+			oldValue, ok := change.OldValue.([]interface{})
+			if !ok && change.OldValue != nil {
+				// OldValue may be nil, so only throw error when non-nil and 
+				// can not convert.
+				return nil, nil, errors.New("Error converting oldValue set")
+			}
+			newValue, ok := change.NewValue.([]interface{})
+			if !ok {
+				return nil, nil, errors.New("Error converting newValue set")
+			}
+			columnsAdded, _ = act.difference(oldValue, newValue)
 		}
 	}
 	// from here on, we ignore the removed columns as a possible metastate transition is
@@ -258,9 +305,8 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 	// may contain previous changes from the action chain.
 	wiDirty := false
 	var changes []convert.Change
-	// go over all added columns.
+	// go over all added columns. We support multiple added columns at once.
 	for _, columnID := range columnsAdded {
-		// TODO WHAT HAPPENS IF MULTIPLE COLUMNS ARE IN HERE?
 		// get board and column by columnID.
 		var thisColumn workitem.BoardColumn
 		boards, err := act.loadWorkItemBoardsBySpaceID(wi.SpaceID)
@@ -269,7 +315,7 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 		}
 		for _, board := range boards {
 			for _, column := range board.Columns {
-				if columnID == column.ID {
+				if columnID == column.ID.String() {
 					thisColumn = column
 				}
 			}
@@ -296,13 +342,13 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 				return newContext, *actionChanges, nil
 			}
 			// the metatstate changes, so set it on the WI.
-			changes = act.addOrUpdateChange(actionChanges, workitem.SystemMetaState, wi.Fields[workitem.SystemMetaState], metaState)
+			changes = act.addOrUpdateChange(changes, workitem.SystemMetaState, wi.Fields[workitem.SystemMetaState], metaState)
 			wi.Fields[workitem.SystemMetaState] = metaState
 			wiDirty = true
 			// next, check if the state needs to change as well from the metastate.
 			if wi.Fields[workitem.SystemState] != mapping[metaState] {
 				// yes, the state changes as well.
-				changes = act.addOrUpdateChange(actionChanges, workitem.SystemState, wi.Fields[workitem.SystemState], mapping[metaState])
+				changes = act.addOrUpdateChange(changes, workitem.SystemState, wi.Fields[workitem.SystemState], mapping[metaState])
 				wi.Fields[workitem.SystemState] = mapping[metaState]
 			}
 		}
@@ -330,13 +376,14 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 	// may contain previous changes from the action chain.
 	wiDirty := false
 	// update the workitem accordingly.
-	if wi.Fields[workitem.SystemMetaState] == mapping[workitem.SystemState] {
+	wiState := wi.Fields[workitem.SystemState].(string)
+	if wi.Fields[workitem.SystemMetaState] == mapping[wiState] {
 		// metastate remains stable, nothing to do.
 		return newContext, *actionChanges, nil
 	}
 	// otherwise, update the metastate from the state.
-	changes := act.addOrUpdateChange(actionChanges, workitem.SystemMetaState, wi.Fields[workitem.SystemMetaState], mapping[workitem.SystemState])
-	wi.Fields[workitem.SystemMetaState] = mapping[workitem.SystemState]
+	changes := act.addOrUpdateChange(*actionChanges, workitem.SystemMetaState, wi.Fields[workitem.SystemMetaState], mapping[wiState])
+	wi.Fields[workitem.SystemMetaState] = mapping[wiState]
 	wiDirty = true
 	// next, get the columns of the workitem and see if these needs to be updated.
 	boards, err := act.loadWorkItemBoardsBySpaceID(wi.SpaceID)
@@ -359,7 +406,7 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 				return nil, nil, err
 			}
 			for _, group := range groups {
-				if group.ID == thisBoardContext && act.contains(group.TypeList, wi.Type) {
+				if group.ID == thisBoardContext && act.containsUUID(group.TypeList, wi.Type) {
 					// this board is relevant.
 					relevantBoards = append(relevantBoards, board)
 				}
@@ -368,10 +415,21 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 	}
 	// next, iterate over all relevant boards, checking their rule config
 	// and update the WI position accordingly.
-	oldColumnsConfig := make([]uuid.UUID, len(wi.Fields[workitem.SystemBoardcolumns].([]uuid.UUID)))
+	var systemBoardColumns []interface{}
+	systemBoardColumns, ok = wi.Fields[workitem.SystemBoardcolumns].([]interface{})
+	if !ok && wi.Fields[workitem.SystemBoardcolumns] != nil {
+		// wi.Fields[workitem.SystemBoardcolumns] may be empty, so we do a fallback.
+		return nil, nil, errors.New("Type conversion failed for boardcolumns")
+	}
+	oldColumnsConfig := make([]interface{}, len(systemBoardColumns))
+	copy(oldColumnsConfig, systemBoardColumns)
 	columnsChanged := false
-	copy(oldColumnsConfig, wi.Fields[workitem.SystemBoardcolumns].([]uuid.UUID))
 	for _, board := range relevantBoards {
+		// each WI can only be in exactly one columns on each board.
+		// we apply the first column that matches. If that happens, we
+		// flip alreadyPlacedInColumn and all subsequent matching columns
+		// are non-matching.
+		alreadyPlacedInColumn := false
 		for _, column := range board.Columns {
 			columnRuleKey := column.TransRuleKey
 			columnRuleConfig := column.TransRuleArgument
@@ -383,10 +441,20 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 					return nil, nil, err
 				}
 				if metaState, ok := config[ActionKeyStateToMetastateConfigMetastate]; ok {
-					if metaState == wi.Fields[workitem.SystemMetaState] {
+					if metaState == wi.Fields[workitem.SystemMetaState] && !alreadyPlacedInColumn {						
 						// the column config matches the *new* metastate, so the WI needs to
 						// appear in this column.
-						wi.Fields[workitem.SystemBoardcolumns] = append(wi.Fields[workitem.SystemBoardcolumns].([]uuid.UUID), column.ID)
+						var currentSystemBoardColumn []interface{}
+						currentSystemBoardColumn, ok = wi.Fields[workitem.SystemBoardcolumns].([]interface{})
+						// flip alreadyPlacedInColumn, so this will be the new column. Other
+						// matching columns are ignored on this board.
+						alreadyPlacedInColumn = true
+						if !ok && wi.Fields[workitem.SystemBoardcolumns] != nil {
+							// again, wi.Fields[workitem.SystemBoardcolumns] may be empty, so we
+							// only fail here when the conversion fails AND the slice is non nil.
+							return nil, nil, errors.New("Error converting SystemBoardcolumns set")
+						}
+						wi.Fields[workitem.SystemBoardcolumns] = append(currentSystemBoardColumn, column.ID.String())
 						columnsChanged = true
 					} else {
 						// the column *does not* match the *new* metastate, so the column has to
@@ -394,7 +462,14 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 						// entries in wi.Fields[workitem.SystemBoardcolumns] as there may be
 						// other columns from non-relevant boards in it that need to be left
 						// untouched.
-						wi.Fields[workitem.SystemBoardcolumns] = act.removeElement(wi.Fields[workitem.SystemBoardcolumns].([]uuid.UUID), column.ID)
+						var currentSystemBoardColumn []interface{}
+						currentSystemBoardColumn, ok = wi.Fields[workitem.SystemBoardcolumns].([]interface{})
+						if !ok && wi.Fields[workitem.SystemBoardcolumns] != nil {
+							// again, wi.Fields[workitem.SystemBoardcolumns] may be empty, so we
+							// only fail here when the conversion fails AND the slice is non nil.
+							return nil, nil, errors.New("Error converting SystemBoardcolumns set")
+						}
+						wi.Fields[workitem.SystemBoardcolumns] = act.removeElement(currentSystemBoardColumn, column.ID.String())
 						columnsChanged = true
 					}
 				} else {
@@ -405,7 +480,7 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 	}
 	// if the column set has changed, create an entry for the change set.
 	if columnsChanged {
-		changes = act.addOrUpdateChange(actionChanges, workitem.SystemBoardcolumns, oldColumnsConfig, wi.Fields[workitem.SystemBoardcolumns])
+		changes = act.addOrUpdateChange(changes, workitem.SystemBoardcolumns, oldColumnsConfig, wi.Fields[workitem.SystemBoardcolumns])
 	}
 	// finally, store the new work item state if something changed.
 	if wiDirty {
