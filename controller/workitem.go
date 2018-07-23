@@ -111,6 +111,9 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
+	// This revisionID will also be passed to the notification service
+	// and also used in creating the revision.
+	revisionID := uuid.NewV4()
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		// The Number and Type of a work item are not allowed to be changed
 		// which is why we overwrite those values with their old value after the
@@ -123,7 +126,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		}
 		wi.Number = oldNumber
 		wi.Type = oldType
-		wi, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserIdentityID)
+		wi, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserIdentityID, revisionID)
 		if err != nil {
 			return errs.Wrap(err, "Error updating work item")
 		}
@@ -136,7 +139,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load work item type: %s", wi.Type))
 	}
-	c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String()))
+	c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String(), revisionID))
 	converted, err := ConvertWorkItem(ctx.Request, *wit, *wi, workItemIncludeHasChildren(ctx, c.db))
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)

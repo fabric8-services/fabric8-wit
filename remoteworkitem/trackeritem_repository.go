@@ -143,7 +143,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*work
 		for key, value := range workItem.Fields {
 			existingWorkItem.Fields[key] = value
 		}
-		resultWorkItem, err = wir.Save(ctx, existingWorkItem.SpaceID, *existingWorkItem, creator)
+		resultWorkItem, err = wir.Save(ctx, existingWorkItem.SpaceID, *existingWorkItem, creator, uuid.NewV4())
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

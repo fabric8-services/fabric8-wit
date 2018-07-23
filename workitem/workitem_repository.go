@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/closeable"
-
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/closeable"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -18,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -88,7 +88,7 @@ type WorkItemRepository interface {
 	LoadBatchByID(ctx context.Context, ids []uuid.UUID) ([]*WorkItem, error)
 	LoadByIteration(ctx context.Context, id uuid.UUID) ([]*WorkItem, error)
 	LookupIDByNamedSpaceAndNumber(ctx context.Context, ownerName, spaceName string, wiNumber int) (*uuid.UUID, *uuid.UUID, error)
-	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
+	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID, revisionID uuid.UUID) (*WorkItem, error)
 	Reorder(ctx context.Context, spaceID uuid.UUID, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Delete(ctx context.Context, id uuid.UUID, suppressorID uuid.UUID) error
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error)
@@ -364,7 +364,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID uuid.UUI
 		return errors.NewNotFoundError("work item", workitemID.String())
 	}
 	// store a revision of the deleted work item
-	if err := r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem); err != nil {
+	if err := r.wirr.Create(context.Background(), suppressorID, uuid.NewV4(), RevisionTypeDelete, workItem); err != nil {
 		return errs.Wrapf(err, "error while deleting work item")
 	}
 	log.Debug(ctx, map[string]interface{}{"wi_id": workitemID}, "Work item deleted successfully!")
@@ -559,7 +559,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
+	err = r.wirr.Create(context.Background(), modifierID, uuid.NewV4(), RevisionTypeUpdate, res)
 	if err != nil {
 		return nil, err
 	}
@@ -568,7 +568,12 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, updatedWorkItem WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
+func (r *GormWorkItemRepository) Save(
+	ctx context.Context,
+	spaceID uuid.UUID,
+	updatedWorkItem WorkItem,
+	modifierID, revisionID uuid.UUID) (*WorkItem, error) {
+
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "save"}, time.Now())
 	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.Number, true)
 	if err != nil {
@@ -620,7 +625,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, *wiStorage)
+	err = r.wirr.Create(context.Background(), modifierID, revisionID, RevisionTypeUpdate, *wiStorage)
 	if err != nil {
 		return nil, errs.Wrapf(err, "error while saving work item")
 	}
@@ -714,7 +719,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		return nil, err
 	}
 	// store a revision of the created work item
-	err = r.wirr.Create(context.Background(), creatorID, RevisionTypeCreate, wi)
+	err = r.wirr.Create(context.Background(), creatorID, uuid.NewV4(), RevisionTypeCreate, wi)
 	if err != nil {
 		return nil, errs.Wrapf(err, "error while creating work item")
 	}

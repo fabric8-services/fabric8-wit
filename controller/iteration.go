@@ -409,7 +409,10 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			for _, wi := range wis {
 				// move WI to parent iteration
 				wi.Fields[workitem.SystemIteration] = parentIteration.ID.String()
-				_, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUser)
+
+				// if the revision ID has to be sent to the notification service
+				// then pass the same value to the `notification.NewWorkItem*`.
+				_, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUser, uuid.NewV4())
 				if err != nil {
 					log.Error(ctx, map[string]interface{}{
 						"workitem_id": wi.ID,
