@@ -92,7 +92,7 @@ func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
 
 	swaggerPathz, ok := swaggerPaths.(map[string]interface{})
 	if !ok {
-		return nil, errors.NewInternalErrorFromString("unable to assert concrete type map for field `paths` in swagger specifiation")
+		return nil, errors.NewInternalErrorFromString("unable to assert concrete type map for field `paths` in swagger specification")
 	}
 
 	// the path map stores paths as key and URLs as values
@@ -105,7 +105,7 @@ func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
 
 			pathsObj, ok := swaggerPath.(map[string]interface{})
 			if !ok {
-				return nil, errors.NewInternalErrorFromString("unable to assert concrete type map for field `paths` in swagger specifiation")
+				return nil, errors.NewInternalErrorFromString("unable to assert concrete type map for field `paths` in swagger specification")
 			}
 
 			// Get the x-tag value. If the tag exists, use it as path name.
@@ -113,7 +113,7 @@ func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
 			if ok {
 				xtag, ok := xtagObj.(string)
 				if !ok {
-					return nil, errors.NewInternalErrorFromString("unable to assert concrete type string for field `x-tag` in swagger specifiation")
+					return nil, errors.NewInternalErrorFromString("unable to assert concrete type string for field `x-tag` in swagger specification")
 				}
 
 				key = xtag
@@ -138,7 +138,7 @@ func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
 
 	basePath, ok := basePathObj.(string)
 	if !ok {
-		return nil, errors.NewInternalErrorFromString("unable to assert concrete type string for field `basePath` in swagger specifiation")
+		return nil, errors.NewInternalErrorFromString("unable to assert concrete type string for field `basePath` in swagger specification")
 	}
 
 	return &app.Root{
