@@ -79,7 +79,7 @@ func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
 	}
 
 	var result map[string]interface{}
-	err = json.Unmarshal([]byte(swaggerJSON), &result)
+	err = json.Unmarshal(swaggerJSON, &result)
 	if err != nil {
 		return nil, errs.Wrapf(err, "unable to unmarshal the file with id "+"'"+embeddedSwaggerSpecFile+"'")
 	}
@@ -95,7 +95,7 @@ func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
 		return nil, errors.NewInternalErrorFromString("unable to assert concrete type map for field `paths` in swagger specification")
 	}
 
-	// the path map stores paths as key and URLs as values
+	// the namedPaths map stores paths as key and URLs as values
 	namedPaths := make(map[string]interface{})
 	for path, swaggerPath := range swaggerPathz {
 
