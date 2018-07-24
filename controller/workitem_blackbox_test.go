@@ -1299,34 +1299,36 @@ func (s *WorkItem2Suite) TestWI2SuccessUpdateWorkItemWithDescriptionAndMarkup() 
 
 	// when
 	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-
 	assert.Equal(s.T(), originalDescription, wi.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), originalDescriptionRendered, wi.Data.Attributes[workitem.SystemDescriptionRendered])
-	updatePayload := minimumRequiredUpdatePayload()
-	updatePayload.Data.ID = wi.Data.ID
-	updatePayload.Data.Attributes["version"] = wi.Data.Attributes["version"]
-	content := `
+
+	s.T().Run("update", func(t *testing.T) {
+		updatePayload := minimumRequiredUpdatePayload()
+		updatePayload.Data.ID = wi.Data.ID
+		updatePayload.Data.Attributes["version"] = wi.Data.Attributes["version"]
+		content := `
 	<code>
 	{
 		"data": "Hello World"
 	}
 	</code>
-`
-	renderedContent := "" +
-		`<pre><code class="prettyprint"><span class="pun">&lt;</span><span class="pln">code</span><span class="pun">&gt;</span>
+	`
+		renderedContent := "" +
+			`<pre><code class="prettyprint"><span class="pun">&lt;</span><span class="pln">code</span><span class="pun">&gt;</span>
 <span class="pun">{</span>
     <span class="str">&#34;data&#34;</span><span class="pun">:</span> <span class="str">&#34;Hello World&#34;</span>
 <span class="pun">}</span>
 <span class="pun">&lt;</span><span class="pun">/</span><span class="pln">code</span><span class="pun">&gt;</span>
 </code></pre>
 `
-	updatePayload.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent(content, rendering.SystemMarkupMarkdown)
-	_, newWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *updatePayload.Data.ID, &updatePayload)
-	// then
-	require.NotNil(s.T(), newWI.Data)
-	assert.Equal(s.T(), content, newWI.Data.Attributes[workitem.SystemDescription])
-	assert.Equal(s.T(), renderedContent, newWI.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, newWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+		updatePayload.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent(content, rendering.SystemMarkupMarkdown)
+		_, newWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *updatePayload.Data.ID, &updatePayload)
+		// then
+		require.NotNil(s.T(), newWI.Data)
+		assert.Equal(s.T(), content, newWI.Data.Attributes[workitem.SystemDescription])
+		assert.Equal(s.T(), renderedContent, newWI.Data.Attributes[workitem.SystemDescriptionRendered])
+		assert.Equal(s.T(), rendering.SystemMarkupMarkdown, newWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+	})
 }
 
 // TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set as a MarkupContent element
