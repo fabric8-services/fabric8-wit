@@ -81,6 +81,7 @@ type KubeClientInterface interface {
 	GetMetricsClient(envNS string) (Metrics, error)
 	WatchEventsInNamespace(nameSpace string) (*cache.FIFO, chan struct{})
 	Close()
+	KubeAccessControl
 }
 
 type kubeClient struct {
@@ -89,6 +90,7 @@ type kubeClient struct {
 	BaseURLProvider
 	KubeRESTAPI
 	metricsMap map[string]Metrics
+	rulesMap   map[string]*accessRules
 	OpenShiftRESTAPI
 	MetricsGetter
 }
@@ -108,11 +110,12 @@ type OpenShiftRESTAPI interface {
 	GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error)
 	GetBuilds(namespace string, labelSelector string) (map[string]interface{}, error)
 	GetDeploymentConfig(namespace string, name string) (map[string]interface{}, error)
-	DeleteDeploymentConfig(namespace string, name string, opts *metaV1.DeleteOptions) error
+	DeleteDeploymentConfig(namespace string, name string, opts *metaV1.DeleteOptions) (map[string]interface{}, error)
 	GetDeploymentConfigScale(namespace string, name string) (map[string]interface{}, error)
-	SetDeploymentConfigScale(namespace string, name string, scale map[string]interface{}) error
+	SetDeploymentConfigScale(namespace string, name string, scale map[string]interface{}) (map[string]interface{}, error)
 	GetRoutes(namespace string, labelSelector string) (map[string]interface{}, error)
-	DeleteRoute(namespace string, name string, opts *metaV1.DeleteOptions) error
+	DeleteRoute(namespace string, name string, opts *metaV1.DeleteOptions) (map[string]interface{}, error)
+	CreateSelfSubjectRulesReview(namespace string, review map[string]interface{}) (map[string]interface{}, error)
 }
 
 type openShiftAPIClient struct {
@@ -191,9 +194,20 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 		KubeRESTAPI:      kubeAPI,
 		OpenShiftRESTAPI: osAPI,
 		metricsMap:       make(map[string]Metrics),
+		rulesMap:         make(map[string]*accessRules),
 		MetricsGetter:    config.MetricsGetter,
 	}
 
+	rules, err := kubeClient.lookupAllRules(config.UserNamespace) // XXX
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("%v\n", rules) // XXX
+	canGetEnv, err := kubeClient.CanGetEnvironment("run")
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("CanGetEnvironment %v\n", canGetEnv)
 	return kubeClient, nil
 }
 
@@ -375,7 +389,7 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	}
 	spec["replicas"] = deployNumber
 
-	err = kc.SetDeploymentConfigScale(envNS, dcName, scale)
+	_, err = kc.SetDeploymentConfigScale(envNS, dcName, scale)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +410,8 @@ func (oc *openShiftAPIClient) GetDeploymentConfigScale(namespace string, name st
 	return oc.getResource(dcScalePath, false)
 }
 
-func (oc *openShiftAPIClient) SetDeploymentConfigScale(namespace string, name string, scale map[string]interface{}) error {
+func (oc *openShiftAPIClient) SetDeploymentConfigScale(namespace string, name string,
+	scale map[string]interface{}) (map[string]interface{}, error) {
 	dcScalePath := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", namespace, name)
 	return oc.sendResource(dcScalePath, "PUT", scale)
 }
@@ -766,10 +781,10 @@ func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
-func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody interface{}) error {
+func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody interface{}) (map[string]interface{}, error) {
 	url, err := oc.config.GetAPIURL()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fullURL := strings.TrimSuffix(*url, "/") + path
 
@@ -779,8 +794,8 @@ func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody i
 			"err":          err,
 			"url":          fullURL,
 			"request_body": reqBody,
-		}, "could not marshall %s request", method)
-		return errs.WithStack(err)
+		}, "could not marshal %s request", method)
+		return nil, errs.WithStack(err)
 	}
 
 	req, err := http.NewRequest(method, fullURL, bytes.NewBuffer(marshalled))
@@ -790,12 +805,12 @@ func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody i
 			"url":          fullURL,
 			"request_body": reqBody,
 		}, "could not create %s request", method)
-		return errs.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 
 	token, err := oc.config.GetAPIToken()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
@@ -808,7 +823,7 @@ func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody i
 			"url":          fullURL,
 			"request_body": reqBody,
 		}, "could not perform %s request", method)
-		return errs.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 	defer resp.Body.Close()
 
@@ -820,12 +835,12 @@ func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody i
 			"url":          fullURL,
 			"request_body": reqBody,
 		}, "could not read response from %s request", method)
-		return errs.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 	respBody := buf.Bytes()
 
 	status := resp.StatusCode
-	if status != http.StatusOK {
+	if status < http.StatusOK || status > http.StatusPartialContent {
 		log.Error(nil, map[string]interface{}{
 			"url":           fullURL,
 			"request_body":  reqBody,
@@ -836,11 +851,23 @@ func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody i
 		// If response contains a Kubernetes Status object, create a StatusError
 		err = parseErrorFromStatus(respBody)
 		if err != nil {
-			return convertError(errs.WithStack(err), "failed to %s url %s due to status code %d", method, fullURL, status)
+			return nil, convertError(errs.WithStack(err), "failed to %s url %s due to status code %d", method, fullURL, status)
 		}
-		return errs.Errorf("failed to %s url %s: status code %d", method, fullURL, status)
+		return nil, errs.Errorf("failed to %s url %s: status code %d", method, fullURL, status)
 	}
-	return nil
+
+	var respJSON map[string]interface{}
+	err = json.Unmarshal(respBody, &respJSON)
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":           err,
+			"url":           fullURL,
+			"response_body": buf,
+			"http_status":   status,
+		}, "error unmarshalling JSON response")
+		return nil, errs.WithStack(err)
+	}
+	return respJSON, nil
 }
 
 func (kc *kubeClient) getAndParseDeploymentConfig(namespace string, dcName string, space string) (*deployment, error) {
@@ -1053,17 +1080,18 @@ func (kc *kubeClient) deleteDeploymentConfig(spaceName string, dcName string, na
 		},
 		PropagationPolicy: &policy,
 	}
-	err = kc.DeleteDeploymentConfig(namespace, dcName, opts)
+	// API states this should return a Status object, but it returns the DC instead,
+	// just check for no HTTP error
+	_, err = kc.DeleteDeploymentConfig(namespace, dcName, opts)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (oc *openShiftAPIClient) DeleteDeploymentConfig(namespace string, name string, opts *metaV1.DeleteOptions) error {
+func (oc *openShiftAPIClient) DeleteDeploymentConfig(namespace string, name string,
+	opts *metaV1.DeleteOptions) (map[string]interface{}, error) {
 	dcPath := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, name)
-	// API states this should return a Status object, but it returns the DC instead,
-	// just check for no HTTP error
 	return oc.sendResource(dcPath, "DELETE", opts)
 }
 
@@ -2020,7 +2048,7 @@ func (kc *kubeClient) deleteRoutes(appLabel string, envNS string) error {
 
 		// API states this should return a Status object, but it returns the route instead,
 		// just check for no HTTP error
-		err := kc.DeleteRoute(envNS, name, opts)
+		_, err := kc.DeleteRoute(envNS, name, opts)
 		if err != nil {
 			return err
 		}
@@ -2028,7 +2056,8 @@ func (kc *kubeClient) deleteRoutes(appLabel string, envNS string) error {
 	return nil
 }
 
-func (oc *openShiftAPIClient) DeleteRoute(namespace string, name string, opts *metaV1.DeleteOptions) error {
+func (oc *openShiftAPIClient) DeleteRoute(namespace string, name string,
+	opts *metaV1.DeleteOptions) (map[string]interface{}, error) {
 	routesPath := fmt.Sprintf("/oapi/v1/namespaces/%s/routes/%s", namespace, name)
 	// API states this should return a Status object, but it returns the route instead,
 	// just check for no HTTP error
@@ -2079,7 +2108,7 @@ func (oc *openShiftAPIClient) getResource(path string, allowMissing bool) (map[s
 	status := resp.StatusCode
 	if status == http.StatusNotFound && allowMissing {
 		return nil, nil
-	} else if status != http.StatusOK {
+	} else if status < http.StatusOK || status > http.StatusPartialContent {
 		log.Error(nil, map[string]interface{}{
 			"url":           fullURL,
 			"response_body": buf,
