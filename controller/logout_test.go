@@ -26,12 +26,6 @@ func TestRunLogoutREST(t *testing.T) {
 	suite.Run(t, &TestLogoutREST{configuration: configuration})
 }
 
-func (rest *TestLogoutREST) SetupTest() {
-}
-
-func (rest *TestLogoutREST) TearDownTest() {
-}
-
 func (rest *TestLogoutREST) UnSecuredController() (*goa.Service, *LogoutController) {
 	svc := testsupport.ServiceAsUser("Logout-Service", testsupport.TestIdentity)
 	return svc, &LogoutController{Controller: svc.NewController("logout"), configuration: rest.configuration}

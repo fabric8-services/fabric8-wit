@@ -124,6 +124,11 @@ func ConvertSpaceTemplate(appl application.Application, request *http.Request, s
 					Related: ptr.String(rest.AbsoluteURL(request, app.SpaceTemplateHref(st.ID)+"/workitemtypegroups")),
 				},
 			},
+			Workitemboards: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: ptr.String(rest.AbsoluteURL(request, app.SpaceTemplateHref(st.ID)+"/workitemboards")),
+				},
+			},
 		},
 		Links: &app.GenericLinks{
 			Self: ptr.String(rest.AbsoluteURL(request, app.SpaceTemplateHref(st.ID))),

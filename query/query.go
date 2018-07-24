@@ -90,7 +90,7 @@ func (r *GormQueryRepository) Create(ctx context.Context, q *Query) error {
 		return errors.NewBadParameterError("query field is invalid JSON syntax", q.Fields).Expected("valid JSON")
 	}
 	// Parse fields to make sure that query is valid
-	exp, _, _, err := search.ParseFilterString(ctx, q.Fields)
+	exp, _, err := search.ParseFilterString(ctx, q.Fields)
 	if err != nil || exp == nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": q.SpaceID,

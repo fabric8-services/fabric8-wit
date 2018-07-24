@@ -108,6 +108,15 @@ func TestField(t *testing.T) {
 				c.Equals(c.Field("iteration.created_at"), c.Literal("123")),
 			), `((`+workitem.Column("iter", "name")+` = ?) OR (`+workitem.Column("iter", "created_at")+` = ?))`, []interface{}{"abcd", "123"}, []*workitem.TableJoin{&j})
 		})
+		t.Run("board by id", func(t *testing.T) {
+
+			columns := *defJoins["boardcolumns"]
+			columns.Active = true
+			columns.HandledFields = []string{"id"}
+			expect(t,
+				c.Equals(c.Field("board.id"), c.Literal("c20882bd-3a70-48a4-9784-3d6735992a43")),
+				`(`+workitem.Column("boardcolumns", "id")+` = ?)`, []interface{}{"c20882bd-3a70-48a4-9784-3d6735992a43"}, []*workitem.TableJoin{&columns})
+		})
 	})
 	t.Run("test illegal field name", func(t *testing.T) {
 		t.Run("double quote", func(t *testing.T) {
