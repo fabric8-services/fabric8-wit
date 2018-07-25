@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -17,9 +16,7 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/rest"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
@@ -61,47 +58,6 @@ func newCreateWorkItemLinkCategoryPayload(name string) *app.CreateWorkItemLinkCa
 	}
 }
 
-// CreateWorkItem defines a work item link
-func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemsPayload {
-	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(workItemType))
-	payload := app.CreateWorkitemsPayload{
-		Data: &app.WorkItem{
-			Attributes: map[string]interface{}{
-				workitem.SystemTitle: title,
-				workitem.SystemState: workitem.SystemStateClosed,
-			},
-			Relationships: &app.WorkItemRelationships{
-				BaseType: &app.RelationBaseType{
-					Data: &app.BaseTypeData{
-						ID:   workItemType,
-						Type: "workitemtypes",
-					},
-					Links: &app.GenericLinks{
-						Self:    &witRelatedURL,
-						Related: &witRelatedURL,
-					},
-				},
-				Space: app.NewSpaceRelation(spaceID, spaceRelatedURL),
-			},
-			Type: "workitems",
-		},
-	}
-	return &payload
-}
-
-// createWorkItemType calls createPersonWIT
-func createWorkItemType(t *testing.T, db application.DB, id, spaceTemplateID uuid.UUID) *workitem.WorkItemType {
-	wit, err := db.WorkItemTypes().Create(context.Background(), spaceTemplateID, &id, nil, "person", ptr.String("Description for 'person'"), "fa-user", workitem.FieldDefinitions{
-		"test": {
-			Required: false,
-			Type:     &workitem.SimpleType{Kind: "string"},
-		},
-	}, true)
-	require.Nil(t, err)
-	return wit
-}
-
 // createWorkItemLinkType creates a workitem link type
 func createWorkItemLinkType(t *testing.T, db application.DB, name string, categoryID, spaceTemplateID uuid.UUID) *link.WorkItemLinkType {
 	description := "Specify that one bug blocks another one."
@@ -115,12 +71,6 @@ func createWorkItemLinkType(t *testing.T, db application.DB, name string, catego
 		SpaceTemplateID: spaceTemplateID,
 	}
 	return &lt
-	// reqLong := &http.Request{Host: "api.service.domain.org"}
-	// payload := ConvertWorkItemLinkTypeFromModel(reqLong, lt)
-	// // The create payload is required during creation. Simply copy data over.
-	// return &app.CreateWorkItemLinkTypePayload{
-	// 	Data: payload.Data,
-	// }
 }
 
 // newCreateWorkItemLinkPayload returns the payload to create a work item link
