@@ -242,6 +242,18 @@ func (c *expressionCompiler) expressionRefersToJoinedData(e criteria.Expression)
 	return nil, false
 }
 
+// ensureJoinTable returns true if the given field expression is a
+// field expression and  refers to joined data; otherwise false is returned.
+func (c *expressionCompiler) ensureJoinTable(tn string) (*TableJoin, bool) {
+	for _, j := range c.joins {
+		if j.TableName == tn {
+			j.Active = true
+			return j, true
+		}
+	}
+	return nil, false
+}
+
 // Ensure expressionCompiler implements the ExpressionVisitor interface
 var _ criteria.ExpressionVisitor = &expressionCompiler{}
 var _ criteria.ExpressionVisitor = (*expressionCompiler)(nil)
@@ -392,6 +404,51 @@ func (c *expressionCompiler) Not(e *criteria.NotExpression) interface{} {
 		return nil
 	}
 	return c.binary(e, "!=")
+}
+
+func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
+	left, ok := e.Left().(*criteria.FieldExpression)
+	if !ok {
+		c.err = append(c.err, errs.Errorf("invalid left expression (not a field expression): %+v", e.Left()))
+		return nil
+	}
+
+	if strings.Contains(left.FieldName, "'") {
+		// beware of injection, it's a reasonable restriction for field names,
+		// make sure it's not allowed when creating wi types
+		c.err = append(c.err, errs.Errorf("single quote not allowed in field name: %s", left.FieldName))
+		return nil
+	}
+	litExp, ok := e.Right().(*criteria.LiteralExpression)
+	if !ok {
+		c.err = append(c.err, errs.Errorf("failed to convert right expression to literal expression: %+v", e.Right()))
+		return nil
+	}
+	r, ok := litExp.Value.(string)
+	if !ok {
+		c.err = append(c.err, errs.Errorf("failed to convert value of right literal expression to string: %+v", litExp.Value))
+		return nil
+	}
+
+	var tblName string
+	if left.FieldName == SystemIteration {
+		tblName = "iterations"
+	} else if left.FieldName == SystemArea {
+		tblName = "areas"
+	} else {
+		c.err = append(c.err, errs.Errorf("invalid field name: %+v", left.FieldName))
+		return nil
+	}
+
+	c.ensureJoinTable(tblName)
+	c.parameters = append(c.parameters, r)
+	return fmt.Sprintf(`"work_items".fields->>'%[1]s'::text IN (
+		  SELECT %[2]s.id::text 
+		    WHERE %[2]s.path <@ (SELECT i.path
+		                        FROM %[3]s i
+						WHERE i.id = ? AND i.space_id = "work_items".space_id
+					                    )
+						    )`, left.FieldName, "iter", tblName)
 }
 
 func (c *expressionCompiler) Parameter(v *criteria.ParameterExpression) interface{} {

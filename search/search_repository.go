@@ -277,7 +277,11 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Value = &s
 		case bool:
 			s := concreteVal
-			q.Negate = s
+			if key == "negate" {
+				q.Negate = s
+			} else if key == "child" {
+				q.Child = s
+			}
 		case nil:
 			q.Name = key
 			q.Value = nil
@@ -378,6 +382,8 @@ type Query struct {
 	Children []Query
 	// The Options represent the query options provided by the user.
 	Options *QueryOptions
+	// Consider child iteration/area
+	Child bool
 }
 
 func isOperator(str string) bool {
@@ -436,7 +442,11 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				if q.Substring {
 					myexpr = append(myexpr, criteria.Substring(left, right))
 				} else {
-					myexpr = append(myexpr, criteria.Equals(left, right))
+					if q.Child {
+						myexpr = append(myexpr, criteria.Child(left, right))
+					} else {
+						myexpr = append(myexpr, criteria.Equals(left, right))
+					}
 				}
 			}
 		} else {
@@ -477,7 +487,11 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 					if child.Substring {
 						myexpr = append(myexpr, criteria.Substring(left, right))
 					} else {
-						myexpr = append(myexpr, criteria.Equals(left, right))
+						if child.Child {
+							myexpr = append(myexpr, criteria.Child(left, right))
+						} else {
+							myexpr = append(myexpr, criteria.Equals(left, right))
+						}
 					}
 				}
 			} else {

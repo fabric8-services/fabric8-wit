@@ -67,6 +67,9 @@ type TableJoin struct {
 	// will be handled by the join specified here (if any).
 	DelegateTo map[string]*TableJoin
 
+	// Colum to check for ltree path (e.g., areas.path, iterations.path)
+	PathColmun string
+
 	// TODO(kwk): Maybe introduce a column mapping table here: ColumnMapping map[string]string
 }
 
@@ -107,6 +110,7 @@ func (j TableJoin) GetJoinExpression() string {
 // this table join.
 func (j *TableJoin) HandlesFieldName(fieldName string) bool {
 	for _, t := range j.PrefixActivators {
+		//       system.iteration                 iteration.
 		if strings.HasPrefix(fieldName, t) {
 			return true
 		}
