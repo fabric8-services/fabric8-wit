@@ -434,6 +434,9 @@ func GetMigrations() Migrations {
 	// Version 98
 	m = append(m, steps{ExecuteSQLFile("098-boards.sql")})
 
+	// Version 99
+	m = append(m, steps{ExecuteSQLFile("099-codebase-cve-scan-default-false.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
