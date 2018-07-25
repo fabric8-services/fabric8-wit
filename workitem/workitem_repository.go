@@ -574,7 +574,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("STORE ###################### OLD NEW ", wiStorage.Version, updatedWorkItem.Version)
 	if wiStorage.Version != updatedWorkItem.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
