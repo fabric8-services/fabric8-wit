@@ -15,6 +15,8 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Task
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: TBD
   icon: fa fa-tasks
 
@@ -22,6 +24,8 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Bug
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: TBD
   icon: fa fa-bug
   child_types:
@@ -31,6 +35,8 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Feature
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: TBD
   icon: fa fa-puzzle-piece
   child_types:
@@ -41,6 +47,8 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Experience
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: TBD
   icon: pficon pficon-infrastructure
   child_types:
@@ -51,6 +59,8 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Value Proposition
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: TBD
   icon: fa fa-diamond
   child_types:
@@ -61,6 +71,8 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Scenario
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: TBD
   icon: fa fa-bullseye
   child_types:
@@ -71,6 +83,8 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Fundamental
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: TBD
   icon: fa fa-university
   child_types:
@@ -81,6 +95,8 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Papercuts
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: TBD
   icon: fa fa-scissors
   child_types:

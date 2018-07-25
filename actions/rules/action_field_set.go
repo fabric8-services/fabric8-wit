@@ -26,6 +26,30 @@ type ActionFieldSet struct {
 // make sure the rule is implementing the interface.
 var _ Action = ActionFieldSet{}
 
+func (act ActionFieldSet) storeWorkItem(workitem *workitem.WorkItem) (*workitem.WorkItem, error) {
+	if act.Ctx == nil {
+		return nil, errors.New("Context is nil")
+	}
+	if act.Db == nil {
+		return nil, errors.New("Database is nil")
+	}
+	if act.UserID == nil {
+		return nil, errors.New("UserID is nil")
+	}
+	err := application.Transactional(act.Db, func(appl application.Application) error {
+		var err error
+		workitem, err = appl.WorkItems().Save(act.Ctx, workitem.SpaceID, *workitem, *act.UserID)
+		if err != nil {
+			return errors.New("Error updating work item")
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return workitem, nil
+}
+
 // OnChange executes the action rule.
 func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextChanges []convert.Change, configuration string, actionChanges *[]convert.Change) (convert.ChangeDetector, []convert.Change, error) {
 	// check if the newContext is a WorkItem, fail otherwise.
@@ -50,5 +74,7 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 			wiContext.Fields[k] = v
 		}
 	}
+	// store the WorkItem.
+	act.storeWorkItem(&wiContext)
 	return newContext, convertChanges, nil
 }

@@ -45,10 +45,10 @@ func (c *UserServiceController) Show(ctx *app.ShowUserServiceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	return ctx.OK(convert(t))
+	return ctx.OK(convertTenant(t))
 }
 
-func convert(t *tenant.TenantSingle) *app.UserServiceSingle {
+func convertTenant(t *tenant.TenantSingle) *app.UserServiceSingle {
 	var ns []*app.NamespaceAttributes
 	for _, tn := range t.Data.Attributes.Namespaces {
 		ns = append(ns, &app.NamespaceAttributes{

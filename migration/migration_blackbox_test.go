@@ -148,6 +148,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration96", testMigration96ChangesToAgileTemplate)
 	t.Run("TestMigration97", testMigration97RemoveResolutionFieldFromImpediment)
 	t.Run("TestMigration98", testMigration98Boards)
+	t.Run("TestMigration99", testMigration99Actions)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1157,6 +1158,12 @@ func testMigration98Boards(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:99], 99)
 	assert.True(t, dialect.HasTable("work_item_boards"))
 	assert.True(t, dialect.HasTable("work_item_board_columns"))
+}
+
+func testMigration99Actions(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:100], 100)
+	require.True(t, dialect.HasColumn("work_item_types", "trans_rule_key"))
+	require.True(t, dialect.HasColumn("work_item_types", "trans_rule_argument"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

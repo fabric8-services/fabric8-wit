@@ -60,6 +60,22 @@ func (wi WorkItem) GetLastModified() time.Time {
 
 // ChangeSet derives a changeset between this workitem and a given workitem.
 func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, error) {
+	if (older == nil) {
+		// this is changeset for a new ChangeDetector, report all observed attributes to
+		// the change set. This needs extension once we support more attributes.
+		return []convert.Change{
+			convert.Change{
+				AttributeName: "system.state",
+				NewValue:      wi.Fields["system.state"],
+				OldValue:      nil,
+			},
+			convert.Change{
+				AttributeName: "system.boardcolumns",
+				NewValue:      wi.Fields["system.boardcolumns"],
+				OldValue:      nil,
+			},
+		}, nil
+	}
 	olderWorkItem, ok := older.(WorkItem)
 	if !ok {
 		return nil, errors.New("Other entity is not a WorkItem: " + reflect.TypeOf(older).String())
@@ -89,8 +105,8 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 	if wi.Fields["system.boardcolumns"] == nil || olderWorkItem.Fields["system.boardcolumns"] == nil {
 		changes = append(changes, convert.Change{
 			AttributeName: "system.boardcolumns",
-			NewValue:      wi.Fields["system.state"],
-			OldValue:      olderWorkItem.Fields["system.state"],
+			NewValue:      wi.Fields["system.boardcolumns"],
+			OldValue:      olderWorkItem.Fields["system.boardcolumns"],
 		})
 		return changes, nil
 	}

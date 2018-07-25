@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"github.com/fabric8-services/fabric8-wit/actions"
+	conv "github.com/fabric8-services/fabric8-wit/convert"
 	"fmt"
 	"strconv"
 
@@ -137,6 +139,26 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+	// if this WIs WIT has an action rule defined, run it.
+	if workItemType.TransRuleKey != "" {
+		var changes []conv.Change
+		// first, create the change set. As we create a new WI, this is an
+		// full set. We call ChangeSet() with nil.
+		changes, err := wi.ChangeSet(nil)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create work item changeset"))
+		}
+		// then execute the action, overwriting the existing wi as the action might have a sideffect on the wi.
+		newContext, _, err := actions.ExecuteActionsByChangeset(ctx, c.db, *currentUserIdentityID, *wi, changes, map[string]string{
+			workItemType.TransRuleKey: workItemType.TransRuleArgument,
+		})
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to execute update actions on work item"))
+		}
+		newContextWi := newContext.(workitem.WorkItem)
+		wi = &newContextWi
+	}
+	// construct response	
 	wi2, err := ConvertWorkItem(ctx.Request, *workItemType, *wi, hasChildren)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)

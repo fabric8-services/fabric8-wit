@@ -12,6 +12,8 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Agile Common Type
   can_construct: no
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     This is the work item type that defines the common fields that are shared
     among all for all work item types of the agile template. It extends the

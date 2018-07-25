@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"github.com/fabric8-services/fabric8-wit/actions/rules"
 	"bytes"
 	"context"
 	"fmt"
@@ -557,6 +558,62 @@ func (s *WorkItemSuite) TestUpdateWorkitemWithoutReorder() {
 
 	// Check the execution order
 	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemOrder], updated.Data.Attributes[workitem.SystemOrder])
+}
+
+// TestCreateWorkitemWithActionRule tests that when workitem is created, a defined action rule executes.
+func (s *WorkItemSuite) TestCreateWorkitemWithActionRule() {
+	// create a wit with a set transrule setting. We're using the FieldSet rule here as it it easy to test.
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItemTypes[idx].TransRuleKey = rules.ActionKeyFieldSet
+			fxt.WorkItemTypes[idx].TransRuleArgument = "{ \"system.state\": \"resolved\" }"
+			spew.Dump(fxt.WorkItemTypes)
+			return nil
+		}),
+	)
+	// check if fxt is sane.
+	assert.Equal(s.T(), rules.ActionKeyFieldSet, fxt.WorkItemTypes[0].TransRuleKey)
+	assert.Equal(s.T(), "{ \"system.state\": \"resolved\" }", fxt.WorkItemTypes[0].TransRuleArgument)
+	// create the work item.
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
+	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	// check if the state is "resolved" based on the rule config.
+	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemState], workitem.SystemStateResolved)
+}
+
+func (s *WorkItemSuite) TestUpdateWorkitemWithActionRule() {
+	// create a wit with a set transrule setting.
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItemTypes[idx].TransRuleKey = rules.ActionKeyFieldSet
+			fxt.WorkItemTypes[idx].TransRuleArgument = "{ \"system.state\": \"" + workitem.SystemStateResolved + "\" }"
+			spew.Dump(fxt.WorkItemTypes)
+			return nil
+		}),
+	)
+	// check if fxt is sane.
+	assert.Equal(s.T(), rules.ActionKeyFieldSet, fxt.WorkItemTypes[0].TransRuleKey)
+	assert.Equal(s.T(), "{ \"system.state\": \"" + workitem.SystemStateResolved + "\" }", fxt.WorkItemTypes[0].TransRuleArgument)
+	// create the work item first.
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
+	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	// check if the state is "resolved" based on the rule config.
+	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemState], workitem.SystemStateResolved)
+	// now update the workitem.
+	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
+	payload2 := minimumRequiredUpdatePayload()
+	payload2.Data.ID = wi.Data.ID
+	payload2.Data.Attributes = wi.Data.Attributes
+	// set the workitem to "new".
+	payload2.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *wi.Data.ID, &payload2)
+	assert.Equal(s.T(), *wi.Data.ID, *updated.Data.ID)
+	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+	// the state should be reset to "resolved" again as the rule is executing.
+	assert.Equal(s.T(), workitem.SystemStateResolved, updated.Data.Attributes[workitem.SystemState])
 }
 
 func (s *WorkItemSuite) TestCreateWorkItemWithoutContext() {

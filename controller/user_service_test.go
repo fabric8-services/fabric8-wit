@@ -78,6 +78,6 @@ func Test_convert(t *testing.T) {
 		},
 	}
 
-	actual := convert(tenantSingle)
+	actual := convertTenant(tenantSingle)
 	require.Equal(t, expected, actual)
 }
