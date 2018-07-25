@@ -110,7 +110,6 @@ func (j TableJoin) GetJoinExpression() string {
 // this table join.
 func (j *TableJoin) HandlesFieldName(fieldName string) bool {
 	for _, t := range j.PrefixActivators {
-		//       system.iteration                 iteration.
 		if strings.HasPrefix(fieldName, t) {
 			return true
 		}
