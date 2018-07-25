@@ -145,7 +145,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	// if this WIs WIT has an action rule defined, run it.
 	if wit.TransRuleKey != "" {
 		// first, create the change set.
-		changes, err := wi.ChangeSet(oldWi)
+		changes, err := wi.ChangeSet(*oldWi)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create work item changeset"))
 		}
@@ -156,8 +156,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to execute update actions on work item"))
 		}
-		newContextWi := newContext.(workitem.WorkItem)
-		wi = &newContextWi
+		wi = newContext.(*workitem.WorkItem)
 	}
 	c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String()))
 	converted, err := ConvertWorkItem(ctx.Request, *wit, *wi, workItemIncludeHasChildren(ctx, c.db))

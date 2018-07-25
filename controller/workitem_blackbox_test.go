@@ -566,7 +566,6 @@ func (s *WorkItemSuite) TestCreateWorkitemWithActionRule() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
 			fxt.WorkItemTypes[idx].TransRuleKey = rules.ActionKeyFieldSet
 			fxt.WorkItemTypes[idx].TransRuleArgument = "{ \"system.state\": \"resolved\" }"
-			spew.Dump(fxt.WorkItemTypes)
 			return nil
 		}),
 	)
@@ -578,6 +577,8 @@ func (s *WorkItemSuite) TestCreateWorkitemWithActionRule() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	// version is "1" because the rule has also changed the WI, resulting in an incremented version.
+	assert.Equal(s.T(), 1, wi.Data.Attributes["version"])
 	// check if the state is "resolved" based on the rule config.
 	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemState], workitem.SystemStateResolved)
 }
@@ -587,7 +588,6 @@ func (s *WorkItemSuite) TestUpdateWorkitemWithActionRule() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
 			fxt.WorkItemTypes[idx].TransRuleKey = rules.ActionKeyFieldSet
 			fxt.WorkItemTypes[idx].TransRuleArgument = "{ \"system.state\": \"" + workitem.SystemStateResolved + "\" }"
-			spew.Dump(fxt.WorkItemTypes)
 			return nil
 		}),
 	)
@@ -599,6 +599,8 @@ func (s *WorkItemSuite) TestUpdateWorkitemWithActionRule() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	// version is "1" because the rule has also changed the WI, resulting in an incremented version.
+	assert.Equal(s.T(), 1, wi.Data.Attributes["version"])
 	// check if the state is "resolved" based on the rule config.
 	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemState], workitem.SystemStateResolved)
 	// now update the workitem.
@@ -610,7 +612,8 @@ func (s *WorkItemSuite) TestUpdateWorkitemWithActionRule() {
 	payload2.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *wi.Data.ID, &payload2)
 	assert.Equal(s.T(), *wi.Data.ID, *updated.Data.ID)
-	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	// the version needs to be 3 as we had a create (0), an initial rule run (1), a manual update (2) and a rule update (3)
+	assert.Equal(s.T(), 3, updated.Data.Attributes["version"])
 	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
 	// the state should be reset to "resolved" again as the rule is executing.
 	assert.Equal(s.T(), workitem.SystemStateResolved, updated.Data.Attributes[workitem.SystemState])

@@ -155,8 +155,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to execute update actions on work item"))
 		}
-		newContextWi := newContext.(workitem.WorkItem)
-		wi = &newContextWi
+		wi = newContext.(*workitem.WorkItem)
 	}
 	// construct response	
 	wi2, err := ConvertWorkItem(ctx.Request, *workItemType, *wi, hasChildren)

@@ -355,7 +355,10 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 	}
 	// finally, store the new work item state if something changed.
 	if wiDirty {
-		act.storeWorkItem(&wi)
+		newContext, err = act.storeWorkItem(&wi)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 	// return to sender
 	return newContext, changes, nil
@@ -484,8 +487,11 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 	}
 	// finally, store the new work item state if something changed.
 	if wiDirty {
-		act.storeWorkItem(&wi)
+		newContext, err = act.storeWorkItem(&wi)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 	// and return to sender.
-	return wi, changes, nil
+	return newContext, changes, nil
 }

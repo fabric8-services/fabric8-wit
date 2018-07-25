@@ -75,6 +75,9 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 		}
 	}
 	// store the WorkItem.
-	act.storeWorkItem(&wiContext)
+	newContext, err = act.storeWorkItem(&wiContext)
+	if err != nil {
+		return nil, nil, err
+	}
 	return newContext, convertChanges, nil
 }
