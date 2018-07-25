@@ -643,9 +643,7 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 			if description != nil {
 				op.Attributes[name] = (*description).Content
 				op.Attributes[workitem.SystemDescriptionMarkup] = (*description).Markup
-				// let's include the rendered description while 'HTML escaping' it to prevent script injection
-				op.Attributes[workitem.SystemDescriptionRendered] =
-					rendering.RenderMarkupToHTML(html.EscapeString((*description).Content), (*description).Markup)
+				op.Attributes[workitem.SystemDescriptionRendered] = rendering.RenderMarkupToHTML((*description).Content, (*description).Markup)
 			}
 		case workitem.SystemCodebase:
 			if val != nil {

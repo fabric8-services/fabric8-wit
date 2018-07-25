@@ -435,7 +435,10 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("098-boards.sql")})
 
 	// Version 99
-	m = append(m, steps{ExecuteSQLFile("099-add-rules-to-wit.sql")})
+	m = append(m, steps{ExecuteSQLFile("099-codebase-cve-scan-default-false.sql")})
+
+	// Version 100
+	m = append(m, steps{ExecuteSQLFile("100-add-rules-to-wit.sql")})
 
 	// Version N
 	//

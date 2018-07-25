@@ -1345,6 +1345,49 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
+func (s *WorkItem2Suite) TestWI2SuccessUpdateWorkItemWithDescriptionAndMarkup() {
+	// given
+	originalDescription := "` x = \"1\"`"
+	originalDescriptionRendered := "<p><code>x = &#34;1&#34;</code></p>\n"
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent(originalDescription, rendering.SystemMarkupMarkdown)
+	c.Data.Relationships.BaseType = newRelationBaseType(workitem.SystemBug)
+
+	// when
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
+	assert.Equal(s.T(), originalDescription, wi.Data.Attributes[workitem.SystemDescription])
+	assert.Equal(s.T(), originalDescriptionRendered, wi.Data.Attributes[workitem.SystemDescriptionRendered])
+
+	s.T().Run("update", func(t *testing.T) {
+		updatePayload := minimumRequiredUpdatePayload()
+		updatePayload.Data.ID = wi.Data.ID
+		updatePayload.Data.Attributes["version"] = wi.Data.Attributes["version"]
+		content := `
+	<code>
+	{
+		"data": "Hello World"
+	}
+	</code>
+	`
+		renderedContent := "" +
+			`<pre><code class="prettyprint"><span class="pun">&lt;</span><span class="pln">code</span><span class="pun">&gt;</span>
+<span class="pun">{</span>
+    <span class="str">&#34;data&#34;</span><span class="pun">:</span> <span class="str">&#34;Hello World&#34;</span>
+<span class="pun">}</span>
+<span class="pun">&lt;</span><span class="pun">/</span><span class="pln">code</span><span class="pun">&gt;</span>
+</code></pre>
+`
+		updatePayload.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent(content, rendering.SystemMarkupMarkdown)
+		_, newWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *updatePayload.Data.ID, &updatePayload)
+		// then
+		require.NotNil(s.T(), newWI.Data)
+		assert.Equal(s.T(), content, newWI.Data.Attributes[workitem.SystemDescription])
+		assert.Equal(s.T(), renderedContent, newWI.Data.Attributes[workitem.SystemDescriptionRendered])
+		assert.Equal(s.T(), rendering.SystemMarkupMarkdown, newWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+	})
+}
+
 // TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set as a MarkupContent element
 func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup() {
 	// given
@@ -2593,7 +2636,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 	require.NotNil(s.T(), fetchedWI.Data)
 	require.NotNil(s.T(), fetchedWI.Data.Attributes)
 	assert.Equal(s.T(), html.EscapeString(title), fetchedWI.Data.Attributes[workitem.SystemTitle])
-	assert.Equal(s.T(), "<p>"+html.EscapeString(description.Content)+"</p>\n", fetchedWI.Data.Attributes[workitem.SystemDescriptionRendered])
+	// The resultant description won't have the `onerror=alert('description')` since it is not allowed in RenderMarkupToHTML function
+	assert.Equal(s.T(), "<p><img src=\"x\"/></p>\n", fetchedWI.Data.Attributes[workitem.SystemDescriptionRendered])
 }
 
 func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
