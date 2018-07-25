@@ -402,7 +402,7 @@ $ docker kill fabric8wit_db_1 && docker rm fabric8wit_db_1
 
 In case you have mulitple `fabric8*` running use `docker ps` to locate the container name.
 
-== Debugging [[debug]]
+== Work Item Creation
 
 System defined Work Item Types are
 
