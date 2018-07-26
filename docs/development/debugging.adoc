@@ -5,7 +5,7 @@
 :experimental:
 
 This section shows how to install a Go debugger
-(link:https://github.com/derekparker/delve:[delve]) and how to actually do some
+(link:https://github.com/derekparker/delve[delve]) and how to actually do some
 debugging from a terminal.
 
 For somebody coming from a C/C++ background this should feed very familiar as

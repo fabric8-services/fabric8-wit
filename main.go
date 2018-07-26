@@ -373,7 +373,6 @@ func main() {
 
 	// Mount "spacecodebases" controller
 	spaceCodebaseCtrl := controller.NewSpaceCodebasesController(service, appDB)
-	spaceCodebaseCtrl.AnalyticsGeminiClient = controller.NewDefaultAnalyticsGeminiClient(config)
 	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
 
 	// Mount "collaborators" controller
