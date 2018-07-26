@@ -325,9 +325,9 @@ func main() {
 	labelCtrl := controller.NewLabelController(service, appDB, config)
 	app.MountLabelController(service, labelCtrl)
 
-	// Mount "root" controller
-	rootCtrl := controller.NewRootController(service)
-	app.MountRootController(service, rootCtrl)
+	// Mount "endpoints" controller
+	endpointsCtrl := controller.NewEndpointsController(service)
+	app.MountEndpointsController(service, endpointsCtrl)
 
 	// Mount "iterations" controller
 	iterationCtrl := controller.NewIterationController(service, appDB, config)

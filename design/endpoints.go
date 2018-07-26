@@ -5,8 +5,8 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
-var root = a.Type("Root", func() {
-	a.Description("JSONAPI store for the data of a Root.")
+var endpoint = a.Type("Endpoints", func() {
+	a.Description("JSONAPI store for the data of all endpoints.")
 	a.Attribute("relationships", a.HashOf(d.String, d.Any), "Describes relationship between names and links")
 	a.Attribute("type", d.String, func() {
 		a.Enum("endpoints")
@@ -16,19 +16,19 @@ var root = a.Type("Root", func() {
 	a.Required("type", "links", "id", "relationships")
 })
 
-var rootSingle = JSONSingle(
-	"Root", "Holds a single Root",
-	root,
+var endpointsSingle = JSONSingle(
+	"Endpoint", "Contains endpoints",
+	endpoint,
 	nil)
 
-var _ = a.Resource("root", func() {
-	a.BasePath("/root")
+var _ = a.Resource("endpoints", func() {
+	a.BasePath("/endpoints")
 	a.Action("list", func() {
 		a.Routing(
 			a.GET(""),
 		)
 		a.Description("List all endpoints. ")
-		a.Response(d.OK, rootSingle)
+		a.Response(d.OK, endpointsSingle)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})

@@ -25,6 +25,11 @@
           "related": "/deployments/environments"
         }
       },
+      "endpoints": {
+        "links": {
+          "related": "/endpoints"
+        }
+      },
       "features": {
         "links": {
           "related": "/features"
@@ -58,11 +63,6 @@
       "render": {
         "links": {
           "related": "/render"
-        }
-      },
-      "root": {
-        "links": {
-          "related": "/root"
         }
       },
       "search": {

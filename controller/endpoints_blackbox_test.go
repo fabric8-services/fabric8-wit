@@ -17,18 +17,18 @@ func (s brokenFileSystemSimulator) Asset(fileName string) ([]byte, error) {
 	return nil, errs.Errorf("failed to file name %s", fileName)
 }
 
-func TestListRootOK(t *testing.T) {
+func TestListEndpointsOK(t *testing.T) {
 	t.Parallel()
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
 		// given
-		svc := goa.New("rootService")
-		ctrl := controller.NewRootController(svc)
+		svc := goa.New("endpointsService")
+		ctrl := controller.NewEndpointsController(svc)
 		// when
-		res, listRoot := test.ListRootOK(t, svc.Context, svc, ctrl)
+		res, listRoot := test.ListEndpointsOK(t, svc.Context, svc, ctrl)
 		// then
-		compareWithGoldenAgnostic(t, filepath.Join("test-files", "root", "list", "ok_root.res.payload.golden.json"), listRoot)
-		compareWithGoldenAgnostic(t, filepath.Join("test-files", "root", "list", "ok.res.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join("test-files", "endpoints", "list", "ok.res.payload.golden.json"), listRoot)
+		compareWithGoldenAgnostic(t, filepath.Join("test-files", "endpoints", "list", "ok.res.headers.golden.json"), res.Header())
 		relationships := listRoot.Data.Relationships
 		require.NotNil(t, relationships)
 		user := relationships["current_user"]
@@ -40,7 +40,7 @@ func TestListRootOK(t *testing.T) {
 			// utilize its cache.
 			ctrl.FileHandler = brokenFileSystemSimulator{}
 			// when
-			res2, listRoot2 := test.ListRootOK(t, svc.Context, svc, ctrl)
+			res2, listRoot2 := test.ListEndpointsOK(t, svc.Context, svc, ctrl)
 			// then
 			require.Equal(t, res, res2)
 			require.Equal(t, listRoot, listRoot2)
@@ -50,12 +50,12 @@ func TestListRootOK(t *testing.T) {
 		t.Parallel()
 		// given
 		svc := goa.New("rootService")
-		ctrl := controller.NewRootController(svc)
+		ctrl := controller.NewEndpointsController(svc)
 		ctrl.FileHandler = brokenFileSystemSimulator{}
 		// when
-		res, jerrs := test.ListRootNotFound(t, svc.Context, svc, ctrl)
+		res, jerrs := test.ListEndpointsNotFound(t, svc.Context, svc, ctrl)
 		// then
-		compareWithGoldenAgnostic(t, filepath.Join("test-files", "root", "list", "not_found.res.payload.golden.json"), jerrs)
-		compareWithGoldenAgnostic(t, filepath.Join("test-files", "root", "list", "not_found.res.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join("test-files", "endpoints", "list", "not_found.res.payload.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join("test-files", "endpoints", "list", "not_found.res.headers.golden.json"), res.Header())
 	})
 }

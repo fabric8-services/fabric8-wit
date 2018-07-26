@@ -23,13 +23,13 @@ type asseter interface {
 	Asset(name string) ([]byte, error)
 }
 
-// RootController implements the root resource.
-type RootController struct {
+// EndpointsController implements the endpoints resource.
+type EndpointsController struct {
 	*goa.Controller
 	FileHandler asseter
-	// endpoints caches the result of parsing the root endpoints so that
+	// endpoints caches the result of parsing the endpoints so that
 	// consecutive calls to this API only call the API once
-	endpoints *app.Root
+	endpoints *app.Endpoints
 	// endpointsLock protects the endpoints resource
 	endpointsLock sync.RWMutex
 }
@@ -43,34 +43,34 @@ func (s workingFileFetcher) Asset(fileName string) ([]byte, error) {
 var _ asseter = workingFileFetcher{}
 var _ asseter = (*workingFileFetcher)(nil)
 
-// NewRootController creates a root controller.
-func NewRootController(service *goa.Service) *RootController {
-	return &RootController{
-		Controller:  service.NewController("RootController"),
+// NewEndpointsController creates an endpoints controller.
+func NewEndpointsController(service *goa.Service) *EndpointsController {
+	return &EndpointsController{
+		Controller:  service.NewController("EndpointsController"),
 		FileHandler: workingFileFetcher{},
 	}
 }
 
 // List runs the list action.
-func (c *RootController) List(ctx *app.ListRootContext) error {
+func (c *EndpointsController) List(ctx *app.ListEndpointsContext) error {
 	c.endpointsLock.Lock()
 	defer c.endpointsLock.Unlock()
 	if c.endpoints == nil {
-		roots, err := getRoot(ctx, c.FileHandler)
-		if err != nil || roots == nil {
+		endpoints, err := getEndpoints(ctx, c.FileHandler)
+		if err != nil || endpoints == nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":  errs.WithStack(err),
 				"file": embeddedSwaggerSpecFile,
 			}, err.Error())
 			return jsonapi.JSONErrorResponse(ctx, errs.WithStack(err))
 		}
-		c.endpoints = roots
+		c.endpoints = endpoints
 	}
-	return ctx.OK(&app.RootSingle{Data: c.endpoints})
+	return ctx.OK(&app.EndpointSingle{Data: c.endpoints})
 }
 
 // Get a list of all endpoints formatted to json api format.
-func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
+func getEndpoints(ctx *app.ListEndpointsContext, fileHandler asseter) (*app.Endpoints, error) {
 	// Get an unmarshal swagger specification
 	swaggerJSON, err := fileHandler.Asset(embeddedSwaggerSpecFile)
 	if err != nil {
@@ -141,7 +141,7 @@ func getRoot(ctx *app.ListRootContext, fileHandler asseter) (*app.Root, error) {
 		return nil, errors.NewInternalErrorFromString("unable to assert concrete type string for field `basePath` in swagger specification")
 	}
 
-	return &app.Root{
+	return &app.Endpoints{
 		Type:          "endpoints",
 		ID:            uuid.NewV4(),
 		Relationships: namedPaths,
