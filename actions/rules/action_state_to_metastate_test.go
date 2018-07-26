@@ -20,16 +20,7 @@ func TestSuiteActionStateToMetastate(t *testing.T) {
 }
 
 type ActionStateToMetastateSuite struct {
-	suite.Suite
 	gormtestsupport.DBTestSuite
-}
-
-func (s *ActionStateToMetastateSuite) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-}
-
-func (s *ActionStateToMetastateSuite) SetupTest() {
-	s.DBTestSuite.SetupTest()
 }
 
 func (s *ActionStateToMetastateSuite) TestActionExecution() {
@@ -67,7 +58,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 	require.Equal(s.T(), fxt.WorkItemBoards[0].Columns[0].ID.String(), fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns].([]interface{})[0])
 
 	s.T().Run("updating the state for an existing work item", func(t *testing.T) {
-		fxt := fxtFn(s.T())
+		fxt := fxtFn(t)
 		// set the state to "in progress" and create a changeset.
 		fxt.WorkItems[0].Fields[workitem.SystemState] = "in progress"
 		contextChanges := []convert.Change{
@@ -86,25 +77,25 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		var convertChanges []convert.Change
 		// note: changing the state does not require a configuration.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
-		require.Nil(s.T(), err)
-		require.Len(s.T(), convertChanges, 2)
+		require.Nil(t, err)
+		require.Len(t, convertChanges, 2)
 		// check metastate validity.
-		require.Equal(s.T(), convertChanges[0].AttributeName, "system.metastate")
-		require.Equal(s.T(), convertChanges[0].OldValue, "mNew")
-		require.Equal(s.T(), convertChanges[0].NewValue, "mInprogress")
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.metastate"], "mInprogress")
+		require.Equal(t, "system.metastate", convertChanges[0].AttributeName)
+		require.Equal(t, "mNew", convertChanges[0].OldValue)
+		require.Equal(t, "mInprogress", convertChanges[0].NewValue)
+		require.Equal(t, "mInprogress", afterActionWI.(workitem.WorkItem).Fields["system.metastate"])
 		// check column validity.
-		require.Equal(s.T(), convertChanges[1].AttributeName, "system.boardcolumns")
-		require.Len(s.T(), convertChanges[1].OldValue, 1)
-		require.Equal(s.T(), convertChanges[1].OldValue.([]interface{})[0], fxt.WorkItemBoards[0].Columns[0].ID.String() )
-		require.Equal(s.T(), convertChanges[1].NewValue.([]interface{})[0], fxt.WorkItemBoards[0].Columns[1].ID.String() )
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.metastate"], "mInprogress")
-		require.Len(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{}), 1)
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{})[0], fxt.WorkItemBoards[0].Columns[1].ID.String())
+		require.Equal(t, "system.boardcolumns", convertChanges[1].AttributeName)
+		require.Len(t, convertChanges[1].OldValue, 1)
+		require.Equal(t, fxt.WorkItemBoards[0].Columns[0].ID.String(), convertChanges[1].OldValue.([]interface{})[0])
+		require.Equal(t, fxt.WorkItemBoards[0].Columns[1].ID.String(), convertChanges[1].NewValue.([]interface{})[0])
+		require.Equal(t, "mInprogress", afterActionWI.(workitem.WorkItem).Fields["system.metastate"])
+		require.Len(t, afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{}), 1)
+		require.Equal(t, fxt.WorkItemBoards[0].Columns[1].ID.String(), afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{})[0])
 	})
 
 	s.T().Run("updating the state for a vanilla work item", func(t *testing.T) {
-		fxt := fxtFn(s.T())
+		fxt := fxtFn(t)
 		// this should be a vanilla work item, where metastate and boardcolumns is nil
 		delete(fxt.WorkItems[0].Fields, workitem.SystemMetaState)
 		delete(fxt.WorkItems[0].Fields, workitem.SystemBoardcolumns)
@@ -126,24 +117,24 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		var convertChanges []convert.Change
 		// note: changing the state does not require a configuration.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
-		require.Nil(s.T(), err)
-		require.Len(s.T(), convertChanges, 2)
+		require.Nil(t, err)
+		require.Len(t, convertChanges, 2)
 		// check metastate validity.
-		require.Equal(s.T(), convertChanges[0].AttributeName, "system.metastate")
-		require.Nil(s.T(), convertChanges[0].OldValue)
-		require.Equal(s.T(), convertChanges[0].NewValue, "mInprogress")
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.metastate"], "mInprogress")
+		require.Equal(t, "system.metastate", convertChanges[0].AttributeName)
+		require.Nil(t, convertChanges[0].OldValue)
+		require.Equal(t, "mInprogress", convertChanges[0].NewValue)
+		require.Equal(t, "mInprogress", afterActionWI.(workitem.WorkItem).Fields["system.metastate"])
 		// check column validity.
-		require.Equal(s.T(), convertChanges[1].AttributeName, "system.boardcolumns")
-		require.Empty(s.T(), convertChanges[1].OldValue)
-		require.Equal(s.T(), convertChanges[1].NewValue.([]interface{})[0], fxt.WorkItemBoards[0].Columns[1].ID.String() )
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.metastate"], "mInprogress")
-		require.Len(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{}), 1)
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{})[0], fxt.WorkItemBoards[0].Columns[1].ID.String())
+		require.Equal(t, "system.boardcolumns", convertChanges[1].AttributeName)
+		require.Empty(t, convertChanges[1].OldValue)
+		require.Equal(t, fxt.WorkItemBoards[0].Columns[1].ID.String(), convertChanges[1].NewValue.([]interface{})[0])
+		require.Equal(t, "mInprogress", afterActionWI.(workitem.WorkItem).Fields["system.metastate"])
+		require.Len(t, afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{}), 1)
+		require.Equal(t, fxt.WorkItemBoards[0].Columns[1].ID.String(), afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{})[0])
 	})
 
 	s.T().Run("updating the state for a work item with multiple metastate mappings on columns", func(t *testing.T) {
-		fxt := fxtFn(s.T())
+		fxt := fxtFn(t)
 		// this should be a vanilla work item, where metastate and boardcolumns is nil
 		delete(fxt.WorkItems[0].Fields, workitem.SystemMetaState)
 		delete(fxt.WorkItems[0].Fields, workitem.SystemBoardcolumns)
@@ -165,25 +156,25 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		var convertChanges []convert.Change
 		// note: changing the state does not require a configuration.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
-		require.Nil(s.T(), err)
-		require.Len(s.T(), convertChanges, 2)
+		require.Nil(t, err)
+		require.Len(t, convertChanges, 2)
 		// check metastate validity.
-		require.Equal(s.T(), convertChanges[0].AttributeName, "system.metastate")
-		require.Nil(s.T(), convertChanges[0].OldValue)
-		require.Equal(s.T(), convertChanges[0].NewValue, "mResolved")
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.metastate"], "mResolved")
+		require.Equal(t, "system.metastate", convertChanges[0].AttributeName)
+		require.Nil(t, convertChanges[0].OldValue)
+		require.Equal(t, "mResolved", convertChanges[0].NewValue)
+		require.Equal(t, "mResolved", afterActionWI.(workitem.WorkItem).Fields["system.metastate"])
 		// check column validity. For the resolved state, two columns are matching,
 		// but only the first one (column 2) should be used and available in the WI.
-		require.Equal(s.T(), convertChanges[1].AttributeName, "system.boardcolumns")
-		require.Empty(s.T(), convertChanges[1].OldValue)
-		require.Equal(s.T(), convertChanges[1].NewValue.([]interface{})[0], fxt.WorkItemBoards[0].Columns[2].ID.String() )
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.metastate"], "mResolved")
-		require.Len(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{}), 1)
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{})[0], fxt.WorkItemBoards[0].Columns[2].ID.String())
+		require.Equal(t, "system.boardcolumns", convertChanges[1].AttributeName, )
+		require.Empty(t, convertChanges[1].OldValue)
+		require.Equal(t, fxt.WorkItemBoards[0].Columns[2].ID.String(), convertChanges[1].NewValue.([]interface{})[0])
+		require.Equal(t, "mResolved", afterActionWI.(workitem.WorkItem).Fields["system.metastate"])
+		require.Len(t, afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{}), 1)
+		require.Equal(t, fxt.WorkItemBoards[0].Columns[2].ID.String(), afterActionWI.(workitem.WorkItem).Fields["system.boardcolumns"].([]interface{})[0])
 	})
 
 	s.T().Run("updating the columns for an existing work item", func(t *testing.T) {
-		fxt := fxtFn(s.T())
+		fxt := fxtFn(t)
 		// set the column to the "in progress" column and create a changeset.
 		contextChanges := []convert.Change{
 			convert.Change{
@@ -202,22 +193,22 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		var convertChanges []convert.Change
 		// note: changing the state does not require a configuration.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
-		require.Nil(s.T(), err)
-		require.Len(s.T(), convertChanges, 2)
+		require.Nil(t, err)
+		require.Len(t, convertChanges, 2)
 		// check metastate validity.
-		require.Equal(s.T(), convertChanges[0].AttributeName, "system.metastate")
-		require.Equal(s.T(), convertChanges[0].OldValue, "mNew")
-		require.Equal(s.T(), convertChanges[0].NewValue, "mInprogress")
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.metastate"], "mInprogress")
+		require.Equal(t, "system.metastate", convertChanges[0].AttributeName)
+		require.Equal(t, "mNew", convertChanges[0].OldValue)
+		require.Equal(t, "mInprogress", convertChanges[0].NewValue)
+		require.Equal(t, "mInprogress", afterActionWI.(workitem.WorkItem).Fields["system.metastate"])
 		// check state validity.
-		require.Equal(s.T(), convertChanges[1].AttributeName, "system.state")
-		require.Equal(s.T(), convertChanges[1].OldValue, "new")
-		require.Equal(s.T(), convertChanges[1].NewValue, "in progress")
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.state"], "in progress")
+		require.Equal(t, "system.state", convertChanges[1].AttributeName)
+		require.Equal(t, "new", convertChanges[1].OldValue)
+		require.Equal(t, "in progress", convertChanges[1].NewValue)
+		require.Equal(t, "in progress", afterActionWI.(workitem.WorkItem).Fields["system.state"])
 	})
 
 	s.T().Run("updating the columns for a vanilla work item", func(t *testing.T) {
-		fxt := fxtFn(s.T())
+		fxt := fxtFn(t)
 		// set the column to the "in progress" column and create a changeset.
 		contextChanges := []convert.Change{
 			convert.Change{
@@ -237,18 +228,18 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		var convertChanges []convert.Change
 		// note: changing the state does not require a configuration.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
-		require.Nil(s.T(), err)
-		require.Len(s.T(), convertChanges, 2)
+		require.Nil(t, err)
+		require.Len(t, convertChanges, 2)
 		// check metastate validity.
-		require.Equal(s.T(), convertChanges[0].AttributeName, "system.metastate")
-		require.Nil(s.T(), convertChanges[0].OldValue)
-		require.Equal(s.T(), convertChanges[0].NewValue, "mInprogress")
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.metastate"], "mInprogress")
+		require.Equal(t, "system.metastate", convertChanges[0].AttributeName)
+		require.Nil(t, convertChanges[0].OldValue)
+		require.Equal(t, "mInprogress", convertChanges[0].NewValue)
+		require.Equal(t, "mInprogress", afterActionWI.(workitem.WorkItem).Fields["system.metastate"])
 		// check state validity.
-		require.Equal(s.T(), convertChanges[1].AttributeName, "system.state")
-		require.Equal(s.T(), convertChanges[1].OldValue, "new")
-		require.Equal(s.T(), convertChanges[1].NewValue, "in progress")
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.state"], "in progress")
+		require.Equal(t, "system.state", convertChanges[1].AttributeName)
+		require.Equal(t, "new", convertChanges[1].OldValue)
+		require.Equal(t, "in progress", convertChanges[1].NewValue)
+		require.Equal(t, "in progress", afterActionWI.(workitem.WorkItem).Fields["system.state"])
 	})
 
 }

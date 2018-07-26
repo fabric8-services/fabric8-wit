@@ -3,12 +3,12 @@ package rules
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"github.com/fabric8-services/fabric8-wit/application"
 	"reflect"
 
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
+	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
@@ -40,7 +40,7 @@ func (act ActionFieldSet) storeWorkItem(workitem *workitem.WorkItem) (*workitem.
 		var err error
 		workitem, err = appl.WorkItems().Save(act.Ctx, workitem.SpaceID, *workitem, *act.UserID)
 		if err != nil {
-			return errors.New("Error updating work item")
+			return errors.Wrap(err, "Error updating work item")
 		}
 		return nil
 	})
@@ -58,10 +58,10 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 		return nil, nil, errors.New("Given context is not a WorkItem: " + reflect.TypeOf(newContext).String())
 	}
 	// deserialize the config JSON
-	rawType := map[string]interface{}{}
+	var rawType map[string]interface{}
 	err := json.Unmarshal([]byte(configuration), &rawType)
 	if err != nil {
-		return nil, nil, errors.New("Failed to unmarshall from action configuration to a map: " + configuration)
+		return nil, nil, errors.Wrap(err, "Failed to unmarshall from action configuration to a map: " + configuration)
 	}
 	var convertChanges []convert.Change
 	for k, v := range rawType {

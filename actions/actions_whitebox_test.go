@@ -20,16 +20,7 @@ func TestSuiteAction(t *testing.T) {
 }
 
 type ActionSuite struct {
-	suite.Suite
 	gormtestsupport.DBTestSuite
-}
-
-func (s *ActionSuite) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-}
-
-func (s *ActionSuite) SetupTest() {
-	s.DBTestSuite.SetupTest()
 }
 
 func createWICopy(ID uuid.UUID, state string, boardcolumns []string) workitem.WorkItem {
@@ -50,13 +41,13 @@ func (s *ActionSuite) TestChangeSet() {
 
 	s.T().Run("different ID", func(t *testing.T) {
 		_, err := fixture.WorkItems[0].ChangeSet(*fixture.WorkItems[1])
-		require.NotNil(s.T(), err)
+		require.NotNil(t, err)
 	})
 
 	s.T().Run("same instance", func(t *testing.T) {
 		changes, err := fixture.WorkItems[0].ChangeSet(*fixture.WorkItems[0])
-		require.Nil(s.T(), err)
-		require.Empty(s.T(), changes)
+		require.Nil(t, err)
+		require.Empty(t, changes)
 	})
 
 	s.T().Run("no changes, same column order", func(t *testing.T) {
@@ -64,8 +55,8 @@ func (s *ActionSuite) TestChangeSet() {
 		fixture.WorkItems[0].Fields["system.state"] = "new"
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
 		changes, err := fixture.WorkItems[0].ChangeSet(wiCopy)
-		require.Nil(s.T(), err)
-		require.Empty(s.T(), changes)
+		require.Nil(t, err)
+		require.Empty(t, changes)
 	})
 
 	s.T().Run("no changes, mixed column order", func(t *testing.T) {
@@ -73,8 +64,8 @@ func (s *ActionSuite) TestChangeSet() {
 		fixture.WorkItems[0].Fields["system.state"] = "new"
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
 		changes, err := fixture.WorkItems[0].ChangeSet(wiCopy)
-		require.Nil(s.T(), err)
-		require.Empty(s.T(), changes)
+		require.Nil(t, err)
+		require.Empty(t, changes)
 	})
 
 	s.T().Run("state changes", func(t *testing.T) {
@@ -82,11 +73,11 @@ func (s *ActionSuite) TestChangeSet() {
 		fixture.WorkItems[0].Fields["system.state"] = "open"
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
 		changes, err := fixture.WorkItems[0].ChangeSet(wiCopy)
-		require.Nil(s.T(), err)
-		require.Len(s.T(), changes, 1)
-		require.Equal(s.T(), changes[0].AttributeName, "system.state")
-		require.Equal(s.T(), changes[0].NewValue, "open")
-		require.Equal(s.T(), changes[0].OldValue, "new")
+		require.Nil(t, err)
+		require.Len(t, changes, 1)
+		require.Equal(t, "system.state", changes[0].AttributeName)
+		require.Equal(t, "open", changes[0].NewValue)
+		require.Equal(t, "new", changes[0].OldValue)
 	})
 
 	s.T().Run("column changes", func(t *testing.T) {
@@ -94,13 +85,13 @@ func (s *ActionSuite) TestChangeSet() {
 		fixture.WorkItems[0].Fields["system.state"] = "new"
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
 		changes, err := fixture.WorkItems[0].ChangeSet(wiCopy)
-		require.Nil(s.T(), err)
-		require.Len(s.T(), changes, 1)
+		require.Nil(t, err)
+		require.Len(t, changes, 1)
 		fmt.Println(changes[0].OldValue)
 		fmt.Println(changes[0].NewValue)
-		require.Equal(s.T(), changes[0].AttributeName, "system.boardcolumns")
-		require.Equal(s.T(), changes[0].OldValue, wiCopy.Fields["system.boardcolumns"])
-		require.Equal(s.T(), changes[0].NewValue, fixture.WorkItems[0].Fields["system.boardcolumns"])
+		require.Equal(t, "system.boardcolumns", changes[0].AttributeName)
+		require.Equal(t, wiCopy.Fields["system.boardcolumns"], changes[0].OldValue)
+		require.Equal(t, fixture.WorkItems[0].Fields["system.boardcolumns"], changes[0].NewValue)
 	})
 
 	s.T().Run("multiple changes", func(t *testing.T) {
@@ -108,17 +99,17 @@ func (s *ActionSuite) TestChangeSet() {
 		fixture.WorkItems[0].Fields["system.state"] = "new"
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
 		changes, err := fixture.WorkItems[0].ChangeSet(wiCopy)
-		require.Nil(s.T(), err)
-		require.Len(s.T(), changes, 2)
+		require.Nil(t, err)
+		require.Len(t, changes, 2)
 		// we intentionally test the order here as the code under test needs
 		// to be expanded later, supporting more changes and this is an
 		// integrity test on the current impl.
-		require.Equal(s.T(), changes[0].AttributeName, "system.state")
-		require.Equal(s.T(), changes[0].NewValue, "new")
-		require.Equal(s.T(), changes[0].OldValue, "open")
-		require.Equal(s.T(), changes[1].AttributeName, "system.boardcolumns")
-		require.Equal(s.T(), changes[1].NewValue, fixture.WorkItems[0].Fields["system.boardcolumns"])
-		require.Equal(s.T(), changes[1].OldValue, wiCopy.Fields["system.boardcolumns"])
+		require.Equal(t, "system.state", changes[0].AttributeName)
+		require.Equal(t, "new", changes[0].NewValue)
+		require.Equal(t, "open", changes[0].OldValue)
+		require.Equal(t, "system.boardcolumns", changes[1].AttributeName)
+		require.Equal(t, fixture.WorkItems[0].Fields["system.boardcolumns"], changes[1].NewValue)
+		require.Equal(t, wiCopy.Fields["system.boardcolumns"], changes[1].OldValue)
 	})
 }
 
@@ -135,9 +126,9 @@ func (s *ActionSuite) TestActionExecution() {
 		afterActionWI, changes, err := ExecuteActionsByOldNew(s.Ctx, s.GormDB, userID, fixture.WorkItems[0], newVersion, map[string]string{
 			"nilRule": "{ noConfig: 'none' }",
 		})
-		require.Nil(s.T(), err)
-		require.Len(s.T(), changes, 1)
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.state"], "open")
+		require.Nil(t, err)
+		require.Len(t, changes, 1)
+		require.Equal(t, afterActionWI.(workitem.WorkItem).Fields["system.state"], "open")
 	})
 
 	s.T().Run("by ChangeSet", func(t *testing.T) {
@@ -145,13 +136,13 @@ func (s *ActionSuite) TestActionExecution() {
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
 		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
 		contextChanges, err := fixture.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(s.T(), err)
+		require.Nil(t, err)
 		afterActionWI, changes, err := ExecuteActionsByChangeset(s.Ctx, s.GormDB, userID, newVersion, contextChanges, map[string]string{
 			"nilRule": "{ noConfig: 'none' }",
 		})
-		require.Nil(s.T(), err)
-		require.Len(s.T(), changes, 1)
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.state"], "open")
+		require.Nil(t, err)
+		require.Len(t, changes, 1)
+		require.Equal(t, afterActionWI.(workitem.WorkItem).Fields["system.state"], "open")
 	})
 
 	s.T().Run("unknown rule", func(t *testing.T) {
@@ -159,11 +150,11 @@ func (s *ActionSuite) TestActionExecution() {
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
 		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
 		contextChanges, err := fixture.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(s.T(), err)
+		require.Nil(t, err)
 		_, _, err = ExecuteActionsByChangeset(s.Ctx, s.GormDB, userID, newVersion, contextChanges, map[string]string{
 			"unknownRule": "{ noConfig: 'none' }",
 		})
-		require.NotNil(s.T(), err)
+		require.NotNil(t, err)
 	})
 
 	s.T().Run("sideffects", func(t *testing.T) {
@@ -171,12 +162,12 @@ func (s *ActionSuite) TestActionExecution() {
 		fixture.WorkItems[0].Fields["system.boardcolumns"] = []string{"bcid0", "bcid1"}
 		newVersion := createWICopy(fixture.WorkItems[0].ID, "open", []string{"bcid0", "bcid1"})
 		contextChanges, err := fixture.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(s.T(), err)
+		require.Nil(t, err)
 		afterActionWI, changes, err := ExecuteActionsByChangeset(s.Ctx, s.GormDB, userID, newVersion, contextChanges, map[string]string{
 			"FieldSetRule": "{ system.state: 'updatedState' }",
 		})
-		require.Nil(s.T(), err)
-		require.Len(s.T(), changes, 1)
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.state"], "updatedState")
+		require.Nil(t, err)
+		require.Len(t, changes, 1)
+		require.Equal(t, "updatedState", afterActionWI.(workitem.WorkItem).Fields["system.state"])
 	})
 }

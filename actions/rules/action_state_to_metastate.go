@@ -3,8 +3,8 @@ package rules
 import (
 	"context"
 	"encoding/json"
-	"errors"
 
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -21,18 +21,6 @@ type ActionStateToMetaState struct {
 // make sure the rule is implementing the interface.
 var _ Action = ActionStateToMetaState{}
 
-/* func (act ActionStateToMetaState) toStringSlice(s []interface{}) ([]string, error) {
-	strArr := make([]string, len(s))
-	for i, ts := range s {
-		tss, ok := ts.(string)
-		if !ok {
-			return nil, errors.New("Error converting element to string")
-		}
-		strArr[i] = tss
-	}
-	return strArr, nil
-}
- */
 func (act ActionStateToMetaState) containsUUID(s []uuid.UUID, e uuid.UUID) bool {
 	for _, a := range s {
 		if a == e {
@@ -92,7 +80,7 @@ func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID)
 	}
 	boards, err := act.Db.Boards().List(act.Ctx, space.SpaceTemplateID)
 	if err != nil {
-		return nil, errors.New("Error loading work item type: " + err.Error())
+		return nil, errors.Wrap(err, "Error loading work item type: " + err.Error())
 	}
 	return boards, nil
 }
@@ -106,11 +94,11 @@ func (act ActionStateToMetaState) loadWorkItemTypeGroupsBySpaceID(spaceID uuid.U
 	}
 	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
 	if err != nil {
-		return nil, errors.New("Error loading space: " + err.Error())
+		return nil, errors.Wrap(err, "Error loading space: " + err.Error())
 	}
 	groups, err := act.Db.WorkItemTypeGroups().List(act.Ctx, space.SpaceTemplateID)
 	if err != nil {
-		return nil, errors.New("Error loading work item type: " + err.Error())
+		return nil, errors.Wrap(err, "Error loading work item type: " + err.Error())
 	}
 	return groups, nil
 }
@@ -124,7 +112,7 @@ func (act ActionStateToMetaState) loadWorkItemTypeByID(id uuid.UUID) (*workitem.
 	}
 	wit, err := act.Db.WorkItemTypes().Load(act.Ctx, id)
 	if err != nil {
-		return nil, errors.New("Error loading work item type: " + err.Error())
+		return nil, errors.Wrap(err, "Error loading work item type: " + err.Error())
 	}
 	return wit, nil
 }
@@ -138,7 +126,7 @@ func (act ActionStateToMetaState) loadWorkItemByID(id uuid.UUID) (*workitem.Work
 	}
 	wi, err := act.Db.WorkItems().LoadByID(act.Ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Error loading work item: " + err.Error())
 	}
 	return wi, nil
 }
@@ -157,7 +145,7 @@ func (act ActionStateToMetaState) storeWorkItem(workitem *workitem.WorkItem) (*w
 		var err error
 		workitem, err = appl.WorkItems().Save(act.Ctx, workitem.SpaceID, *workitem, *act.UserID)
 		if err != nil {
-			return errors.New("Error updating work item")
+			return errors.Wrap(err, "Error updating work item")
 		}
 		return nil
 	})

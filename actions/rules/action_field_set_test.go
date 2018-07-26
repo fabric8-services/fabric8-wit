@@ -20,16 +20,7 @@ func TestSuiteActionFieldSet(t *testing.T) {
 }
 
 type ActionFieldSetSuite struct {
-	suite.Suite
 	gormtestsupport.DBTestSuite
-}
-
-func (s *ActionFieldSetSuite) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-}
-
-func (s *ActionFieldSetSuite) SetupTest() {
-	s.DBTestSuite.SetupTest()
 }
 
 func createWICopy(ID uuid.UUID, state string, boardcolumns []string) workitem.WorkItem {
@@ -59,10 +50,10 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		afterActionWI, convertChanges, err := action.OnChange(newVersion, contextChanges, "{ \"system.state\": \"updatedState\" }", &convertChanges)
 		require.Nil(s.T(), err)
 		require.Len(s.T(), convertChanges, 1)
-		require.Equal(s.T(), convertChanges[0].AttributeName, "system.state")
-		require.Equal(s.T(), convertChanges[0].OldValue, "open")
-		require.Equal(s.T(), convertChanges[0].NewValue, "updatedState")
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.state"], "updatedState")
+		require.Equal(s.T(), "system.state", convertChanges[0].AttributeName)
+		require.Equal(s.T(), "open", convertChanges[0].OldValue)
+		require.Equal(s.T(), "updatedState", convertChanges[0].NewValue)
+		require.Equal(s.T(), "updatedState", afterActionWI.(workitem.WorkItem).Fields["system.state"])
 	})
 
 	s.T().Run("unknown field", func(t *testing.T) {
@@ -76,10 +67,10 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		afterActionWI, convertChanges, err := action.OnChange(newVersion, contextChanges, "{ \"system.notavailable\": \"updatedState\" }", &convertChanges)
 		require.Nil(s.T(), err)
 		require.Len(s.T(), convertChanges, 1)
-		require.Equal(s.T(), convertChanges[0].AttributeName, "system.notavailable")
-		require.Equal(s.T(), convertChanges[0].OldValue, nil)
-		require.Equal(s.T(), convertChanges[0].NewValue, "updatedState")
-		require.Equal(s.T(), afterActionWI.(workitem.WorkItem).Fields["system.notavailable"], "updatedState")
+		require.Equal(s.T(), "system.notavailable", convertChanges[0].AttributeName)
+		require.Equal(s.T(), nil, convertChanges[0].OldValue)
+		require.Equal(s.T(), "updatedState", convertChanges[0].NewValue)
+		require.Equal(s.T(), "updatedState", afterActionWI.(workitem.WorkItem).Fields["system.notavailable"])
 	})
 
 	s.T().Run("non-json configuration", func(t *testing.T) {

@@ -2,11 +2,11 @@ package actions
 
 import (
 	"context"
-	"github.com/fabric8-services/fabric8-wit/application"
-	"errors"
 
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
+	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/actions/rules"
 	"github.com/fabric8-services/fabric8-wit/convert"
 )

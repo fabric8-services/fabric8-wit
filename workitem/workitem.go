@@ -65,13 +65,13 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 		// the change set. This needs extension once we support more attributes.
 		return []convert.Change{
 			convert.Change{
-				AttributeName: "system.state",
-				NewValue:      wi.Fields["system.state"],
+				AttributeName: SystemState,
+				NewValue:      wi.Fields[SystemState],
 				OldValue:      nil,
 			},
 			convert.Change{
-				AttributeName: "system.boardcolumns",
-				NewValue:      wi.Fields["system.boardcolumns"],
+				AttributeName: SystemBoardcolumns,
+				NewValue:      wi.Fields[SystemBoardcolumns],
 				OldValue:      nil,
 			},
 		}, nil
@@ -89,34 +89,37 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 	// attribute changes, this has to be added here. This will be likely
 	// necessary when adding new Actions.
 	// compare system.state
-	if wi.Fields["system.state"] != olderWorkItem.Fields["system.state"] {
+	if wi.Fields[SystemState] != olderWorkItem.Fields[SystemState] {
 		changes = append(changes, convert.Change{
-			AttributeName: "system.state",
-			NewValue:      wi.Fields["system.state"],
-			OldValue:      olderWorkItem.Fields["system.state"],
+			AttributeName: SystemState,
+			NewValue:      wi.Fields[SystemState],
+			OldValue:      olderWorkItem.Fields[SystemState],
 		})
 	}
 	// compare system.boardcolumns
 	// this field looks like this:
 	// system.boardcolumns": ["43f9e838-3b4b-45e8-85eb-dd402e8324b5", "69699af8-cb28-4b90-b829-24c1aad12797"]
-	if wi.Fields["system.boardcolumns"] == nil && olderWorkItem.Fields["system.boardcolumns"] == nil {
+	if wi.Fields[SystemBoardcolumns] == nil && olderWorkItem.Fields[SystemBoardcolumns] == nil {
 		return changes, nil
 	}
-	if wi.Fields["system.boardcolumns"] == nil || olderWorkItem.Fields["system.boardcolumns"] == nil {
+	if wi.Fields[SystemBoardcolumns] == nil || olderWorkItem.Fields[SystemBoardcolumns] == nil {
 		changes = append(changes, convert.Change{
-			AttributeName: "system.boardcolumns",
-			NewValue:      wi.Fields["system.boardcolumns"],
-			OldValue:      olderWorkItem.Fields["system.boardcolumns"],
+			AttributeName: SystemBoardcolumns,
+			NewValue:      wi.Fields[SystemBoardcolumns],
+			OldValue:      olderWorkItem.Fields[SystemBoardcolumns],
 		})
 		return changes, nil
 	}
-	bcThis, ok := wi.Fields["system.boardcolumns"].([]string)
-	bcOlder, ok := olderWorkItem.Fields["system.boardcolumns"].([]string)
+	bcThis, ok1 := wi.Fields[SystemBoardcolumns].([]string)
+	bcOlder, ok2 := olderWorkItem.Fields[SystemBoardcolumns].([]string)
+	if !ok1 || !ok2 {
+		return nil, errors.New("Boardcolumn slice is not a string slice")
+	}
 	if len(bcThis) != len(bcOlder) {
 		changes = append(changes, convert.Change{
-			AttributeName: "system.boardcolumns",
-			NewValue:      wi.Fields["system.boardcolumns"],
-			OldValue:      olderWorkItem.Fields["system.boardcolumns"],
+			AttributeName: SystemBoardcolumns,
+			NewValue:      wi.Fields[SystemBoardcolumns],
+			OldValue:      olderWorkItem.Fields[SystemBoardcolumns],
 		})
 		return changes, nil
 	}
@@ -128,9 +131,9 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 	sort.Strings(olderCopy)
 	if !reflect.DeepEqual(thisCopy, olderCopy) {
 		changes = append(changes, convert.Change{
-			AttributeName: "system.boardcolumns",
-			NewValue:      wi.Fields["system.boardcolumns"],
-			OldValue:      olderWorkItem.Fields["system.boardcolumns"],
+			AttributeName: SystemBoardcolumns,
+			NewValue:      wi.Fields[SystemBoardcolumns],
+			OldValue:      olderWorkItem.Fields[SystemBoardcolumns],
 		})
 		return changes, nil
 	}
