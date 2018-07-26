@@ -275,6 +275,9 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Name = key
 			s := string(concreteVal)
 			q.Value = &s
+			if q.Name == "iteration" || q.Name == "area" {
+				q.Child = true
+			}
 		case bool:
 			s := concreteVal
 			if key == "negate" {
