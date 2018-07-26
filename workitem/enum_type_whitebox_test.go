@@ -44,8 +44,18 @@ func TestEnumTypeContainsAll(t *testing.T) {
 		assert.True(t, containsAll(haystack, needles))
 	})
 
+	t.Run("Check subset unordered", func(t *testing.T) {
+		needles := []interface{}{2, 1}
+		assert.True(t, containsAll(haystack, needles))
+	})
+
 	t.Run("Check full set ordered", func(t *testing.T) {
 		needles := []interface{}{1, 2, 3, 4}
+		assert.True(t, containsAll(haystack, needles))
+	})
+
+	t.Run("Check full set unordered", func(t *testing.T) {
+		needles := []interface{}{2, 1, 4, 3}
 		assert.True(t, containsAll(haystack, needles))
 	})
 

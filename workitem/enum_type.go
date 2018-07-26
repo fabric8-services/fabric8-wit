@@ -40,10 +40,7 @@ var _ convert.Equaler = (*EnumType)(nil)
 
 // Equal returns true if two EnumType objects are equal; otherwise false is returned.
 func (t EnumType) Equal(u convert.Equaler) bool {
-	// for the EnumType, we consider enclosed Values as an equality to
-	// allow changes to the template to be adding new values to the
-	// enum. If a default Equal() behaviour is needed, use DefaultEqual().
-	return t.EqualEnclosing(u)
+	return t.DefaultEqual(u)
 }
 
 // DefaultEqual returns true if two EnumType objects are equal; otherwise false is returned.
