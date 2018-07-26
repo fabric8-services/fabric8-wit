@@ -11,7 +11,7 @@ var endpoint = a.Type("Endpoints", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("endpoints")
 	})
-	a.Attribute("id", d.UUID, "ID of root (this is a newly generated UUID upon every call)")
+	a.Attribute("id", d.UUID, "ID of endpoints (this is a newly generated UUID upon every call)")
 	a.Attribute("links", genericLinks)
 	a.Required("type", "links", "id", "relationships")
 })

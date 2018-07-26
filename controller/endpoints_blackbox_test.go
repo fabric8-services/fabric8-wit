@@ -25,11 +25,11 @@ func TestListEndpointsOK(t *testing.T) {
 		svc := goa.New("endpointsService")
 		ctrl := controller.NewEndpointsController(svc)
 		// when
-		res, listRoot := test.ListEndpointsOK(t, svc.Context, svc, ctrl)
+		res, listEndpoints := test.ListEndpointsOK(t, svc.Context, svc, ctrl)
 		// then
-		compareWithGoldenAgnostic(t, filepath.Join("test-files", "endpoints", "list", "ok.res.payload.golden.json"), listRoot)
+		compareWithGoldenAgnostic(t, filepath.Join("test-files", "endpoints", "list", "ok.res.payload.golden.json"), listEndpoints)
 		compareWithGoldenAgnostic(t, filepath.Join("test-files", "endpoints", "list", "ok.res.headers.golden.json"), res.Header())
-		relationships := listRoot.Data.Relationships
+		relationships := listEndpoints.Data.Relationships
 		require.NotNil(t, relationships)
 		user := relationships["current_user"]
 		require.NotNil(t, user)
@@ -40,16 +40,16 @@ func TestListEndpointsOK(t *testing.T) {
 			// utilize its cache.
 			ctrl.FileHandler = brokenFileSystemSimulator{}
 			// when
-			res2, listRoot2 := test.ListEndpointsOK(t, svc.Context, svc, ctrl)
+			res2, listEndpoints2 := test.ListEndpointsOK(t, svc.Context, svc, ctrl)
 			// then
 			require.Equal(t, res, res2)
-			require.Equal(t, listRoot, listRoot2)
+			require.Equal(t, listEndpoints, listEndpoints2)
 		})
 	})
 	t.Run("file not found", func(t *testing.T) {
 		t.Parallel()
 		// given
-		svc := goa.New("rootService")
+		svc := goa.New("endpointsService")
 		ctrl := controller.NewEndpointsController(svc)
 		ctrl.FileHandler = brokenFileSystemSimulator{}
 		// when
