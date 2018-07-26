@@ -969,6 +969,67 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 	})
 }
 
+func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
+	/*
+	* Type 1 has -> foo=KindFloat, fooBar=KindFloat, bar=KindBoolean
+	* Type 2 has -> foo=KindFloat, bar=KindInteger
+	 */
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 0:
+				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+					"foo": {
+						Label: "Type1 foo",
+						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+					},
+					"fooBar": {
+						Label: "Type1 fooBar",
+						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+					},
+					"bar": {
+						Label: "Type1 bar",
+						Type:  &workitem.SimpleType{Kind: workitem.KindBoolean},
+					},
+				}
+			case 1:
+				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+					"foo": {
+						Label: "Type1 foo",
+						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+					},
+					"bar": {
+						Label: "Type2 bar",
+						Type:  &workitem.SimpleType{Kind: workitem.KindInteger},
+					},
+				}
+			}
+			return nil
+		}),
+		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Type = fxt.WorkItemTypes[idx].ID
+			fxt.WorkItems[idx].Fields["foo"] = 2.5
+			fxt.WorkItems[idx].Fields["fooBar"] = 100.0
+			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("description1")
+			return nil
+		}),
+	)
+	// when
+	u := minimumRequiredUpdatePayload()
+	u.Data.Attributes["version"] = fxt.WorkItems[0].Version
+	u.Data.ID = &fxt.WorkItems[0].ID
+	u.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
+	}
+	_, newWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+	assert.Equal(s.T(), fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
+	assert.NotContains(s.T(), newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["foo"].Label)
+	assert.Contains(s.T(), newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["bar"].Label)
+	assert.Contains(s.T(), newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["fooBar"].Label)
+	// compareWithGoldenAgnostic(s.T(), filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
+}
+
 func (s *WorkItem2Suite) TestWI2UpdateFieldOfDifferentSimpleTypes() {
 	s.T().Run("field types", func(t *testing.T) {
 		vals := workitem.GetFieldTypeTestData(t)
