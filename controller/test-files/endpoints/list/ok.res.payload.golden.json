@@ -7,132 +7,132 @@
     "relationships": {
       "codebases_che_start": {
         "links": {
-          "related": "/codebases/che/start"
+          "related": "http:///api/codebases/che/start"
         }
       },
       "codebases_che_state": {
         "links": {
-          "related": "/codebases/che/state"
+          "related": "http:///api/codebases/che/state"
         }
       },
       "current_user": {
         "links": {
-          "related": "/user"
+          "related": "http:///api/user"
         }
       },
       "deployments_environments": {
         "links": {
-          "related": "/deployments/environments"
+          "related": "http:///api/deployments/environments"
         }
       },
       "endpoints": {
         "links": {
-          "related": "/endpoints"
+          "related": "http:///api/endpoints"
         }
       },
       "features": {
         "links": {
-          "related": "/features"
+          "related": "http:///api/features"
         }
       },
       "filters": {
         "links": {
-          "related": "/filters"
+          "related": "http:///api/filters"
         }
       },
       "login_authorize": {
         "links": {
-          "related": "/login/authorize"
+          "related": "http:///api/login/authorize"
         }
       },
       "login_generate": {
         "links": {
-          "related": "/login/generate"
+          "related": "http:///api/login/generate"
         }
       },
       "login_refresh": {
         "links": {
-          "related": "/login/refresh"
+          "related": "http:///api/login/refresh"
         }
       },
       "logout": {
         "links": {
-          "related": "/logout"
+          "related": "http:///api/logout"
         }
       },
       "render": {
         "links": {
-          "related": "/render"
+          "related": "http:///api/render"
         }
       },
       "search": {
         "links": {
-          "related": "/search"
+          "related": "http:///api/search"
         }
       },
       "search_codebases": {
         "links": {
-          "related": "/search/codebases"
+          "related": "http:///api/search/codebases"
         }
       },
       "search_spaces": {
         "links": {
-          "related": "/search/spaces"
+          "related": "http:///api/search/spaces"
         }
       },
       "search_users": {
         "links": {
-          "related": "/search/users"
+          "related": "http:///api/search/users"
         }
       },
       "spaces": {
         "links": {
-          "related": "/spaces"
+          "related": "http:///api/spaces"
         }
       },
       "spacetemplates": {
         "links": {
-          "related": "/spacetemplates"
+          "related": "http:///api/spacetemplates"
         }
       },
       "status": {
         "links": {
-          "related": "/status"
+          "related": "http:///api/status"
         }
       },
       "trackerqueries": {
         "links": {
-          "related": "/trackerqueries"
+          "related": "http:///api/trackerqueries"
         }
       },
       "trackers": {
         "links": {
-          "related": "/trackers"
+          "related": "http:///api/trackers"
         }
       },
       "user_services": {
         "links": {
-          "related": "/user/services"
+          "related": "http:///api/user/services"
         }
       },
       "users": {
         "links": {
-          "related": "/users"
+          "related": "http:///api/users"
         }
       },
       "userspace": {
         "links": {
-          "related": "/userspace/*"
+          "related": "http:///api/userspace/*"
         }
       },
       "workitemlinkcategories": {
         "links": {
-          "related": "/workitemlinkcategories"
+          "related": "http:///api/workitemlinkcategories"
         }
       },
       "workitemlinks": {
         "links": {
-          "related": "/workitemlinks"
+          "related": "http:///api/workitemlinks"
         }
       }
     },
