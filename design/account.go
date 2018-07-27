@@ -109,6 +109,7 @@ var _ = a.Resource("user", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Metadata("swagger:extension:x-tag", "current_user")
 	})
 })
 

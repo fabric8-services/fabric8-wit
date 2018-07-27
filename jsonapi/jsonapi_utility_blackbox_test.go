@@ -78,3 +78,30 @@ func TestErrorToJSONAPIError(t *testing.T) {
 	require.Equal(t, jsonapi.ErrorCodeUnknownError, *jerr.Code)
 	require.Equal(t, strconv.Itoa(httpStatus), *jerr.Status)
 }
+
+func ExampleFormatMemberName() {
+	formatAndPrint := func(name string) {
+		fmt.Printf("\"%s\"\n", jsonapi.FormatMemberName(name))
+	}
+	formatAndPrint("1")
+	formatAndPrint("a")
+	formatAndPrint("123_abc_def_09")
+	formatAndPrint("/user/login")
+	formatAndPrint("/user/login*")
+	formatAndPrint(" name with spaces  ")
+	formatAndPrint("_name_beginning_with_a_underscore_")
+	formatAndPrint("name_ending_with_a_underscore_")
+	formatAndPrint("_name_beginning_and_ending_with_a_underscore_")
+	formatAndPrint("  _name_beginning_with_spaces_then_underscore")
+	// Output:
+	// "1"
+	// "a"
+	// "123_abc_def_09"
+	// "user_login"
+	// "user_login"
+	// "name_with_spaces"
+	// "name_beginning_with_a_underscore"
+	// "name_ending_with_a_underscore"
+	// "name_beginning_and_ending_with_a_underscore"
+	// "name_beginning_with_spaces_then_underscore"
+}

@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "not_found",
+      "detail": "file with id 'swagger.json' not found",
+      "status": "404",
+      "title": "Not found error"
+    }
+  ]
+}
