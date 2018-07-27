@@ -1248,11 +1248,13 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 			objectCounts, namespace))
 	}
 
+	result := &app.EnvStats{}
+
 	// Collect compute-based resource usage and quotas
-	cpuUsed, cpuLimit, err := getResourceUsageAndLimit(computeQuota, v1.ResourceLimitsCPU)
+	cpuQuota, err := getEnvStatQuota(computeQuota, v1.ResourceLimitsCPU)
 	if err != nil {
 		return nil, err
-	} else if cpuUsed == nil || cpuLimit == nil {
+	} else if cpuQuota == nil {
 		log.Error(nil, map[string]interface{}{
 			"namespace":     namespace,
 			"quota_name":    computeResources,
@@ -1261,10 +1263,12 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 		return nil, errors.NewNotFoundErrorFromString(fmt.Sprintf("CPU missing from resource quota in %s",
 			namespace))
 	}
-	memUsed, memLimit, err := getResourceUsageAndLimit(computeQuota, v1.ResourceLimitsMemory)
+	result.Cpucores = cpuQuota
+
+	memQuota, err := getEnvStatQuota(computeQuota, v1.ResourceLimitsMemory)
 	if err != nil {
 		return nil, err
-	} else if memUsed == nil || memLimit == nil {
+	} else if memQuota == nil {
 		log.Error(nil, map[string]interface{}{
 			"namespace":     namespace,
 			"quota_name":    computeResources,
@@ -1273,59 +1277,47 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 		return nil, errors.NewNotFoundErrorFromString(fmt.Sprintf("memory missing from resource quota in %s",
 			namespace))
 	}
-	memUnits := "bytes"
-
-	result := &app.EnvStats{
-		Cpucores: &app.EnvStatCores{
-			Quota: cpuLimit,
-			Used:  cpuUsed,
-		},
-		Memory: &app.EnvStatMemory{
-			Quota: memLimit,
-			Used:  memUsed,
-			Units: &memUnits,
-		},
-	}
+	result.Memory = memQuota
 
 	// Get object-based resource usage and quotas where they exist
-	objStats, err := getObjectQuota(objectQuota, v1.ResourcePods)
+	objStats, err := getEnvStatQuota(objectQuota, v1.ResourcePods)
 	if err != nil {
 		return nil, err
 	}
 	result.Pods = objStats
-	objStats, err = getObjectQuota(objectQuota, v1.ResourceReplicationControllers)
+	objStats, err = getEnvStatQuota(objectQuota, v1.ResourceReplicationControllers)
 	if err != nil {
 		return nil, err
 	}
 	result.ReplicationControllers = objStats
-	objStats, err = getObjectQuota(objectQuota, v1.ResourceQuotas)
+	objStats, err = getEnvStatQuota(objectQuota, v1.ResourceQuotas)
 	if err != nil {
 		return nil, err
 	}
 	result.ResourceQuotas = objStats
-	objStats, err = getObjectQuota(objectQuota, v1.ResourceServices)
+	objStats, err = getEnvStatQuota(objectQuota, v1.ResourceServices)
 	if err != nil {
 		return nil, err
 	}
 	result.Services = objStats
-	objStats, err = getObjectQuota(objectQuota, v1.ResourceSecrets)
+	objStats, err = getEnvStatQuota(objectQuota, v1.ResourceSecrets)
 	if err != nil {
 		return nil, err
 	}
 	result.Secrets = objStats
-	objStats, err = getObjectQuota(objectQuota, v1.ResourceConfigMaps)
+	objStats, err = getEnvStatQuota(objectQuota, v1.ResourceConfigMaps)
 	if err != nil {
 		return nil, err
 	}
 	result.ConfigMaps = objStats
-	objStats, err = getObjectQuota(objectQuota, v1.ResourcePersistentVolumeClaims)
+	objStats, err = getEnvStatQuota(objectQuota, v1.ResourcePersistentVolumeClaims)
 	if err != nil {
 		return nil, err
 	}
 	result.PersistentVolumeClaims = objStats
 	// OpenShift-specific object type
 	const resourceImageStreams v1.ResourceName = "openshift.io/imagestreams"
-	objStats, err = getObjectQuota(objectQuota, resourceImageStreams)
+	objStats, err = getEnvStatQuota(objectQuota, resourceImageStreams)
 	if err != nil {
 		return nil, err
 	}
@@ -1334,13 +1326,13 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 	return result, nil
 }
 
-func getObjectQuota(quota *v1.ResourceQuota, resourceName v1.ResourceName) (*app.EnvStatObjects, error) {
-	var result *app.EnvStatObjects
+func getEnvStatQuota(quota *v1.ResourceQuota, resourceName v1.ResourceName) (*app.EnvStatQuota, error) {
+	var result *app.EnvStatQuota
 	used, limit, err := getResourceUsageAndLimit(quota, resourceName)
 	if err != nil {
 		return nil, err
-	} else if used != nil || limit != nil {
-		result = &app.EnvStatObjects{
+	} else if used != nil && limit != nil {
+		result = &app.EnvStatQuota{
 			Quota: limit,
 			Used:  used,
 		}

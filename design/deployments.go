@@ -99,32 +99,19 @@ var simpleEnvironmentAttributes = a.Type("SimpleEnvironmentAttributes", func() {
 
 var envStats = a.Type("EnvStats", func() {
 	a.Description("resource usage and quotas for an environment")
-	a.Attribute("cpucores", envStatCores)
-	a.Attribute("memory", envStatMemory)
-	a.Attribute("pods", envStatObjects)
-	a.Attribute("replication_controllers", envStatObjects)
-	a.Attribute("resource_quotas", envStatObjects)
-	a.Attribute("services", envStatObjects)
-	a.Attribute("secrets", envStatObjects)
-	a.Attribute("config_maps", envStatObjects)
-	a.Attribute("persistent_volume_claims", envStatObjects)
-	a.Attribute("image_streams", envStatObjects)
+	a.Attribute("cpucores", envStatQuota)
+	a.Attribute("memory", envStatQuota)
+	a.Attribute("pods", envStatQuota)
+	a.Attribute("replication_controllers", envStatQuota)
+	a.Attribute("resource_quotas", envStatQuota)
+	a.Attribute("services", envStatQuota)
+	a.Attribute("secrets", envStatQuota)
+	a.Attribute("config_maps", envStatQuota)
+	a.Attribute("persistent_volume_claims", envStatQuota)
+	a.Attribute("image_streams", envStatQuota)
 })
 
-var envStatCores = a.Type("EnvStatCores", func() {
-	a.Description(`CPU core stats`)
-	a.Attribute("used", d.Number)
-	a.Attribute("quota", d.Number)
-})
-
-var envStatMemory = a.Type("EnvStatMemory", func() {
-	a.Description(`memory stats`)
-	a.Attribute("used", d.Number)
-	a.Attribute("quota", d.Number)
-	a.Attribute("units", d.String)
-})
-
-var envStatObjects = a.Type("EnvStatObjects", func() {
+var envStatQuota = a.Type("EnvStatQuota", func() {
 	a.Description(`environment object counts`)
 	a.Attribute("used", d.Number)
 	a.Attribute("quota", d.Number)

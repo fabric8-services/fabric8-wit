@@ -501,7 +501,7 @@ func verifyEnvironment(env *app.SimpleEnvironment, testCase *envTestData, t *tes
 	verifyObjectQuota(quotas.ImageStreams, testCase.is, "image stream", testCase.envName, t)
 }
 
-func verifyObjectQuota(quota *app.EnvStatObjects, expected *quotaData, resourceName string,
+func verifyObjectQuota(quota *app.EnvStatQuota, expected *quotaData, resourceName string,
 	envName string, t *testing.T) {
 	if expected == nil {
 		require.Nil(t, quota, "Unexpected %s usage/limit in response", resourceName)
