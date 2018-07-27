@@ -3,20 +3,20 @@ package actions
 /*
 	 The actions system is a key component for process automation in WIT. It provides
 	 a way of executing user-configurable, dynamic process steps depending on user
-	 settings, schema settings and events in the WIT. 
+	 settings, schema settings and events in the WIT.
 
-	 The idea here is to provide a simple, yet powerful "signal-slot" system that
+	 The idea here is to provide a simple, yet powerful "publish-subscribe" system that
 	 can connect any "event" in the system to any "action" with a clear decoupling
 	 of events and actions with the goal of making the associations later dynamic and
 	 configurable by the user ("user connects this event to this action"). Think
-	 of a "IFTTT for WIT". 
+	 of a "IFTTT for WIT" (https://en.wikipedia.org/wiki/IFTTT).
 
 	 Actions are generic and atomic execution steps that do exactly one task and
 	 are configurable. The actions system around the actions provide a key-based
-	 execution of the actions. 
-	 
+	 execution of the actions.
+
 	 Some examples for an application of this system would be:
-		- closing all childs of a parent that is being closed (the user connects the
+		- closing all children of a parent WI that is being closed (the user connects the
 		"close" attribute change event of a WI to an action that closes all WIs of
 		a matching query).
 		- sending out notifications for mentions on markdown (the system executes an
@@ -33,7 +33,7 @@ package actions
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/fabric8-services/fabric8-wit/actions/rules"
@@ -45,7 +45,7 @@ import (
 // using the mapped configuration strings and returns the new context entity.
 func ExecuteActionsByOldNew(ctx context.Context, db application.DB, userID uuid.UUID, oldContext convert.ChangeDetector, newContext convert.ChangeDetector, actionConfigList map[string]string) (convert.ChangeDetector, []convert.Change, error) {
 	if oldContext == nil || newContext == nil {
-		return nil, nil, errors.New("Execute actions called with nil entities")
+		return nil, nil, errs.New("Execute actions called with nil entities")
 	}
 	contextChanges, err := oldContext.ChangeSet(newContext)
 	if err != nil {
@@ -78,7 +78,7 @@ func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uu
 				UserID: &userID,
 			}, actionConfig, newContext, contextChanges, &actionChanges)
 		default:
-			return nil, nil, errors.New("Action key " + actionKey + " is unknown")
+			return nil, nil, errs.New("Action key " + actionKey + " is unknown")
 		}
 		if err != nil {
 			return nil, nil, err

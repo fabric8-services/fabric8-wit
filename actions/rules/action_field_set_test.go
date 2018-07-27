@@ -43,12 +43,12 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 	require.Len(s.T(), fxt.WorkItems, 2)
 
 	s.T().Run("sideffects", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
 		fxt.WorkItems[0].Fields["system.state"] = "new"
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(s.T(), err)
+		require.Nil(t, err)
 		action := ActionFieldSet{
 			Db:     s.GormDB,
 			Ctx:    s.Ctx,
@@ -56,21 +56,21 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		}
 		var convertChanges []convert.Change
 		afterActionWI, convertChanges, err := action.OnChange(newVersion, contextChanges, "{ \"system.state\": \"resolved\" }", &convertChanges)
-		require.Nil(s.T(), err)
-		require.Len(s.T(), convertChanges, 1)
-		require.Equal(s.T(), "system.state", convertChanges[0].AttributeName)
-		require.Equal(s.T(), "open", convertChanges[0].OldValue)
-		require.Equal(s.T(), "resolved", convertChanges[0].NewValue)
-		require.Equal(s.T(), "resolved", afterActionWI.(*workitem.WorkItem).Fields["system.state"])
+		require.Nil(t, err)
+		require.Len(t, convertChanges, 1)
+		require.Equal(t, "system.state", convertChanges[0].AttributeName)
+		require.Equal(t, "open", convertChanges[0].OldValue)
+		require.Equal(t, "resolved", convertChanges[0].NewValue)
+		require.Equal(t, "resolved", afterActionWI.(*workitem.WorkItem).Fields["system.state"])
 	})
 
 	s.T().Run("unknown field", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
 		fxt.WorkItems[0].Fields["system.state"] = "new"
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(s.T(), err)
+		require.Nil(t, err)
 		action := ActionFieldSet{
 			Db:     s.GormDB,
 			Ctx:    s.Ctx,
@@ -78,16 +78,16 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		}
 		var convertChanges []convert.Change
 		_, _, err = action.OnChange(newVersion, contextChanges, "{ \"system.notavailable\": \"updatedState\" }", &convertChanges)
-		require.NotNil(s.T(), err)
+		require.NotNil(t, err)
 	})
 
 	s.T().Run("non-json configuration", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
 		fxt.WorkItems[0].Fields["system.state"] = "new"
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(s.T(), err)
+		require.Nil(t, err)
 		action := ActionFieldSet{
 			Db:     s.GormDB,
 			Ctx:    s.Ctx,
@@ -95,6 +95,6 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		}
 		var convertChanges []convert.Change
 		_, convertChanges, err = action.OnChange(newVersion, contextChanges, "someNonJSON", &convertChanges)
-		require.NotNil(s.T(), err)
+		require.NotNil(t, err)
 	})
 }

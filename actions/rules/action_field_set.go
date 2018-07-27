@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -28,20 +28,20 @@ var _ Action = ActionFieldSet{}
 
 func (act ActionFieldSet) storeWorkItem(wi *workitem.WorkItem) (*workitem.WorkItem, error) {
 	if act.Ctx == nil {
-		return nil, errors.New("Context is nil")
+		return nil, errs.New("Context is nil")
 	}
 	if act.Db == nil {
-		return nil, errors.New("Database is nil")
+		return nil, errs.New("Database is nil")
 	}
 	if act.UserID == nil {
-		return nil, errors.New("UserID is nil")
+		return nil, errs.New("UserID is nil")
 	}
 	var storeResultWorkItem *workitem.WorkItem
 	err := application.Transactional(act.Db, func(appl application.Application) error {
 		var err error
 		storeResultWorkItem, err = appl.WorkItems().Save(act.Ctx, wi.SpaceID, *wi, *act.UserID)
 		if err != nil {
-			return errors.Wrap(err, "Error updating work item")
+			return errs.Wrap(err, "Error updating work item")
 		}
 		return nil
 	})
@@ -56,13 +56,13 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 	// check if the newContext is a WorkItem, fail otherwise.
 	wiContext, ok := newContext.(workitem.WorkItem)
 	if !ok {
-		return nil, nil, errors.New("Given context is not a WorkItem: " + reflect.TypeOf(newContext).String())
+		return nil, nil, errs.New("Given context is not a WorkItem: " + reflect.TypeOf(newContext).String())
 	}
 	// deserialize the config JSON
 	var rawType map[string]interface{}
 	err := json.Unmarshal([]byte(configuration), &rawType)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "Failed to unmarshall from action configuration to a map: "+configuration)
+		return nil, nil, errs.Wrap(err, "Failed to unmarshall from action configuration to a map: "+configuration)
 	}
 	var convertChanges []convert.Change
 	for k, v := range rawType {
@@ -84,7 +84,7 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 	// if not, the key was an unknown key.
 	for k := range rawType {
 		if _, ok := actionResultContext.Fields[k]; !ok {
-			return nil, nil, errors.New("Field attribute unknown: " + k)
+			return nil, nil, errs.New("Field attribute unknown: " + k)
 		}
 	}
 	return actionResultContext, convertChanges, nil
