@@ -1022,12 +1022,19 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 	u.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
 	}
-	_, newWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
-	assert.Equal(s.T(), fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
-	assert.NotContains(s.T(), newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["foo"].Label)
-	assert.Contains(s.T(), newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["bar"].Label)
-	assert.Contains(s.T(), newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["fooBar"].Label)
-	// compareWithGoldenAgnostic(s.T(), filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
+	s.T().Run("ok", func(t *testing.T) {
+		_, newWI := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
+		assert.NotContains(t, newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["foo"].Label)
+		assert.Contains(t, newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["bar"].Label)
+		assert.Contains(t, newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["fooBar"].Label)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
+	})
+	s.T().Run("unauthorized", func(t *testing.T) {
+		s.svc = goa.New("TestCreateWorkItemWithoutContext-Service")
+		// TODO - Make anyone except space owner and workitem creator get unauthorized error
+		test.UpdateWorkitemUnauthorized(t, s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+	})
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateFieldOfDifferentSimpleTypes() {
