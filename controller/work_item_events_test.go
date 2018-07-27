@@ -298,7 +298,7 @@ func (s *TestEvent) TestListEvent() {
 				Type: APIStringTypeWorkItem,
 				ID:   &fxt.WorkItems[0].ID,
 				Attributes: map[string]interface{}{
-					workitem.SystemIteration: fxt.Iterations[0].ID,
+					workitem.SystemIteration: fxt.Iterations[0].ID.String(),
 					workitem.SystemVersion:   fxt.WorkItems[0].Version,
 				},
 				Relationships: &app.WorkItemRelationships{

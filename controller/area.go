@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -262,11 +261,17 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 // ConvertAreaSimple converts a simple area ID into a Generic Reletionship
 func ConvertAreaSimple(request *http.Request, id interface{}) *app.GenericData {
 	t := area.APIStringTypeAreas
-	i := fmt.Sprint(id)
+	var i string
+	switch t := id.(type) {
+	case string:
+		i = t
+	case uuid.UUID:
+		i = t.String()
+	}
 	return &app.GenericData{
 		Type:  &t,
 		ID:    &i,
-		Links: createAreaLinks(request, id),
+		Links: createAreaLinks(request, i),
 	}
 }
 
