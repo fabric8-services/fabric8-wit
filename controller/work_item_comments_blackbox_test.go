@@ -20,7 +20,6 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/rendering"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -43,8 +42,8 @@ func TestRunCommentREST(t *testing.T) {
 	suite.Run(t, &TestCommentREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
-func (rest *TestCommentREST) SetupTest() {
-	resource.Require(rest.T(), resource.Database)
+func (rest *TestCommentREST) SetupSuite() {
+	rest.DBTestSuite.SetupSuite()
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestCommentREST setup user", "test provider")
 	require.NoError(rest.T(), err)
 	rest.testIdentity = *testIdentity

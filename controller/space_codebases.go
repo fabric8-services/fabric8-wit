@@ -41,7 +41,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.url", nil).Expected("not nil"))
 	}
 	// the default value of cveScan
-	cveScan := true
+	cveScan := false
 	if reqIter.Attributes.CveScan != nil {
 		cveScan = *reqIter.Attributes.CveScan
 	}
@@ -67,6 +67,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+
 	res := &app.CodebaseSingle{
 		Data: ConvertCodebase(ctx.Request, *cdb),
 	}

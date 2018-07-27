@@ -363,6 +363,7 @@ func main() {
 	codebaseCtrl := controller.NewCodebaseController(service, appDB, config)
 	codebaseCtrl.ShowTenant = account.NewShowTenant(config)
 	codebaseCtrl.NewCheClient = controller.NewDefaultCheClient(config)
+	codebaseCtrl.AnalyticsGeminiClient = controller.NewDefaultAnalyticsGeminiClient(config)
 
 	app.MountCodebaseController(service, codebaseCtrl)
 
@@ -385,6 +386,14 @@ func main() {
 	// Mount "type groups" controller with "list" action
 	workItemTypeGroupsCtrl := controller.NewWorkItemTypeGroupsController(service, appDB)
 	app.MountWorkItemTypeGroupsController(service, workItemTypeGroupsCtrl)
+
+	// Mount "board" controller with "show" action
+	workItemBoardCtrl := controller.NewWorkItemBoardController(service, appDB)
+	app.MountWorkItemBoardController(service, workItemBoardCtrl)
+
+	// Mount "boards" controller with "list" action
+	workItemBoardsCtrl := controller.NewWorkItemBoardsController(service, appDB)
+	app.MountWorkItemBoardsController(service, workItemBoardsCtrl)
 
 	// Mount "queries" controller
 	queriesCtrl := controller.NewQueryController(service, appDB, config)

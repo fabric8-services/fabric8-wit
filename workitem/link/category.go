@@ -35,9 +35,6 @@ func (c WorkItemLinkCategory) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !c.Lifecycle.Equal(other.Lifecycle) {
-		return false
-	}
 	if c.ID != other.ID {
 		return false
 	}

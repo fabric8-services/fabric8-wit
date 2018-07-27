@@ -348,6 +348,121 @@ work_item_types:
   child_types:
   - *featureID
 
+work_item_boards:
+
+- id: "1af249a0-f919-4707-9e24-c4b49ee1e1d2"
+  name: Epics Board
+  description: This is the default board config for the SCRUM template (Epics).
+  context: "d0d33acf-7629-4653-9551-97ed9156f127"
+  context_type: "TypeLevelContext"
+  columns:
+  - id: "c7bc916d-1176-4f2d-ab72-8502c1c17447"
+    name: "New"
+    order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
+  - id: "fe382c1a-9571-4ff3-8d1e-bddebf68b488"
+    name: "Approved"
+    order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
+  - id: "58c0dc28-1fa9-4307-9183-ff7b1774129e"
+    name: "Committed"
+    order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "26d598a0-689d-4be3-be5f-458b004b37bb"
+    name: "Done"
+    order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+
+- id: "7e35b5f9-15e1-4a41-9e8e-554388c2e062"
+  name: Features Board
+  description: This is the default board config for the SCRUM template (Features).
+  context: "9e41be6f-9e16-4e39-bb46-bd130855f2e5"
+  context_type: "TypeLevelContext"
+  columns:
+  - id: "c26a9bdb-c992-4f7a-9642-5bb4cd7c519f"
+    name: "New"
+    order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
+  - id: "f4002963-6491-49ef-800a-14a8e8a7375c"
+    name: "Approved"
+    order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
+  - id: "a3f9fbff-2b07-46de-b745-a1901cea62d6"
+    name: "Committed"
+    order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "b5e5093e-df33-499a-9b93-2eec6646def3"
+    name: "Done"
+    order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+
+- id: "34a94b74-a623-487b-8380-b58e946808bc"
+  name: Backlog Items Board
+  description: This is the default board config for the SCRUM template (Backlog Items).
+  context: "ad7b1eb4-b385-4eb8-b1ea-9c447aa5bf0b"
+  context_type: "TypeLevelContext"
+  columns:
+  - id: "a890100d-f9dc-4193-bc4a-82ecbda6c0fb"
+    name: "New"
+    order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
+  - id: "355cf395-80f4-4a01-b19a-a6d0314c5e37"
+    name: "Approved"
+    order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
+  - id: "6dc1d2b0-5e57-4b43-a642-868d7030b4c9"
+    name: "Committed"
+    order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "7ddd8062-e445-4480-b20c-d3b02c880c41"
+    name: "Done"
+    order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+
+- id: "21d604b0-9f68-4eaf-b825-30a21589bc8b"
+  name: Execution Board
+  description: This is the default board config for the SCRUM template (Execution).
+  context: "4d187330-0efb-4077-8745-8a61384a6540"
+  context_type: "TypeLevelContext"
+  columns:
+  - id: "b6ac1be7-dbb4-403a-8124-d283446293a9"
+    name: "To Do"
+    order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
+  - id: "f47a5947-e555-4d5b-8039-6f9a5bb050dd"
+    name: "Approved"
+    order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
+  - id: "5e21dd9c-785b-4306-88ea-59383d77bb53"
+    name: "Committed"
+    order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "2ef7b3de-2f82-4c0e-8f8a-bfda9e10db6a"
+    name: "In Progress"
+    order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "eabc7c5d-6309-4414-afeb-318b7ded1c09"
+    name: "Done"
+    order: 4
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+
 work_item_type_groups:
 
 - name: Epics

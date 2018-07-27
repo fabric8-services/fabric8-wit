@@ -327,6 +327,39 @@ func WorkItemTypeGroups(n int, fns ...CustomizeWorkItemTypeGroupFunc) RecipeFunc
 	}
 }
 
+// CustomizeWorkItemBoardFunc is directly compatible with
+// CustomizeEntityFunc but it can only be used for the WorkItemBoards()
+// recipe-function.
+type CustomizeWorkItemBoardFunc CustomizeEntityFunc
+
+// WorkItemBoards tells the test fixture to create at least n work item boards
+// objects. See also the Identities() function for more general information on n
+// and fns.
+//
+// When called in NewFixture() this function will also call
+//     WorkItemTypeGroups(1)
+// but with NewFixtureIsolated(), no other objects will be created.
+func WorkItemBoards(n int, fns ...CustomizeWorkItemBoardFunc) RecipeFunction {
+	return func(fxt *TestFixture) error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
+			l := len(fxt.WorkItemBoards)
+			if l < n {
+				return errs.Errorf(checkStr, n, kindWorkItemBoards, l)
+			}
+			return nil
+		})
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindWorkItemBoards, customFuncs...); err != nil {
+			return err
+		}
+		return fxt.deps(WorkItemTypeGroups(n))
+	}
+}
+
 // CustomizeWorkItemLinkTypeFunc is directly compatible with
 // CustomizeEntityFunc but it can only be used for the WorkItemLinkTypes()
 // recipe-function.

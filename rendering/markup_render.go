@@ -1,6 +1,7 @@
 package rendering
 
 import (
+	"html"
 	"regexp"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -19,7 +20,7 @@ func IsMarkupSupported(markup string) bool {
 func RenderMarkupToHTML(content, markup string) string {
 	switch markup {
 	case SystemMarkupPlainText:
-		return content
+		return html.EscapeString(content)
 	case SystemMarkupMarkdown:
 		unsafe := MarkdownCommonHighlighter([]byte(content))
 		p := bluemonday.UGCPolicy()
