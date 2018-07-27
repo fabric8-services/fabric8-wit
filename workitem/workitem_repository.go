@@ -102,20 +102,22 @@ type WorkItemRepository interface {
 // NewWorkItemRepository creates a GormWorkItemRepository
 func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
 	repository := &GormWorkItemRepository{
-		db:   db,
-		winr: numbersequence.NewWorkItemNumberSequenceRepository(db),
-		witr: &GormWorkItemTypeRepository{db},
-		wirr: &GormRevisionRepository{db},
+		db:    db,
+		winr:  numbersequence.NewWorkItemNumberSequenceRepository(db),
+		witr:  &GormWorkItemTypeRepository{db},
+		wirr:  &GormRevisionRepository{db},
+		space: space.NewRepository(db),
 	}
 	return repository
 }
 
 // GormWorkItemRepository implements WorkItemRepository using gorm
 type GormWorkItemRepository struct {
-	db   *gorm.DB
-	winr *numbersequence.GormWorkItemNumberSequenceRepository
-	witr *GormWorkItemTypeRepository
-	wirr *GormRevisionRepository
+	db    *gorm.DB
+	winr  *numbersequence.GormWorkItemNumberSequenceRepository
+	witr  *GormWorkItemTypeRepository
+	wirr  *GormRevisionRepository
+	space *space.GormRepository
 }
 
 // ************************************************
@@ -578,7 +580,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	wiStorage.Version = wiStorage.Version + 1
-	wiStorage.Type = updatedWorkItem.Type
+
 	wiStorage.Fields = Fields{}
 
 	for fieldName, fieldDef := range wiType.Fields {
@@ -606,6 +608,44 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 	}
+
+	// Change of Work Item Type
+	if wiStorage.Type != updatedWorkItem.Type {
+		newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
+		if err != nil {
+			return nil, errors.NewInternalError(ctx, err)
+		}
+
+		allowedWIT, err := r.CheckWIT(ctx, newWiType, spaceID)
+		if err != nil {
+			return nil, errors.NewBadParameterError("typeID", wiType.ID)
+
+		}
+		if !allowedWIT {
+			return nil, errors.NewBadParameterError("typeID", wiType.ID)
+		}
+
+		// iterate over fields of new workitem type
+		for newFieldName, newFieldDef := range newWiType.Fields {
+			for oldFieldName, _ := range wiType.Fields {
+				if oldFieldName == "system.state" || oldFieldName == "system.metastate" || newFieldName == "system.state" || newFieldName == "system.metastate" { // state is enum type so throws error --> TODO (dhriti) : fix this
+					continue
+				}
+				if newFieldName != oldFieldName {
+					switch newFieldDef.Type.GetKind() {
+					case KindUser:
+					case KindCodebase:
+					case KindString:
+					case KindEnum:
+					case KindFloat:
+					case KindList:
+					}
+				}
+				// TODO (Ibrahim): Case 3
+			}
+		}
+	}
+
 	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -631,6 +671,36 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	return ConvertWorkItemStorageToModel(wiType, wiStorage)
 }
 
+func (r *GormWorkItemRepository) CheckWIT(ctx context.Context, wit *WorkItemType, spaceID uuid.UUID) (bool, error) {
+	// Prohibit creation of work items from a base type.
+	if !wit.CanConstruct {
+		return false, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from \"%s\" (%s)", wit.Name, wit.ID))
+	}
+	var exists bool
+	// Prohibit creation of work items from a type that doesn't belong to current space template
+	query := fmt.Sprintf(`
+			SELECT EXISTS (
+				SELECT 1 from %[1]s WHERE id=$1 AND space_template_id = (
+					SELECT space_template_id FROM %[2]s WHERE id=$2
+				)
+			)`, wit.TableName(), space.Space{}.TableName())
+	err := r.db.Raw(query, wit.ID, spaceID).Row().Scan(&exists)
+	if err == nil && !exists {
+		return false, errors.NewBadParameterErrorFromString(
+			fmt.Sprintf("Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wit.Name, wit.ID),
+		)
+	}
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":         spaceID,
+			"workitem_type_id": wit.ID,
+			"err":              err,
+		}, "unable to fetch workitem types related to current space")
+		return false, errors.NewInternalError(ctx, errs.Wrapf(err, "unable to verify if %s exists", wit.ID))
+	}
+	return true, nil
+}
+
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error) {
@@ -641,32 +711,15 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		return nil, errors.NewBadParameterError("typeID", typeID)
 	}
 
-	// Prohibit creation of work items from a base type.
-	if !wiType.CanConstruct {
-		return nil, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from \"%s\" (%s)", wiType.Name, wiType.ID))
-	}
-	var exists bool
-	// Prohibit creation of work items from a type that doesn't belong to current space template
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 from %[1]s WHERE id=$1 AND space_template_id = (
-				SELECT space_template_id FROM %[2]s WHERE id=$2
-			)
-		)`, wiType.TableName(), space.Space{}.TableName())
-	err = r.db.Raw(query, wiType.ID, spaceID).Row().Scan(&exists)
-	if err == nil && !exists {
-		return nil, errors.NewBadParameterErrorFromString(
-			fmt.Sprintf("Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wiType.Name, wiType.ID),
-		)
-	}
+	allowedWIT, err := r.CheckWIT(ctx, wiType, spaceID)
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"space_id":         spaceID,
-			"workitem_type_id": wiType.ID,
-			"err":              err,
-		}, "unable to fetch workitem types related to current space")
-		return nil, errors.NewInternalError(ctx, errs.Wrapf(err, "unable to verify if %s exists", wiType.ID))
+		return nil, errors.NewBadParameterError("typeID", typeID)
+
 	}
+	if !allowedWIT {
+		return nil, errors.NewBadParameterError("typeID", typeID)
+	}
+
 	// The order of workitems are spaced by a factor of 1000.
 	pos, err := r.LoadHighestOrder(ctx, spaceID)
 	if err != nil {

@@ -71,6 +71,31 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 		config:       config}
 }
 
+// Change of workitemtype on a workitem is allowed by work item creator or space owner
+func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, db application.DB, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
+	// check if workitem editor is same as workitem creator
+	if editorID == creatorID {
+		return true, nil
+	}
+	// check if workitem editor is same as space owner
+	var authorized bool
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		space, err := appl.Spaces().Load(ctx, spaceID)
+		if err != nil {
+			return goa.ErrNotFound(err.Error())
+		}
+		if editorID == space.OwnerID.String() {
+			authorized = true
+			return nil
+		}
+		return nil
+	})
+	if err != nil {
+		return false, errors.NewUnauthorizedError(err.Error())
+	}
+	return authorized, nil
+}
+
 // Returns true if the user is the work item creator or space collaborator
 func authorizeWorkitemEditor(ctx context.Context, db application.DB, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
 	if editorID == creatorID {
@@ -111,18 +136,26 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
+
+	if wi.Type != ctx.Payload.Data.Relationships.BaseType.Data.ID {
+		authorized, err := c.authorizeWorkitemTypeEditor(ctx, c.db, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if !authorized {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to change the workitemtype"))
+		}
+	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		// The Number and Type of a work item are not allowed to be changed
 		// which is why we overwrite those values with their old value after the
 		// work item was converted.
 		oldNumber := wi.Number
-		oldType := wi.Type
 		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.Type, wi.SpaceID)
 		if err != nil {
 			return err
 		}
 		wi.Number = oldNumber
-		wi.Type = oldType
 		wi, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserIdentityID)
 		if err != nil {
 			return errs.Wrap(err, "Error updating work item")
