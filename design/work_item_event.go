@@ -71,3 +71,24 @@ var _ = a.Resource("work_item_events", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })
+
+// user can list an event from the wit service
+// if the event id is given
+var _ = a.Resource("event", func() {
+	a.BasePath("/events")
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:eventID"),
+		)
+		a.Description("Retrieve event with given id")
+		a.Params(func() {
+			a.Param("eventID", d.UUID, "event identifier")
+		})
+		a.Response(d.OK, func() {
+			a.Media(eventList)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIError)
+		a.Response(d.NotFound, JSONAPIError)
+	})
+})
