@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
-	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/actions/rules"
+	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/convert"
 )
 
@@ -42,7 +42,7 @@ func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uu
 			}, actionConfig, newContext, contextChanges, &actionChanges)
 		case rules.ActionKeyStateToMetastate:
 			// TODO(michaelkleinhenz): get db, ctx, and user.
-			newContext, actionChanges, err = executeAction(rules.ActionStateToMetaState {
+			newContext, actionChanges, err = executeAction(rules.ActionStateToMetaState{
 				Db:     db,
 				Ctx:    ctx,
 				UserID: &userID,

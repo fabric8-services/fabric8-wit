@@ -80,7 +80,7 @@ func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID)
 	}
 	boards, err := act.Db.Boards().List(act.Ctx, space.SpaceTemplateID)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error loading work item type: " + err.Error())
+		return nil, errors.Wrap(err, "Error loading work item type: "+err.Error())
 	}
 	return boards, nil
 }
@@ -94,11 +94,11 @@ func (act ActionStateToMetaState) loadWorkItemTypeGroupsBySpaceID(spaceID uuid.U
 	}
 	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error loading space: " + err.Error())
+		return nil, errors.Wrap(err, "Error loading space: "+err.Error())
 	}
 	groups, err := act.Db.WorkItemTypeGroups().List(act.Ctx, space.SpaceTemplateID)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error loading work item type: " + err.Error())
+		return nil, errors.Wrap(err, "Error loading work item type: "+err.Error())
 	}
 	return groups, nil
 }
@@ -112,7 +112,7 @@ func (act ActionStateToMetaState) loadWorkItemTypeByID(id uuid.UUID) (*workitem.
 	}
 	wit, err := act.Db.WorkItemTypes().Load(act.Ctx, id)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error loading work item type: " + err.Error())
+		return nil, errors.Wrap(err, "Error loading work item type: "+err.Error())
 	}
 	return wit, nil
 }
@@ -126,7 +126,7 @@ func (act ActionStateToMetaState) loadWorkItemByID(id uuid.UUID) (*workitem.Work
 	}
 	wi, err := act.Db.WorkItems().LoadByID(act.Ctx, id)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error loading work item: " + err.Error())
+		return nil, errors.Wrap(err, "Error loading work item: "+err.Error())
 	}
 	return wi, nil
 }
@@ -191,8 +191,8 @@ func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUI
 		// is not an entry already existing. Therefore, we're only
 		// using the first mapping, satisfying the req for getting the
 		// first matching metastate for a state.
-		// this is done here even if the usecase where we have 
-		// multiple states with the same value (duplicate states) 
+		// this is done here even if the usecase where we have
+		// multiple states with the same value (duplicate states)
 		// might be not that common.
 		if _, ok := stateToMetastateMap[thisState]; !ok {
 			stateToMetastateMap[thisState] = thisMetastate
@@ -267,7 +267,7 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 			var oldValue []interface{}
 			oldValue, ok := change.OldValue.([]interface{})
 			if !ok && change.OldValue != nil {
-				// OldValue may be nil, so only throw error when non-nil and 
+				// OldValue may be nil, so only throw error when non-nil and
 				// can not convert.
 				return nil, nil, errors.New("Error converting oldValue set")
 			}
@@ -432,7 +432,7 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 					return nil, nil, err
 				}
 				if metaState, ok := config[ActionKeyStateToMetastateConfigMetastate]; ok {
-					if metaState == wi.Fields[workitem.SystemMetaState] && !alreadyPlacedInColumn {						
+					if metaState == wi.Fields[workitem.SystemMetaState] && !alreadyPlacedInColumn {
 						// the column config matches the *new* metastate, so the WI needs to
 						// appear in this column.
 						var currentSystemBoardColumn []interface{}

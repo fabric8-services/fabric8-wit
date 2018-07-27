@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"github.com/fabric8-services/fabric8-wit/actions"
 	"fmt"
+	"github.com/fabric8-services/fabric8-wit/actions"
 	"html"
 	"net/http"
 	"strconv"

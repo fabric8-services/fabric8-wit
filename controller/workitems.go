@@ -1,9 +1,9 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/fabric8-services/fabric8-wit/actions"
 	conv "github.com/fabric8-services/fabric8-wit/convert"
-	"fmt"
 	"strconv"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -157,7 +157,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 		}
 		wi = newContext.(*workitem.WorkItem)
 	}
-	// construct response	
+	// construct response
 	wi2, err := ConvertWorkItem(ctx.Request, *workItemType, *wi, hasChildren)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)

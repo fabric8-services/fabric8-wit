@@ -106,7 +106,7 @@ type WorkItemType struct {
 	// on a work item of this type changes.
 	TransRuleKey string `gorm:"trans_rule_key" json:"trans_rule_key,omitempty"`
 
-	// TransRuleArgument holds the configuration for the action rule 
+	// TransRuleArgument holds the configuration for the action rule
 	// identified by TransRuleKey.
 	TransRuleArgument string `gorm:"trans_rule_argument" json:"trans_rule_argument,omitempty"`
 

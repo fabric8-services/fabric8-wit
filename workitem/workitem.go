@@ -60,16 +60,16 @@ func (wi WorkItem) GetLastModified() time.Time {
 
 // ChangeSet derives a changeset between this workitem and a given workitem.
 func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, error) {
-	if (older == nil) {
+	if older == nil {
 		// this is changeset for a new ChangeDetector, report all observed attributes to
 		// the change set. This needs extension once we support more attributes.
 		return []convert.Change{
-			convert.Change{
+			{
 				AttributeName: SystemState,
 				NewValue:      wi.Fields[SystemState],
 				OldValue:      nil,
 			},
-			convert.Change{
+			{
 				AttributeName: SystemBoardcolumns,
 				NewValue:      wi.Fields[SystemBoardcolumns],
 				OldValue:      nil,
@@ -110,10 +110,23 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 		})
 		return changes, nil
 	}
-	bcThis, ok1 := wi.Fields[SystemBoardcolumns].([]string)
-	bcOlder, ok2 := olderWorkItem.Fields[SystemBoardcolumns].([]string)
+	if len(wi.Fields[SystemBoardcolumns].([]interface{})) == 0 || len(olderWorkItem.Fields[SystemBoardcolumns].([]interface{})) == 0 {
+		if len(wi.Fields[SystemBoardcolumns].([]interface{})) == 0 && len(olderWorkItem.Fields[SystemBoardcolumns].([]interface{})) == 0 {
+			// both lists are empty, return no change.
+			return changes, nil
+		}
+		// one of the lists is empty, do return a change.
+		changes = append(changes, convert.Change{
+			AttributeName: SystemBoardcolumns,
+			NewValue:      wi.Fields[SystemBoardcolumns],
+			OldValue:      olderWorkItem.Fields[SystemBoardcolumns],
+		})
+		return changes, nil
+	}
+	bcThis, ok1 := wi.Fields[SystemBoardcolumns].([]interface{})
+	bcOlder, ok2 := olderWorkItem.Fields[SystemBoardcolumns].([]interface{})
 	if !ok1 || !ok2 {
-		return nil, errors.New("Boardcolumn slice is not a string slice")
+		return nil, errors.New("Boardcolumn slice is not a interface{} slice")
 	}
 	if len(bcThis) != len(bcOlder) {
 		changes = append(changes, convert.Change{
@@ -123,13 +136,26 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 		})
 		return changes, nil
 	}
-	thisCopy := make([]string, len(bcThis))
-	olderCopy := make([]string, len(bcOlder))
-	copy(thisCopy, bcThis)
-	copy(olderCopy, bcOlder)
-	sort.Strings(thisCopy)
-	sort.Strings(olderCopy)
-	if !reflect.DeepEqual(thisCopy, olderCopy) {
+	// because go has a fundamentally broken handling of interface{}
+	// types, we need to do a totally overshooting manual conversion
+	// here.
+	thisCopyStr := make([]string, len(bcThis))
+	for i := range bcThis {
+		thisCopyStr[i], ok = bcThis[i].(string)
+		if !ok {
+			return nil, errors.New("Boardcolumn slice values are not of type string")
+		}
+	}
+	olderCopyStr := make([]string, len(bcOlder))
+	for i := range bcOlder {
+		olderCopyStr[i], ok = bcOlder[i].(string)
+		if !ok {
+			return nil, errors.New("Boardcolumn slice values are not of type string")
+		}
+	}
+	sort.Strings(thisCopyStr)
+	sort.Strings(olderCopyStr)
+	if !reflect.DeepEqual(thisCopyStr, olderCopyStr) {
 		changes = append(changes, convert.Change{
 			AttributeName: SystemBoardcolumns,
 			NewValue:      wi.Fields[SystemBoardcolumns],
