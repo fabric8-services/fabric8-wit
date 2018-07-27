@@ -85,9 +85,8 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 				New:       newVal,
 			}
 
-			/// The enum type can be handled by the simple type since it's just
-			// an single value after all. Let's overwrite the field type if
-			// doable.
+			// The enum type can be handled by the simple type since it's just a
+			// single value after all.
 			ft := fieldDef.Type
 			enumType, isEnumType := ft.(workitem.EnumType)
 			if isEnumType {
@@ -166,7 +165,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					}
 				}
 			default:
-				return nil, errors.NewNotFoundError("unknown field type", fieldName)
+				return nil, errors.NewNotFoundError("unknown field type", fieldType.GetKind().String())
 			}
 		}
 	}
