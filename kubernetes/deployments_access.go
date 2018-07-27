@@ -26,7 +26,7 @@ type KubeAccessControl interface {
 	//CanScaleDeployment(envName string) (bool, error) FIXME How will this work? Need deployment name?
 	//CanGetDeploymentStats(envName string) (bool, error)
 	//CanGetDeploymentStatSeries(envName string) (bool, error)
-	//CanDeleteDeployment(envName string) (bool, error)
+	CanDeleteDeployment(envName string) (bool, error)
 	CanGetEnvironments() (bool, error)
 	CanGetEnvironment(envName string) (bool, error)
 }
@@ -68,17 +68,57 @@ func (rulesMap accessRules) isAuthorized(reqs []*requestedAccess) bool {
 	return true
 }
 
+var deleteDeploymentRules = []*requestedAccess{
+	{qualifiedResource{"", "services"}, []string{verbList, verbDelete}},
+	{qualifiedResource{"", "routes"}, []string{verbList, verbDelete}},
+	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet, verbDelete}},
+}
+
+func (kc *kubeClient) CanDeleteDeployment(envName string) (bool, error) {
+	// Also need access to builds in user namespace
+	ok, err := kc.canGetBuilds()
+	if err != nil {
+		return false, err
+	} else if !ok {
+		return false, nil
+	}
+
+	rules, err := kc.getRulesForEnvironment(envName)
+	if err != nil {
+		return false, err
+	}
+
+	return rules.isAuthorized(deleteDeploymentRules), nil
+}
+
+const environmentTypeUser = "user"
+
+var getBuildsRules = []*requestedAccess{
+	{qualifiedResource{"", "builds"}, []string{verbList}},
+}
+
+func (kc *kubeClient) canGetBuilds() (bool, error) {
+	rules, err := kc.getRulesForEnvironment(environmentTypeUser)
+	if err != nil {
+		return false, err
+	}
+
+	return rules.isAuthorized(getBuildsRules), nil
+}
+
 var getEnvironmentRules = []*requestedAccess{
-	{qualifiedResource{"", "resourcequotas"}, []string{verbList, verbGet}},
+	{qualifiedResource{"", "resourcequotas"}, []string{verbList}},
 }
 
 func (kc *kubeClient) CanGetEnvironments() (bool, error) {
 	for envName := range kc.envMap {
-		ok, err := kc.CanGetEnvironment(envName)
-		if err != nil {
-			return false, err
-		} else if !ok {
-			return false, nil
+		if kc.CanDeploy(envName) {
+			ok, err := kc.CanGetEnvironment(envName)
+			if err != nil {
+				return false, err
+			} else if !ok {
+				return false, nil
+			}
 		}
 	}
 	return true, nil
@@ -90,8 +130,7 @@ func (kc *kubeClient) CanGetEnvironment(envName string) (bool, error) {
 		return false, err
 	}
 
-	ok := rules.isAuthorized(getEnvironmentRules)
-	return ok, nil
+	return rules.isAuthorized(getEnvironmentRules), nil
 }
 
 // Gets the authorization rules for the current user in a given environment
@@ -103,7 +142,7 @@ func (kc *kubeClient) getRulesForEnvironment(envName string) (*accessRules, erro
 	}
 
 	// Lookup authorization rules for this environment
-	envNS, err := kc.getEnvironmentNamespace(envName)
+	envNS, err := kc.getEnvironmentNamespace(envName, true)
 	if err != nil {
 		return nil, err
 	}

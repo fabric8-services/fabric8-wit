@@ -1588,6 +1588,7 @@ func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
 
 func (up *testURLProvider) GetEnvironmentMapping() map[string]string {
 	return map[string]string{
+		"user":  "myNamespace",
 		"test":  "myNamespace",
 		"run":   "my-run",
 		"stage": "my-stage",
