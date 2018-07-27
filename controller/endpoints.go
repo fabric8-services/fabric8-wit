@@ -95,6 +95,18 @@ func getEndpoints(ctx *app.ListEndpointsContext, fileHandler asseter) (*app.Endp
 		return nil, errors.NewInternalErrorFromString("unable to assert concrete type map for field `paths` in swagger specification")
 	}
 
+	basePathObj, ok := result["basePath"]
+	if !ok {
+		return nil, errors.NewInternalErrorFromString("field `basePath` could be found in swagger specification")
+	}
+
+	basePath, ok := basePathObj.(string)
+	if !ok {
+		return nil, errors.NewInternalErrorFromString("unable to assert concrete type string for field `basePath` in swagger specification")
+	}
+
+	absoluteBasePath := rest.AbsoluteURL(ctx.Request, basePath)
+
 	// the namedPaths map stores paths as key and URLs as values
 	namedPaths := make(map[string]interface{})
 	for path, swaggerPath := range swaggerPathz {
@@ -125,20 +137,10 @@ func getEndpoints(ctx *app.ListEndpointsContext, fileHandler asseter) (*app.Endp
 			// Set the related field and link objects for each name.
 			namedPaths[key] = map[string]interface{}{
 				"links": map[string]string{
-					"related": path,
+					"related": absoluteBasePath + path,
 				},
 			}
 		}
-	}
-
-	basePathObj, ok := result["basePath"]
-	if !ok {
-		return nil, errors.NewInternalErrorFromString("field `basePath` could be found in swagger specification")
-	}
-
-	basePath, ok := basePathObj.(string)
-	if !ok {
-		return nil, errors.NewInternalErrorFromString("unable to assert concrete type string for field `basePath` in swagger specification")
 	}
 
 	return &app.Endpoints{
@@ -146,7 +148,7 @@ func getEndpoints(ctx *app.ListEndpointsContext, fileHandler asseter) (*app.Endp
 		ID:            uuid.NewV4(),
 		Relationships: namedPaths,
 		Links: &app.GenericLinks{
-			Self: ptr.String(rest.AbsoluteURL(ctx.Request, basePath)),
+			Self: ptr.String(absoluteBasePath),
 		},
 	}, nil
 }
