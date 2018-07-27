@@ -1616,6 +1616,15 @@ func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
 	return newURL, nil
 }
 
+// Types of namespaces where the user does not deploy applications
+var internalNamespaceTypes = map[string]struct{}{"user": {}, "che": {}, "jenkins": {}}
+
+// CanDeploy returns true if the environment type provided can be deployed to as part of a pipeline
+func (up *testURLProvider) CanDeploy(envType string) bool {
+	_, pres := internalNamespaceTypes[envType]
+	return !pres
+}
+
 type testKube struct {
 	kubernetes.KubeRESTAPI // Allows us to only implement methods we'll use
 	getter                 *testKubeGetter
