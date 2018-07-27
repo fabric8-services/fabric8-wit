@@ -518,11 +518,17 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 // ConvertIterationSimple converts a simple Iteration ID into a Generic Reletionship
 func ConvertIterationSimple(request *http.Request, id interface{}) *app.GenericData {
 	t := iteration.APIStringTypeIteration
-	i := fmt.Sprint(id)
+	var i string
+	switch t := id.(type) {
+	case string:
+		i = t
+	case uuid.UUID:
+		i = t.String()
+	}
 	return &app.GenericData{
 		Type:  &t,
 		ID:    &i,
-		Links: createIterationLinks(request, id),
+		Links: createIterationLinks(request, i),
 	}
 }
 

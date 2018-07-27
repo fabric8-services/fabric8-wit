@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 )
 
 // LabelController implements the label resource.
@@ -164,7 +165,13 @@ func ConvertLabelsSimple(request *http.Request, labelIDs []interface{}) []*app.G
 // ConvertLabelSimple converts a Label ID into a Generic Reletionship
 func ConvertLabelSimple(request *http.Request, labelID interface{}) *app.GenericData {
 	t := label.APIStringTypeLabels
-	i := labelID.(string)
+	var i string
+	switch t := labelID.(type) {
+	case string:
+		i = t
+	case uuid.UUID:
+		i = t.String()
+	}
 	return &app.GenericData{
 		Type: &t,
 		ID:   &i,
