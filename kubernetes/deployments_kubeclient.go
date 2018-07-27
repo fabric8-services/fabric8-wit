@@ -146,6 +146,7 @@ type route struct {
 // For most uses, the proxy server will hide this issue - but not for metrics/logging and console.
 type BaseURLProvider interface {
 	GetEnvironmentMapping() map[string]string
+	CanDeploy(envType string) bool
 	GetAPIURL() (*string, error)
 	GetMetricsURL(envNS string) (*string, error)
 	GetConsoleURL(envNS string) (*string, error)
@@ -327,11 +328,13 @@ func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 	// Get all deployments of this app for each environment in this space
 	deployments := []*app.SimpleDeployment{}
 	for envName := range kc.envMap {
-		deployment, err := kc.GetDeployment(spaceName, appName, envName)
-		if err != nil {
-			return nil, err
-		} else if deployment != nil {
-			deployments = append(deployments, deployment)
+		if kc.CanDeploy(envName) {
+			deployment, err := kc.GetDeployment(spaceName, appName, envName)
+			if err != nil {
+				return nil, err
+			} else if deployment != nil {
+				deployments = append(deployments, deployment)
+			}
 		}
 	}
 
@@ -677,11 +680,13 @@ func (kc *kubeClient) DeleteDeployment(spaceName string, appName string, envName
 func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
 	envs := []*app.SimpleEnvironment{}
 	for envName := range kc.envMap {
-		env, err := kc.GetEnvironment(envName)
-		if err != nil {
-			return nil, err
+		if kc.CanDeploy(envName) {
+			env, err := kc.GetEnvironment(envName)
+			if err != nil {
+				return nil, err
+			}
+			envs = append(envs, env)
 		}
-		envs = append(envs, env)
 	}
 	return envs, nil
 }
@@ -774,7 +779,7 @@ func (oc *openShiftAPIClient) GetBuildConfigs(namespace string, labelSelector st
 
 func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
 	envNS, pres := kc.envMap[envName]
-	if !pres {
+	if !pres || !kc.CanDeploy(envName) {
 		return "", errs.Errorf("unknown environment: %s", envName)
 	}
 	return envNS, nil
