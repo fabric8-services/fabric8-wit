@@ -9,6 +9,9 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+
 	"github.com/fabric8-services/fabric8-wit/closeable"
 
 	"github.com/fabric8-services/fabric8-wit/account"
@@ -139,6 +142,13 @@ func main() {
 	if migrateDB {
 		os.Exit(0)
 	}
+
+	// Ensure we delete the work item cache when we receive a notification from postgres
+	gormsupport.SetupDatabaseListener(*config, map[string]gormsupport.SubscriberFunc{
+		gormsupport.ChanSpaceTemplateUpdates: func(channel, extra string) {
+			workitem.ClearGlobalWorkItemTypeCache()
+		},
+	})
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if config.GetPopulateCommonTypes() {
