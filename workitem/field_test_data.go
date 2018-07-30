@@ -166,7 +166,7 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 				-100,
 			},
 			Invalid: []interface{}{
-				1e2,
+				100.2,
 				nil,
 				"",
 				"foo",
