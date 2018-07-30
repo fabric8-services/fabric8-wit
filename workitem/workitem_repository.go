@@ -546,7 +546,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		}
 		fieldValue := wi.Fields[fieldName]
 		// Remove Assignee/Labels/Boardcolumns (fields with kind list) if they do not have a value
-		if fieldDef.Type.GetKind() == "list" {
+		if fieldDef.Type.GetKind() == KindList {
 			switch fieldValue.(type) {
 			case []string:
 				if len(fieldValue.([]string)) == 0 {
@@ -603,7 +603,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		fieldValue := updatedWorkItem.Fields[fieldName]
 		var err error
 		// Remove fields with type list if there are no elements (eg: Assignee, Labels)
-		if fieldDef.Type.GetKind() == "list" {
+		if fieldDef.Type.GetKind() == KindList {
 			switch fieldValue.(type) {
 			case []string:
 				if len(fieldValue.([]string)) == 0 {
