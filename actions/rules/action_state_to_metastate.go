@@ -342,14 +342,16 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 		}
 	}
 	// finally, store the new work item state if something changed.
+	var resultingWorkItem workitem.WorkItem
 	if wiDirty {
-		newContext, err = act.storeWorkItem(&wi)
+		result, err := act.storeWorkItem(&wi)
+		resultingWorkItem = *result
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 	// return to sender
-	return newContext, changes, nil
+	return resultingWorkItem, changes, nil
 }
 
 // OnStateChange is executed when the state changes. It eventually updates the metastate and the boardcolumns.
@@ -474,12 +476,14 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 		changes = act.addOrUpdateChange(changes, workitem.SystemBoardcolumns, oldColumnsConfig, wi.Fields[workitem.SystemBoardcolumns])
 	}
 	// finally, store the new work item state if something changed.
+	var resultingWorkItem workitem.WorkItem
 	if wiDirty {
-		newContext, err = act.storeWorkItem(&wi)
+		result, err := act.storeWorkItem(&wi)
+		resultingWorkItem = *result
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 	// and return to sender.
-	return newContext, changes, nil
+	return resultingWorkItem, changes, nil
 }

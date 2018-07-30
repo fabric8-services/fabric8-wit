@@ -87,5 +87,5 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 			return nil, nil, errs.New("Field attribute unknown: " + k)
 		}
 	}
-	return actionResultContext, convertChanges, nil
+	return *actionResultContext, convertChanges, nil
 }

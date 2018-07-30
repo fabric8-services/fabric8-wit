@@ -61,7 +61,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		require.Equal(t, "system.state", convertChanges[0].AttributeName)
 		require.Equal(t, "open", convertChanges[0].OldValue)
 		require.Equal(t, "resolved", convertChanges[0].NewValue)
-		require.Equal(t, "resolved", afterActionWI.(*workitem.WorkItem).Fields["system.state"])
+		require.Equal(t, "resolved", afterActionWI.(workitem.WorkItem).Fields["system.state"])
 	})
 
 	s.T().Run("unknown field", func(t *testing.T) {
