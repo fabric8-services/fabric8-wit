@@ -2,9 +2,9 @@
   "data": [
     {
       "attributes": {
-        "name": "system.state",
-        "newValue": "resolved",
-        "oldValue": "new",
+        "name": "bool_single",
+        "newValue": true,
+        "oldValue": null,
         "timestamp": "0001-01-01T00:00:00Z",
         "workItemTypeID": "00000000-0000-0000-0000-000000000001"
       },

@@ -1,0 +1,44 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "name": "float_single",
+        "newValue": 0.1,
+        "oldValue": null,
+        "timestamp": "0001-01-01T00:00:00Z",
+        "workItemTypeID": "00000000-0000-0000-0000-000000000001"
+      },
+      "id": "00000000-0000-0000-0000-000000000002",
+      "relationships": {
+        "modifier": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "identities"
+          }
+        }
+      },
+      "type": "events"
+    },
+    {
+      "attributes": {
+        "name": "float_list",
+        "newValue": [
+          0.1,
+          -1111.1
+        ],
+        "timestamp": "0001-01-01T00:00:00Z",
+        "workItemTypeID": "00000000-0000-0000-0000-000000000001"
+      },
+      "id": "00000000-0000-0000-0000-000000000004",
+      "relationships": {
+        "modifier": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "identities"
+          }
+        }
+      },
+      "type": "events"
+    }
+  ]
+}

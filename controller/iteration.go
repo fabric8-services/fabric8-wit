@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
@@ -517,8 +518,7 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 
 // ConvertIterationSimple converts a simple Iteration ID into a Generic Reletionship
 func ConvertIterationSimple(request *http.Request, id interface{}) *app.GenericData {
-	t := iteration.APIStringTypeIteration
-	var i string
+	i := ""
 	switch t := id.(type) {
 	case string:
 		i = t
@@ -526,17 +526,8 @@ func ConvertIterationSimple(request *http.Request, id interface{}) *app.GenericD
 		i = t.String()
 	}
 	return &app.GenericData{
-		Type:  &t,
-		ID:    &i,
-		Links: createIterationLinks(request, i),
-	}
-}
-
-func createIterationLinks(request *http.Request, id interface{}) *app.GenericLinks {
-	relatedURL := rest.AbsoluteURL(request, app.IterationHref(id))
-	return &app.GenericLinks{
-		Self:    &relatedURL,
-		Related: &relatedURL,
+		Type: ptr.String(iteration.APIStringTypeIteration),
+		ID:   &i,
 	}
 }
 

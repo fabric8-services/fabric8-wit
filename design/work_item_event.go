@@ -13,9 +13,7 @@ var event = a.Type("Event", func() {
 	a.Attribute("id", d.UUID, "ID of event", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
-	a.Attribute("attributes", a.HashOf(d.String, d.Any), func() {
-		a.Example(map[string]interface{}{"version": "1", "system.state": "new", "system.title": "Example story"})
-	})
+	a.Attribute("attributes", eventAttributes)
 	a.Attribute("relationships", eventRelationships)
 	a.Attribute("links", genericLinks)
 	a.Required("type")
@@ -27,7 +25,10 @@ var eventAttributes = a.Type("EventAttributes", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
 	a.Attribute("name", d.String, "The name of the event occured", func() {
-		a.Example("closed")
+		a.Example("system.title")
+	})
+	a.Attribute("workItemTypeID", d.UUID, "The type ID of the work item at given point in history", func() {
+		a.Example("ae753d1a-4625-4c84-baf8-0fc99a189df9")
 	})
 	a.Attribute("oldValue", d.Any, "The user who was assigned to (or unassigned from). Only for 'assigned' and 'unassigned' events.", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")

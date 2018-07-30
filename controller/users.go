@@ -12,7 +12,7 @@ import (
 	idpackage "github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/fabric8-services/fabric8-wit/rest/proxy"
@@ -311,19 +311,15 @@ func ConvertUsersSimple(request *http.Request, identityIDs []interface{}) []*app
 
 // ConvertUserSimple converts a simple Identity ID into a Generic Reletionship
 func ConvertUserSimple(request *http.Request, identityID interface{}) *app.GenericData {
-	t := "users"
-	i := fmt.Sprint(identityID)
-	return &app.GenericData{
-		Type:  &t,
-		ID:    &i,
-		Links: createUserLinks(request, identityID),
+	i := ""
+	switch t := identityID.(type) {
+	case string:
+		i = t
+	case uuid.UUID:
+		i = t.String()
 	}
-}
-
-func createUserLinks(request *http.Request, identityID interface{}) *app.GenericLinks {
-	relatedURL := rest.AbsoluteURL(request, app.UsersHref(identityID))
-	return &app.GenericLinks{
-		Self:    &relatedURL,
-		Related: &relatedURL,
+	return &app.GenericData{
+		Type: ptr.String("users"),
+		ID:   &i,
 	}
 }
