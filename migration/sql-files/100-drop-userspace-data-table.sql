@@ -1,1 +1,1 @@
-DROP TABLE userspace_data;
+DROP TABLE IF EXISTS userspace_data;

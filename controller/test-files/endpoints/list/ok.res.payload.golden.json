@@ -120,11 +120,6 @@
           "related": "/users"
         }
       },
-      "userspace": {
-        "links": {
-          "related": "/userspace/*"
-        }
-      },
       "workitemlinkcategories": {
         "links": {
           "related": "/workitemlinkcategories"
