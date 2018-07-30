@@ -21,6 +21,7 @@ function load_jenkins_vars() {
               GIT_BRANCH \
               GIT_COMMIT \
               BUILD_NUMBER \
+              BUILD_TAG \
               ghprbSourceBranch \
               ghprbActualCommit \
               BUILD_URL \
@@ -55,9 +56,7 @@ function prepare() {
   # Start "flow-heater" container to build in and run tests in.
   # Every make target that begins with "docker-" will be executed
   # in the resulting container.
-  make docker-rm
   make docker-start
-  
   make docker-check-go-format
   # Download Go dependencies
   make docker-deps
