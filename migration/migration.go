@@ -437,6 +437,9 @@ func GetMigrations() Migrations {
 	// Version 99
 	m = append(m, steps{ExecuteSQLFile("099-codebase-cve-scan-default-false.sql")})
 
+	// Version 100
+	m = append(m, steps{ExecuteSQLFile("100-drop-userspace-data-table.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
