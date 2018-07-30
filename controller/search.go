@@ -2,24 +2,26 @@ package controller
 
 import (
 	"fmt"
+	"net/url"
+	"path"
+	"regexp"
 	"sort"
-
-	"github.com/fabric8-services/fabric8-wit/codebase"
-
-	"github.com/fabric8-services/fabric8-wit/id"
-	"github.com/fabric8-services/fabric8-wit/workitem/link"
+	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
-	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
@@ -403,7 +405,11 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 	var totalCount int
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
-		matchingCodebases, totalCount, err = appl.Codebases().SearchByURL(ctx, ctx.URL, &offset, &limit)
+		url, err := convertGithubURL(ctx.URL)
+		if err != nil {
+			return nil
+		}
+		matchingCodebases, totalCount, err = appl.Codebases().SearchByURL(ctx, url, &offset, &limit)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"url":    ctx.URL,
@@ -442,4 +448,32 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 	}
 	setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(matchingCodebases), offset, limit, totalCount, "url="+ctx.URL)
 	return ctx.OK(&response)
+}
+
+func convertGithubURL(urlRaw string) (string, error) {
+	// if the URL is https then we don't need to make any changes
+	if strings.HasPrefix(urlRaw, "https") {
+		return urlRaw, nil
+	}
+
+	validGit := regexp.MustCompile(`^(https|git)(:\/\/|@)([^\/:]+)[\/:]([^\/:]+)\/(.+).git$`)
+	if !validGit.MatchString(urlRaw) {
+		return "", fmt.Errorf("invalid URL: %v", urlRaw)
+	}
+	components := validGit.FindStringSubmatch(urlRaw)
+	l := len(components)
+
+	repository := components[l-1] + ".git"
+	organization := components[l-2]
+	domain := components[l-3]
+
+	rawURL := path.Join(domain, organization, repository)
+
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	u.Scheme = "https"
+
+	return u.String(), nil
 }
