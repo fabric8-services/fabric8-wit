@@ -171,6 +171,6 @@ func (s *ActionSuite) TestActionExecution() {
 		})
 		require.Nil(t, err)
 		require.Len(t, changes, 1)
-		require.Equal(t, "resolved", afterActionWI.(*workitem.WorkItem).Fields["system.state"])
+		require.Equal(t, "resolved", afterActionWI.(workitem.WorkItem).Fields["system.state"])
 	})
 }
