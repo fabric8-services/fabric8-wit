@@ -337,10 +337,6 @@ func main() {
 	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB, config)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
-	// Mount "userspace" controller
-	userspaceCtrl := controller.NewUserspaceController(service, db)
-	app.MountUserspaceController(service, userspaceCtrl)
-
 	// Mount "render" controller
 	renderCtrl := controller.NewRenderController(service)
 	app.MountRenderController(service, renderCtrl)
