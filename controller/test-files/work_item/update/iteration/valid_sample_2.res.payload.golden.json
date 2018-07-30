@@ -3,7 +3,7 @@
     "attributes": {
       "iteration_field": "",
       "system.created_at": "0001-01-01T00:00:00Z",
-      "system.metastate": null,
+      "system.metastate": "mNew",
       "system.number": 9,
       "system.order": 9000,
       "system.remote_item_id": null,

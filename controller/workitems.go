@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/actions"
 	conv "github.com/fabric8-services/fabric8-wit/convert"
 	"strconv"
@@ -157,9 +156,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to execute update actions on work item"))
 		}
 		newContextWi := newContext.(workitem.WorkItem)
-		spew.Dump(newContextWi)
 		wi = &newContextWi
-		spew.Dump(wi)
 	}
 	// construct response
 	wi2, err := ConvertWorkItem(ctx.Request, *workItemType, *wi, hasChildren)
