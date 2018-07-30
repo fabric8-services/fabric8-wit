@@ -124,6 +124,12 @@ ALL_PKGS_EXCLUDE_PATTERN = "vendor\|account\/tenant\|app\'\|tool\/cli\|design\|c
 GOANALYSIS_PKGS_EXCLUDE_PATTERN="vendor|account/tenant|app|client|tool/cli"
 GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS_EXCLUDE_PATTERN))
 
+# temporary directory for fabric8-test
+FABRIC8_TEST_DIR = $(CUR_DIR)/fabric8-test
+
+# fabric8-test reporsitory
+FABRIC8_TEST_REPO = "https://github.com/fabric8io/fabric8-test.git"
+
 #-------------------------------------------------------------------------------
 # Normal test targets
 #
@@ -186,6 +192,22 @@ test-remote-no-coverage: prebuild-check $(SOURCES)
 ## in order to have a clean database
 test-migration: prebuild-check migration/sqlbindata.go migration/sqlbindata_test.go
 	F8_RESOURCE_DATABASE=1 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) github.com/fabric8-services/fabric8-wit/migration
+
+.PHONY: test-e2e
+## Runs the end-to-end tests WITHOUT producing coverage files for each package.
+test-e2e: prebuild-check deps docker-compose-up $(SOURCES)
+	$(call log-info,"Running tests: $@")
+	## Clone the fabric8-test repo
+	@if [ "$(FABRIC8_TEST_DIR)" ]; then \
+		echo "NOT Removing existing fabric8-test dir $(FABRIC8_TEST_DIR)"; \
+		rm -rf $(FABRIC8_TEST_DIR); \
+	fi
+	$(GIT_BIN_NAME) clone --depth=1 $(FABRIC8_TEST_REPO)
+	## Start the WIT
+	./wit+pmcd.sh &
+	## Install e2e test deps and run the tests (TBD)
+	sleep 20 && ./fabric8-test/EE_API_automation/cico_run_EE_tests_wit.sh
+
 
 # Downloads docker-compose to tmp/docker-compose if it does not already exist.
 define download-docker-compose
@@ -542,3 +564,5 @@ CLEAN_TARGETS += clean-coverage-remote
 ## Removes remote test coverage file
 clean-coverage-remote:
 	-@rm -f $(COV_PATH_REMOTE)
+
+
