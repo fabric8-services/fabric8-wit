@@ -9,6 +9,7 @@ if [ ! -f .cico-prepare ]; then
     prepare
 
     run_tests_without_coverage;
+    run_e2e_tests;
 
     touch .cico-prepare
 fi

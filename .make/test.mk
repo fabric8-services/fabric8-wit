@@ -197,14 +197,14 @@ test-migration: prebuild-check migration/sqlbindata.go migration/sqlbindata_test
 ## Runs the end-to-end tests WITHOUT producing coverage files for each package.
 test-e2e: prebuild-check deps docker-compose-up $(SOURCES)
 	$(call log-info,"Running tests: $@")
-	## Clone the fabric8-test repo
+	# ## Clone the fabric8-test repo
 	@if [ "$(FABRIC8_TEST_DIR)" ]; then \
 		echo "NOT Removing existing fabric8-test dir $(FABRIC8_TEST_DIR)"; \
 		rm -rf $(FABRIC8_TEST_DIR); \
 	fi
 	$(GIT_BIN_NAME) clone --depth=1 $(FABRIC8_TEST_REPO)
 	## Start the WIT
-	./wit+pmcd.sh &
+	F8_LOG_LEVEL=ERROR ./wit+pmcd.sh &
 	## Install e2e test deps and run the tests (TBD)
 	sleep 20 && ./fabric8-test/EE_API_automation/cico_run_EE_tests_wit.sh
 

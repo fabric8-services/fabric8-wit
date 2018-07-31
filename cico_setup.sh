@@ -82,6 +82,12 @@ function run_tests_without_coverage() {
   echo "CICO: ran tests without coverage"
 }
 
+function run_e2e_tests() {
+  make test-e2e
+  trap cleanup_env EXIT
+  echo "CICO: ran e2e-tests"
+}
+
 function run_go_benchmarks() {
   make integration-test-env-prepare
   trap cleanup_env EXIT
