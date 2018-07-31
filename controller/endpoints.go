@@ -81,28 +81,28 @@ func getEndpoints(ctx *app.ListEndpointsContext, fileHandler asseter) (*app.Endp
 	var result map[string]interface{}
 	err = json.Unmarshal(swaggerJSON, &result)
 	if err != nil {
-		return nil, errs.Wrapf(err, "unable to unmarshal the file with id "+"'"+embeddedSwaggerSpecFile+"'")
+		return nil, errs.Wrapf(err, `unable to unmarshal the file with id "%s"`, embeddedSwaggerSpecFile)
 	}
 
 	// Get and iterate over paths from swagger specification.
 	swaggerPaths, ok := result["paths"]
 	if !ok {
-		return nil, errors.NewInternalErrorFromString("field `paths` could be found in swagger specification")
+		return nil, errors.NewInternalErrorFromString(`failed to find field "paths" in swagger specification`)
 	}
 
 	swaggerPathz, ok := swaggerPaths.(map[string]interface{})
 	if !ok {
-		return nil, errors.NewInternalErrorFromString("unable to assert concrete type map for field `paths` in swagger specification")
+		return nil, errors.NewInternalErrorFromString(`unable to assert concrete type map for field "paths" in swagger specification`)
 	}
 
 	basePathObj, ok := result["basePath"]
 	if !ok {
-		return nil, errors.NewInternalErrorFromString("field `basePath` could be found in swagger specification")
+		return nil, errors.NewInternalErrorFromString(`failed to find field "basePath" in swagger specification`)
 	}
 
 	basePath, ok := basePathObj.(string)
 	if !ok {
-		return nil, errors.NewInternalErrorFromString("unable to assert concrete type string for field `basePath` in swagger specification")
+		return nil, errors.NewInternalErrorFromString(`unable to assert concrete type string for field "basePath" in swagger specification`)
 	}
 
 	absoluteBasePath := rest.AbsoluteURL(ctx.Request, basePath)
