@@ -227,6 +227,5 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 			(*e.Attributes.NewValue).([]interface{})[i] = newVal
 		}
 	}
-
 	return &e, nil
 }
