@@ -135,10 +135,12 @@ func getEndpoints(ctx *app.ListEndpointsContext, fileHandler asseter) (*app.Endp
 			key = jsonapi.FormatMemberName(key)
 
 			// Set the related field and link objects for each name.
-			namedPaths[key] = map[string]interface{}{
-				"links": map[string]string{
-					"related": absoluteBasePath + path,
-				},
+			if key != "" {
+				namedPaths[key] = map[string]interface{}{
+					"links": map[string]string{
+						"related": absoluteBasePath + path,
+					},
+				}
 			}
 		}
 	}
