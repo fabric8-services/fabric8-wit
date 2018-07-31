@@ -251,10 +251,21 @@ func TestClose(t *testing.T) {
 
 type envTestData struct {
 	envName string
-	cpuUsed float64
-	cpuHard float64
-	memUsed float64
-	memHard float64
+	cpu     *quotaData
+	mem     *quotaData
+	pod     *quotaData
+	rc      *quotaData
+	quota   *quotaData
+	svc     *quotaData
+	secret  *quotaData
+	cm      *quotaData
+	pvc     *quotaData
+	is      *quotaData
+}
+
+type quotaData struct {
+	used  float64
+	limit float64
 }
 
 func TestGetEnvironments(t *testing.T) {
@@ -271,24 +282,30 @@ func TestGetEnvironments(t *testing.T) {
 			data: map[string]*envTestData{
 				"run": {
 					envName: "run",
-					cpuUsed: 0.488,
-					cpuHard: 2.0,
-					memUsed: 262144000.0,
-					memHard: 1073741824.0,
+					cpu:     &quotaData{0.488, 2.0},
+					mem:     &quotaData{262144000.0, 1073741824.0},
+					rc:      &quotaData{2, 20},
+					pvc:     &quotaData{1, 1},
+					secret:  &quotaData{11, 20},
+					svc:     &quotaData{2, 5},
 				},
 				"stage": {
 					envName: "stage",
-					cpuUsed: 1.488,
-					cpuHard: 2.0,
-					memUsed: 799014912.0,
-					memHard: 1073741824.0,
+					cpu:     &quotaData{1.488, 2.0},
+					mem:     &quotaData{799014912.0, 1073741824.0},
+					rc:      &quotaData{5, 20},
+					pvc:     &quotaData{0, 1},
+					secret:  &quotaData{9, 20},
+					svc:     &quotaData{2, 5},
 				},
 				"test": {
 					envName: "test",
-					cpuUsed: 0.0,
-					cpuHard: 2.0,
-					memUsed: 0.0,
-					memHard: 1073741824.0,
+					cpu:     &quotaData{0.0, 2.0},
+					mem:     &quotaData{0.0, 1073741824.0},
+					rc:      &quotaData{1, 20},
+					pvc:     &quotaData{0, 1},
+					secret:  &quotaData{12, 20},
+					svc:     &quotaData{1, 5},
 				},
 			},
 		},
@@ -349,10 +366,29 @@ func TestGetEnvironment(t *testing.T) {
 			cassetteName: "getenvironments",
 			envTestData: envTestData{
 				envName: "run",
-				cpuUsed: 0.488,
-				cpuHard: 2.0,
-				memUsed: 262144000.0,
-				memHard: 1073741824.0,
+				cpu:     &quotaData{0.488, 2.0},
+				mem:     &quotaData{262144000.0, 1073741824.0},
+				rc:      &quotaData{2, 20},
+				pvc:     &quotaData{1, 1},
+				secret:  &quotaData{11, 20},
+				svc:     &quotaData{2, 5},
+			},
+		},
+		{
+			testName:     "All Objects",
+			cassetteName: "getenvironment-all-objects",
+			envTestData: envTestData{
+				envName: "run",
+				cpu:     &quotaData{0.488, 2.0},
+				mem:     &quotaData{262144000.0, 1073741824.0},
+				pod:     &quotaData{31, 40},
+				rc:      &quotaData{19, 25},
+				quota:   &quotaData{2, 3},
+				svc:     &quotaData{4, 5},
+				secret:  &quotaData{17, 20},
+				cm:      &quotaData{9, 10},
+				pvc:     &quotaData{0, 1},
+				is:      &quotaData{14, 15},
 			},
 		},
 		{
@@ -366,6 +402,42 @@ func TestGetEnvironment(t *testing.T) {
 		{
 			testName:     "Kubernetes Error",
 			cassetteName: "getenvironments-rq-error",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Compute Resources Missing",
+			cassetteName: "getenvironment-no-compute",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Object Counts Missing",
+			cassetteName: "getenvironment-no-objects",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "CPU Missing",
+			cassetteName: "getenvironment-no-cpu",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Memory Missing",
+			cassetteName: "getenvironment-no-mem",
 			envTestData: envTestData{
 				envName: "run",
 			},
@@ -406,13 +478,38 @@ func TestGetEnvironment(t *testing.T) {
 func verifyEnvironment(env *app.SimpleEnvironment, testCase *envTestData, t *testing.T) {
 	require.Equal(t, testCase.envName, *env.Attributes.Name, "Wrong environment name")
 
-	cpuQuota := env.Attributes.Quota.Cpucores
-	require.InDelta(t, testCase.cpuHard, *cpuQuota.Quota, fltDelta, "Incorrect CPU quota for %s", testCase.envName)
-	require.InDelta(t, testCase.cpuUsed, *cpuQuota.Used, fltDelta, "Incorrect CPU usage for %s", testCase.envName)
+	quotas := env.Attributes.Quota
+	require.NotNil(t, quotas, "Expected non-nil Quota attribute")
 
-	memQuota := env.Attributes.Quota.Memory
-	require.InDelta(t, testCase.memHard, *memQuota.Quota, fltDelta, "Incorrect memory quota for %s", testCase.envName)
-	require.InDelta(t, testCase.memUsed, *memQuota.Used, fltDelta, "Incorrect memory usage for %s", testCase.envName)
+	cpuQuota := quotas.Cpucores
+	require.NotNil(t, cpuQuota, "Expected CPU usage/limit in response")
+	require.InDelta(t, testCase.cpu.limit, *cpuQuota.Quota, fltDelta, "Incorrect CPU quota for %s", testCase.envName)
+	require.InDelta(t, testCase.cpu.used, *cpuQuota.Used, fltDelta, "Incorrect CPU usage for %s", testCase.envName)
+
+	memQuota := quotas.Memory
+	require.NotNil(t, cpuQuota, "Expected memory usage/limit in response")
+	require.InDelta(t, testCase.mem.limit, *memQuota.Quota, fltDelta, "Incorrect memory quota for %s", testCase.envName)
+	require.InDelta(t, testCase.mem.used, *memQuota.Used, fltDelta, "Incorrect memory usage for %s", testCase.envName)
+
+	verifyObjectQuota(quotas.Pods, testCase.pod, "pod", testCase.envName, t)
+	verifyObjectQuota(quotas.ReplicationControllers, testCase.rc, "replication controller", testCase.envName, t)
+	verifyObjectQuota(quotas.ResourceQuotas, testCase.quota, "resource quota", testCase.envName, t)
+	verifyObjectQuota(quotas.Services, testCase.svc, "service", testCase.envName, t)
+	verifyObjectQuota(quotas.Secrets, testCase.secret, "secret", testCase.envName, t)
+	verifyObjectQuota(quotas.ConfigMaps, testCase.cm, "config map", testCase.envName, t)
+	verifyObjectQuota(quotas.PersistentVolumeClaims, testCase.pvc, "persistent volume claim", testCase.envName, t)
+	verifyObjectQuota(quotas.ImageStreams, testCase.is, "image stream", testCase.envName, t)
+}
+
+func verifyObjectQuota(quota *app.EnvStatQuota, expected *quotaData, resourceName string,
+	envName string, t *testing.T) {
+	if expected == nil {
+		require.Nil(t, quota, "Unexpected %s usage/limit in response", resourceName)
+	} else {
+		require.NotNil(t, quota, "Expected %s usage/limit in response", resourceName)
+		require.InDelta(t, expected.limit, *quota.Quota, fltDelta, "Incorrect %s quota for %s", resourceName, envName)
+		require.InDelta(t, expected.used, *quota.Used, fltDelta, "Incorrect %s usage for %s", resourceName, envName)
+	}
 }
 
 type spaceTestData struct {
