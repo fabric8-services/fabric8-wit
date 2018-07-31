@@ -5,13 +5,8 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"net/http"
-	"net/url"
-	"reflect"
-	"sync"
-	"text/template"
-
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -23,6 +18,11 @@ import (
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	"net/http"
+	"net/url"
+	"reflect"
+	"sync"
+	"text/template"
 )
 
 // AdvisoryLockID is a random number that should be used within the application
@@ -438,7 +438,15 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("099-codebase-cve-scan-default-false.sql")})
 
 	// Version 100
-	m = append(m, steps{ExecuteSQLFile("100-drop-userspace-data-table.sql")})
+	m = append(m, steps{
+		func(db *sql.Tx) error {
+			_, err := db.Exec("DROP TABLE IF EXISTS userspace_data")
+			if err != nil {
+				return errs.Wrapf(err, "failed to drop table `userspace_data`")
+			}
+			return nil
+		},
+	})
 
 	// Version N
 	//
