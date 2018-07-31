@@ -16,7 +16,7 @@ var event = a.Type("Event", func() {
 	a.Attribute("attributes", eventAttributes)
 	a.Attribute("relationships", eventRelationships)
 	a.Attribute("links", genericLinks)
-	a.Required("type")
+	a.Required("type", "relationships", "attributes", "id")
 })
 
 var eventAttributes = a.Type("EventAttributes", func() {
@@ -26,9 +26,6 @@ var eventAttributes = a.Type("EventAttributes", func() {
 	})
 	a.Attribute("name", d.String, "The name of the event occured", func() {
 		a.Example("system.title")
-	})
-	a.Attribute("workItemTypeID", d.UUID, "The type ID of the work item at given point in history", func() {
-		a.Example("ae753d1a-4625-4c84-baf8-0fc99a189df9")
 	})
 	a.Attribute("oldValue", d.Any, "The user who was assigned to (or unassigned from). Only for 'assigned' and 'unassigned' events.", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
@@ -43,6 +40,9 @@ var eventRelationships = a.Type("EventRelations", func() {
 	a.Attribute("modifier", relationGeneric, "This defines the modifier of the event")
 	a.Attribute("oldValue", relationGenericList)
 	a.Attribute("newValue", relationGenericList)
+	a.Attribute("workItemType", relationGeneric, "The type of the work item at the event's point in time")
+
+	a.Required("workItemType", "modifier")
 })
 
 var eventList = JSONList(

@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/ptr"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/event"
 	"github.com/goadesign/goa"
@@ -96,17 +97,21 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 
 	e := app.Event{
 		Type: event.APIStringTypeEvents,
-		ID:   &wiEvent.ID,
+		ID:   wiEvent.ID,
 		Attributes: &app.EventAttributes{
-			Name:           wiEvent.Name,
-			Timestamp:      wiEvent.Timestamp,
-			WorkItemTypeID: &wiEvent.WorkItemTypeID,
+			Name:      wiEvent.Name,
+			Timestamp: wiEvent.Timestamp,
 		},
 		Relationships: &app.EventRelations{
 			Modifier: &app.RelationGeneric{
 				Data: &app.GenericData{
 					Type: ptr.String(APIStringTypeUser),
 					ID:   ptr.String(wiEvent.Modifier.String()),
+				},
+			},
+			WorkItemType: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Self: ptr.String(rest.AbsoluteURL(req, app.WorkitemtypeHref(wit.ID))),
 				},
 			},
 		},
