@@ -325,6 +325,10 @@ func main() {
 	labelCtrl := controller.NewLabelController(service, appDB, config)
 	app.MountLabelController(service, labelCtrl)
 
+	// Mount "endpoints" controller
+	endpointsCtrl := controller.NewEndpointsController(service)
+	app.MountEndpointsController(service, endpointsCtrl)
+
 	// Mount "iterations" controller
 	iterationCtrl := controller.NewIterationController(service, appDB, config)
 	app.MountIterationController(service, iterationCtrl)
@@ -409,6 +413,9 @@ func main() {
 	log.Logger().Infoln("Dev mode:       ", config.IsPostgresDeveloperModeEnabled())
 	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
 	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
+
+	// Make the endpoints available under /api as well
+	http.Handle("/api", http.RedirectHandler("/api/endpoints", http.StatusTemporaryRedirect))
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
