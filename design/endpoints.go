@@ -27,7 +27,7 @@ var _ = a.Resource("endpoints", func() {
 		a.Routing(
 			a.GET(""),
 		)
-		a.Description("List all endpoints. ")
+		a.Description("List all endpoints.")
 		a.Response(d.OK, endpointsSingle)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
