@@ -19,13 +19,15 @@ const (
 	verbWatch            = "watch"
 )
 
+// KubeAccessControl contains methods that answer whether the current user
+// has sufficient authorization to call various methods of KubeClientInterface
 type KubeAccessControl interface {
-	//CanGetSpace() (bool, error)
-	//CanGetApplication() (bool, error)
-	//CanGetDeployment() (bool, error)
-	//CanScaleDeployment(envName string) (bool, error) FIXME How will this work? Need deployment name?
-	//CanGetDeploymentStats(envName string) (bool, error)
-	//CanGetDeploymentStatSeries(envName string) (bool, error)
+	CanGetSpace() (bool, error)
+	CanGetApplication() (bool, error)
+	CanGetDeployment(envName string) (bool, error)
+	CanScaleDeployment(envName string) (bool, error)
+	CanGetDeploymentStats(envName string) (bool, error)
+	CanGetDeploymentStatSeries(envName string) (bool, error)
 	CanDeleteDeployment(envName string) (bool, error)
 	CanGetEnvironments() (bool, error)
 	CanGetEnvironment(envName string) (bool, error)
@@ -68,42 +70,127 @@ func (rulesMap accessRules) isAuthorized(reqs []*requestedAccess) bool {
 	return true
 }
 
-var deleteDeploymentRules = []*requestedAccess{
-	{qualifiedResource{"", "services"}, []string{verbList, verbDelete}},
-	{qualifiedResource{"", "routes"}, []string{verbList, verbDelete}},
-	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet, verbDelete}},
-}
-
-func (kc *kubeClient) CanDeleteDeployment(envName string) (bool, error) {
-	// Also need access to builds in user namespace
-	ok, err := kc.canGetBuilds()
+func (kc *kubeClient) CanGetSpace() (bool, error) {
+	// Also need access to build configs and builds in user namespace
+	ok, err := kc.checkAuthorizedInEnv(getBuildConfigsAndBuildsRules, environmentTypeUser)
 	if err != nil {
 		return false, err
 	} else if !ok {
 		return false, nil
 	}
 
-	rules, err := kc.getRulesForEnvironment(envName)
+	for envName := range kc.envMap {
+		if kc.CanDeploy(envName) {
+			ok, err := kc.checkAuthorizedInEnv(getDeploymentRules, envName)
+			if err != nil {
+				return false, err
+			} else if !ok {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
+}
+
+func (kc *kubeClient) CanGetApplication() (bool, error) {
+	// Also need access to builds in user namespace
+	ok, err := kc.checkAuthorizedInEnv(getBuildsRules, environmentTypeUser)
 	if err != nil {
 		return false, err
+	} else if !ok {
+		return false, nil
 	}
 
-	return rules.isAuthorized(deleteDeploymentRules), nil
+	for envName := range kc.envMap {
+		if kc.CanDeploy(envName) {
+			ok, err := kc.checkAuthorizedInEnv(getDeploymentRules, envName)
+			if err != nil {
+				return false, err
+			} else if !ok {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
+}
+
+var getDeploymentRules = []*requestedAccess{
+	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet}},
+	{qualifiedResource{"", "replicationcontrollers"}, []string{verbList}},
+	{qualifiedResource{"", "pods"}, []string{verbList}},
+	{qualifiedResource{"", "services"}, []string{verbList}},
+	{qualifiedResource{"", "routes"}, []string{verbList}},
+}
+
+func (kc *kubeClient) CanGetDeployment(envName string) (bool, error) {
+	return kc.checkAuthorizedWithBuilds(envName, getDeploymentRules)
+}
+
+var scaleDeploymentRules = []*requestedAccess{
+	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet}},
+	{qualifiedResource{"", "deploymentconfigs/scale"}, []string{verbGet}},
+	{qualifiedResource{"", "deploymentconfigs/scale"}, []string{verbUpdate}},
+}
+
+func (kc *kubeClient) CanScaleDeployment(envName string) (bool, error) {
+	return kc.checkAuthorizedWithBuilds(envName, scaleDeploymentRules)
+}
+
+var deleteDeploymentRules = []*requestedAccess{
+	{qualifiedResource{"", "services"}, []string{verbList, verbDelete}},
+	{qualifiedResource{"", "routes"}, []string{verbList, verbDelete}},
+	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet, verbDelete}},
+}
+
+// TODO Do we want resource name-specific checks. Can delete DC named X?
+func (kc *kubeClient) CanDeleteDeployment(envName string) (bool, error) {
+	return kc.checkAuthorizedWithBuilds(envName, deleteDeploymentRules)
+}
+
+var getDeploymentStatsRules = []*requestedAccess{
+	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet}},
+	{qualifiedResource{"", "replicationcontrollers"}, []string{verbList}},
+	{qualifiedResource{"", "pods"}, []string{verbList}},
+}
+
+func (kc *kubeClient) CanGetDeploymentStats(envName string) (bool, error) {
+	return kc.checkAuthorizedWithBuilds(envName, getDeploymentStatsRules)
+}
+
+func (kc *kubeClient) CanGetDeploymentStatSeries(envName string) (bool, error) {
+	return kc.checkAuthorizedWithBuilds(envName, getDeploymentStatsRules)
+}
+
+func (kc *kubeClient) checkAuthorizedWithBuilds(envName string, reqs []*requestedAccess) (bool, error) {
+	// Also need access to builds in user namespace
+	ok, err := kc.checkAuthorizedInEnv(getBuildsRules, environmentTypeUser)
+	if err != nil {
+		return false, err
+	} else if !ok {
+		return false, nil
+	}
+
+	return kc.checkAuthorizedInEnv(reqs, envName)
 }
 
 const environmentTypeUser = "user"
+
+var getBuildConfigsAndBuildsRules = []*requestedAccess{
+	{qualifiedResource{"", "buildconfigs"}, []string{verbList}},
+	{qualifiedResource{"", "builds"}, []string{verbList}},
+}
 
 var getBuildsRules = []*requestedAccess{
 	{qualifiedResource{"", "builds"}, []string{verbList}},
 }
 
-func (kc *kubeClient) canGetBuilds() (bool, error) {
-	rules, err := kc.getRulesForEnvironment(environmentTypeUser)
+func (kc *kubeClient) checkAuthorizedInEnv(reqs []*requestedAccess, envName string) (bool, error) {
+	rules, err := kc.getRulesForEnvironment(envName)
 	if err != nil {
 		return false, err
 	}
 
-	return rules.isAuthorized(getBuildsRules), nil
+	return rules.isAuthorized(reqs), nil
 }
 
 var getEnvironmentRules = []*requestedAccess{
@@ -125,12 +212,7 @@ func (kc *kubeClient) CanGetEnvironments() (bool, error) {
 }
 
 func (kc *kubeClient) CanGetEnvironment(envName string) (bool, error) {
-	rules, err := kc.getRulesForEnvironment(envName)
-	if err != nil {
-		return false, err
-	}
-
-	return rules.isAuthorized(getEnvironmentRules), nil
+	return kc.checkAuthorizedInEnv(getEnvironmentRules, envName)
 }
 
 // Gets the authorization rules for the current user in a given environment
@@ -238,7 +320,7 @@ func getStringSliceFromJSON(jsonObj map[string]interface{}, name string) []strin
 	var items []string
 	jsonArray, ok := jsonObj[name].([]interface{})
 	if ok {
-		items = make([]string, len(jsonArray))
+		items = make([]string, 0, len(jsonArray))
 		for _, jsonItem := range jsonArray {
 			item, ok := jsonItem.(string)
 			if !ok {
