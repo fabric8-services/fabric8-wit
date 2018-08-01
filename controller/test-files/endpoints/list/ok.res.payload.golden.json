@@ -118,11 +118,7 @@
       "users": {
         "links": {
           "related": "http:///api/users"
-        }
-      },
-      "userspace": {
-        "links": {
-          "related": "http:///api/userspace/*"
+
         }
       },
       "workitemlinkcategories": {
