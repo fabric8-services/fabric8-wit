@@ -7,9 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/label"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/closeable"
+	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -631,55 +635,50 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 			newFieldType := newWiType.Fields[oldFieldName].Type
 			// The field exists in old type but not in new type
 			if _, ok := newWiType.Fields[oldFieldName]; !ok {
-				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
-				delete(wiStorage.Fields, oldFieldName)
+				if wiStorage.Fields[oldFieldName] != nil {
+					fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
+					delete(wiStorage.Fields, oldFieldName)
+				}
 			} else if !oldFieldType.Equal(newFieldType) {
 				// Workitem types have field with same name but different type
 				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
 			}
+			// Handle case where the workitem types have same field with different set of allowed values. Eg: Resolution in defect and impediment
 		}
-
+		// TODO: Deal with different states accross types
 		if len(fieldDiff) > 0 {
 			// Append diff (fields along with their values) between the workitem types to the description
 			originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
-			textToPrepend := "======= Missing fields in new workitem type =======\n"
-			for field := range fieldDiff {
+			textToPrepend := "======= Missing fields in workitem type: " + newWiType.Name + " =======\n"
+			for fieldName := range fieldDiff {
 				var val string
-				switch t := fieldDiff[field].(type) {
-				case string:
-					val = t
-				case float32, float64:
-					val = fmt.Sprintf("%f", t) // TODO: This isn't working
-				case int:
-					val = fmt.Sprintf("%d", t)
-					// TODO: Handle other types
+				if wiType.Fields[fieldName].Type.GetKind().IsRelational() {
+					val, err = getValueOfRelationKind(r.db, fieldDiff[fieldName], wiType.Fields[fieldName].Type.GetKind())
+				} else {
+					switch t := fieldDiff[fieldName].(type) {
+					case string:
+						val = t
+					case float32, float64:
+						val = fmt.Sprintf("%f", t)
+					case int, int16, int32, int64:
+						val = fmt.Sprintf("%d", t)
+						// TODO: Handle other types
+					}
 				}
-				textToPrepend += fmt.Sprintf("\n %s : %s", field, val)
+				if val != "" {
+					textToPrepend += fmt.Sprintf("\n %s : %s", wiType.Fields[fieldName].Label, val)
+				}
 			}
 			textToPrepend += "\n================================================\n"
-			originalDescription.Content = textToPrepend + originalDescription.Content
+			// The workitem doesn't have a description
+			if originalDescription == nil {
+				originalDescription = rendering.NewMarkupContentFromValue(textToPrepend)
+			} else {
+				originalDescription.Content = textToPrepend + originalDescription.Content
+			}
 			wiStorage.Fields[SystemDescription] = originalDescription.ToMap()
 		}
 		wiStorage.Type = updatedWorkItem.Type
-		// // iterate over fields of new workitem type
-		// for newFieldName, newFieldDef := range newWiType.Fields {
-		// 	for oldFieldName, _ := range wiType.Fields {
-		// 		if oldFieldName == "system.state" || oldFieldName == "system.metastate" || newFieldName == "system.state" || newFieldName == "system.metastate" { // state is enum type so throws error --> TODO (dhriti) : fix this
-		// 			continue
-		// 		}
-		// 		if newFieldName != oldFieldName {
-		// 			switch newFieldDef.Type.GetKind() {
-		// 			case KindUser:
-		// 			case KindCodebase:
-		// 			case KindString:
-		// 			case KindEnum:
-		// 			case KindFloat:
-		// 			case KindList:
-		// 			}
-		// 		}
-		// 		// TODO (Ibrahim): Case 3
-		// 	}
-		// }
 	}
 
 	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)
@@ -1219,4 +1218,58 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 		workitems = append(workitems, convertedWI)
 	}
 	return workitems, nil
+}
+
+func getValueOfRelationKind(db *gorm.DB, val interface{}, kind Kind) (string, error) {
+	var result string
+	switch kind {
+	case KindUser: // TODO: Handle if it's a list of users
+		var identity account.Identity
+		tx := db.Model(&account.Identity{}).Where("id = ?", val).Select("username").Find(&identity)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find user")
+		}
+		result = identity.Username // TODO: verify if we want the username or full name
+	case KindArea:
+		var area area.Area
+		tx := db.Model(area.TableName()).Where("id = ?", val).First(&area)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find area")
+		}
+		result = area.Name
+	case KindBoardColumn: // TODO: Handle if it's a list of users
+		var column BoardColumn
+		tx := db.Model(column.TableName()).Where("id = ?", val).First(&column)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find area")
+		}
+		result = column.Name
+
+	case KindIteration:
+		var iteration iteration.Iteration
+		tx := db.Model(iteration.TableName()).Where("id = ?", val).First(&iteration)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find area")
+		}
+		result = iteration.Name
+
+	case KindCodebase:
+		var codebase codebase.Codebase
+		tx := db.Model(codebase.TableName()).Where("id = ?", val).First(&codebase)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find area")
+		}
+		result = codebase.ID.String() // TODO: Figure out what we should be here. Codebase does not have a name.
+
+	case KindLabel: // TODO: Handle if it's a list of labels
+		var label label.Label
+		tx := db.Model(label.TableName()).Where("id = ?", val).First(&label)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find area")
+		}
+		result = label.Name
+	default:
+		return result, errors.NewConversionError("something went wrong")
+	}
+	return result, nil
 }
