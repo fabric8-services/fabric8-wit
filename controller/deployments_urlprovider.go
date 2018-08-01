@@ -199,6 +199,8 @@ func (up *tenantURLProvider) GetEnvironmentMapping() map[string]string {
 			log.Error(nil, map[string]interface{}{
 				"namespace": envNS,
 			}, "namespace has no type")
+		} else {
+			result[*envName] = envNS
 		}
 	}
 	return result
@@ -208,7 +210,7 @@ func (up *tenantURLProvider) GetEnvironmentMapping() map[string]string {
 var internalNamespaceTypes = map[string]struct{}{"user": {}, "che": {}, "jenkins": {}}
 
 // CanDeploy returns true if the environment type provided can be deployed to as part of a pipeline
-func CanDeploy(envType string) bool {
+func (up *tenantURLProvider) CanDeploy(envType string) bool {
 	_, pres := internalNamespaceTypes[envType]
 	return !pres
 }
