@@ -55,34 +55,47 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	switch t.GetKind() {
 	case KindString, KindUser, KindIteration, KindArea, KindLabel, KindBoardColumn:
 		if valueType.Kind() != reflect.String {
-			return nil, errs.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "string", valueType.Name())
 		}
 		return value, nil
 	case KindURL:
 		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) {
 			return value, nil
 		}
-		return nil, errs.Errorf("value %v should be %s, but is %s", value, "URL", valueType.Name())
+		return nil, errs.Errorf("value %v (%[1]T) should be %s, but is \"%s\"", value, "URL", valueType.Name())
 	case KindFloat:
 		if valueType.Kind() != reflect.Float64 {
-			return nil, errs.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is \"%s\"", value, "float64", valueType.Name())
 		}
 		return value, nil
 	case KindInteger, KindDuration: // NOTE: Duration is a typedef of int64
-		if valueType.Kind() != reflect.Int && valueType.Kind() != reflect.Int64 {
-			return nil, errs.Errorf("value %v should be %s, but is %s", value, "int", valueType.Name())
+		// NOTE(kwk): This will change soon to be more consistent.
+		switch valueType.Kind() {
+		case reflect.Int,
+			reflect.Int64:
+			return value, nil
+		case reflect.Float64:
+			fval, ok := value.(float64)
+			if !ok {
+				return nil, errs.Errorf("failed to cast value %+v (%[1]T) to float64", value)
+			}
+			if fval != math.Trunc(fval) {
+				return nil, errs.Errorf("float64 value %+v (%[1]T) has digits after the decimal point and therefore cannot be represented by an integer", value, valueType.Name())
+			}
+			return int(fval), nil
+		default:
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s ", value, "int", valueType.Name())
 		}
-		return value, nil
 	case KindInstant:
 		// instant == milliseconds
 		// if !valueType.Implements(timeType) {
 		if valueType.Kind() != timeType.Kind() {
-			return nil, errs.Errorf("value %v should be %s, but is %s", value, "time.Time", valueType.Name())
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "time.Time", valueType.Name())
 		}
 		return value.(time.Time).UnixNano(), nil
 	case KindList:
 		if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
-			return nil, errs.Errorf("value %v should be %s, but is %s,", value, "array/slice", valueType.Kind())
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s,", value, "array/slice", valueType.Kind())
 		}
 		return value, nil
 	case KindEnum:
@@ -95,26 +108,26 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 		case rendering.MarkupContent:
 			markupContent := value.(rendering.MarkupContent)
 			if !rendering.IsMarkupSupported(markupContent.Markup) {
-				return nil, errs.Errorf("value %v (type %s) has no valid markup type %s", value, "MarkupContent", markupContent.Markup)
+				return nil, errs.Errorf("value %v (%[1]T) has no valid markup type %s", value, markupContent.Markup)
 			}
 			return markupContent.ToMap(), nil
 		default:
-			return nil, errs.Errorf("value %v should be %s, but is %s", value, "MarkupContent", valueType)
+			return nil, errs.Errorf("value %v (%[1]T) should be rendering.MarkupContent, but is %s", value, valueType)
 		}
 	case KindCodebase:
 		switch value.(type) {
 		case codebase.Content:
 			cb := value.(codebase.Content)
 			if err := cb.IsValid(); err != nil {
-				return nil, errs.Wrapf(err, "value %v (type %s) is invalid %s", value, "Codebase", cb)
+				return nil, errs.Wrapf(err, "value %v (%[1]T) is invalid %s", value, cb)
 			}
 			return cb.ToMap(), nil
 		default:
-			return nil, errs.Errorf("value %v should be %s, but is %s", value, "CodebaseContent", valueType)
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "CodebaseContent", valueType)
 		}
 	case KindBoolean:
 		if valueType.Kind() != reflect.Bool {
-			return nil, errs.Errorf("value %v should be %s, but is %s", value, "boolean", valueType.Name())
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "boolean", valueType.Name())
 		}
 		return value, nil
 	default:
