@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/closeable"
-
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/closeable"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -625,25 +624,62 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 			return nil, errors.NewBadParameterError("typeID", wiType.ID)
 		}
 
-		// iterate over fields of new workitem type
-		for newFieldName, newFieldDef := range newWiType.Fields {
-			for oldFieldName, _ := range wiType.Fields {
-				if oldFieldName == "system.state" || oldFieldName == "system.metastate" || newFieldName == "system.state" || newFieldName == "system.metastate" { // state is enum type so throws error --> TODO (dhriti) : fix this
-					continue
-				}
-				if newFieldName != oldFieldName {
-					switch newFieldDef.Type.GetKind() {
-					case KindUser:
-					case KindCodebase:
-					case KindString:
-					case KindEnum:
-					case KindFloat:
-					case KindList:
-					}
-				}
-				// TODO (Ibrahim): Case 3
+		var fieldDiff = Fields{}
+		// Loop through old workitem type
+		for oldFieldName := range wiType.Fields {
+			oldFieldType := wiType.Fields[oldFieldName].Type
+			newFieldType := newWiType.Fields[oldFieldName].Type
+			// The field exists in old type but not in new type
+			if _, ok := newWiType.Fields[oldFieldName]; !ok {
+				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
+				delete(wiStorage.Fields, oldFieldName)
+			} else if !oldFieldType.Equal(newFieldType) {
+				// Workitem types have field with same name but different type
+				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
 			}
 		}
+
+		if len(fieldDiff) > 0 {
+			// Append diff (fields along with their values) between the workitem types to the description
+			originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
+			textToPrepend := "======= Missing fields in new workitem type =======\n"
+			for field := range fieldDiff {
+				var val string
+				switch t := fieldDiff[field].(type) {
+				case string:
+					val = t
+				case float32, float64:
+					val = fmt.Sprintf("%f", t) // TODO: This isn't working
+				case int:
+					val = fmt.Sprintf("%d", t)
+					// TODO: Handle other types
+				}
+				textToPrepend += fmt.Sprintf("\n %s : %s", field, val)
+			}
+			textToPrepend += "\n================================================\n"
+			originalDescription.Content = textToPrepend + originalDescription.Content
+			wiStorage.Fields[SystemDescription] = originalDescription.ToMap()
+		}
+		wiStorage.Type = updatedWorkItem.Type
+		// // iterate over fields of new workitem type
+		// for newFieldName, newFieldDef := range newWiType.Fields {
+		// 	for oldFieldName, _ := range wiType.Fields {
+		// 		if oldFieldName == "system.state" || oldFieldName == "system.metastate" || newFieldName == "system.state" || newFieldName == "system.metastate" { // state is enum type so throws error --> TODO (dhriti) : fix this
+		// 			continue
+		// 		}
+		// 		if newFieldName != oldFieldName {
+		// 			switch newFieldDef.Type.GetKind() {
+		// 			case KindUser:
+		// 			case KindCodebase:
+		// 			case KindString:
+		// 			case KindEnum:
+		// 			case KindFloat:
+		// 			case KindList:
+		// 			}
+		// 		}
+		// 		// TODO (Ibrahim): Case 3
+		// 	}
+		// }
 	}
 
 	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)

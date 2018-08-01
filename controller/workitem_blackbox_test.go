@@ -980,7 +980,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 			switch idx {
 			case 0:
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
-					"foo": {
+					"fooo": {
 						Label: "Type1 foo",
 						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
 					},
@@ -990,12 +990,12 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 					},
 					"bar": {
 						Label: "Type1 bar",
-						Type:  &workitem.SimpleType{Kind: workitem.KindBoolean},
+						Type:  &workitem.SimpleType{Kind: workitem.KindString},
 					},
 				}
 			case 1:
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
-					"foo": {
+					"fooo": {
 						Label: "Type1 foo",
 						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
 					},
@@ -1008,9 +1008,10 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 			return nil
 		}),
 		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Type = fxt.WorkItemTypes[idx].ID
-			fxt.WorkItems[idx].Fields["foo"] = 2.5
+			fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+			fxt.WorkItems[idx].Fields["fooo"] = 2.5
 			fxt.WorkItems[idx].Fields["fooBar"] = 100.0
+			fxt.WorkItems[idx].Fields["bar"] = "hello"
 			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("description1")
 			return nil
 		}),
@@ -1023,17 +1024,26 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 		BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
 	}
 	s.T().Run("ok", func(t *testing.T) {
-		_, newWI := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+		svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
+		_, newWI := test.UpdateWorkitemOK(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+		spew.Dump(newWI)
 		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
-		assert.NotContains(t, newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["foo"].Label)
-		assert.Contains(t, newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["bar"].Label)
-		assert.Contains(t, newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["fooBar"].Label)
+		assert.NotContains(t, newWI.Data.Attributes[workitem.SystemDescription], "fooo")
+		assert.Contains(t, newWI.Data.Attributes[workitem.SystemDescription], "bar")
+		assert.Contains(t, newWI.Data.Attributes[workitem.SystemDescription], "fooBar")
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
 	})
+
 	s.T().Run("unauthorized", func(t *testing.T) {
-		s.svc = goa.New("TestCreateWorkItemWithoutContext-Service")
-		// TODO - Make anyone except space owner and workitem creator get unauthorized error
-		test.UpdateWorkitemUnauthorized(t, s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+		// TODO
+	})
+	s.T().Run("different field Kinds", func(t *testing.T){
+		t.Run("Markup",func(t *testing.T){})
+		t.Run("Integer",func(t *testing.T){})
+		t.Run("Boolean",func(t *testing.T){})
+		t.Run("Markup",func(t *testing.T){})
+		t.Run("String",func(t *testing.T){})
+		t.Run("Float",func(t *testing.T){})
 	})
 }
 
