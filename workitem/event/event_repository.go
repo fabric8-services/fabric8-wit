@@ -143,27 +143,24 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					eventList = append(eventList, event)
 				}
 			case workitem.SimpleType:
-				if !fieldType.GetKind().IsRelational() {
-					// compensate conversion from storage if this really was an enum field
-					converter := fieldType.ConvertFromModel
-					if isEnumType {
-						converter = enumType.ConvertFromModel
-					}
+				// compensate conversion from storage if this really was an enum field
+				converter := fieldType.ConvertFromModel
+				if isEnumType {
+					converter = enumType.ConvertFromModel
+				}
 
-					p, err := converter(oldVal)
-					if err != nil {
-						return nil, errs.Wrapf(err, "failed to convert old value for field %s from storage representation: %+v", fieldName, oldVal)
-					}
-					n, err := converter(newVal)
-					if err != nil {
-						return nil, errs.Wrapf(err, "failed to convert new value for field %s from storage representation: %+v", fieldName, newVal)
-					}
-
-					if !reflect.DeepEqual(p, n) {
-						event.Old = p
-						event.New = n
-						eventList = append(eventList, event)
-					}
+				p, err := converter(oldVal)
+				if err != nil {
+					return nil, errs.Wrapf(err, "failed to convert old value for field %s from storage representation: %+v", fieldName, oldVal)
+				}
+				n, err := converter(newVal)
+				if err != nil {
+					return nil, errs.Wrapf(err, "failed to convert new value for field %s from storage representation: %+v", fieldName, newVal)
+				}
+				if !reflect.DeepEqual(p, n) {
+					event.Old = p
+					event.New = n
+					eventList = append(eventList, event)
 				}
 			default:
 				return nil, errors.NewNotFoundError("unknown field type", fieldType.GetKind().String())
