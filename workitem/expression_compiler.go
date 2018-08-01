@@ -442,13 +442,16 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 
 	c.ensureJoinTable(tblName)
 	c.parameters = append(c.parameters, r)
-	return fmt.Sprintf(`"work_items".fields->>'%[1]s'::text IN (
-		  SELECT %[2]s.id::text 
-		    WHERE %[2]s.path <@ (SELECT i.path
+	c.parameters = append(c.parameters, r)
+
+	return fmt.Sprintf(`((iter.id = ?) OR replace("work_items".fields->>'%[1]s'::text, '-', '_') IN (
+		  SELECT replace(%[2]s.id::text, '-', '_')
+		  WHERE (%[2]s.path <@ (SELECT i.path
 		                        FROM %[3]s i
-						WHERE i.id = ? AND i.space_id = "work_items".space_id
-					                    )
-						    )`, left.FieldName, "iter", tblName)
+						WHERE i.id = ? AND i.path <> ''
+					)
+						    )))`, left.FieldName, "iter", tblName)
+
 }
 
 func (c *expressionCompiler) Parameter(v *criteria.ParameterExpression) interface{} {
