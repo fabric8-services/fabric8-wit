@@ -13,7 +13,6 @@ func TestCanGetSpace(t *testing.T) {
 		cassetteName   string
 		expectedResult bool
 		shouldFail     bool
-		errorChecker   func(error) (bool, error)
 	}{
 		{
 			testName:       "Basic",
@@ -24,6 +23,16 @@ func TestCanGetSpace(t *testing.T) {
 			testName:       "No Builds",
 			cassetteName:   "can-i-no-builds",
 			expectedResult: false,
+		},
+		{
+			testName:       "No Deployment Config",
+			cassetteName:   "can-i-no-dc",
+			expectedResult: false,
+		},
+		{
+			testName:     "Missing Status",
+			cassetteName: "can-i-no-status",
+			shouldFail:   true,
 		},
 	}
 
@@ -39,10 +48,6 @@ func TestCanGetSpace(t *testing.T) {
 			result, err := kc.CanGetSpace()
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
-				if testCase.errorChecker != nil {
-					matches, _ := testCase.errorChecker(err)
-					require.True(t, matches, "Error or cause must be the expected type")
-				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.Equal(t, testCase.expectedResult, result, "Expected different authorization result")
@@ -57,7 +62,6 @@ func TestCanGetApplication(t *testing.T) {
 		cassetteName   string
 		expectedResult bool
 		shouldFail     bool
-		errorChecker   func(error) (bool, error)
 	}{
 		{
 			testName:       "Basic",
@@ -68,6 +72,16 @@ func TestCanGetApplication(t *testing.T) {
 			testName:       "No Builds",
 			cassetteName:   "can-i-no-builds",
 			expectedResult: false,
+		},
+		{
+			testName:       "No Deployment Config",
+			cassetteName:   "can-i-no-dc",
+			expectedResult: false,
+		},
+		{
+			testName:     "Missing Status",
+			cassetteName: "can-i-no-status",
+			shouldFail:   true,
 		},
 	}
 
@@ -83,10 +97,6 @@ func TestCanGetApplication(t *testing.T) {
 			result, err := kc.CanGetApplication()
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
-				if testCase.errorChecker != nil {
-					matches, _ := testCase.errorChecker(err)
-					require.True(t, matches, "Error or cause must be the expected type")
-				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.Equal(t, testCase.expectedResult, result, "Expected different authorization result")
@@ -102,7 +112,6 @@ func TestCanGetDeployment(t *testing.T) {
 		envName        string
 		expectedResult bool
 		shouldFail     bool
-		errorChecker   func(error) (bool, error)
 	}{
 		{
 			testName:       "Basic",
@@ -115,6 +124,18 @@ func TestCanGetDeployment(t *testing.T) {
 			envName:        "run",
 			cassetteName:   "can-i-no-builds",
 			expectedResult: false,
+		},
+		{
+			testName:       "No Deployment Config",
+			envName:        "run",
+			cassetteName:   "can-i-no-dc",
+			expectedResult: false,
+		},
+		{
+			testName:     "Missing Status",
+			envName:      "run",
+			cassetteName: "can-i-no-status",
+			shouldFail:   true,
 		},
 	}
 
@@ -130,10 +151,6 @@ func TestCanGetDeployment(t *testing.T) {
 			result, err := kc.CanGetDeployment(testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
-				if testCase.errorChecker != nil {
-					matches, _ := testCase.errorChecker(err)
-					require.True(t, matches, "Error or cause must be the expected type")
-				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.Equal(t, testCase.expectedResult, result, "Expected different authorization result")
@@ -149,7 +166,6 @@ func TestCanScaleDeployment(t *testing.T) {
 		envName        string
 		expectedResult bool
 		shouldFail     bool
-		errorChecker   func(error) (bool, error)
 	}{
 		{
 			testName:       "Basic",
@@ -162,6 +178,18 @@ func TestCanScaleDeployment(t *testing.T) {
 			envName:        "run",
 			cassetteName:   "can-i-no-builds",
 			expectedResult: false,
+		},
+		{
+			testName:       "No Deployment Config",
+			envName:        "run",
+			cassetteName:   "can-i-no-dc",
+			expectedResult: false,
+		},
+		{
+			testName:     "Missing Status",
+			envName:      "run",
+			cassetteName: "can-i-no-status",
+			shouldFail:   true,
 		},
 	}
 
@@ -177,10 +205,6 @@ func TestCanScaleDeployment(t *testing.T) {
 			result, err := kc.CanScaleDeployment(testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
-				if testCase.errorChecker != nil {
-					matches, _ := testCase.errorChecker(err)
-					require.True(t, matches, "Error or cause must be the expected type")
-				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.Equal(t, testCase.expectedResult, result, "Expected different authorization result")
@@ -196,7 +220,6 @@ func TestCanDeleteDeployment(t *testing.T) {
 		envName        string
 		expectedResult bool
 		shouldFail     bool
-		errorChecker   func(error) (bool, error)
 	}{
 		{
 			testName:       "Basic",
@@ -209,6 +232,18 @@ func TestCanDeleteDeployment(t *testing.T) {
 			envName:        "run",
 			cassetteName:   "can-i-no-builds",
 			expectedResult: false,
+		},
+		{
+			testName:       "No Deployment Config",
+			envName:        "run",
+			cassetteName:   "can-i-no-dc",
+			expectedResult: false,
+		},
+		{
+			testName:     "Missing Status",
+			envName:      "run",
+			cassetteName: "can-i-no-status",
+			shouldFail:   true,
 		},
 	}
 
@@ -224,10 +259,6 @@ func TestCanDeleteDeployment(t *testing.T) {
 			result, err := kc.CanDeleteDeployment(testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
-				if testCase.errorChecker != nil {
-					matches, _ := testCase.errorChecker(err)
-					require.True(t, matches, "Error or cause must be the expected type")
-				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.Equal(t, testCase.expectedResult, result, "Expected different authorization result")
@@ -242,12 +273,41 @@ func TestCanGetEnvironments(t *testing.T) {
 		cassetteName   string
 		expectedResult bool
 		shouldFail     bool
-		errorChecker   func(error) (bool, error)
 	}{
 		{
 			testName:       "Basic",
 			cassetteName:   "can-i",
 			expectedResult: true,
+		},
+		{
+			testName:       "No Resource Quotas",
+			cassetteName:   "can-i-no-quotas",
+			expectedResult: false,
+		},
+		{
+			testName:     "Missing Status",
+			cassetteName: "can-i-no-status",
+			shouldFail:   true,
+		},
+		{
+			testName:     "Missing Rules",
+			cassetteName: "can-i-no-rules",
+			shouldFail:   true,
+		},
+		{
+			testName:     "Bad Rule",
+			cassetteName: "can-i-bad-rule",
+			shouldFail:   true,
+		},
+		{
+			testName:       "Bad Verbs",
+			cassetteName:   "can-i-bad-verbs",
+			expectedResult: true, // Skips bad verbs
+		},
+		{
+			testName:       "Bad Resource",
+			cassetteName:   "can-i-bad-resource",
+			expectedResult: true, // Skips bad resources
 		},
 	}
 
@@ -263,10 +323,6 @@ func TestCanGetEnvironments(t *testing.T) {
 			result, err := kc.CanGetEnvironments()
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
-				if testCase.errorChecker != nil {
-					matches, _ := testCase.errorChecker(err)
-					require.True(t, matches, "Error or cause must be the expected type")
-				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.Equal(t, testCase.expectedResult, result, "Expected different authorization result")
@@ -282,7 +338,6 @@ func TestCanGetDeploymentStats(t *testing.T) {
 		envName        string
 		expectedResult bool
 		shouldFail     bool
-		errorChecker   func(error) (bool, error)
 	}{
 		{
 			testName:       "Basic",
@@ -295,6 +350,18 @@ func TestCanGetDeploymentStats(t *testing.T) {
 			envName:        "run",
 			cassetteName:   "can-i-no-builds",
 			expectedResult: false,
+		},
+		{
+			testName:       "No Deployment Config",
+			envName:        "run",
+			cassetteName:   "can-i-no-dc",
+			expectedResult: false,
+		},
+		{
+			testName:     "Missing Status",
+			envName:      "run",
+			cassetteName: "can-i-no-status",
+			shouldFail:   true,
 		},
 	}
 
@@ -310,10 +377,6 @@ func TestCanGetDeploymentStats(t *testing.T) {
 			result, err := kc.CanGetDeploymentStats(testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
-				if testCase.errorChecker != nil {
-					matches, _ := testCase.errorChecker(err)
-					require.True(t, matches, "Error or cause must be the expected type")
-				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.Equal(t, testCase.expectedResult, result, "Expected different authorization result")
@@ -329,7 +392,6 @@ func TestCanGetDeploymentStatSeries(t *testing.T) {
 		envName        string
 		expectedResult bool
 		shouldFail     bool
-		errorChecker   func(error) (bool, error)
 	}{
 		{
 			testName:       "Basic",
@@ -342,6 +404,18 @@ func TestCanGetDeploymentStatSeries(t *testing.T) {
 			envName:        "run",
 			cassetteName:   "can-i-no-builds",
 			expectedResult: false,
+		},
+		{
+			testName:       "No Deployment Config",
+			envName:        "run",
+			cassetteName:   "can-i-no-dc",
+			expectedResult: false,
+		},
+		{
+			testName:     "Missing Status",
+			envName:      "run",
+			cassetteName: "can-i-no-status",
+			shouldFail:   true,
 		},
 	}
 
@@ -357,10 +431,6 @@ func TestCanGetDeploymentStatSeries(t *testing.T) {
 			result, err := kc.CanGetDeploymentStatSeries(testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
-				if testCase.errorChecker != nil {
-					matches, _ := testCase.errorChecker(err)
-					require.True(t, matches, "Error or cause must be the expected type")
-				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.Equal(t, testCase.expectedResult, result, "Expected different authorization result")

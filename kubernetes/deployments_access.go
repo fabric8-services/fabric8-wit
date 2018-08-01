@@ -249,11 +249,10 @@ func (kc *kubeClient) lookupAllRules(namespace string) (*accessRules, error) {
 		return nil, err
 	}
 
-	// TODO Parse using info from https://github.com/openshift/api/blob/master/authorization/v1/types.go
+	// Parse rules and store by resource type
 	status, ok := reviewResult["status"].(map[string]interface{})
 	if !ok {
 		log.Error(nil, map[string]interface{}{
-			"err":       err,
 			"namespace": namespace,
 			"response":  reviewResult,
 		}, "status missing from SelfSubjectRulesReview")
@@ -262,9 +261,8 @@ func (kc *kubeClient) lookupAllRules(namespace string) (*accessRules, error) {
 	rules, ok := status["rules"].([]interface{})
 	if !ok {
 		log.Error(nil, map[string]interface{}{
-			"err":       err,
 			"namespace": namespace,
-			"response":  reviewResult,
+			"status":    status,
 		}, "rules missing from SelfSubjectRulesReview")
 		return nil, errs.Errorf("rules missing from SelfSubjectRulesReview returned from %s", namespace)
 	}
@@ -274,10 +272,9 @@ func (kc *kubeClient) lookupAllRules(namespace string) (*accessRules, error) {
 		rule, ok := rawRule.(map[string]interface{})
 		if !ok {
 			log.Error(nil, map[string]interface{}{
-				"err":       err,
 				"namespace": namespace,
-				"response":  reviewResult,
-			}, "rules missing from SelfSubjectRulesReview")
+				"rule_json": rawRule,
+			}, "rule in SelfSubjectRulesReview is not a JSON object")
 			return nil, errs.Errorf("rule returned from %s is not a JSON object", namespace)
 		}
 
@@ -303,7 +300,13 @@ func processRule(rules accessRules, rule map[string]interface{}) {
 
 	// Add verbs for each group/resource in rule
 	for _, resource := range resources {
-		// If no groups are specified, the rule is for the default k8s/OpenShift API group
+		/*
+		 * APIGroups is the name of the APIGroup that contains the resources.  If this field is empty,
+		 * then both kubernetes and origin API groups are assumed. That means that if an action is
+		 * requested against one of the enumerated resources in either the kubernetes or the origin API group,
+		 * the request will be allowed.
+		 * From: https://docs.openshift.org/3.10/rest_api/oapi/v1.SelfSubjectRulesReview.html
+		 */
 		if len(groups) == 0 {
 			key := qualifiedResource{"", resource}
 			rules[key] = verbs
