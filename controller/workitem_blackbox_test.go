@@ -971,8 +971,8 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 	/*
-	* Type 1 has -> 
-	* Type 2 has -> 
+	* Type 1 has ->
+	* Type 2 has ->
 	 */
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.CreateWorkItemEnvironment(),
@@ -997,9 +997,9 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 						Label: "Type1 bar",
 						Type:  &workitem.SimpleType{Kind: workitem.KindString},
 					},
-					"reporter" : {
+					"reporter": {
 						Label: "Type1 reporter",
-						Type: &workitem.SimpleType{Kind: workitem.KindUser},
+						Type:  &workitem.SimpleType{Kind: workitem.KindUser},
 					},
 				}
 			case 1:
@@ -1046,13 +1046,13 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 	s.T().Run("unauthorized", func(t *testing.T) {
 		// TODO
 	})
-	s.T().Run("different field Kinds", func(t *testing.T){
-		t.Run("Markup",func(t *testing.T){})
-		t.Run("Integer",func(t *testing.T){})
-		t.Run("Boolean",func(t *testing.T){})
-		t.Run("Markup",func(t *testing.T){})
-		t.Run("String",func(t *testing.T){})
-		t.Run("Float",func(t *testing.T){})
+	s.T().Run("different field Kinds", func(t *testing.T) {
+		t.Run("Markup", func(t *testing.T) {})
+		t.Run("Integer", func(t *testing.T) {})
+		t.Run("Boolean", func(t *testing.T) {})
+		t.Run("Markup", func(t *testing.T) {})
+		t.Run("String", func(t *testing.T) {})
+		t.Run("Float", func(t *testing.T) {})
 	})
 }
 
