@@ -1012,6 +1012,14 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 						Label: "Type2 bar",
 						Type:  &workitem.SimpleType{Kind: workitem.KindInteger},
 					},
+					"fooBar": {
+						Label: "Type2 fooBar",
+						Type: workitem.EnumType{
+							BaseType:   workitem.SimpleType{Kind: workitem.KindString},
+							SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+							Values:     []interface{}{"alpha", "beta", "gamma"},
+						},
+					},
 				}
 			}
 			return nil

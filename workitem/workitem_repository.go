@@ -575,7 +575,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, updatedWorkItem WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "save"}, time.Now())
-	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.Number, true)
+	wiStorage, oldWIType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.Number, true)
 	if err != nil {
 		return nil, err
 	}
@@ -586,7 +586,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 
 	wiStorage.Fields = Fields{}
 
-	for fieldName, fieldDef := range wiType.Fields {
+	for fieldName, fieldDef := range oldWIType.Fields {
 		if fieldDef.ReadOnly {
 			continue
 		}
@@ -621,17 +621,17 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 
 		allowedWIT, err := r.CheckWIT(ctx, newWiType, spaceID)
 		if err != nil {
-			return nil, errors.NewBadParameterError("typeID", wiType.ID)
+			return nil, errors.NewBadParameterError("typeID", oldWIType.ID)
 
 		}
 		if !allowedWIT {
-			return nil, errors.NewBadParameterError("typeID", wiType.ID)
+			return nil, errors.NewBadParameterError("typeID", oldWIType.ID)
 		}
 
 		var fieldDiff = Fields{}
 		// Loop through old workitem type
-		for oldFieldName := range wiType.Fields {
-			oldFieldType := wiType.Fields[oldFieldName].Type
+		for oldFieldName := range oldWIType.Fields {
+			oldFieldType := oldWIType.Fields[oldFieldName].Type
 			newFieldType := newWiType.Fields[oldFieldName].Type
 			// The field exists in old type but not in new type
 			if _, ok := newWiType.Fields[oldFieldName]; !ok {
@@ -642,6 +642,14 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 			} else if !oldFieldType.Equal(newFieldType) {
 				// Workitem types have field with same name but different type
 				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
+
+				// Ensure enum value can be assigned to the new field. If not, remove the field from original workitem
+				if !oldFieldType.GetKind().IsSimpleType() {
+					eType, ok := newFieldType.(EnumType)
+					if ok && !eType.CanAssignValue(wiStorage.Fields[oldFieldName]) {
+						delete(wiStorage.Fields, oldFieldName)
+					}
+				}
 			}
 			// Handle case where the workitem types have same field with different set of allowed values. Eg: Resolution in defect and impediment
 		}
@@ -652,24 +660,16 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 			textToPrepend := "======= Missing fields in workitem type: " + newWiType.Name + " =======\n"
 			for fieldName := range fieldDiff {
 				var val string
-				if wiType.Fields[fieldName].Type.GetKind().IsRelational() {
-					val, err = getValueOfRelationKind(r.db, fieldDiff[fieldName], wiType.Fields[fieldName].Type.GetKind())
+				if oldWIType.Fields[fieldName].Type.GetKind().IsRelational() {
+					val, err = GetValueOfRelationalKind(r.db, fieldDiff[fieldName], oldWIType.Fields[fieldName].Type.GetKind())
 				} else {
-					switch t := fieldDiff[fieldName].(type) {
-					case string:
-						val = t
-					case float32, float64:
-						val = fmt.Sprintf("%f", t)
-					case int, int16, int32, int64:
-						val = fmt.Sprintf("%d", t)
-						// TODO: Handle other types
-					}
+					val = fmt.Sprint(fieldDiff[fieldName])
 				}
 				if val != "" {
-					textToPrepend += fmt.Sprintf("\n %s : %s", wiType.Fields[fieldName].Label, val)
+					textToPrepend += fmt.Sprintf("\n\n %s : %s", oldWIType.Fields[fieldName].Label, val)
 				}
 			}
-			textToPrepend += "\n================================================\n"
+			textToPrepend += "\n\n================================================\n\n"
 			// The workitem doesn't have a description
 			if originalDescription == nil {
 				originalDescription = rendering.NewMarkupContentFromValue(textToPrepend)
@@ -703,9 +703,10 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		"wi_id":    updatedWorkItem.ID,
 		"space_id": spaceID,
 	}, "Updated work item repository")
-	return ConvertWorkItemStorageToModel(wiType, wiStorage)
+	return ConvertWorkItemStorageToModel(oldWIType, wiStorage)
 }
 
+// CheckWIT returns true if the given workitem type (wit) belongs to the same space template as the space (spaceID)
 func (r *GormWorkItemRepository) CheckWIT(ctx context.Context, wit *WorkItemType, spaceID uuid.UUID) (bool, error) {
 	// Prohibit creation of work items from a base type.
 	if !wit.CanConstruct {
@@ -1220,9 +1221,12 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 	return workitems, nil
 }
 
-func getValueOfRelationKind(db *gorm.DB, val interface{}, kind Kind) (string, error) {
+func GetValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, error) {
 	var result string
 	switch kind {
+	case KindList:
+		// TODO: Convert each entity to verbose name and then return the string
+		return "", nil
 	case KindUser: // TODO: Handle if it's a list of users
 		var identity account.Identity
 		tx := db.Model(&account.Identity{}).Where("id = ?", val).Select("username").Find(&identity)
