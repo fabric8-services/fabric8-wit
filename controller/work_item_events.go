@@ -1,14 +1,11 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/ptr"
-	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/event"
 	"github.com/goadesign/goa"
@@ -65,17 +62,10 @@ func ConvertEvents(appl application.Application, request *http.Request, eventLis
 
 // ConvertEvent converts from internal to external REST representation
 func ConvertEvent(appl application.Application, request *http.Request, wiEvent event.Event, wiID uuid.UUID) *app.Event {
-	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, wiEvent.Modifier.String()))
-	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wiID))
-	labelsRelated := relatedURL + "/labels"
+	modifierData, modifierLinks := ConvertUserSimple(request, wiEvent.Modifier)
 	modifier := &app.RelationGeneric{
-		Data: &app.GenericData{
-			Type: ptr.String(APIStringTypeUser),
-			ID:   ptr.String(wiEvent.Modifier.String()),
-			Links: &app.GenericLinks{
-				Related: &relatedCreatorLink,
-			},
-		},
+		Data:  modifierData,
+		Links: modifierLinks,
 	}
 
 	var e *app.Event
@@ -111,8 +101,8 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			},
 		}
 	case workitem.SystemArea:
-		old := ConvertAreaSimple(request, wiEvent.Old)
-		new := ConvertAreaSimple(request, wiEvent.New)
+		old, _ := ConvertAreaSimple(request, wiEvent.Old)
+		new, _ := ConvertAreaSimple(request, wiEvent.New)
 		e = &app.Event{
 			Type: event.APIStringTypeEvents,
 			ID:   &wiEvent.ID,
@@ -134,8 +124,8 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			},
 		}
 	case workitem.SystemIteration:
-		old := ConvertIterationSimple(request, wiEvent.Old)
-		new := ConvertIterationSimple(request, wiEvent.New)
+		old, _ := ConvertIterationSimple(request, wiEvent.Old)
+		new, _ := ConvertIterationSimple(request, wiEvent.New)
 		e = &app.Event{
 			Type: event.APIStringTypeEvents,
 			ID:   &wiEvent.ID,
@@ -190,15 +180,9 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 				Modifier: modifier,
 				OldValue: &app.RelationGenericList{
 					Data: ConvertLabelsSimple(request, wiEvent.Old.([]interface{})),
-					Links: &app.GenericLinks{
-						Related: &labelsRelated,
-					},
 				},
 				NewValue: &app.RelationGenericList{
 					Data: ConvertLabelsSimple(request, wiEvent.New.([]interface{})),
-					Links: &app.GenericLinks{
-						Related: &labelsRelated,
-					},
 				},
 			},
 		}
