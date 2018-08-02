@@ -450,14 +450,13 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 	c.parameters = append(c.parameters, r)
 
 	return fmt.Sprintf(`(uuid("work_items".fields->>'%[1]s') IN (
-		SELECT i.id
-			FROM %[3]s i
+		SELECT %[2]s.id
 			WHERE
-				text2ltree(concat_ws('.', nullif(i.path, ''), replace(cast(i.id as text), '-', '_')))
-					 <@ (SELECT text2ltree(concat_ws('.', nullif(i.path, ''), replace(cast(i.id as text), '-', '_')))
-						FROM %[3]s i
-							WHERE i.id = ?
- 		)))`, left.FieldName, "iter", tblName)
+				(SELECT text2ltree(concat_ws('.', nullif(j.path, ''), replace(cast(j.id as text), '-', '_')))
+					FROM %[3]s j
+					WHERE j.id = ?
+				) @> text2ltree(concat_ws('.', nullif(%[2]s.path, ''), replace(cast(%[2]s.id as text), '-', '_')))
+					  ))`, left.FieldName, "iter", tblName)
 
 }
 
