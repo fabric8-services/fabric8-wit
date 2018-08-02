@@ -80,7 +80,7 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 				return nil, errs.Errorf("failed to cast value %+v (%[1]T) to float64", value)
 			}
 			if fval != math.Trunc(fval) {
-				return nil, errs.Errorf("float64 value %+v (%[1]T) has digits after the decimal point and therefore cannot be represented by an integer", value, valueType.Name())
+				return nil, errs.Errorf("float64 value %+v (%[1]T) has digits after the decimal point and therefore cannot be represented by an integer", value)
 			}
 			return int(fval), nil
 		default:
