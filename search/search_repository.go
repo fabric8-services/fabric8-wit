@@ -266,6 +266,7 @@ func parseSearchString(ctx context.Context, rawSearchString string) (searchKeywo
 }
 
 func parseMap(queryMap map[string]interface{}, q *Query) {
+	childSet := false
 	for key, val := range queryMap {
 		switch concreteVal := val.(type) {
 		case []interface{}:
@@ -276,7 +277,9 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			s := string(concreteVal)
 			q.Value = &s
 			if q.Name == "iteration" || q.Name == "area" {
-				q.Child = true
+				if !childSet {
+					q.Child = true
+				}
 			}
 		case bool:
 			s := concreteVal
@@ -284,6 +287,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 				q.Negate = s
 			} else if key == "child" {
 				q.Child = s
+				childSet = true
 			}
 		case nil:
 			q.Name = key
