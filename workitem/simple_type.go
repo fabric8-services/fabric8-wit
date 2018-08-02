@@ -84,7 +84,7 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 			}
 			return int(fval), nil
 		default:
-			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s ", value, "int", valueType.Name())
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s ", value, "int or float", valueType.Name())
 		}
 	case KindInstant:
 		// instant == milliseconds
