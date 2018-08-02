@@ -142,7 +142,6 @@ var deleteDeploymentRules = []*requestedAccess{
 	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet, verbDelete}},
 }
 
-// TODO Do we want resource name-specific checks. Can delete DC named X?
 func (kc *kubeClient) CanDeleteDeployment(envName string) (bool, error) {
 	return kc.checkAuthorizedWithBuilds(envName, deleteDeploymentRules)
 }

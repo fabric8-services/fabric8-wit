@@ -199,16 +199,6 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 		MetricsGetter:    config.MetricsGetter,
 	}
 
-	/*rules, err := kubeClient.lookupAllRules(config.UserNamespace) // XXX
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("%v\n", rules) // XXX
-	canGetEnv, err := kubeClient.CanGetEnvironment("run")
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("CanGetEnvironment %v\n", canGetEnv)*/
 	return kubeClient, nil
 }
 
