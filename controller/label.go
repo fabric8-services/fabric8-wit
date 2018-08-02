@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // LabelController implements the label resource.
@@ -165,13 +165,7 @@ func ConvertLabelsSimple(request *http.Request, labelIDs []interface{}) []*app.G
 
 // ConvertLabelSimple converts a Label ID into a Generic Relationship
 func ConvertLabelSimple(request *http.Request, labelID interface{}) *app.GenericData {
-	i := ""
-	switch t := labelID.(type) {
-	case string:
-		i = t
-	case uuid.UUID:
-		i = t.String()
-	}
+	i := fmt.Sprint(labelID)
 	return &app.GenericData{
 		Type: ptr.String(label.APIStringTypeLabels),
 		ID:   &i,

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -11,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemBoardController implements the work_item_board resource.
@@ -113,17 +113,23 @@ func ConvertBoardFromModel(request *http.Request, b workitem.Board) *app.WorkIte
 	return res
 }
 
-// ConvertBoardColumnSimple converts a simple boardcolumn ID into a Generic Relationship
-func ConvertBoardColumnSimple(request *http.Request, id interface{}) *app.GenericData {
-	i := ""
-	switch t := id.(type) {
-	case string:
-		i = t
-	case uuid.UUID:
-		i = t.String()
+// ConvertBoardColumnsSimple converts an array of board column IDs into a
+// Generic Relationship List
+func ConvertBoardColumnsSimple(request *http.Request, labelIDs []interface{}) []*app.GenericData {
+	ops := make([]*app.GenericData, 0, len(labelIDs))
+	for _, labelID := range labelIDs {
+		ops = append(ops, ConvertBoardColumnSimple(request, labelID))
 	}
+	return ops
+}
+
+// ConvertBoardColumnSimple converts a board column ID into a Generic
+// Relationship
+func ConvertBoardColumnSimple(request *http.Request, labelID interface{}) *app.GenericData {
+	t := APIBoardColumns
+	i := fmt.Sprint(labelID)
 	return &app.GenericData{
-		Type: ptr.String(APIBoardColumns),
+		Type: &t,
 		ID:   &i,
 	}
 }

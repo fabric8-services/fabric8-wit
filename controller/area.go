@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -259,16 +260,18 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 }
 
 // ConvertAreaSimple converts a simple area ID into a Generic Relationship
-func ConvertAreaSimple(request *http.Request, id interface{}) *app.GenericData {
-	i := ""
-	switch t := id.(type) {
-	case string:
-		i = t
-	case uuid.UUID:
-		i = t.String()
-	}
-	return &app.GenericData{
-		Type: ptr.String(area.APIStringTypeAreas),
+// data+links element
+func ConvertAreaSimple(request *http.Request, id interface{}) (*app.GenericData, *app.GenericLinks) {
+	t := area.APIStringTypeAreas
+	i := fmt.Sprint(id)
+	data := &app.GenericData{
+		Type: &t,
 		ID:   &i,
 	}
+	relatedURL := rest.AbsoluteURL(request, app.AreaHref(i))
+	links := &app.GenericLinks{
+		Self:    &relatedURL,
+		Related: &relatedURL,
+	}
+	return data, links
 }

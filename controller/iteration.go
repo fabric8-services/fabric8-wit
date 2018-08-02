@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
@@ -516,19 +515,21 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 	return i
 }
 
-// ConvertIterationSimple converts a simple Iteration ID into a Generic Reletionship
-func ConvertIterationSimple(request *http.Request, id interface{}) *app.GenericData {
-	i := ""
-	switch t := id.(type) {
-	case string:
-		i = t
-	case uuid.UUID:
-		i = t.String()
-	}
-	return &app.GenericData{
-		Type: ptr.String(iteration.APIStringTypeIteration),
+// ConvertIterationSimple converts a simple Iteration ID into a Generic
+// Relationship data+links element
+func ConvertIterationSimple(request *http.Request, id interface{}) (*app.GenericData, *app.GenericLinks) {
+	t := iteration.APIStringTypeIteration
+	i := fmt.Sprint(id)
+	data := &app.GenericData{
+		Type: &t,
 		ID:   &i,
 	}
+	relatedURL := rest.AbsoluteURL(request, app.IterationHref(i))
+	links := &app.GenericLinks{
+		Self:    &relatedURL,
+		Related: &relatedURL,
+	}
+	return data, links
 }
 
 // iterationIDMap contains a map that will hold iteration's ID as its key

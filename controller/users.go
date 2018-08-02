@@ -12,7 +12,7 @@ import (
 	idpackage "github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/ptr"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/fabric8-services/fabric8-wit/rest/proxy"
@@ -304,22 +304,24 @@ func (c *UsersController) List(ctx *app.ListUsersContext) error {
 func ConvertUsersSimple(request *http.Request, identityIDs []interface{}) []*app.GenericData {
 	ops := []*app.GenericData{}
 	for _, identityID := range identityIDs {
-		ops = append(ops, ConvertUserSimple(request, identityID))
+		data, _ := ConvertUserSimple(request, identityID)
+		ops = append(ops, data)
 	}
 	return ops
 }
 
 // ConvertUserSimple converts a simple Identity ID into a Generic Reletionship
-func ConvertUserSimple(request *http.Request, identityID interface{}) *app.GenericData {
-	i := ""
-	switch t := identityID.(type) {
-	case string:
-		i = t
-	case uuid.UUID:
-		i = t.String()
-	}
-	return &app.GenericData{
-		Type: ptr.String("users"),
+func ConvertUserSimple(request *http.Request, identityID interface{}) (*app.GenericData, *app.GenericLinks) {
+	t := "users"
+	i := fmt.Sprint(identityID)
+	data := &app.GenericData{
+		Type: &t,
 		ID:   &i,
 	}
+	relatedURL := rest.AbsoluteURL(request, app.UsersHref(i))
+	links := &app.GenericLinks{
+		Self:    &relatedURL,
+		Related: &relatedURL,
+	}
+	return data, links
 }

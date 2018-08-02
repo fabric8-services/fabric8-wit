@@ -94,7 +94,7 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 	if !ok {
 		return nil, errs.Errorf("failed to find field \"%s\" in work item type: %s (%s)", fieldName, wit.Name, wit.ID)
 	}
-
+	modifierData, modifierLinks := ConvertUserSimple(req, wiEvent.Modifier)
 	e := app.Event{
 		Type: event.APIStringTypeEvents,
 		ID:   wiEvent.ID,
@@ -104,10 +104,8 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 		},
 		Relationships: &app.EventRelations{
 			Modifier: &app.RelationGeneric{
-				Data: &app.GenericData{
-					Type: ptr.String(APIStringTypeUser),
-					ID:   ptr.String(wiEvent.Modifier.String()),
-				},
+				Data:  modifierData,
+				Links: modifierLinks,
 			},
 			WorkItemType: &app.RelationGeneric{
 				Links: &app.GenericLinks{
@@ -129,17 +127,23 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 			workitem.KindInstant:
 			return val, false
 		case workitem.KindIteration:
-			return ConvertIterationSimple(req, val), true
+			data, _ := ConvertIterationSimple(req, val)
+			return data, true
 		case workitem.KindUser:
-			return ConvertUserSimple(req, val), true
+			data, _ := ConvertUserSimple(req, val)
+			return data, true
 		case workitem.KindLabel:
-			return ConvertLabelSimple(req, val), true
+			data := ConvertLabelSimple(req, val)
+			return data, true
 		case workitem.KindBoardColumn:
-			return ConvertBoardColumnSimple(req, val), true
+			data := ConvertBoardColumnSimple(req, val)
+			return data, true
 		case workitem.KindArea:
-			return ConvertAreaSimple(req, val), true
+			data, _ := ConvertAreaSimple(req, val)
+			return data, true
 		case workitem.KindCodebase:
-			return ConvertCodebaseSimple(req, val), true
+			data, _ := ConvertCodebaseSimple(req, val)
+			return data, true
 		}
 		return nil, false
 	}

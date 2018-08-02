@@ -10,7 +10,11 @@
         "modifier": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000002",
-            "type": "identities"
+            "type": "users"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000002"
           }
         },
         "newValue": {
@@ -24,7 +28,7 @@
         "oldValue": {
           "data": [
             {
-              "id": "",
+              "id": "\u003cnil\u003e",
               "type": "iterations"
             }
           ]
