@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -110,4 +111,25 @@ func ConvertBoardFromModel(request *http.Request, b workitem.Board) *app.WorkIte
 	}
 
 	return res
+}
+
+// ConvertBoardColumnsSimple converts an array of board column IDs into a
+// Generic Relationship List
+func ConvertBoardColumnsSimple(request *http.Request, labelIDs []interface{}) []*app.GenericData {
+	ops := make([]*app.GenericData, 0, len(labelIDs))
+	for _, labelID := range labelIDs {
+		ops = append(ops, ConvertBoardColumnSimple(request, labelID))
+	}
+	return ops
+}
+
+// ConvertBoardColumnSimple converts a board column ID into a Generic
+// Relationship
+func ConvertBoardColumnSimple(request *http.Request, labelID interface{}) *app.GenericData {
+	t := APIBoardColumns
+	i := fmt.Sprint(labelID)
+	return &app.GenericData{
+		Type: &t,
+		ID:   &i,
+	}
 }
