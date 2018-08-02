@@ -259,21 +259,19 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 	return i
 }
 
-// ConvertAreaSimple converts a simple area ID into a Generic Reletionship
-func ConvertAreaSimple(request *http.Request, id interface{}) *app.GenericData {
+// ConvertAreaSimple converts a simple area ID into a Generic Relationship
+// data+links element
+func ConvertAreaSimple(request *http.Request, id interface{}) (*app.GenericData, *app.GenericLinks) {
 	t := area.APIStringTypeAreas
 	i := fmt.Sprint(id)
-	return &app.GenericData{
-		Type:  &t,
-		ID:    &i,
-		Links: createAreaLinks(request, id),
+	data := &app.GenericData{
+		Type: &t,
+		ID:   &i,
 	}
-}
-
-func createAreaLinks(request *http.Request, id interface{}) *app.GenericLinks {
-	relatedURL := rest.AbsoluteURL(request, app.AreaHref(id))
-	return &app.GenericLinks{
+	relatedURL := rest.AbsoluteURL(request, app.AreaHref(i))
+	links := &app.GenericLinks{
 		Self:    &relatedURL,
 		Related: &relatedURL,
 	}
+	return data, links
 }
