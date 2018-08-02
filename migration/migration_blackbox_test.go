@@ -148,6 +148,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration96", testMigration96ChangesToAgileTemplate)
 	t.Run("TestMigration97", testMigration97RemoveResolutionFieldFromImpediment)
 	t.Run("TestMigration98", testMigration98Boards)
+	t.Run("TestMigration99", testMigration99CodebaseCVEScanDefaultFalse)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1159,6 +1160,24 @@ func testMigration98Boards(t *testing.T) {
 	assert.True(t, dialect.HasTable("work_item_board_columns"))
 }
 
+func testMigration99CodebaseCVEScanDefaultFalse(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:99], 99)
+
+	// setup
+	require.Nil(t, runSQLscript(sqlDB, "099-codebase-cve-scan-default-false-setup.sql"))
+
+	// migrate to the current version
+	migrateToVersion(t, sqlDB, migrations[:100], 100)
+
+	// now see if the result is false
+	rows, err := sqlDB.Query("SELECT * FROM codebases WHERE id='c7981b8e-735d-4b6e-9f87-384bbb284506' AND cve_scan='t';")
+	require.NoError(t, err)
+	require.False(t, rows.Next(), "row found with cve_scan=true when all should have been false")
+
+	// cleanup
+	require.Nil(t, runSQLscript(sqlDB, "099-codebase-cve-scan-default-false-cleanup.sql"))
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
@@ -1217,6 +1236,13 @@ func testMigration95Boards(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:95], 95)
 	assert.True(t, dialect.HasTable("work_item_boards"))
 	assert.True(t, dialect.HasTable("work_item_board_columns"))
+}
+
+// test that the userspace_data table no longer exists - previously
+// used as a temporary solution to get data from tenant jenkins
+func testDropUserspacedataTable(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:100], 100)
+	assert.False(t, dialect.HasTable("userspace_data"))
 }
 
 // migrateToVersion runs the migration of all the scripts to a certain version

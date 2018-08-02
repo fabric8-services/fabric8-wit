@@ -69,6 +69,8 @@ func (s *workItemTypeSuite) TestShow() {
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
 	})
 
+	// TODO(kwk): Please add test for not found work item type
+
 	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
 		// when
 		lastModified := app.ToHTTPTime(fxt.WorkItemTypes[0].CreatedAt.Add(-1 * time.Hour))

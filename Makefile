@@ -191,6 +191,14 @@ spacetemplate/template_assets.go: $(GO_BINDATA_BIN) $(wildcard spacetemplate/ass
 		-nocompress \
 		spacetemplate/assets
 
+swagger/swagger_assets.go: $(GO_BINDATA_BIN) $(wildcard swagger/*.json)
+	$(GO_BINDATA_BIN) \
+		-o swagger/swagger_assets.go \
+		-pkg swagger \
+		-prefix swagger \
+		-nocompress \
+		swagger
+
 # These are binary tools from our vendored packages
 $(GOAGEN_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
@@ -299,7 +307,7 @@ migrate-database: $(BINARY_SERVER_BIN)
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: app/controllers.go migration/sqlbindata.go spacetemplate/template_assets.go generate-minimock 
+generate: app/controllers.go migration/sqlbindata.go spacetemplate/template_assets.go generate-minimock swagger/swagger_assets.go
 
 .PHONY: regenerate
 ## Runs the "clean-generated" and the "generate" target

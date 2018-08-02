@@ -24,6 +24,7 @@ type WorkItemTypeRepository interface {
 	repository.Exister
 	Load(ctx context.Context, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceTemplateID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields FieldDefinitions, canConstruct bool) (*WorkItemType, error)
+	CreateFromModel(ctx context.Context, model WorkItemType) (*WorkItemType, error)
 	List(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error)
 	ListPlannerItemTypes(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error)
 	AddChildTypes(ctx context.Context, parentTypeID uuid.UUID, childTypeIDs []uuid.UUID) error
@@ -92,23 +93,43 @@ func ClearGlobalWorkItemTypeCache() {
 	cache.Clear()
 }
 
-// Create creates a new work item type in the repository
-// returns BadParameterError, ConversionError or InternalError
+// Create creates a new work item type according to the given parameters.
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceTemplateID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields FieldDefinitions, canConstruct bool) (*WorkItemType, error) {
+	wit := WorkItemType{
+		SpaceTemplateID: spaceTemplateID,
+		Name:            name,
+		Description:     description,
+		Icon:            icon,
+		Fields:          fields,
+		CanConstruct:    canConstruct,
+	}
+	if id != nil {
+		wit.ID = *id
+	} else {
+		wit.ID = uuid.NewV4()
+	}
+	if extendedTypeID != nil && *extendedTypeID != uuid.Nil {
+		wit.Extends = *extendedTypeID
+	}
+	return r.CreateFromModel(ctx, wit)
+}
+
+// CreateFromModel creates a new work item type in the repository based on the
+// given model of it.
+func (r *GormWorkItemTypeRepository) CreateFromModel(ctx context.Context, model WorkItemType) (*WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "create"}, time.Now())
-	// Make sure this WIT has an ID
-	if id == nil {
-		tmpID := uuid.NewV4()
-		id = &tmpID
+
+	if model.ID == uuid.Nil {
+		model.ID = uuid.NewV4()
 	}
 
 	allFields := map[string]FieldDefinition{}
-	path := LtreeSafeID(*id)
-	if extendedTypeID != nil && *extendedTypeID != uuid.Nil {
+	path := LtreeSafeID(model.ID)
+	if model.Extends != uuid.Nil {
 		extendedType := WorkItemType{}
-		db := r.db.Model(&extendedType).Where("id=?", extendedTypeID).First(&extendedType)
+		db := r.db.Model(&extendedType).Where("id=?", model.Extends).First(&extendedType)
 		if db.RecordNotFound() {
-			return nil, errors.NewBadParameterError("extendedTypeID", *extendedTypeID)
+			return nil, errors.NewBadParameterError("extendedTypeID", model.Extends)
 		}
 		if err := db.Error; err != nil {
 			return nil, errors.NewInternalError(ctx, err)
@@ -120,7 +141,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceTemplateID
 		path = extendedType.Path + pathSep + path
 	}
 	// now process new fields, checking whether they are already there.
-	for field, definition := range fields {
+	for field, definition := range model.Fields {
 		existing, exists := allFields[field]
 		if exists && !compatibleFields(existing, definition) {
 			return nil, errs.Errorf("incompatible change for field %s", field)
@@ -128,17 +149,9 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceTemplateID
 		allFields[field] = definition
 	}
 
-	model := WorkItemType{
-		Version:         0,
-		ID:              *id,
-		Name:            name,
-		Description:     description,
-		Icon:            icon,
-		Path:            path,
-		Fields:          allFields,
-		SpaceTemplateID: spaceTemplateID,
-		CanConstruct:    canConstruct,
-	}
+	model.Version = 0
+	model.Path = path
+	model.Fields = allFields
 
 	db := r.db.Create(&model)
 	if db.Error != nil {
