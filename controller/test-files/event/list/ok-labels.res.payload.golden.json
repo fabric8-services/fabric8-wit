@@ -12,10 +12,11 @@
         "modifier": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000002",
-            "links": {
-              "related": "http:///api/users/00000000-0000-0000-0000-000000000002"
-            },
-            "type": "identities"
+            "type": "users"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000002"
           }
         },
         "newValue": {
@@ -28,16 +29,9 @@
               "id": "00000000-0000-0000-0000-000000000004",
               "type": "labels"
             }
-          ],
-          "links": {
-            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/labels"
-          }
+          ]
         },
-        "oldValue": {
-          "links": {
-            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/labels"
-          }
-        }
+        "oldValue": {}
       },
       "type": "events"
     }
