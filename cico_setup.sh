@@ -21,6 +21,7 @@ function load_jenkins_vars() {
               GIT_BRANCH \
               GIT_COMMIT \
               BUILD_NUMBER \
+              BUILD_TAG \
               ghprbSourceBranch \
               ghprbActualCommit \
               BUILD_URL \

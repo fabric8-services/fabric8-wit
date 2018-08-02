@@ -289,8 +289,7 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 				return errs.New("you must specify a space template ID for each work item type")
 			}
 		}
-		m := fxt.WorkItemTypes[i]
-		wit, err := witRepo.Create(fxt.ctx, m.SpaceTemplateID, &m.ID, &m.Extends, m.Name, m.Description, m.Icon, m.Fields, m.CanConstruct)
+		wit, err := witRepo.CreateFromModel(fxt.ctx, *fxt.WorkItemTypes[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item type %+v", fxt.WorkItemTypes[i])
 		}

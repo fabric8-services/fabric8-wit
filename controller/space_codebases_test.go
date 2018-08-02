@@ -2,18 +2,14 @@ package controller_test
 
 import (
 	"context"
-	"net/http"
 	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
-	gemini "github.com/fabric8-services/fabric8-wit/codebase/analytics-gemini"
-	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -46,30 +42,6 @@ func (rest *TestSpaceCodebaseREST) SetupTest() {
 // object in the form of closure with values coming from scope of the
 // closure definition
 type ConfigureSpaceCodebaseController func(spaceCdb *SpaceCodebasesController)
-
-// withAnalyticsGeminiForSpaceCodebase takes in the function that initializes
-// the Analytics Gemini service client and returns ConfigureSpaceCodebaseController
-func withAnalyticsGeminiForSpaceCodebase(f AnalyticsGeminiClientProvider) ConfigureSpaceCodebaseController {
-	return func(spaceCdb *SpaceCodebasesController) {
-		spaceCdb.AnalyticsGeminiClient = f
-	}
-}
-
-// MockAnalyticsGeminiForSpaceCodebase returns function that initializes
-// the Gemini service client by taking the gemini and codebase service
-// http.Client as parameters
-func MockAnalyticsGeminiForSpaceCodebase(geminiCl, codebaseCl *http.Client) func() *gemini.ScanRepoClient {
-	config, _ := configuration.New("")
-	return func() *gemini.ScanRepoClient {
-		return gemini.NewScanRepoClient(
-			config.GetAnalyticsGeminiServiceURL(),
-			geminiCl,
-			config.GetCodebaseServiceURL(),
-			codebaseCl,
-			false,
-		)
-	}
-}
 
 // SecuredControllerWithIdentity takes the identity object and then
 // variable list of the ConfigureSpaceCodebaseController which can
@@ -118,19 +90,13 @@ func (rest *TestSpaceCodebaseREST) TestCreateCodebaseCreated() {
 	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", &stackId)
 
 	t := rest.T()
-	// start the recorder
-	r, err := recorder.New("../test/data/gemini-scan/space-codebase-created")
-	require.NoError(t, err)
-	defer r.Stop()
-	cl := &http.Client{Transport: r.Transport}
-
-	svc, ctrl := rest.SecuredController(withAnalyticsGeminiForSpaceCodebase(MockAnalyticsGeminiForSpaceCodebase(cl, cl)))
+	svc, ctrl := rest.SecuredController()
 	_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, sp.ID, ci)
 	require.NotNil(t, c.Data.ID)
 	require.NotNil(t, c.Data.Relationships.Space)
 	assert.Equal(t, sp.ID.String(), *c.Data.Relationships.Space.Data.ID)
 	require.NotNil(t, c.Data.Attributes.CveScan)
-	assert.Equal(t, true, *c.Data.Attributes.CveScan)
+	assert.False(t, *c.Data.Attributes.CveScan)
 	assert.Equal(t, "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
 	assert.Equal(t, "stackId", *c.Data.Attributes.StackID)
 }
@@ -140,13 +106,7 @@ func (rest *TestSpaceCodebaseREST) TestCreateCodebaseWithNoStackIdCreated() {
 	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", nil)
 
 	t := rest.T()
-	// start the recorder
-	r, err := recorder.New("../test/data/gemini-scan/space-codebase-created")
-	require.NoError(t, err)
-	defer r.Stop()
-	cl := &http.Client{Transport: r.Transport}
-
-	svc, ctrl := rest.SecuredController(withAnalyticsGeminiForSpaceCodebase(MockAnalyticsGeminiForSpaceCodebase(cl, cl)))
+	svc, ctrl := rest.SecuredController()
 	_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, sp.ID, ci)
 	require.NotNil(t, c.Data.ID)
 	require.NotNil(t, c.Data.Relationships.Space)
@@ -177,13 +137,7 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 
 	repo := "https://github.com/fabric8-services/fabric8-wit.git"
 
-	// start the recorder
-	r, err := recorder.New("../test/data/gemini-scan/space-codebase-created")
-	require.NoError(t, err)
-	defer r.Stop()
-	cl := &http.Client{Transport: r.Transport}
-
-	svc, ctrl := rest.SecuredController(withAnalyticsGeminiForSpaceCodebase(MockAnalyticsGeminiForSpaceCodebase(cl, cl)))
+	svc, ctrl := rest.SecuredController()
 	spaceId := sp.ID
 	anotherSpaceId := anotherSpace.ID
 	var createdSpacesUuids1 []uuid.UUID
