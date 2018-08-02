@@ -515,23 +515,21 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 	return i
 }
 
-// ConvertIterationSimple converts a simple Iteration ID into a Generic Reletionship
-func ConvertIterationSimple(request *http.Request, id interface{}) *app.GenericData {
+// ConvertIterationSimple converts a simple Iteration ID into a Generic
+// Relationship data+links element
+func ConvertIterationSimple(request *http.Request, id interface{}) (*app.GenericData, *app.GenericLinks) {
 	t := iteration.APIStringTypeIteration
 	i := fmt.Sprint(id)
-	return &app.GenericData{
-		Type:  &t,
-		ID:    &i,
-		Links: createIterationLinks(request, id),
+	data := &app.GenericData{
+		Type: &t,
+		ID:   &i,
 	}
-}
-
-func createIterationLinks(request *http.Request, id interface{}) *app.GenericLinks {
-	relatedURL := rest.AbsoluteURL(request, app.IterationHref(id))
-	return &app.GenericLinks{
+	relatedURL := rest.AbsoluteURL(request, app.IterationHref(i))
+	links := &app.GenericLinks{
 		Self:    &relatedURL,
 		Related: &relatedURL,
 	}
+	return data, links
 }
 
 // iterationIDMap contains a map that will hold iteration's ID as its key
