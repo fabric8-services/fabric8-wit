@@ -56,6 +56,35 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 	return true
 }
 
+// // Compatible returns true if two EnumType objects are Compatible; otherwise false is returned.
+// // Both EnumType objects should have same underlying type.
+// func (t EnumType) Compatible(u convert.Equaler) bool {
+// 	other, ok := u.(EnumType)
+// 	if !ok {
+// 		return false
+// 	}
+// 	if !t.SimpleType.Equal(other.SimpleType) {
+// 		return false
+// 	}
+// 	if !t.BaseType.Equal(other.BaseType) {
+// 		return false
+// 	}
+// 	if !t.RewritableValues {
+// 		return reflect.DeepEqual(t.Values, other.Values)
+// 	}
+// 	return true
+// }
+
+// // Equal returns true if two EnumType objects are equal; otherwise false is returned.Equal
+// // Both objects should have same Type and values
+// func (t EnumType) Equal(u convert.Equaler) bool {
+// 	other, ok := u.(EnumType)
+// 	if !ok {
+// 		return false
+// 	}
+// 	return reflect.DeepEqual(t.Values, other.Values) && t.Compatible(other)
+// }
+
 func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {
 	converted, err := t.BaseType.ConvertToModel(value)
 	if err != nil {
