@@ -57,7 +57,7 @@ func TestSimpleTypeConversion(t *testing.T) {
 		{stArea, 1.9, nil, true},
 		{stArea, true, nil, true},
 
-		{stInt, 100.0, nil, true},
+		{stInt, 100.0, 100, false},
 		{stInt, 100, 100, false},
 		{stInt, "100", nil, true},
 		{stInt, true, nil, true},
