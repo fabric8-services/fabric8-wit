@@ -429,6 +429,12 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 		c.err = append(c.err, errs.Errorf("failed to convert value of right literal expression to string: %+v", litExp.Value))
 		return nil
 	}
+	if strings.Contains(r, "'") {
+		// beware of injection, it's a reasonable restriction for field names,
+		// make sure it's not allowed when creating wi types
+		c.err = append(c.err, errs.Errorf("single quote not allowed in field value: %s", r))
+		return nil
+	}
 
 	var tblName string
 	if left.FieldName == SystemIteration {
@@ -442,15 +448,16 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 
 	c.ensureJoinTable(tblName)
 	c.parameters = append(c.parameters, r)
-	c.parameters = append(c.parameters, r)
 
-	return fmt.Sprintf(`((iter.id = ?) OR replace("work_items".fields->>'%[1]s'::text, '-', '_') IN (
-		  SELECT replace(%[2]s.id::text, '-', '_')
-		  WHERE (%[2]s.path <@ (SELECT i.path
-		                        FROM %[3]s i
-						WHERE i.id = ? AND i.path <> ''
-					)
-						    )))`, left.FieldName, "iter", tblName)
+	return fmt.Sprintf(`(uuid("work_items".fields->>'%[1]s') IN (
+		SELECT i.id
+			FROM %[3]s i
+			WHERE
+				text2ltree(concat_ws('.', nullif(i.path, ''), replace(cast(i.id as text), '-', '_')))
+					 <@ (SELECT text2ltree(concat_ws('.', nullif(i.path, ''), replace(cast(i.id as text), '-', '_')))
+						FROM %[3]s i
+							WHERE i.id = ?
+ 		)))`, left.FieldName, "iter", tblName)
 
 }
 
