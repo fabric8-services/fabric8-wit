@@ -44,7 +44,7 @@ func (s *ActionSuite) TestChangeSet() {
 
 	s.T().Run("different ID", func(t *testing.T) {
 		_, err := fxt.WorkItems[0].ChangeSet(*fxt.WorkItems[1])
-		require.NoError(t, err)
+		require.Error(t, err)
 	})
 
 	s.T().Run("same instance", func(t *testing.T) {
