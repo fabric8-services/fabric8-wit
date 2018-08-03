@@ -449,33 +449,41 @@ func (s *TestEvent) TestListEvent() {
 
 			fxt := tf.NewTestFixture(t, s.DB,
 				tf.CreateWorkItemEnvironment(),
-				tf.WorkItems(1),
-				tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
-					fxt.WorkItemTypes[idx].Fields[fieldNameSingle] = workitem.FieldDefinition{
-						Label:       fieldNameSingle,
-						Description: "A single value of a " + kind.String() + " object",
-						Type:        workitem.SimpleType{Kind: kind},
+				tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+					switch idx {
+					case 0:
+						fxt.WorkItemTypes[idx].Fields[fieldNameSingle] = workitem.FieldDefinition{
+							Label:       fieldNameSingle,
+							Description: "A single value of a " + kind.String() + " object",
+							Type:        workitem.SimpleType{Kind: kind},
+						}
+					case 1:
+						fxt.WorkItemTypes[idx].Fields[fieldNameList] = workitem.FieldDefinition{
+							Label:       fieldNameList,
+							Description: "An array of " + kind.String() + " objects",
+							Type: workitem.ListType{
+								SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+								ComponentType: workitem.SimpleType{Kind: kind},
+							},
+						}
+						// case 3:
+						// fxt.WorkItemTypes[idx].Fields[fieldNameEnum] = workitem.FieldDefinition{
+						// 	Label:       fieldNameEnum,
+						// 	Description: "An enum value of a " + kind.String() + " object",
+						// 	Type: workitem.EnumType{
+						// 		SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+						// 		BaseType:   workitem.SimpleType{Kind: kind},
+						// 		Values: []interface{}{
+						// 			testData[kind].Valid[0],
+						// 			testData[kind].Valid[1],
+						// 		},
+						// 	},
+						// }
 					}
-					fxt.WorkItemTypes[idx].Fields[fieldNameList] = workitem.FieldDefinition{
-						Label:       fieldNameList,
-						Description: "An array of " + kind.String() + " objects",
-						Type: workitem.ListType{
-							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-							ComponentType: workitem.SimpleType{Kind: kind},
-						},
-					}
-					// fxt.WorkItemTypes[idx].Fields[fieldNameEnum] = workitem.FieldDefinition{
-					// 	Label:       fieldNameEnum,
-					// 	Description: "An enum value of a " + kind.String() + " object",
-					// 	Type: workitem.EnumType{
-					// 		SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
-					// 		BaseType:   workitem.SimpleType{Kind: kind},
-					// 		Values: []interface{}{
-					// 			testData[kind].Valid[0],
-					// 			testData[kind].Valid[1],
-					// 		},
-					// 	},
-					// }
+					return nil
+				}),
+				tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItems[idx].Type = fxt.WorkItemTypes[idx].ID
 					return nil
 				}),
 			)
@@ -522,21 +530,21 @@ func (s *TestEvent) TestListEvent() {
 				payload := app.UpdateWorkitemPayload{
 					Data: &app.WorkItem{
 						Type: APIStringTypeWorkItem,
-						ID:   &fxt.WorkItems[0].ID,
+						ID:   &fxt.WorkItems[1].ID,
 						Attributes: map[string]interface{}{
 							fieldNameList:          newValue,
-							workitem.SystemVersion: fxt.WorkItems[0].Version + 1,
+							workitem.SystemVersion: fxt.WorkItems[1].Version,
 						},
 						Relationships: &app.WorkItemRelationships{
 							Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
 						},
 					},
 				}
-				test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-				res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+				test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[1].ID, &payload)
+				res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[1].ID, nil, nil)
 				safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 				require.NotEmpty(t, eventList)
-				require.Len(t, eventList.Data, 2)
+				require.Len(t, eventList.Data, 1)
 				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameList+".res.payload.golden.json"), eventList)
 				// compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameList+".res.headers.golden.json"), res.Header())
 			})
@@ -558,21 +566,21 @@ func (s *TestEvent) TestListEvent() {
 			// 	payload := app.UpdateWorkitemPayload{
 			// 		Data: &app.WorkItem{
 			// 			Type: APIStringTypeWorkItem,
-			// 			ID:   &fxt.WorkItems[0].ID,
+			// 			ID:   &fxt.WorkItems[2].ID,
 			// 			Attributes: map[string]interface{}{
 			// 				fieldNameEnum:          newValue,
-			// 				workitem.SystemVersion: fxt.WorkItems[0].Version + 2,
+			// 				workitem.SystemVersion: fxt.WorkItems[2].Version,
 			// 			},
 			// 			Relationships: &app.WorkItemRelationships{
 			// 				Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
 			// 			},
 			// 		},
 			// 	}
-			// 	test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-			// 	res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+			// 	test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[2].ID, &payload)
+			// 	res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[2].ID, nil, nil)
 			// 	safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 			// 	require.NotEmpty(t, eventList)
-			// 	require.Len(t, eventList.Data, 3)
+			// 	require.Len(t, eventList.Data, 1)
 			// 	compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameEnum+".res.payload.golden.json"), eventList)
 			// 	// compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameEnum+".res.headers.golden.json"), res.Header())
 			// })
