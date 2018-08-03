@@ -99,9 +99,9 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 					Self: ptr.String(rest.AbsoluteURL(req, app.WorkitemtypeHref(wit.ID))),
 				},
 				Data: &app.GenericData{
-					ID: ptr.String(wit.ID.String()),
+					ID:   ptr.String(wit.ID.String()),
 					Type: ptr.String(APIStringTypeWorkItemType),
-				}
+				},
 			},
 		},
 	}
@@ -151,7 +151,7 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 	// handle all single value fields (including enums)
 	if kind != workitem.KindList {
 		oldVal, useRel := convertVal(kind, wiEvent.Old)
-		newVal, _ := convertVal(kind, wiEvent.New)		
+		newVal, _ := convertVal(kind, wiEvent.New)
 		if useRel {
 			e.Relationships.OldValue = &app.RelationGenericList{
 				Data: []*app.GenericData{
