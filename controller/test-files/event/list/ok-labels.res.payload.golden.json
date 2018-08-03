@@ -3,8 +3,6 @@
     {
       "attributes": {
         "name": "system.labels",
-        "newValue": null,
-        "oldValue": null,
         "timestamp": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000001",
@@ -31,7 +29,15 @@
             }
           ]
         },
-        "oldValue": {}
+        "workItemType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000005",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000005"
+          }
+        }
       },
       "type": "events"
     }

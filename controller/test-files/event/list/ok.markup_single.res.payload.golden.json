@@ -2,9 +2,12 @@
   "data": [
     {
       "attributes": {
-        "name": "myIntType",
-        "newValue": 4235,
-        "oldValue": 200,
+        "name": "markup_single",
+        "newValue": {
+          "content": "plain text",
+          "markup": "PlainText"
+        },
+        "oldValue": null,
         "timestamp": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000001",

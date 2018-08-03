@@ -3,7 +3,10 @@
     {
       "attributes": {
         "name": "system.description",
-        "newValue": null,
+        "newValue": {
+          "content": "# Description is modified1",
+          "markup": "Markdown"
+        },
         "oldValue": null,
         "timestamp": "0001-01-01T00:00:00Z"
       },
@@ -17,6 +20,15 @@
           "links": {
             "related": "http:///api/users/00000000-0000-0000-0000-000000000002",
             "self": "http:///api/users/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "workItemType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000003"
           }
         }
       },
