@@ -511,11 +511,17 @@ func (s *TestEvent) TestListEvent() {
 						},
 					},
 				}
+				// update work item once
 				test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
+				// update it twice
+				payload.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[0].Version + 1
+				payload.Data.Attributes[fieldNameSingle] = testData[kind].Valid[1]
+				test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
+
 				res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
 				safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 				require.NotEmpty(t, eventList)
-				require.Len(t, eventList.Data, 1)
+				require.Len(t, eventList.Data, 2)
 				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameSingle+".res.payload.golden.json"), eventList)
 				// compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameSingle+".res.headers.golden.json"), res.Header())
 			})
@@ -540,11 +546,16 @@ func (s *TestEvent) TestListEvent() {
 						},
 					},
 				}
+				// update work item once
+				test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[1].ID, &payload)
+				// update it twice
+				payload.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[1].Version + 1
+				payload.Data.Attributes[fieldNameList] = []interface{}{testData[kind].Valid[1], testData[kind].Valid[0]}
 				test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[1].ID, &payload)
 				res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[1].ID, nil, nil)
 				safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 				require.NotEmpty(t, eventList)
-				require.Len(t, eventList.Data, 1)
+				require.Len(t, eventList.Data, 2)
 				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameList+".res.payload.golden.json"), eventList)
 				// compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameList+".res.headers.golden.json"), res.Header())
 			})
@@ -576,11 +587,16 @@ func (s *TestEvent) TestListEvent() {
 			// 			},
 			// 		},
 			// 	}
-			// 	test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[2].ID, &payload)
+			// // update work item once
+			// test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[2].ID, &payload)
+			// // update it twice
+			// payload.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[2].Version + 1
+			// payload.Data.Attributes[fieldNameEnum] = testData[kind].Valid[1]
+			// test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[2].ID, &payload)
 			// 	res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[2].ID, nil, nil)
 			// 	safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 			// 	require.NotEmpty(t, eventList)
-			// 	require.Len(t, eventList.Data, 1)
+			// 	require.Len(t, eventList.Data, 2)
 			// 	compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameEnum+".res.payload.golden.json"), eventList)
 			// 	// compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameEnum+".res.headers.golden.json"), res.Header())
 			// })
