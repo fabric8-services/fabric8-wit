@@ -16,7 +16,14 @@ var simpleSpace = a.Type("SimpleSpace", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", simpleSpaceAttributes)
+	a.Attribute("links", simpleSpaceLinks)
 	a.Required("type", "id", "attributes")
+})
+
+var simpleSpaceLinks = a.Type("SimpleSpaceLinks", func() {
+	a.Description(`relevant links for a space object`)
+	a.Attribute("space", linkWithAccess)
+	a.Required("space")
 })
 
 var simpleSpaceAttributes = a.Type("SimpleSpaceAttributes", func() {
@@ -60,7 +67,8 @@ var genericLinksForDeployment = a.Type("GenericLinksForDeployment", func() {
 	a.Attribute("console", d.String)
 	a.Attribute("logs", d.String)
 	a.Attribute("application", d.String)
-	// in the future perhaps: a.Attribute("self", d.String)
+	a.Attribute("self", linkWithAccess)
+	//a.Required("self")
 })
 
 var simpleDeploymentAttributes = a.Type("SimpleDeploymentAttributes", func() {
@@ -71,8 +79,7 @@ var simpleDeploymentAttributes = a.Type("SimpleDeploymentAttributes", func() {
 	a.Attribute("pods", a.ArrayOf(a.ArrayOf(d.String)))
 	a.Attribute("pod_total", d.Integer)
 	a.Attribute("pods_quota", podsQuota)
-	a.Required("name")
-	a.Required("pods")
+	a.Required("name", "pods")
 })
 
 var podsQuota = a.Type("PodsQuota", func() {

@@ -3,18 +3,22 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"os"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
+	witclient "github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/rest"
 
 	"github.com/goadesign/goa"
+	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -349,6 +353,16 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 
 	// Kubernetes doesn't know about space ID, so add it here
 	space.ID = ctx.SpaceID
+	guid := goauuid.UUID(ctx.SpaceID)
+	spaceURLStr := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(witclient.ShowSpacePath(guid)))
+	space.Links = &app.SimpleSpaceLinks{
+		Space: &app.LinkWithAccess{
+			Href: &spaceURLStr,
+			Meta: &app.EndpointAccess{
+				Methods: []string{"GET", "POST", "DELETE", "PATCH"},
+			},
+		},
+	}
 
 	res := &app.SimpleSpaceSingle{
 		Data: space,
