@@ -242,11 +242,10 @@ func (c *expressionCompiler) expressionRefersToJoinedData(e criteria.Expression)
 	return nil, false
 }
 
-// ensureJoinTable returns true if the given field expression is a
-// field expression and  refers to joined data; otherwise false is returned.
-func (c *expressionCompiler) ensureJoinTable(tn string) (*TableJoin, bool) {
+// ensureJoinTable make sure the table is joned in the query
+func (c *expressionCompiler) ensureJoinTable(tableName string) {
 	for _, j := range c.joins {
-		if j.TableName == tn {
+		if j.TableName == tableName {
 			j.Active = true
 			return j, true
 		}
