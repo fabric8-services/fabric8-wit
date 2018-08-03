@@ -947,7 +947,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
 
 func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.WorkItemTypes(2))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.WorkItemTypes(1))
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.Attributes[workitem.SystemTitle] = "Test title"
@@ -955,7 +955,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 	u.Data.Attributes[workitem.SystemNumber] = fxt.WorkItems[0].Number + 666
 	u.Data.ID = &fxt.WorkItems[0].ID
 	u.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
+		BaseType: newRelationBaseType(fxt.WorkItemTypes[0].ID),
 	}
 
 	// when
