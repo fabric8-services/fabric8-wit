@@ -29,19 +29,19 @@ func TestField(t *testing.T) {
 			j := *defJoins["iteration"]
 			j.Active = true
 			j.HandledFields = []string{"name"}
-			expect(t, c.Equals(c.Field("iteration.name"), c.Literal("abcd")), `(`+workitem.Column("iter", "name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+			expect(t, c.Equals(c.Field("iteration.name"), c.Literal("abcd")), `(`+workitem.Column("iter", "name")+` = ?) AND "iter"."space_id"="work_items"."space_id"`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
 		})
 		t.Run("area", func(t *testing.T) {
 			j := *defJoins["area"]
 			j.Active = true
 			j.HandledFields = []string{"name"}
-			expect(t, c.Equals(c.Field("area.name"), c.Literal("abcd")), `(`+workitem.Column("ar", "name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+			expect(t, c.Equals(c.Field("area.name"), c.Literal("abcd")), `(`+workitem.Column("ar", "name")+` = ?) AND "ar"."space_id"="work_items"."space_id"`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
 		})
 		t.Run("codebase", func(t *testing.T) {
 			j := *defJoins["codebase"]
 			j.Active = true
 			j.HandledFields = []string{"url"}
-			expect(t, c.Equals(c.Field("codebase.url"), c.Literal("abcd")), `(`+workitem.Column("cb", "url")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+			expect(t, c.Equals(c.Field("codebase.url"), c.Literal("abcd")), `(`+workitem.Column("cb", "url")+` = ?) AND "cb"."space_id"="work_items"."space_id"`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
 		})
 		t.Run("work item type", func(t *testing.T) {
 			j := *defJoins["work_item_type"]
@@ -106,7 +106,7 @@ func TestField(t *testing.T) {
 			expect(t, c.Or(
 				c.Equals(c.Field("iteration.name"), c.Literal("abcd")),
 				c.Equals(c.Field("iteration.created_at"), c.Literal("123")),
-			), `((`+workitem.Column("iter", "name")+` = ?) OR (`+workitem.Column("iter", "created_at")+` = ?))`, []interface{}{"abcd", "123"}, []*workitem.TableJoin{&j})
+			), `((`+workitem.Column("iter", "name")+` = ?) OR (`+workitem.Column("iter", "created_at")+` = ?)) AND "iter"."space_id"="work_items"."space_id"`, []interface{}{"abcd", "123"}, []*workitem.TableJoin{&j})
 		})
 		t.Run("board by id", func(t *testing.T) {
 
