@@ -40,11 +40,6 @@ var _ convert.Equaler = (*EnumType)(nil)
 
 // Equal returns true if two EnumType objects are equal; otherwise false is returned.
 func (t EnumType) Equal(u convert.Equaler) bool {
-	return t.DefaultEqual(u)
-}
-
-// DefaultEqual returns true if two EnumType objects are equal; otherwise false is returned.
-func (t EnumType) DefaultEqual(u convert.Equaler) bool {
 	other, ok := u.(EnumType)
 	if !ok {
 		return false
