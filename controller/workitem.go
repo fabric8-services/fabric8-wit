@@ -137,7 +137,25 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
 
-	if wi.Type != ctx.Payload.Data.Relationships.BaseType.Data.ID {
+	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
+		ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
+		// Store new values of type and version
+		newTypeID := ctx.Payload.Data.Relationships.BaseType
+		newVersion := ctx.Payload.Data.Attributes[workitem.SystemVersion]
+
+		// Remove version and base type from payload
+		delete(ctx.Payload.Data.Attributes, workitem.SystemVersion)
+		ctx.Payload.Data.Relationships.BaseType = nil
+
+		// Ensure we do not have any other change in payload except type change
+		if (app.WorkItemRelationships{}) != *ctx.Payload.Data.Relationships || len(ctx.Payload.Data.Attributes) > 0 {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("cannot update type along with other fields"))
+		}
+
+		// Restore the original values
+		ctx.Payload.Data.Relationships.BaseType = newTypeID
+		ctx.Payload.Data.Attributes[workitem.SystemVersion] = newVersion
+
 		authorized, err := c.authorizeWorkitemTypeEditor(ctx, c.db, wi.SpaceID, creator.(string), currentUserIdentityID.String())
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
