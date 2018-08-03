@@ -437,6 +437,17 @@ func GetMigrations() Migrations {
 	// Version 99
 	m = append(m, steps{ExecuteSQLFile("099-codebase-cve-scan-default-false.sql")})
 
+	// Version 100
+	m = append(m, steps{
+		func(db *sql.Tx) error {
+			_, err := db.Exec("DROP TABLE IF EXISTS userspace_data")
+			if err != nil {
+				return errs.Wrapf(err, "failed to drop table `userspace_data`")
+			}
+			return nil
+		},
+	})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

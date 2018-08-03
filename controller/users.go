@@ -304,26 +304,24 @@ func (c *UsersController) List(ctx *app.ListUsersContext) error {
 func ConvertUsersSimple(request *http.Request, identityIDs []interface{}) []*app.GenericData {
 	ops := []*app.GenericData{}
 	for _, identityID := range identityIDs {
-		ops = append(ops, ConvertUserSimple(request, identityID))
+		data, _ := ConvertUserSimple(request, identityID)
+		ops = append(ops, data)
 	}
 	return ops
 }
 
 // ConvertUserSimple converts a simple Identity ID into a Generic Reletionship
-func ConvertUserSimple(request *http.Request, identityID interface{}) *app.GenericData {
+func ConvertUserSimple(request *http.Request, identityID interface{}) (*app.GenericData, *app.GenericLinks) {
 	t := "users"
 	i := fmt.Sprint(identityID)
-	return &app.GenericData{
-		Type:  &t,
-		ID:    &i,
-		Links: createUserLinks(request, identityID),
+	data := &app.GenericData{
+		Type: &t,
+		ID:   &i,
 	}
-}
-
-func createUserLinks(request *http.Request, identityID interface{}) *app.GenericLinks {
-	relatedURL := rest.AbsoluteURL(request, app.UsersHref(identityID))
-	return &app.GenericLinks{
+	relatedURL := rest.AbsoluteURL(request, app.UsersHref(i))
+	links := &app.GenericLinks{
 		Self:    &relatedURL,
 		Related: &relatedURL,
 	}
+	return data, links
 }
