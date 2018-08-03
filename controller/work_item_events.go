@@ -153,15 +153,11 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 		oldVal, useRel := convertVal(kind, wiEvent.Old)
 		newVal, _ := convertVal(kind, wiEvent.New)
 		if useRel {
-			e.Relationships.OldValue = &app.RelationGenericList{
-				Data: []*app.GenericData{
-					oldVal.(*app.GenericData),
-				},
+			if wiEvent.Old != nil {
+				e.Relationships.OldValue = &app.RelationGenericList{Data: []*app.GenericData{oldVal.(*app.GenericData)}}
 			}
-			e.Relationships.NewValue = &app.RelationGenericList{
-				Data: []*app.GenericData{
-					newVal.(*app.GenericData),
-				},
+			if wiEvent.New != nil {
+				e.Relationships.NewValue = &app.RelationGenericList{Data: []*app.GenericData{newVal.(*app.GenericData)}}
 			}
 		} else {
 			e.Attributes.OldValue = &oldVal
