@@ -45,7 +45,7 @@ import (
 // using the mapped configuration strings and returns the new context entity.
 func ExecuteActionsByOldNew(ctx context.Context, db application.DB, userID uuid.UUID, oldContext convert.ChangeDetector, newContext convert.ChangeDetector, actionConfigList map[string]string) (convert.ChangeDetector, []convert.Change, error) {
 	if oldContext == nil || newContext == nil {
-		return nil, nil, errs.New("Execute actions called with nil entities")
+		return nil, nil, errs.New("execute actions called with nil entities")
 	}
 	contextChanges, err := oldContext.ChangeSet(newContext)
 	if err != nil {
@@ -78,7 +78,7 @@ func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uu
 				UserID: &userID,
 			}, actionConfig, newContext, contextChanges, &actionChanges)
 		default:
-			return nil, nil, errs.New("Action key " + actionKey + " is unknown")
+			return nil, nil, errs.New("action key " + actionKey + " is unknown")
 		}
 		if err != nil {
 			return nil, nil, err

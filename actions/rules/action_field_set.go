@@ -41,7 +41,7 @@ func (act ActionFieldSet) storeWorkItem(wi *workitem.WorkItem) (*workitem.WorkIt
 		var err error
 		storeResultWorkItem, err = appl.WorkItems().Save(act.Ctx, wi.SpaceID, *wi, *act.UserID)
 		if err != nil {
-			return errs.Wrap(err, "Error updating work item")
+			return errs.Wrap(err, "error updating work item")
 		}
 		return nil
 	})
@@ -56,13 +56,13 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 	// check if the newContext is a WorkItem, fail otherwise.
 	wiContext, ok := newContext.(workitem.WorkItem)
 	if !ok {
-		return nil, nil, errs.New("Given context is not a WorkItem: " + reflect.TypeOf(newContext).String())
+		return nil, nil, errs.New("given context is not a WorkItem: " + reflect.TypeOf(newContext).String())
 	}
 	// deserialize the config JSON
 	var rawType map[string]interface{}
 	err := json.Unmarshal([]byte(configuration), &rawType)
 	if err != nil {
-		return nil, nil, errs.Wrap(err, "Failed to unmarshall from action configuration to a map: "+configuration)
+		return nil, nil, errs.Wrap(err, "failed to unmarshall from action configuration to a map: "+configuration)
 	}
 	var convertChanges []convert.Change
 	for k, v := range rawType {
@@ -84,7 +84,7 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 	// if not, the key was an unknown key.
 	for k := range rawType {
 		if _, ok := actionResultContext.Fields[k]; !ok {
-			return nil, nil, errs.New("Field attribute unknown: " + k)
+			return nil, nil, errs.New("field attribute unknown: " + k)
 		}
 	}
 	return *actionResultContext, convertChanges, nil

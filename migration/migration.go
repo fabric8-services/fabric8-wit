@@ -439,7 +439,7 @@ func GetMigrations() Migrations {
 
 	// Version 100
 	m = append(m, steps{ExecuteSQLFile("100-add-rules-to-wit.sql")})
-	
+
 	m = append(m, steps{
 		func(db *sql.Tx) error {
 			_, err := db.Exec("DROP TABLE IF EXISTS userspace_data")

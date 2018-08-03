@@ -48,7 +48,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		action := ActionFieldSet{
 			Db:     s.GormDB,
 			Ctx:    s.Ctx,
@@ -56,7 +56,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		}
 		var convertChanges []convert.Change
 		afterActionWI, convertChanges, err := action.OnChange(newVersion, contextChanges, "{ \"system.state\": \"resolved\" }", &convertChanges)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, convertChanges, 1)
 		require.Equal(t, "system.state", convertChanges[0].AttributeName)
 		require.Equal(t, "open", convertChanges[0].OldValue)
@@ -70,7 +70,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		action := ActionFieldSet{
 			Db:     s.GormDB,
 			Ctx:    s.Ctx,
@@ -87,7 +87,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		action := ActionFieldSet{
 			Db:     s.GormDB,
 			Ctx:    s.Ctx,

@@ -76,11 +76,11 @@ func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID)
 	}
 	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
 	if err != nil {
-		return nil, errs.New("Error loading space: " + err.Error())
+		return nil, errs.New("error loading space: " + err.Error())
 	}
 	boards, err := act.Db.Boards().List(act.Ctx, space.SpaceTemplateID)
 	if err != nil {
-		return nil, errs.Wrap(err, "Error loading work item type: "+err.Error())
+		return nil, errs.Wrap(err, "error loading work item type: "+err.Error())
 	}
 	return boards, nil
 }
@@ -94,11 +94,11 @@ func (act ActionStateToMetaState) loadWorkItemTypeGroupsBySpaceID(spaceID uuid.U
 	}
 	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
 	if err != nil {
-		return nil, errs.Wrap(err, "Error loading space: "+err.Error())
+		return nil, errs.Wrap(err, "error loading space: "+err.Error())
 	}
 	groups, err := act.Db.WorkItemTypeGroups().List(act.Ctx, space.SpaceTemplateID)
 	if err != nil {
-		return nil, errs.Wrap(err, "Error loading work item type: "+err.Error())
+		return nil, errs.Wrap(err, "error loading work item type: "+err.Error())
 	}
 	return groups, nil
 }
@@ -112,7 +112,7 @@ func (act ActionStateToMetaState) loadWorkItemTypeByID(id uuid.UUID) (*workitem.
 	}
 	wit, err := act.Db.WorkItemTypes().Load(act.Ctx, id)
 	if err != nil {
-		return nil, errs.Wrap(err, "Error loading work item type: "+err.Error())
+		return nil, errs.Wrap(err, "error loading work item type: "+err.Error())
 	}
 	return wit, nil
 }
@@ -126,7 +126,7 @@ func (act ActionStateToMetaState) loadWorkItemByID(id uuid.UUID) (*workitem.Work
 	}
 	wi, err := act.Db.WorkItems().LoadByID(act.Ctx, id)
 	if err != nil {
-		return nil, errs.Wrap(err, "Error loading work item: "+err.Error())
+		return nil, errs.Wrap(err, "error loading work item: "+err.Error())
 	}
 	return wi, nil
 }
@@ -145,7 +145,7 @@ func (act ActionStateToMetaState) storeWorkItem(workitem *workitem.WorkItem) (*w
 		var err error
 		workitem, err = appl.WorkItems().Save(act.Ctx, workitem.SpaceID, *workitem, *act.UserID)
 		if err != nil {
-			return errs.Wrap(err, "Error updating work item")
+			return errs.Wrap(err, "error updating work item")
 		}
 		return nil
 	})
@@ -161,7 +161,7 @@ func (act ActionStateToMetaState) getValueListFromFieldType(wit *workitem.WorkIt
 	case workitem.EnumType:
 		return t.Values, nil
 	}
-	return nil, errs.New("Given field on workitemtype " + wit.ID.String() + " is not an enum field: " + fieldName)
+	return nil, errs.New("given field on workitemtype " + wit.ID.String() + " is not an enum field: " + fieldName)
 }
 
 func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUID) (map[string]string, error) {
@@ -181,11 +181,11 @@ func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUI
 	for idx := range stateList {
 		thisState, ok := stateList[idx].(string)
 		if !ok {
-			return nil, errs.New("State value in value list is not of type string")
+			return nil, errs.New("state value in value list is not of type string")
 		}
 		thisMetastate, ok := metastateList[idx].(string)
 		if !ok {
-			return nil, errs.New("Metastate value in value list is not of type string")
+			return nil, errs.New("metastate value in value list is not of type string")
 		}
 		// this is important: we only add a new entry if there
 		// is not an entry already existing. Therefore, we're only
@@ -258,7 +258,7 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 	// there is no additional check on the rule key.
 	wi, ok := newContext.(workitem.WorkItem)
 	if !ok {
-		return nil, nil, errs.New("Given context is not a WorkItem instance")
+		return nil, nil, errs.New("given context is not a WorkItem instance")
 	}
 	// extract columns that changed from oldValue newValue
 	var columnsAdded []interface{}
@@ -269,11 +269,11 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 			if !ok && change.OldValue != nil {
 				// OldValue may be nil, so only throw error when non-nil and
 				// can not convert.
-				return nil, nil, errs.New("Error converting oldValue set")
+				return nil, nil, errs.New("error converting oldValue set")
 			}
 			newValue, ok := change.NewValue.([]interface{})
 			if !ok {
-				return nil, nil, errs.New("Error converting newValue set")
+				return nil, nil, errs.New("error converting newValue set")
 			}
 			columnsAdded, _ = act.difference(oldValue, newValue)
 		}
@@ -358,7 +358,7 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext convert.Change
 func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetector, contextChanges []convert.Change, configuration string, actionChanges *[]convert.Change) (convert.ChangeDetector, []convert.Change, error) {
 	wi, ok := newContext.(workitem.WorkItem)
 	if !ok {
-		return nil, nil, errs.New("Given context is not a WorkItem instance")
+		return nil, nil, errs.New("given context is not a WorkItem instance")
 	}
 	// get the mapping.
 	mapping, err := act.getStateToMetastateMap(wi.Type)
@@ -412,7 +412,7 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 	systemBoardColumns, ok = wi.Fields[workitem.SystemBoardcolumns].([]interface{})
 	if !ok && wi.Fields[workitem.SystemBoardcolumns] != nil {
 		// wi.Fields[workitem.SystemBoardcolumns] may be empty, so we do a fallback.
-		return nil, nil, errs.New("Type conversion failed for boardcolumns")
+		return nil, nil, errs.New("type conversion failed for boardcolumns")
 	}
 	oldColumnsConfig := make([]interface{}, len(systemBoardColumns))
 	copy(oldColumnsConfig, systemBoardColumns)
@@ -445,7 +445,7 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 						if !ok && wi.Fields[workitem.SystemBoardcolumns] != nil {
 							// again, wi.Fields[workitem.SystemBoardcolumns] may be empty, so we
 							// only fail here when the conversion fails AND the slice is non nil.
-							return nil, nil, errs.New("Error converting SystemBoardcolumns set")
+							return nil, nil, errs.New("error converting SystemBoardcolumns set")
 						}
 						wi.Fields[workitem.SystemBoardcolumns] = append(currentSystemBoardColumn, column.ID.String())
 						columnsChanged = true
@@ -460,13 +460,13 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 						if !ok && wi.Fields[workitem.SystemBoardcolumns] != nil {
 							// again, wi.Fields[workitem.SystemBoardcolumns] may be empty, so we
 							// only fail here when the conversion fails AND the slice is non nil.
-							return nil, nil, errs.New("Error converting SystemBoardcolumns set")
+							return nil, nil, errs.New("error converting SystemBoardcolumns set")
 						}
 						wi.Fields[workitem.SystemBoardcolumns] = act.removeElement(currentSystemBoardColumn, column.ID.String())
 						columnsChanged = true
 					}
 				} else {
-					return nil, nil, errs.New("Invalid configuration for transRuleKey '" + ActionKeyStateToMetastate + "': " + columnRuleConfig)
+					return nil, nil, errs.New("invalid configuration for transRuleKey '" + ActionKeyStateToMetastate + "': " + columnRuleConfig)
 				}
 			}
 		}

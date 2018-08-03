@@ -565,13 +565,13 @@ func (s *WorkItemSuite) TestCreateWorkitemWithActionRule() {
 	// create a wit with a set transrule setting. We're using the FieldSet rule here as it it easy to test.
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
 		fxt.WorkItemTypes[idx].TransRuleKey = rules.ActionKeyFieldSet
-		fxt.WorkItemTypes[idx].TransRuleArgument = "{ \"system.state\": \"resolved\" }"
+		fxt.WorkItemTypes[idx].TransRuleArgument = `{ "system.state": "resolved" }`
 		return nil
 	}),
 	)
 	// check if fxt is sane.
 	assert.Equal(s.T(), rules.ActionKeyFieldSet, fxt.WorkItemTypes[0].TransRuleKey)
-	assert.Equal(s.T(), "{ \"system.state\": \"resolved\" }", fxt.WorkItemTypes[0].TransRuleArgument)
+	assert.Equal(s.T(), `{ "system.state": "resolved" }`, fxt.WorkItemTypes[0].TransRuleArgument)
 	// create the work item.
 	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
@@ -580,20 +580,20 @@ func (s *WorkItemSuite) TestCreateWorkitemWithActionRule() {
 	// version is "1" because the rule has also changed the WI, resulting in an incremented version.
 	assert.Equal(s.T(), 1, wi.Data.Attributes["version"])
 	// check if the state is "resolved" based on the rule config.
-	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemState], workitem.SystemStateResolved)
+	assert.Equal(s.T(), workitem.SystemStateResolved, wi.Data.Attributes[workitem.SystemState])
 }
 
 func (s *WorkItemSuite) TestUpdateWorkitemWithActionRule() {
 	// create a wit with a set transrule setting.
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
 		fxt.WorkItemTypes[idx].TransRuleKey = rules.ActionKeyFieldSet
-		fxt.WorkItemTypes[idx].TransRuleArgument = "{ \"system.state\": \"" + workitem.SystemStateResolved + "\" }"
+		fxt.WorkItemTypes[idx].TransRuleArgument = `{ "system.state": "` + workitem.SystemStateResolved + `" }`
 		return nil
 	}),
 	)
 	// check if fxt is sane.
 	assert.Equal(s.T(), rules.ActionKeyFieldSet, fxt.WorkItemTypes[0].TransRuleKey)
-	assert.Equal(s.T(), "{ \"system.state\": \""+workitem.SystemStateResolved+"\" }", fxt.WorkItemTypes[0].TransRuleArgument)
+	assert.Equal(s.T(), `{ "system.state": "`+workitem.SystemStateResolved+`" }`, fxt.WorkItemTypes[0].TransRuleArgument)
 	// create the work item first.
 	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"

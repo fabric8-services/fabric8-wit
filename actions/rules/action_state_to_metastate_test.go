@@ -77,7 +77,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		var convertChanges []convert.Change
 		// note: changing the state does not require a configuration.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
 		require.Equal(t, "system.metastate", convertChanges[0].AttributeName)
@@ -117,7 +117,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		var convertChanges []convert.Change
 		// note: changing the state does not require a configuration.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
 		require.Equal(t, "system.metastate", convertChanges[0].AttributeName)
@@ -156,7 +156,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		var convertChanges []convert.Change
 		// note: changing the state does not require a configuration.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
 		require.Equal(t, "system.metastate", convertChanges[0].AttributeName)
@@ -193,7 +193,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		var convertChanges []convert.Change
 		// note: changing the state does not require a configuration.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
 		require.Equal(t, "system.metastate", convertChanges[0].AttributeName)
@@ -228,7 +228,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		var convertChanges []convert.Change
 		// note: changing the state does not require a configuration.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
 		require.Equal(t, "system.metastate", convertChanges[0].AttributeName)

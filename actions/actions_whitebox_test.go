@@ -44,12 +44,12 @@ func (s *ActionSuite) TestChangeSet() {
 
 	s.T().Run("different ID", func(t *testing.T) {
 		_, err := fxt.WorkItems[0].ChangeSet(*fxt.WorkItems[1])
-		require.NotNil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("same instance", func(t *testing.T) {
 		changes, err := fxt.WorkItems[0].ChangeSet(*fxt.WorkItems[0])
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Empty(t, changes)
 	})
 
@@ -58,7 +58,7 @@ func (s *ActionSuite) TestChangeSet() {
 		fxt.WorkItems[0].Fields["system.state"] = "new"
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Empty(t, changes)
 	})
 
@@ -67,7 +67,7 @@ func (s *ActionSuite) TestChangeSet() {
 		fxt.WorkItems[0].Fields["system.state"] = "new"
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Empty(t, changes)
 	})
 
@@ -76,7 +76,7 @@ func (s *ActionSuite) TestChangeSet() {
 		fxt.WorkItems[0].Fields["system.state"] = "open"
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, changes, 1)
 		require.Equal(t, "system.state", changes[0].AttributeName)
 		require.Equal(t, "open", changes[0].NewValue)
@@ -88,7 +88,7 @@ func (s *ActionSuite) TestChangeSet() {
 		fxt.WorkItems[0].Fields["system.state"] = "new"
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, changes, 1)
 		fmt.Println(changes[0].OldValue)
 		fmt.Println(changes[0].NewValue)
@@ -102,7 +102,7 @@ func (s *ActionSuite) TestChangeSet() {
 		fxt.WorkItems[0].Fields["system.state"] = "new"
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, changes, 2)
 		// we intentionally test the order here as the code under test needs
 		// to be expanded later, supporting more changes and this is an
@@ -129,7 +129,7 @@ func (s *ActionSuite) TestActionExecution() {
 		afterActionWI, changes, err := ExecuteActionsByOldNew(s.Ctx, s.GormDB, userID, fxt.WorkItems[0], newVersion, map[string]string{
 			"Nil": "{ noConfig: 'none' }",
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, changes, 0)
 		require.Equal(t, "open", afterActionWI.(workitem.WorkItem).Fields["system.state"])
 	})
@@ -139,11 +139,11 @@ func (s *ActionSuite) TestActionExecution() {
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		afterActionWI, changes, err := ExecuteActionsByChangeset(s.Ctx, s.GormDB, userID, newVersion, contextChanges, map[string]string{
 			"Nil": "{ noConfig: 'none' }",
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, changes, 0)
 		require.Equal(t, "open", afterActionWI.(workitem.WorkItem).Fields["system.state"])
 	})
@@ -153,7 +153,7 @@ func (s *ActionSuite) TestActionExecution() {
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		_, _, err = ExecuteActionsByChangeset(s.Ctx, s.GormDB, userID, newVersion, contextChanges, map[string]string{
 			"unknownRule": "{ noConfig: 'none' }",
 		})
@@ -165,11 +165,11 @@ func (s *ActionSuite) TestActionExecution() {
 		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		afterActionWI, changes, err := ExecuteActionsByChangeset(s.Ctx, s.GormDB, userID, newVersion, contextChanges, map[string]string{
 			"FieldSet": "{ \"system.state\": \"resolved\" }",
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, changes, 1)
 		require.Equal(t, "resolved", afterActionWI.(workitem.WorkItem).Fields["system.state"])
 	})
