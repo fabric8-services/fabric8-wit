@@ -6,6 +6,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -44,11 +45,15 @@ func (c *EventsController) List(ctx *app.ListWorkItemEventsContext) error {
 		return errs.Wrap(err, "list events model failed")
 	})
 
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
 	var convertedEvents []*app.Event
 	return ctx.ConditionalEntities(eventList, c.config.GetCacheControlEvents, func() error {
 		convertedEvents, err = ConvertEvents(ctx, c.db, ctx.Request, eventList, ctx.WiID)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert events")
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to convert events"))
 		}
 		return ctx.OK(&app.EventList{
 			Data: convertedEvents,
