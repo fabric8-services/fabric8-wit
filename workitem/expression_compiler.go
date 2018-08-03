@@ -247,10 +247,8 @@ func (c *expressionCompiler) ensureJoinTable(tableName string) {
 	for _, j := range c.joins {
 		if j.TableName == tableName {
 			j.Active = true
-			return j, true
 		}
 	}
-	return nil, false
 }
 
 // Ensure expressionCompiler implements the ExpressionVisitor interface
