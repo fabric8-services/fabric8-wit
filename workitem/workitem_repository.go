@@ -783,11 +783,11 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 
 	allowedWIT, err := r.CheckWIT(ctx, wiType, spaceID)
 	if err != nil {
-		return nil, errors.NewBadParameterError("typeID", typeID)
+		return nil, err
 
 	}
 	if !allowedWIT {
-		return nil, errors.NewBadParameterError("typeID", typeID)
+		return nil, err
 	}
 
 	// The order of workitems are spaced by a factor of 1000.
