@@ -976,7 +976,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 	 */
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.CreateWorkItemEnvironment(),
-		tf.Identities(1, tf.SetIdentityUsernames("Jon Doe")),
+		tf.Identities(2, tf.SetIdentityUsernames("Jon Doe", "Lorem Ipsum")),
 		tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
 			switch idx {
 			case 0:
@@ -991,6 +991,13 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 							BaseType:   workitem.SimpleType{Kind: workitem.KindString},
 							SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
 							Values:     []interface{}{"open", "done", "closed"},
+						},
+					},
+					"assignees": {
+						Label: "Assigned To",
+						Type: workitem.ListType{
+							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindString},
 						},
 					},
 					"bar": {
@@ -1030,6 +1037,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 			fxt.WorkItems[idx].Fields["fooBar"] = "open"
 			fxt.WorkItems[idx].Fields["bar"] = "hello"
 			fxt.WorkItems[idx].Fields["reporter"] = fxt.Identities[0].ID.String()
+			fxt.WorkItems[idx].Fields["assignees"] = []string{fxt.Identities[0].ID.String(), fxt.Identities[1].ID.String()}
 			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("description1")
 			return nil
 		}),

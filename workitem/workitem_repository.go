@@ -646,24 +646,59 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 				// Ensure enum value can be assigned to the new field. If not, remove the field from original workitem
 				if !oldFieldType.GetKind().IsSimpleType() {
 					eType, ok := newFieldType.(EnumType)
+					// Make sure Enum values are compatible
 					if ok && !eType.CanAssignValue(wiStorage.Fields[oldFieldName]) {
 						delete(wiStorage.Fields, oldFieldName)
 					}
 				}
 			}
-			// Handle case where the workitem types have same field with different set of allowed values. Eg: Resolution in defect and impediment
 		}
-		// TODO: Deal with different states accross types
 		if len(fieldDiff) > 0 {
 			// Append diff (fields along with their values) between the workitem types to the description
 			originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
 			textToPrepend := "======= Missing fields in workitem type: " + newWiType.Name + " =======\n"
 			for fieldName := range fieldDiff {
 				var val string
-				if oldWIType.Fields[fieldName].Type.GetKind().IsRelational() {
-					val, err = GetValueOfRelationalKind(r.db, fieldDiff[fieldName], oldWIType.Fields[fieldName].Type.GetKind())
+				oldKind := oldWIType.Fields[fieldName].Type.GetKind()
+				oldValue := fieldDiff[fieldName]
+				if oldKind.IsSimpleType() {
+					if oldKind.IsRelational() {
+						val, err = GetValueOfRelationalKind(r.db, oldValue, oldKind)
+					} else {
+						val = fmt.Sprint(fieldDiff[fieldName])
+					}
 				} else {
-					val = fmt.Sprint(fieldDiff[fieldName])
+					switch t := oldWIType.Fields[fieldName].Type.(type) {
+					case EnumType:
+						oldKind = t.BaseType.GetKind()
+						val = fmt.Sprint(oldValue)
+						if oldKind.IsRelational() {
+							val, err = GetValueOfRelationalKind(r.db, oldValue, oldKind)
+							if err != nil {
+								return nil, err
+							}
+						}
+					case ListType:
+						oldKind = t.ComponentType.GetKind()
+						valList := fieldDiff[fieldName].([]interface{})
+						var tempList []string
+						if oldKind.IsRelational() {
+							// Convert each value of the list type to its verbose value
+							for v := range valList {
+								val, err := GetValueOfRelationalKind(r.db, v, oldKind)
+								if err != nil {
+									return nil, err
+								}
+								tempList = append(tempList, val)
+							}
+						} else {
+							for v := range valList {
+								tempList = append(tempList, fmt.Sprint(v))
+							}
+						}
+						// Convert []string to comma seperated strings.
+						val = strings.Join(tempList, ", ")
+					}
 				}
 				if val != "" {
 					textToPrepend += fmt.Sprintf("\n\n %s : %s", oldWIType.Fields[fieldName].Label, val)
@@ -1224,12 +1259,11 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 func GetValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, error) {
 	var result string
 	switch kind {
-	case KindList:
-		// TODO: Convert each entity to verbose name and then return the string
-		return "", nil
-	case KindUser: // TODO: Handle if it's a list of users
+	case KindList, KindEnum:
+		return "", errors.NewInternalErrorFromString("cannot fetch KindList or KindEnum")
+	case KindUser:
 		var identity account.Identity
-		tx := db.Model(&account.Identity{}).Where("id = ?", val).Select("username").Find(&identity)
+		tx := db.Model(&account.Identity{}).Where("id = ?", val).Find(&identity)
 		if tx.Error != nil {
 			return result, errs.Wrap(tx.Error, "failed to find user")
 		}
@@ -1241,7 +1275,7 @@ func GetValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 			return result, errs.Wrap(tx.Error, "failed to find area")
 		}
 		result = area.Name
-	case KindBoardColumn: // TODO: Handle if it's a list of users
+	case KindBoardColumn:
 		var column BoardColumn
 		tx := db.Model(column.TableName()).Where("id = ?", val).First(&column)
 		if tx.Error != nil {
@@ -1265,7 +1299,7 @@ func GetValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 		}
 		result = codebase.ID.String() // TODO: Figure out what we should be here. Codebase does not have a name.
 
-	case KindLabel: // TODO: Handle if it's a list of labels
+	case KindLabel:
 		var label label.Label
 		tx := db.Model(label.TableName()).Where("id = ?", val).First(&label)
 		if tx.Error != nil {
@@ -1273,7 +1307,7 @@ func GetValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 		}
 		result = label.Name
 	default:
-		return result, errors.NewConversionError("something went wrong")
+		return result, errors.NewInternalErrorFromString("unknown field Kind")
 	}
 	return result, nil
 }
