@@ -585,7 +585,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	wiStorage.Version = wiStorage.Version + 1
 
 	wiStorage.Fields = Fields{}
-
 	for fieldName, fieldDef := range oldWIType.Fields {
 		if fieldDef.ReadOnly {
 			continue
@@ -611,110 +610,13 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 	}
-
 	// Change of Work Item Type
 	if wiStorage.Type != updatedWorkItem.Type {
-		newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
+		err := r.ChangeWorkItemType(ctx, wiStorage, oldWIType, &updatedWorkItem, spaceID)
 		if err != nil {
-			return nil, errors.NewInternalError(ctx, err)
+			return nil, errs.Wrap(err, "unable to change workitem type")
 		}
-
-		allowedWIT, err := r.CheckWIT(ctx, newWiType, spaceID)
-		if err != nil {
-			return nil, errors.NewBadParameterError("typeID", oldWIType.ID)
-
-		}
-		if !allowedWIT {
-			return nil, errors.NewBadParameterError("typeID", oldWIType.ID)
-		}
-
-		var fieldDiff = Fields{}
-		// Loop through old workitem type
-		for oldFieldName := range oldWIType.Fields {
-			oldFieldType := oldWIType.Fields[oldFieldName].Type
-			newFieldType := newWiType.Fields[oldFieldName].Type
-			// The field exists in old type but not in new type
-			if _, ok := newWiType.Fields[oldFieldName]; !ok {
-				if wiStorage.Fields[oldFieldName] != nil {
-					fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
-					delete(wiStorage.Fields, oldFieldName)
-				}
-			} else if !oldFieldType.Equal(newFieldType) {
-				// Workitem types have field with same name but different type
-				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
-
-				// Ensure enum value can be assigned to the new field. If not, remove the field from original workitem
-				if !oldFieldType.GetKind().IsSimpleType() {
-					eType, ok := newFieldType.(EnumType)
-					// Make sure Enum values are compatible
-					if ok && !eType.CanAssignValue(wiStorage.Fields[oldFieldName]) {
-						delete(wiStorage.Fields, oldFieldName)
-					}
-				}
-			}
-		}
-		if len(fieldDiff) > 0 {
-			// Append diff (fields along with their values) between the workitem types to the description
-			originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
-			textToPrepend := "======= Missing fields in workitem type: " + newWiType.Name + " =======\n"
-			for fieldName := range fieldDiff {
-				var val string
-				oldKind := oldWIType.Fields[fieldName].Type.GetKind()
-				oldValue := fieldDiff[fieldName]
-				if oldKind.IsSimpleType() {
-					val = fmt.Sprint(fieldDiff[fieldName])
-					if oldKind.IsRelational() {
-						val, err = GetValueOfRelationalKind(r.db, oldValue, oldKind)
-					}
-				} else {
-					switch t := oldWIType.Fields[fieldName].Type.(type) {
-					case EnumType:
-						oldKind = t.BaseType.GetKind()
-						val = fmt.Sprint(oldValue)
-						if oldKind.IsRelational() {
-							val, err = GetValueOfRelationalKind(r.db, oldValue, oldKind)
-							if err != nil {
-								return nil, err
-							}
-						}
-					case ListType:
-						oldKind = t.ComponentType.GetKind()
-						valList := fieldDiff[fieldName].([]interface{})
-						var tempList []string
-						if oldKind.IsRelational() {
-							// Convert each value of the list type to its verbose value
-							for v := range valList {
-								val, err := GetValueOfRelationalKind(r.db, v, oldKind)
-								if err != nil {
-									return nil, err
-								}
-								tempList = append(tempList, val)
-							}
-						} else {
-							for v := range valList {
-								tempList = append(tempList, fmt.Sprint(v))
-							}
-						}
-						// Convert []string to comma seperated strings.
-						val = strings.Join(tempList, ", ")
-					}
-				}
-				if val != "" {
-					textToPrepend += fmt.Sprintf("\n\n %s : %s", oldWIType.Fields[fieldName].Label, val)
-				}
-			}
-			textToPrepend += "\n\n================================================\n\n"
-			// The workitem doesn't have a description
-			if originalDescription == nil {
-				originalDescription = rendering.NewMarkupContentFromValue(textToPrepend)
-			} else {
-				originalDescription.Content = textToPrepend + originalDescription.Content
-			}
-			wiStorage.Fields[SystemDescription] = originalDescription.ToMap()
-		}
-		wiStorage.Type = updatedWorkItem.Type
 	}
-
 	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -1253,6 +1155,111 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 		workitems = append(workitems, convertedWI)
 	}
 	return workitems, nil
+}
+
+func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, updatedWorkItem *WorkItem, spaceID uuid.UUID) error {
+	newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
+	if err != nil {
+		return errors.NewInternalError(ctx, err)
+	}
+
+	allowedWIT, err := r.CheckWIT(ctx, newWiType, spaceID)
+	if err != nil {
+		return errors.NewBadParameterError("typeID", oldWIType.ID)
+
+	}
+	if !allowedWIT {
+		return errors.NewBadParameterError("typeID", oldWIType.ID)
+	}
+
+	// Check only type has changed
+
+	var fieldDiff = Fields{}
+	// Loop through old workitem type
+	for oldFieldName := range oldWIType.Fields {
+		oldFieldType := oldWIType.Fields[oldFieldName].Type
+		newFieldType := newWiType.Fields[oldFieldName].Type
+		// The field exists in old type but not in new type
+		if _, ok := newWiType.Fields[oldFieldName]; !ok {
+			if wiStorage.Fields[oldFieldName] != nil {
+				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
+				delete(wiStorage.Fields, oldFieldName)
+			}
+		} else if !oldFieldType.Equal(newFieldType) {
+			// Workitem types have field with same name but different type
+			fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
+
+			// Ensure enum value can be assigned to the new field. If not, remove the field from original workitem
+			if !oldFieldType.GetKind().IsSimpleType() {
+				eType, ok := newFieldType.(EnumType)
+				// Make sure Enum values are compatible
+				if ok && !eType.CanAssignValue(wiStorage.Fields[oldFieldName]) {
+					delete(wiStorage.Fields, oldFieldName)
+				}
+			}
+		}
+	}
+	if len(fieldDiff) > 0 {
+		// Append diff (fields along with their values) between the workitem types to the description
+		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
+		textToPrepend := "======= Missing fields in workitem type: " + newWiType.Name + " =======\n"
+		for fieldName := range fieldDiff {
+			var val string
+			oldKind := oldWIType.Fields[fieldName].Type.GetKind()
+			oldValue := fieldDiff[fieldName]
+			if oldKind.IsSimpleType() {
+				val = fmt.Sprint(fieldDiff[fieldName])
+				if oldKind.IsRelational() {
+					val, err = GetValueOfRelationalKind(r.db, oldValue, oldKind)
+				}
+			} else {
+				switch t := oldWIType.Fields[fieldName].Type.(type) {
+				case EnumType:
+					oldKind = t.BaseType.GetKind()
+					val = fmt.Sprint(oldValue)
+					if oldKind.IsRelational() {
+						val, err = GetValueOfRelationalKind(r.db, oldValue, oldKind)
+						if err != nil {
+							return err
+						}
+					}
+				case ListType:
+					oldKind = t.ComponentType.GetKind()
+					valList := fieldDiff[fieldName].([]interface{})
+					var tempList []string
+					if oldKind.IsRelational() {
+						// Convert each value of the list type to its verbose value
+						for v := range valList {
+							val, err := GetValueOfRelationalKind(r.db, v, oldKind)
+							if err != nil {
+								return err
+							}
+							tempList = append(tempList, val)
+						}
+					} else {
+						for v := range valList {
+							tempList = append(tempList, fmt.Sprint(v))
+						}
+					}
+					// Convert []string to comma seperated strings.
+					val = strings.Join(tempList, ", ")
+				}
+			}
+			if val != "" {
+				textToPrepend += fmt.Sprintf("\n\n %s : %s", oldWIType.Fields[fieldName].Label, val)
+			}
+		}
+		textToPrepend += "\n\n================================================\n\n"
+		// The workitem doesn't have a description
+		if originalDescription == nil {
+			originalDescription = rendering.NewMarkupContentFromValue(textToPrepend)
+		} else {
+			originalDescription.Content = textToPrepend + originalDescription.Content
+		}
+		wiStorage.Fields[SystemDescription] = originalDescription.ToMap()
+	}
+	wiStorage.Type = updatedWorkItem.Type
+	return nil
 }
 
 func GetValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, error) {
