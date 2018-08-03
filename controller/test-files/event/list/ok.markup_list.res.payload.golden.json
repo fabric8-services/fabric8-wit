@@ -1,0 +1,77 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "name": "markup_single",
+        "newValue": {
+          "content": "plain text",
+          "markup": "PlainText"
+        },
+        "oldValue": null,
+        "timestamp": "0001-01-01T00:00:00Z"
+      },
+      "id": "00000000-0000-0000-0000-000000000001",
+      "relationships": {
+        "modifier": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "users"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "workItemType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000003"
+          }
+        }
+      },
+      "type": "events"
+    },
+    {
+      "attributes": {
+        "name": "markup_list",
+        "newValue": [
+          {
+            "content": "plain text",
+            "markup": "PlainText"
+          },
+          {
+            "content": "default",
+            "markup": "PlainText"
+          }
+        ],
+        "timestamp": "0001-01-01T00:00:00Z"
+      },
+      "id": "00000000-0000-0000-0000-000000000004",
+      "relationships": {
+        "modifier": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "users"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "workItemType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000003"
+          }
+        }
+      },
+      "type": "events"
+    }
+  ]
+}
