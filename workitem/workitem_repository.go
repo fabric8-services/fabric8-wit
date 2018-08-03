@@ -662,10 +662,9 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 				oldKind := oldWIType.Fields[fieldName].Type.GetKind()
 				oldValue := fieldDiff[fieldName]
 				if oldKind.IsSimpleType() {
+					val = fmt.Sprint(fieldDiff[fieldName])
 					if oldKind.IsRelational() {
 						val, err = GetValueOfRelationalKind(r.db, oldValue, oldKind)
-					} else {
-						val = fmt.Sprint(fieldDiff[fieldName])
 					}
 				} else {
 					switch t := oldWIType.Fields[fieldName].Type.(type) {
