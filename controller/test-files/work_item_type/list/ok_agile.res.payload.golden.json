@@ -576,11 +576,11 @@
         "guidedChildTypes": {
           "data": [
             {
-              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
+              "id": "2c169431-a55d-49eb-af74-cc19e895356f",
               "type": "workitemtypes"
             },
             {
-              "id": "2c169431-a55d-49eb-af74-cc19e895356f",
+              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
               "type": "workitemtypes"
             },
             {
@@ -792,11 +792,11 @@
         "guidedChildTypes": {
           "data": [
             {
-              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
+              "id": "6ff83406-caa7-47a9-9200-4ca796be11bb",
               "type": "workitemtypes"
             },
             {
-              "id": "6ff83406-caa7-47a9-9200-4ca796be11bb",
+              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
               "type": "workitemtypes"
             },
             {

@@ -112,8 +112,8 @@ work_item_types:
       type:
         kind: markup
   child_types:
-  - *defectID
   - *epicID
+  - *defectID
   - *impedimentID
 
 - id: &epicID "2c169431-a55d-49eb-af74-cc19e895356f"
@@ -155,8 +155,8 @@ work_item_types:
       type:
         kind: markup
   child_types:
-  - *defectID
   - *storyID
+  - *defectID
   - *impedimentID
 
 - id: &storyID "6ff83406-caa7-47a9-9200-4ca796be11bb"
