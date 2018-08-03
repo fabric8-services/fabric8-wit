@@ -6,7 +6,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -44,16 +43,10 @@ func (c *EventsController) List(ctx *app.ListWorkItemEventsContext) error {
 		eventList, err = appl.Events().List(ctx, ctx.WiID)
 		return errs.Wrap(err, "list events model failed")
 	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
+
 	var convertedEvents []*app.Event
 	return ctx.ConditionalEntities(eventList, c.config.GetCacheControlEvents, func() error {
-		wi, err := c.db.WorkItems().LoadByID(ctx, ctx.WiID)
-		if err != nil {
-			return errs.Wrapf(err, "failed to load work item with ID: %s", ctx.WiID)
-		}
-		convertedEvents, err = ConvertEvents(ctx, c.db, ctx.Request, eventList, ctx.WiID, wi.SpaceID)
+		convertedEvents, err = ConvertEvents(ctx, c.db, ctx.Request, eventList, ctx.WiID)
 		if err != nil {
 			return errs.Wrapf(err, "failed to convert events")
 		}
@@ -61,19 +54,13 @@ func (c *EventsController) List(ctx *app.ListWorkItemEventsContext) error {
 			Data: convertedEvents,
 		})
 	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return ctx.OK(&app.EventList{
-		Data: convertedEvents,
-	})
 }
 
 // ConvertEvents from internal to external REST representation
-func ConvertEvents(ctx context.Context, appl application.Application, request *http.Request, eventList []event.Event, wiID uuid.UUID, spaceID uuid.UUID) ([]*app.Event, error) {
+func ConvertEvents(ctx context.Context, appl application.Application, request *http.Request, eventList []event.Event, wiID uuid.UUID) ([]*app.Event, error) {
 	var ls = []*app.Event{}
 	for _, i := range eventList {
-		converted, err := ConvertEvent(ctx, appl, request, i, wiID, spaceID)
+		converted, err := ConvertEvent(ctx, appl, request, i, wiID)
 		if err != nil {
 			return nil, errs.Wrapf(err, "failed to convert event: %+v", i)
 		}
@@ -83,7 +70,7 @@ func ConvertEvents(ctx context.Context, appl application.Application, request *h
 }
 
 // ConvertEvent converts from internal to external REST representation
-func ConvertEvent(ctx context.Context, appl application.Application, req *http.Request, wiEvent event.Event, wiID uuid.UUID, spaceID uuid.UUID) (*app.Event, error) {
+func ConvertEvent(ctx context.Context, appl application.Application, req *http.Request, wiEvent event.Event, wiID uuid.UUID) (*app.Event, error) {
 	// find out about background details on the field that was modified
 	wit, err := appl.WorkItemTypes().Load(ctx, wiEvent.WorkItemTypeID)
 	if err != nil {
@@ -111,11 +98,15 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 				Links: &app.GenericLinks{
 					Self: ptr.String(rest.AbsoluteURL(req, app.WorkitemtypeHref(wit.ID))),
 				},
+				Data: &app.GenericData{
+					ID: ptr.String(wit.ID.String()),
+					Type: ptr.String(APIStringTypeWorkItemType),
+				}
 			},
 		},
 	}
 
-	handle := func(kind workitem.Kind, val interface{}) (interface{}, bool) {
+	convertVal := func(kind workitem.Kind, val interface{}) (interface{}, bool) {
 		switch kind {
 		case workitem.KindString,
 			workitem.KindInteger,
@@ -159,9 +150,8 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 
 	// handle all single value fields (including enums)
 	if kind != workitem.KindList {
-		oldVal, useRel := handle(kind, wiEvent.Old)
-		newVal, _ := handle(kind, wiEvent.New)
-		// update the event with the given values and find out if
+		oldVal, useRel := convertVal(kind, wiEvent.Old)
+		newVal, _ := convertVal(kind, wiEvent.New)		
 		if useRel {
 			e.Relationships.OldValue = &app.RelationGenericList{
 				Data: []*app.GenericData{
@@ -196,8 +186,8 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 		return nil, errs.Errorf("failed to convert old value of field \"%s\" to []interface{}: %+v", fieldName, wiEvent.Old)
 	}
 
-	for i, o := range arrOld {
-		oldVal, useRel := handle(componentTypeKind, o)
+	for i, v := range arrOld {
+		oldVal, useRel := convertVal(componentTypeKind, v)
 		if useRel {
 			if i == 0 {
 				e.Relationships.OldValue = &app.RelationGenericList{
@@ -207,15 +197,14 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 			e.Relationships.OldValue.Data[i] = oldVal.(*app.GenericData)
 		} else {
 			if i == 0 {
-				var ifObj interface{} = make([]interface{}, len(arrOld))
-				e.Attributes.OldValue = &ifObj
+				e.Attributes.OldValue = ptr.Interface(make([]interface{}, len(arrOld)))
 			}
 			(*e.Attributes.OldValue).([]interface{})[i] = oldVal
 		}
 	}
 
-	for i, n := range arrNew {
-		newVal, useRel := handle(componentTypeKind, n)
+	for i, v := range arrNew {
+		newVal, useRel := convertVal(componentTypeKind, v)
 		if useRel {
 			if i == 0 {
 				e.Relationships.NewValue = &app.RelationGenericList{
@@ -225,8 +214,7 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 			e.Relationships.NewValue.Data[i] = newVal.(*app.GenericData)
 		} else {
 			if i == 0 {
-				var ifObj interface{} = make([]interface{}, len(arrNew))
-				e.Attributes.NewValue = &ifObj
+				e.Attributes.NewValue = ptr.Interface(make([]interface{}, len(arrNew)))
 			}
 			(*e.Attributes.NewValue).([]interface{})[i] = newVal
 		}
