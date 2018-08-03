@@ -156,6 +156,25 @@ func TestIsNull(t *testing.T) {
 	expect(t, c.IsNull("SpaceID"), `(`+workitem.Column(wiTbl, "space_id")+` IS NULL)`, []interface{}{}, nil)
 }
 
+func TestChild(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	defJoins := workitem.DefaultTableJoins()
+	t.Run("iteration", func(t *testing.T) {
+		j := *defJoins["iteration"]
+		j.Active = true
+		e := "(uuid(\"work_items\".fields->>'system.iteration') IN (\n\t\tSELECT iter.id\n\t\t\tWHERE\n\t\t\t\t(SELECT text2ltree(concat_ws('.', nullif(j.path, ''), replace(cast(j.id as text), '-', '_')))\n\t\t\t\t\tFROM iterations j\n\t\t\t\t\tWHERE j.id = ?\n\t\t\t\t) @> text2ltree(concat_ws('.', nullif(iter.path, ''), replace(cast(iter.id as text), '-', '_')))\n\t\t\t\t\t  ))"
+		expect(t, c.Child(c.Field("system.iteration"), c.Literal("abcd")), e, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+	})
+	t.Run("area", func(t *testing.T) {
+		j := *defJoins["area"]
+		j.Active = true
+		e := "(uuid(\"work_items\".fields->>'system.area') IN (\n\t\tSELECT iter.id\n\t\t\tWHERE\n\t\t\t\t(SELECT text2ltree(concat_ws('.', nullif(j.path, ''), replace(cast(j.id as text), '-', '_')))\n\t\t\t\t\tFROM areas j\n\t\t\t\t\tWHERE j.id = ?\n\t\t\t\t) @> text2ltree(concat_ws('.', nullif(iter.path, ''), replace(cast(iter.id as text), '-', '_')))\n\t\t\t\t\t  ))"
+		expect(t, c.Child(c.Field("system.area"), c.Literal("abcd")), e, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+	})
+
+}
+
 func expect(t *testing.T, expr c.Expression, expectedClause string, expectedParameters []interface{}, expectedJoins []*workitem.TableJoin) {
 	clause, parameters, joins, compileErrors := workitem.Compile(expr)
 	t.Run("check for compile errors", func(t *testing.T) {
