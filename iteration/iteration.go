@@ -186,7 +186,7 @@ func (m *GormIterationRepository) Root(ctx context.Context, spaceID uuid.UUID) (
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "query"}, time.Now())
 	var itr Iteration
 
-	tx := m.db.Where("space_id = ? and path = ?", spaceID, "").First(&itr)
+	tx := m.db.Where("space_id = ? and path::text not like '.%'", spaceID).First(&itr)
 	if tx.Error != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,

@@ -448,6 +448,21 @@ func GetMigrations() Migrations {
 		},
 	})
 
+	// Version 101
+	m = append(m, steps{
+		func(db *sql.Tx) error {
+			_, err := db.Exec("UPDATE iterations SET path = text2ltree(replace(cast(id as text), '-', '_')) WHERE path = ''")
+			if err != nil {
+				return errs.Wrapf(err, "failed to migrate field `path` in table `iterations`")
+			}
+			_, err = db.Exec("UPDATE areas SET path = text2ltree(replace(cast(id as text), '-', '_')) WHERE path = ''")
+			if err != nil {
+				return errs.Wrapf(err, "failed to migrate field `path` in table `areas`")
+			}
+			return nil
+		},
+	})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
