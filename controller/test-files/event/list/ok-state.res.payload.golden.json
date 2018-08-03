@@ -18,6 +18,11 @@
             "related": "http:///api/users/00000000-0000-0000-0000-000000000002",
             "self": "http:///api/users/00000000-0000-0000-0000-000000000002"
           }
+        },
+        "workItemType": {
+          "links": {
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000003"
+          }
         }
       },
       "type": "events"
