@@ -187,7 +187,7 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 	}
 	arrNew, ok := wiEvent.New.([]interface{})
 	if !ok {
-		return nil, errs.Errorf("failed to convert old value of field \"%s\" to []interface{}: %+v", fieldName, wiEvent.Old)
+		return nil, errs.Errorf("failed to convert new value of field \"%s\" to []interface{}: %+v", fieldName, wiEvent.New)
 	}
 
 	for i, v := range arrOld {
