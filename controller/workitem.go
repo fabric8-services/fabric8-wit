@@ -82,7 +82,7 @@ func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, db
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		space, err := appl.Spaces().Load(ctx, spaceID)
 		if err != nil {
-			return goa.ErrNotFound(err.Error())
+			return errors.NewNotFoundError("space", spaceID.String())
 		}
 		if editorID == space.OwnerID.String() {
 			authorized = true
