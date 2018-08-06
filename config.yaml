@@ -90,7 +90,7 @@ keycloak.testuser2.secret : testuser2
 auth.url : https://auth.prod-preview.openshift.io
 
 # Proxy service URL
-osproxy.url : https://f8osoproxy-test-dsaas-preview.b6ff.rh-idev.openshiftapps.com
+osproxy.url : https://osoproxy.prod-preview.openshift.io
 
 # Uncomment if FQDN URL's should be used instead of relative URL's:
 # keycloak.url : https://sso.prod-preview.openshift.io
