@@ -58,11 +58,7 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 
 // EqualEnclosing returns true if two EnumType objects are equal and/or the
 // values set is enclosing (larger and containing) the other values set.
-func (t EnumType) EqualEnclosing(u convert.Equaler) bool {
-	other, ok := u.(EnumType)
-	if !ok {
-		return false
-	}
+func (t EnumType) EqualEnclosing(other EnumType) bool {
 	if !t.SimpleType.Equal(other.SimpleType) {
 		return false
 	}
