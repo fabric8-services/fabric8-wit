@@ -565,13 +565,15 @@ func (s *WorkItemSuite) TestCreateWorkitemWithActionRule() {
 	// create a wit with a set transrule setting. We're using the FieldSet rule here as it it easy to test.
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
 		fxt.WorkItemTypes[idx].TransRuleKey = rules.ActionKeyFieldSet
-		fxt.WorkItemTypes[idx].TransRuleArgument = `{ "system.state": "resolved" }`
+		// Intentionally not using constants here.
+		fxt.WorkItemTypes[idx].TransRuleArgument = `{ "` + workitem.SystemState + `": "resolved" }`
 		return nil
 	}),
 	)
 	// check if fxt is sane.
 	assert.Equal(s.T(), rules.ActionKeyFieldSet, fxt.WorkItemTypes[0].TransRuleKey)
-	assert.Equal(s.T(), `{ "system.state": "resolved" }`, fxt.WorkItemTypes[0].TransRuleArgument)
+	// Intentionally not using constants here.
+	assert.Equal(s.T(), `{ "`+workitem.SystemState+`": "resolved" }`, fxt.WorkItemTypes[0].TransRuleArgument)
 	// create the work item.
 	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
@@ -587,13 +589,14 @@ func (s *WorkItemSuite) TestUpdateWorkitemWithActionRule() {
 	// create a wit with a set transrule setting.
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
 		fxt.WorkItemTypes[idx].TransRuleKey = rules.ActionKeyFieldSet
-		fxt.WorkItemTypes[idx].TransRuleArgument = `{ "system.state": "` + workitem.SystemStateResolved + `" }`
+		// Intentionally not using constants here.
+		fxt.WorkItemTypes[idx].TransRuleArgument = `{ "` + workitem.SystemState + `": "` + workitem.SystemStateResolved + `" }`
 		return nil
 	}),
 	)
 	// check if fxt is sane.
 	assert.Equal(s.T(), rules.ActionKeyFieldSet, fxt.WorkItemTypes[0].TransRuleKey)
-	assert.Equal(s.T(), `{ "system.state": "`+workitem.SystemStateResolved+`" }`, fxt.WorkItemTypes[0].TransRuleArgument)
+	assert.Equal(s.T(), `{ "`+workitem.SystemState+`": "`+workitem.SystemStateResolved+`" }`, fxt.WorkItemTypes[0].TransRuleArgument)
 	// create the work item first.
 	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"

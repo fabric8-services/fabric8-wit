@@ -32,8 +32,8 @@ func createWICopy(wi workitem.WorkItem, state string, boardcolumns []interface{}
 	for k := range wi.Fields {
 		wiCopy.Fields[k] = wi.Fields[k]
 	}
-	wiCopy.Fields["system.state"] = state
-	wiCopy.Fields["system.boardcolumns"] = boardcolumns
+	wiCopy.Fields[workitem.SystemState] = state
+	wiCopy.Fields[workitem.SystemBoardcolumns] = boardcolumns
 	return wiCopy
 }
 
@@ -55,8 +55,8 @@ func (s *ActionSuite) TestChangeSet() {
 
 	s.T().Run("no changes, same column order", func(t *testing.T) {
 		wiCopy := createWICopy(*fxt.WorkItems[0], "new", []interface{}{"bcid0", "bcid1"})
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
 		require.NoError(t, err)
 		require.Empty(t, changes)
@@ -64,8 +64,8 @@ func (s *ActionSuite) TestChangeSet() {
 
 	s.T().Run("no changes, mixed column order", func(t *testing.T) {
 		wiCopy := createWICopy(*fxt.WorkItems[0], "new", []interface{}{"bcid1", "bcid0"})
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
 		require.NoError(t, err)
 		require.Empty(t, changes)
@@ -73,46 +73,46 @@ func (s *ActionSuite) TestChangeSet() {
 
 	s.T().Run("state changes", func(t *testing.T) {
 		wiCopy := createWICopy(*fxt.WorkItems[0], "new", []interface{}{"bcid0", "bcid1"})
-		fxt.WorkItems[0].Fields["system.state"] = "open"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "open"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
 		require.NoError(t, err)
 		require.Len(t, changes, 1)
-		require.Equal(t, "system.state", changes[0].AttributeName)
+		require.Equal(t, workitem.SystemState, changes[0].AttributeName)
 		require.Equal(t, "open", changes[0].NewValue)
 		require.Equal(t, "new", changes[0].OldValue)
 	})
 
 	s.T().Run("column changes", func(t *testing.T) {
 		wiCopy := createWICopy(*fxt.WorkItems[0], "new", []interface{}{"bcid0"})
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
 		require.NoError(t, err)
 		require.Len(t, changes, 1)
 		fmt.Println(changes[0].OldValue)
 		fmt.Println(changes[0].NewValue)
-		require.Equal(t, "system.boardcolumns", changes[0].AttributeName)
-		require.Equal(t, wiCopy.Fields["system.boardcolumns"], changes[0].OldValue)
-		require.Equal(t, fxt.WorkItems[0].Fields["system.boardcolumns"], changes[0].NewValue)
+		require.Equal(t, workitem.SystemBoardcolumns, changes[0].AttributeName)
+		require.Equal(t, wiCopy.Fields[workitem.SystemBoardcolumns], changes[0].OldValue)
+		require.Equal(t, fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns], changes[0].NewValue)
 	})
 
 	s.T().Run("multiple changes", func(t *testing.T) {
 		wiCopy := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0"})
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
 		require.NoError(t, err)
 		require.Len(t, changes, 2)
 		// we intentionally test the order here as the code under test needs
 		// to be expanded later, supporting more changes and this is an
 		// integrity test on the current impl.
-		require.Equal(t, "system.state", changes[0].AttributeName)
+		require.Equal(t, workitem.SystemState, changes[0].AttributeName)
 		require.Equal(t, "new", changes[0].NewValue)
 		require.Equal(t, "open", changes[0].OldValue)
-		require.Equal(t, "system.boardcolumns", changes[1].AttributeName)
-		require.Equal(t, fxt.WorkItems[0].Fields["system.boardcolumns"], changes[1].NewValue)
-		require.Equal(t, wiCopy.Fields["system.boardcolumns"], changes[1].OldValue)
+		require.Equal(t, workitem.SystemBoardcolumns, changes[1].AttributeName)
+		require.Equal(t, fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns], changes[1].NewValue)
+		require.Equal(t, wiCopy.Fields[workitem.SystemBoardcolumns], changes[1].OldValue)
 	})
 }
 
@@ -123,8 +123,8 @@ func (s *ActionSuite) TestActionExecution() {
 	userID := fxt.Identities[0].ID
 
 	s.T().Run("by Old New", func(t *testing.T) {
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		afterActionWI, changes, err := ExecuteActionsByOldNew(s.Ctx, s.GormDB, userID, fxt.WorkItems[0], newVersion, map[string]string{
 			"Nil": "{ noConfig: 'none' }",
@@ -135,8 +135,8 @@ func (s *ActionSuite) TestActionExecution() {
 	})
 
 	s.T().Run("by ChangeSet", func(t *testing.T) {
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
 		require.NoError(t, err)
@@ -149,8 +149,8 @@ func (s *ActionSuite) TestActionExecution() {
 	})
 
 	s.T().Run("unknown rule", func(t *testing.T) {
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
 		require.NoError(t, err)
@@ -161,16 +161,17 @@ func (s *ActionSuite) TestActionExecution() {
 	})
 
 	s.T().Run("sideffects", func(t *testing.T) {
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
 		require.NoError(t, err)
+		// Intentionally not using a constant here!
 		afterActionWI, changes, err := ExecuteActionsByChangeset(s.Ctx, s.GormDB, userID, newVersion, contextChanges, map[string]string{
 			"FieldSet": "{ \"system.state\": \"resolved\" }",
 		})
 		require.NoError(t, err)
 		require.Len(t, changes, 1)
-		require.Equal(t, "resolved", afterActionWI.(workitem.WorkItem).Fields["system.state"])
+		require.Equal(t, "resolved", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
 	})
 }

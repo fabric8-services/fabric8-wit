@@ -32,8 +32,8 @@ func createWICopy(wi workitem.WorkItem, state string, boardcolumns []interface{}
 	for k := range wi.Fields {
 		wiCopy.Fields[k] = wi.Fields[k]
 	}
-	wiCopy.Fields["system.state"] = state
-	wiCopy.Fields["system.boardcolumns"] = boardcolumns
+	wiCopy.Fields[workitem.SystemState] = state
+	wiCopy.Fields[workitem.SystemBoardcolumns] = boardcolumns
 	return wiCopy
 }
 
@@ -44,8 +44,8 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 
 	s.T().Run("sideffects", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
 		require.NoError(t, err)
@@ -55,19 +55,20 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 			UserID: &fxt.Identities[0].ID,
 		}
 		var convertChanges []convert.Change
+		// Not using constants here intentionally.
 		afterActionWI, convertChanges, err := action.OnChange(newVersion, contextChanges, "{ \"system.state\": \"resolved\" }", &convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 1)
-		require.Equal(t, "system.state", convertChanges[0].AttributeName)
+		require.Equal(t, workitem.SystemState, convertChanges[0].AttributeName)
 		require.Equal(t, "open", convertChanges[0].OldValue)
 		require.Equal(t, "resolved", convertChanges[0].NewValue)
-		require.Equal(t, "resolved", afterActionWI.(workitem.WorkItem).Fields["system.state"])
+		require.Equal(t, "resolved", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
 	})
 
 	s.T().Run("unknown field", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
 		require.NoError(t, err)
@@ -83,8 +84,8 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 
 	s.T().Run("non-json configuration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
-		fxt.WorkItems[0].Fields["system.state"] = "new"
-		fxt.WorkItems[0].Fields["system.boardcolumns"] = []interface{}{"bcid0", "bcid1"}
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
 		require.NoError(t, err)
