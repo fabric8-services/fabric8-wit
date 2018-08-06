@@ -79,10 +79,6 @@ func TestEnumType_EqualEnclosing(t *testing.T) {
 		RewritableValues: false,
 	}
 
-	t.Run("type inequality", func(t *testing.T) {
-		require.False(t, a.EqualEnclosing(convert.DummyEqualer{}))
-	})
-
 	t.Run("simple type difference", func(t *testing.T) {
 		b := a
 		b.SimpleType = workitem.SimpleType{Kind: workitem.KindArea}
