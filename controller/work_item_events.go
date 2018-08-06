@@ -111,6 +111,9 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 		},
 	}
 
+	// convertVal returns the given value converted from storage space to
+	// JSONAPI space. If the given value is supposed to be stored as a
+	// relationship in JSONAPI, the second return value will be true.
 	convertVal := func(kind workitem.Kind, val interface{}) (interface{}, bool) {
 		switch kind {
 		case workitem.KindString,
