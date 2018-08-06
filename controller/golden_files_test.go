@@ -13,8 +13,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oliveagle/jsonpath"
+
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/oliveagle/jsonpath"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -29,8 +32,8 @@ var updateGoldenFiles = flag.Bool("update", false, "when set, rewrite the golden
 // -update flag is given, that golden file is overwritten with the current
 // actual object. When adding new tests you first must run them with the -update
 // flag in order to create an initial golden version.
-func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, false)
+func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}, stripDownTo ...jsonPath) {
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, false, stripDownTo)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -47,8 +50,8 @@ func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
 //
 // In addition to UUID replacement, we also replace all RFC3339 time strings
 // with "0001-01-01T00:00:00Z".
-func compareWithGoldenAgnostic(t *testing.T, goldenFile string, actualObj interface{}) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, true)
+func compareWithGoldenAgnostic(t *testing.T, goldenFile string, actualObj interface{}, stripDownTo ...jsonPath) {
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, true, stripDownTo)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -56,8 +59,8 @@ func compareWithGoldenAgnostic(t *testing.T, goldenFile string, actualObj interf
 
 // compareWithGoldenAgnosticUUID is only agnostic to UUIDs apart from that it is
 // the same as compareWithGoldenAgnostic.
-func compareWithGoldenAgnosticUUID(t *testing.T, goldenFile string, actualObj interface{}) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, false)
+func compareWithGoldenAgnosticUUID(t *testing.T, goldenFile string, actualObj interface{}, stripDownTo ...jsonPath) {
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, false, stripDownTo)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -65,14 +68,14 @@ func compareWithGoldenAgnosticUUID(t *testing.T, goldenFile string, actualObj in
 
 // compareWithGoldenAgnosticTime is only agnostic to times apart from that it is
 // the same as compareWithGoldenAgnostic.
-func compareWithGoldenAgnosticTime(t *testing.T, goldenFile string, actualObj interface{}) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, true)
+func compareWithGoldenAgnosticTime(t *testing.T, goldenFile string, actualObj interface{}, stripDownTo ...jsonPath) {
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, true, stripDownTo)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 }
 
-func testableCompareWithGolden(update bool, goldenFile string, actualObj interface{}, uuidAgnostic bool, timeAgnostic bool) error {
+func testableCompareWithGolden(update bool, goldenFile string, actualObj interface{}, uuidAgnostic bool, timeAgnostic bool, stripDownTo ...jsonPath) error {
 	absPath, err := filepath.Abs(goldenFile)
 	if err != nil {
 		return errs.WithStack(err)
@@ -134,6 +137,19 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 		if err != nil {
 			return errs.Wrap(err, "failed to replace RFC3339 times with default time")
 		}
+	}
+	if len(stripDownTo) > 0 {
+		pattern := stripDownTo[0]
+		e, err := stripDownTo(expectedStr, pattern)
+		if err != nil {
+			return errs.Wrapf(err, "failed strip down expected string to pattern: %s", pattern)
+		}
+		a, err := stripDownTo(actual, pattern)
+		if err != nil {
+			return errs.Wrapf(err, "failed strip down actual string to pattern: %s", pattern)
+		}
+		expectedStr = string(e)
+		actualStr = string(a)
 	}
 	if expectedStr != actualStr {
 		log.Error(nil, nil, "testableCompareWithGolden: expected value %v", expectedStr)
@@ -230,6 +246,52 @@ func replaceTimes(str string) (string, error) {
 	}
 
 	return lastModifiedPattern.ReplaceAllString(res, `Mon, 01 Jan 0001 00:00:00 GMT`), nil
+}
+
+// stripDownTo strips down the given string JSON string to the given JSON Path
+func stripDownTo(obj, jsonPath string) (string, err) {
+	pattern, err := jsonpath.Compile(jsonPath)
+	if err != nil {
+		return "", errs.Wrapf(err, "failed to compile lookup pattern: %s", jsonPath)
+	}
+
+	var jsonObj interface{}
+	if err := json.Unmarshal([]byte(obj), &jsonObj); err != nil {
+		return "", errs.Wrapf(err, "failed to unmarshall string as JSON: %s", obj)
+	}
+
+	strippedDown, err := pattern.Lookup(jsonObj)
+	if err != nil {
+		return "", errs.Wrapf(err, "failed to lookup path in JSON: %s", jsonPath)
+	}
+
+	e, err := json.Marshal(strippedDown)
+	if err != nil {
+		return "", errs.Wrapf(err, "failed marshal stripped down JSON to string")
+	}
+
+	return string(e), nil
+}
+
+func TestStripDownTo(t *testing.T) {
+	type testData struct {
+		testName  string
+		input     string
+		pattern   string
+		output    string
+		expectErr error
+	}
+	td := testData{
+		{"Simple query", `{"foo": "bar"}`, "$.foo", "bar", false},
+	}
+	for _, d := range testData {
+		t.Run(d.testName, func(t *testing.T) {
+			output, err := stripDownTo(d.input, d.pattern)
+			if (err != nil) != d.expectErr {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
 
 const testInputStr = `
@@ -473,6 +535,14 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			t.Run("agnostic", func(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, true, true)
+				// then
+				require.NoError(t, err)
+			})
+		})
+		t.Run("comparing while stripping down", func(t *testing.T) {
+			t.Run("agnostic", func(t *testing.T) {
+				// when
+				err = testableCompareWithGolden(false, f, dummy, true, true, "$.Foo.Bar")
 				// then
 				require.NoError(t, err)
 			})
