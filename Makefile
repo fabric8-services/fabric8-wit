@@ -321,10 +321,10 @@ dev: prebuild-check deps generate $(FRESH_BIN) docker-compose-up
 docker-compose-up:
 ifeq ($(UNAME_S),Darwin)
 	@echo "Running docker-compose with macOS network settings"
-	docker-compose -f docker-compose.macos.yml up -d db auth
+	docker-compose -f docker-compose.macos.yml up -d db auth swagger_ui
 else
 	@echo "Running docker-compose with Linux network settings"
-	docker-compose up -d db auth
+	docker-compose up -d db auth swagger_ui
 endif
 
 MINISHIFT_IP = `minishift ip`
