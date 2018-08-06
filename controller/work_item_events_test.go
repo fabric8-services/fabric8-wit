@@ -194,7 +194,6 @@ func (s *TestEvent) TestListEvent() {
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
 
 		modifiedDescription := "# Description is modified1"
-		modifiedRenderedDescription := "<h1>Description is modified1</h1>\n"
 		modifiedMarkup := rendering.SystemMarkupMarkdown
 
 		payload := app.UpdateWorkitemPayload{
@@ -202,10 +201,9 @@ func (s *TestEvent) TestListEvent() {
 				Type: APIStringTypeWorkItem,
 				ID:   &fxt.WorkItems[0].ID,
 				Attributes: map[string]interface{}{
-					workitem.SystemDescription:         modifiedDescription,
-					workitem.SystemDescriptionRendered: modifiedRenderedDescription,
-					workitem.SystemDescriptionMarkup:   modifiedMarkup,
-					workitem.SystemVersion:             fxt.WorkItems[0].Version,
+					workitem.SystemDescription:       modifiedDescription,
+					workitem.SystemDescriptionMarkup: modifiedMarkup,
+					workitem.SystemVersion:           fxt.WorkItems[0].Version,
 				},
 				Relationships: &app.WorkItemRelationships{
 					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
