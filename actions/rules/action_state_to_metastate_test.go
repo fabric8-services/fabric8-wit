@@ -201,7 +201,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		require.Equal(t, "mInprogress", convertChanges[0].NewValue)
 		require.Equal(t, "mInprogress", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemMetaState])
 		// check state validity.
-		require.Equal(t, workitem.SystemMetaState, convertChanges[1].AttributeName)
+		require.Equal(t, workitem.SystemState, convertChanges[1].AttributeName)
 		require.Equal(t, "new", convertChanges[1].OldValue)
 		require.Equal(t, "in progress", convertChanges[1].NewValue)
 		require.Equal(t, "in progress", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
