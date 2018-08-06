@@ -83,10 +83,13 @@ work_item_types:
           kind: enum
         base_type:
           kind: string
+        # TODO(michaelkleinhenz): remove New and Resolved
         values:
         - New
         - Open
         - In Progress
+        - Deferred
+        - No Plan to Implement
         - Resolved
         - Closed
     "business_value":
@@ -138,6 +141,8 @@ work_item_types:
         - Open
         - In Progress
         - Resolved
+        - Deferred
+        - No Plan to Implement
         - Closed
     "storypoints":
       label: Storypoints
@@ -181,6 +186,7 @@ work_item_types:
         - New
         - Open
         - In Progress
+        - Deferred
         - Resolved
         - Closed
     "storypoints":
