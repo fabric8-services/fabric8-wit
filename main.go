@@ -337,10 +337,6 @@ func main() {
 	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB, config)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
-	// Mount "userspace" controller
-	userspaceCtrl := controller.NewUserspaceController(service, db)
-	app.MountUserspaceController(service, userspaceCtrl)
-
 	// Mount "render" controller
 	renderCtrl := controller.NewRenderController(service)
 	app.MountRenderController(service, renderCtrl)
@@ -413,6 +409,9 @@ func main() {
 	log.Logger().Infoln("Dev mode:       ", config.IsPostgresDeveloperModeEnabled())
 	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
 	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
+
+	// Make the endpoints available under /api as well
+	http.Handle("/api", http.RedirectHandler("/api/endpoints", http.StatusTemporaryRedirect))
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/favicon.ico", http.NotFoundHandler())

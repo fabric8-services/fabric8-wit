@@ -590,28 +590,34 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 			if val != nil {
 				columnIDs := val.([]interface{})
 				op.Relationships.SystemBoardcolumns = &app.RelationGenericList{
-					Data: ConvertLabelsSimple(request, columnIDs),
+					Data: ConvertBoardColumnsSimple(request, columnIDs),
 				}
 			}
 		case workitem.SystemCreator:
 			if val != nil {
 				userID := val.(string)
+				data, links := ConvertUserSimple(request, userID)
 				op.Relationships.Creator = &app.RelationGeneric{
-					Data: ConvertUserSimple(request, userID),
+					Data:  data,
+					Links: links,
 				}
 			}
 		case workitem.SystemIteration:
 			if val != nil {
 				valStr := val.(string)
+				data, links := ConvertIterationSimple(request, valStr)
 				op.Relationships.Iteration = &app.RelationGeneric{
-					Data: ConvertIterationSimple(request, valStr),
+					Data:  data,
+					Links: links,
 				}
 			}
 		case workitem.SystemArea:
 			if val != nil {
 				valStr := val.(string)
+				data, links := ConvertAreaSimple(request, valStr)
 				op.Relationships.Area = &app.RelationGeneric{
-					Data: ConvertAreaSimple(request, valStr),
+					Data:  data,
+					Links: links,
 				}
 			}
 
