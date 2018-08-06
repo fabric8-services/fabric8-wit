@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/account"
@@ -404,7 +405,7 @@ func main() {
 	featuresCtrl := controller.NewFeaturesController(service, config)
 	app.MountFeaturesController(service, featuresCtrl)
 
-	// serve the swagger.json
+	// serve the swagger.json modified to the current host
 	service.Mux.Handle("GET", "/api/swagger.json",
 		func(res http.ResponseWriter, req *http.Request, url url.Values) {
 			b, err := swagger.Asset("swagger.json")
@@ -412,9 +413,14 @@ func main() {
 				res.WriteHeader(404)
 				return
 			}
+
+			s := string(b)
+			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+config.GetHTTPAddress()+`"`, -1)
+
 			res.Header().Set("Access-Control-Allow-Origin", "*")
 			res.Header().Set("Access-Control-Allow-Methods", "GET")
-			res.Write(b)
+
+			res.Write([]byte(s))
 		},
 	)
 
