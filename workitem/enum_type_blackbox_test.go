@@ -67,3 +67,59 @@ func TestEnumType_Equal(t *testing.T) {
 		})
 	})
 }
+
+func TestEnumType_EqualEnclosing(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	a := workitem.EnumType{
+		SimpleType:       workitem.SimpleType{Kind: workitem.KindEnum},
+		BaseType:         workitem.SimpleType{Kind: workitem.KindString},
+		Values:           []interface{}{"foo", "bar", "baz"},
+		RewritableValues: false,
+	}
+
+	t.Run("simple type difference", func(t *testing.T) {
+		b := a
+		b.SimpleType = workitem.SimpleType{Kind: workitem.KindArea}
+		require.False(t, a.EqualEnclosing(b))
+	})
+
+	t.Run("base type difference", func(t *testing.T) {
+		b := a
+		b.BaseType = workitem.SimpleType{Kind: workitem.KindInteger}
+		require.False(t, a.EqualEnclosing(b))
+	})
+
+	t.Run("value difference", func(t *testing.T) {
+		t.Run("not equal", func(t *testing.T) {
+			b := a
+			b.Values = []interface{}{"foo1", "bar2"}
+			require.False(t, a.EqualEnclosing(b))
+		})
+
+		t.Run("new type has subset values", func(t *testing.T) {
+			b := a
+			b.Values = []interface{}{"foo", "bar"}
+			require.False(t, b.EqualEnclosing(a))
+		})
+
+		t.Run("new type has more than subset values but not all of old set", func(t *testing.T) {
+			b := a
+			b.Values = []interface{}{"foo", "bar", "hello"}
+			require.False(t, b.EqualEnclosing(a))
+		})
+
+		t.Run("new type has more than subset values", func(t *testing.T) {
+			b := a
+			b.Values = []interface{}{"foo", "bar", "baz", "hello"}
+			require.True(t, b.EqualEnclosing(a))
+		})
+
+		t.Run("new type has empty values", func(t *testing.T) {
+			b := a
+			b.Values = []interface{}{}
+			require.False(t, b.EqualEnclosing(a))
+		})
+	})
+}
