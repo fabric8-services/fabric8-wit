@@ -4,17 +4,17 @@ import (
 	"context"
 	"flag"
 	"net/http"
+	"net/url"
 	"os"
 	"os/user"
 	"runtime"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/closeable"
-
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/closeable"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
 	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"
@@ -29,6 +29,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/sentry"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
+	"github.com/fabric8-services/fabric8-wit/swagger"
 	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/logging/logrus"
@@ -402,6 +403,20 @@ func main() {
 	// proxying call to "/api/features/*" to the toggles service
 	featuresCtrl := controller.NewFeaturesController(service, config)
 	app.MountFeaturesController(service, featuresCtrl)
+
+	// serve the swagger.json
+	service.Mux.Handle("GET", "/api/swagger.json",
+		func(res http.ResponseWriter, req *http.Request, url url.Values) {
+			b, err := swagger.Asset("swagger.json")
+			if err != nil {
+				res.WriteHeader(404)
+				return
+			}
+			res.Header().Set("Access-Control-Allow-Origin", "*")
+			res.Header().Set("Access-Control-Allow-Methods", "GET")
+			res.Write(b)
+		},
+	)
 
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
