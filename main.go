@@ -28,6 +28,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/sentry"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/swagger"
@@ -415,14 +416,10 @@ func main() {
 			}
 
 			s := string(b)
-			// if set, use the deployments service URL for a proper host URL
-			// and fallback to the configured HTTP Address
-			serviceURL := config.GetDeploymentsServiceURL()
+			// replace swagger host with host from request
+			serviceURL := rest.AbsoluteURL(req, "")
 			serviceURL = strings.Replace(serviceURL, "http://", "", -1)
 			serviceURL = strings.Replace(serviceURL, "https://", "", -1)
-			if serviceURL == "" {
-				serviceURL = config.GetHTTPAddress()
-			}
 			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+serviceURL+`"`, -1)
 
 			res.Header().Set("Access-Control-Allow-Origin", "*")
