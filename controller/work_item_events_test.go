@@ -443,6 +443,7 @@ func (s *TestEvent) TestListEvent() {
 
 			fieldNameSingle := kind.String() + "_single"
 			fieldNameList := kind.String() + "_list"
+			// NOTE(kwk): Leave this commented out until we have proper test data
 			// fieldNameEnum := kind.String() + "_enum"
 
 			fxt := tf.NewTestFixture(t, s.DB,
@@ -464,6 +465,7 @@ func (s *TestEvent) TestListEvent() {
 								ComponentType: workitem.SimpleType{Kind: kind},
 							},
 						}
+						// NOTE(kwk): Leave this commented out until we have proper test data
 						// case 3:
 						// fxt.WorkItemTypes[idx].Fields[fieldNameEnum] = workitem.FieldDefinition{
 						// 	Label:       fieldNameEnum,
@@ -521,7 +523,6 @@ func (s *TestEvent) TestListEvent() {
 				require.NotEmpty(t, eventList)
 				require.Len(t, eventList.Data, 2)
 				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameSingle+".res.payload.golden.json"), eventList)
-				// compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameSingle+".res.headers.golden.json"), res.Header())
 			})
 			t.Run(fieldNameList, func(t *testing.T) {
 				// NOTE(kwk): Leave this commented out until we have proper test data
@@ -555,9 +556,8 @@ func (s *TestEvent) TestListEvent() {
 				require.NotEmpty(t, eventList)
 				require.Len(t, eventList.Data, 2)
 				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameList+".res.payload.golden.json"), eventList)
-				// compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok."+fieldNameList+".res.headers.golden.json"), res.Header())
 			})
-
+			// NOTE(kwk): Leave this commented out until we have proper test data
 			// TODO(kwk): Once the new type system enhancements are in, also
 			// test for enum fields here.
 
