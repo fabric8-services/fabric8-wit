@@ -168,8 +168,12 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 				e.Relationships.NewValue = &app.RelationGenericList{Data: []*app.GenericData{newVal.(*app.GenericData)}}
 			}
 		} else {
-			e.Attributes.OldValue = &oldVal
-			e.Attributes.NewValue = &newVal
+			if oldVal != nil {
+				e.Attributes.OldValue = &oldVal
+			}
+			if newVal != nil {
+				e.Attributes.NewValue = &newVal
+			}
 		}
 		return &e, nil
 	}
@@ -223,5 +227,6 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 			(*e.Attributes.NewValue).([]interface{})[i] = newVal
 		}
 	}
+
 	return &e, nil
 }
