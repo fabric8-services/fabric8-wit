@@ -417,10 +417,10 @@ func main() {
 
 			s := string(b)
 			// replace swagger host with host from request
-			serviceURL := rest.AbsoluteURL(req, "")
-			serviceURL = strings.Replace(serviceURL, "http://", "", -1)
-			serviceURL = strings.Replace(serviceURL, "https://", "", -1)
-			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+serviceURL+`"`, -1)
+			newHost := rest.AbsoluteURL(req, "")
+			newHost = strings.Replace(newHost, "http://", "", -1)
+			newHost = strings.Replace(newHost, "https://", "", -1)
+			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+newHost+`"`, -1)
 
 			res.Header().Set("Access-Control-Allow-Origin", "*")
 			res.Header().Set("Access-Control-Allow-Methods", "GET")
