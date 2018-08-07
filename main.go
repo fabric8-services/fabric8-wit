@@ -411,21 +411,20 @@ func main() {
 		func(res http.ResponseWriter, req *http.Request, url url.Values) {
 			b, err := swagger.Asset("swagger.json")
 			if err != nil {
-				res.WriteHeader(404)
+				res.WriteHeader(http.StatusNotFound)
 				return
 			}
 
 			s := string(b)
 			// replace swagger host with host from request
-			newHost := rest.AbsoluteURL(req, "")
-			newHost = strings.Replace(newHost, "http://", "", -1)
-			newHost = strings.Replace(newHost, "https://", "", -1)
-			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+newHost+`"`, -1)
-
-			// replace schemes in swagger with the current URL scheme
-			if req.URL != nil && strings.ToLower(req.URL.Scheme) == "https" {
-				s = strings.Replace(s, `"schemes":["http"]`, `"schemes":["https"]`, -1)
+			u, err := rest.AbsoluteURLAsURL(req, "")
+			if err != nil {
+				res.WriteHeader(http.StatusInternalServerError)
+				res.Write([]byte(err.Error()))
+				return
 			}
+			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+u.Host+`"`, -1)
+			s = strings.Replace(s, `"schemes":["http"]`, `"schemes":["`+u.Scheme+`"]`, -1)
 
 			res.Header().Set("Access-Control-Allow-Origin", "*")
 			res.Header().Set("Access-Control-Allow-Methods", "GET")
