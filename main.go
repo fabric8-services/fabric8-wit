@@ -417,7 +417,7 @@ func main() {
 			s := string(b)
 			// if set, use the deployments service URL for a proper host URL
 			// and fallback to the configured HTTP Address
-			serviceURL := os.Getenv("F8_DEPLOYMENTS_SERVICEURL")
+			serviceURL := config.GetDeploymentsServiceURL()
 			serviceURL = strings.Replace(serviceURL, "http://", "", -1)
 			serviceURL = strings.Replace(serviceURL, "https://", "", -1)
 			if serviceURL == "" {
