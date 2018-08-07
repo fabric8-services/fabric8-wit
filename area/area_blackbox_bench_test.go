@@ -5,10 +5,10 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/test"
 

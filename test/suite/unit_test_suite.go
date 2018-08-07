@@ -3,8 +3,8 @@ package suite
 import (
 	"fmt"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/configuration"
-	"github.com/fabric8-services/fabric8-wit/resource"
 
 	"github.com/stretchr/testify/suite"
 )

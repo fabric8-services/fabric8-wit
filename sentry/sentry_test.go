@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 
 	"github.com/dgrijalva/jwt-go"

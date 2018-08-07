@@ -154,3 +154,7 @@ ignored = [
   go-tests = true
   unused-packages = true
 
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/fabric8-services/fabric8-common"

@@ -3,13 +3,13 @@ package gormtestsupport
 import (
 	"os"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
-	"github.com/fabric8-services/fabric8-wit/resource"
 
 	"context"
 

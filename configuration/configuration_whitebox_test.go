@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

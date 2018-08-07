@@ -11,13 +11,13 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/auth"
 	witerrors "github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	. "github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	testsuite "github.com/fabric8-services/fabric8-wit/test/suite"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"

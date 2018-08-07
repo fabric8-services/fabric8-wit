@@ -3,9 +3,9 @@ package spacetemplate_test
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/ptr"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
