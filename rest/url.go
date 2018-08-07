@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -22,6 +23,12 @@ func AbsoluteURL(req *http.Request, relative string) string {
 		scheme = xForwardProto
 	}
 	return fmt.Sprintf("%s://%s%s", scheme, req.Host, relative)
+}
+
+// AbsoluteURLAsURL returns the result of AbsoluteURL parsed into a URL
+// structure and a potential parsing error.
+func AbsoluteURLAsURL(req *http.Request, relative string) (*url.URL, error) {
+	return url.Parse(AbsoluteURL(req, relative))
 }
 
 // ReplaceDomainPrefix replaces the last name in the host by a new name. Example: api.service.domain.org -> sso.service.domain.org
