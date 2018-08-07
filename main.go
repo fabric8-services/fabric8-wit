@@ -28,6 +28,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/sentry"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/swagger"
@@ -415,7 +416,16 @@ func main() {
 			}
 
 			s := string(b)
-			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+config.GetHTTPAddress()+`"`, -1)
+			// replace swagger host with host from request
+			newHost := rest.AbsoluteURL(req, "")
+			newHost = strings.Replace(newHost, "http://", "", -1)
+			newHost = strings.Replace(newHost, "https://", "", -1)
+			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+newHost+`"`, -1)
+
+			// replace schemes in swagger with the current URL scheme
+			if req.URL != nil && strings.ToLower(req.URL.Scheme) == "https" {
+				s = strings.Replace(s, `"schemes":["http"]`, `"schemes":["https"]`, -1)
+			}
 
 			res.Header().Set("Access-Control-Allow-Origin", "*")
 			res.Header().Set("Access-Control-Allow-Methods", "GET")
