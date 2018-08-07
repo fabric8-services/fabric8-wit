@@ -4,9 +4,9 @@ space_template:
   name: Scenario Driven Development
   description: >
     An agile development methodology focused on real-world problems, or
-    Scenarios, described in the language and from the viewpoint of the user.
-    Scenarios deliver particular Value Propositions and are realized via
-    Experiences.
+    scenarios that are described in the language and from the viewpoint of the
+    user. Scenarios deliver particular value propositions and are realized
+    through experiences.
   can_construct: yes
 
 work_item_types:
@@ -15,14 +15,17 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Task
   can_construct: yes
-  description: TBD
+  description: Work assigned to various team members to implement a feature.
+  They are generally measured in units of 0.5 days, for example, four hours,
+  eight hours, sixteen hours.
   icon: fa fa-tasks
 
 - id: &bugID "26787039-b68f-4e28-8814-c2f93be1ef4e"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Bug
   can_construct: yes
-  description: TBD
+  description: A defect that causes unexpected behavior in the software and that
+  needs to be fixed.
   icon: fa fa-bug
   child_types:
   - *taskID
@@ -31,7 +34,9 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Feature
   can_construct: yes
-  description: TBD
+  description: Features, often expressed as user stories, are required to
+  actualize parent experiences or epics. They are scoped so that they are
+  generally achievable within a sprint.
   icon: fa fa-puzzle-piece
   child_types:
   - *taskID
@@ -41,7 +46,10 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Experience
   can_construct: yes
-  description: TBD
+  description: An experience is a way to address a scenario, fundamental, or a
+  set of papercuts, each of which often have multiple realizing experiences.
+  Often written as a demonstration script, it describes the ideal end-user work
+  flow for realizing one or more of the associated value propositions.
   icon: pficon pficon-infrastructure
   child_types:
   - *featureID
@@ -51,7 +59,9 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Value Proposition
   can_construct: yes
-  description: TBD
+  description: A statement of the value provided to the user by addressing a
+  scenario, fundamental, or papercut. Each of which can have multiple value
+  propositions.
   icon: fa fa-diamond
   child_types:
   - *featureID
@@ -61,7 +71,10 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Scenario
   can_construct: yes
-  description: TBD
+  description: A scenario identifies a real-world user problem to resolve.
+  Addressing the scenario provides tangible user value. Prioritize scenarios
+  that deliver maximum user value by evaluating their associated value
+  propositions.
   icon: fa fa-bullseye
   child_types:
   - *experienceID
@@ -71,7 +84,9 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Fundamental
   can_construct: yes
-  description: TBD
+  description: A fundamental describes the basic essentials of a software
+  product, such as quality and performance standards. It is a non-negotiable
+  aspect of a product and its absence reduces the value provided to the user.
   icon: fa fa-university
   child_types:
   - *experienceID
@@ -81,7 +96,10 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Papercuts
   can_construct: yes
-  description: TBD
+  description: A papercut is a minor issue, often too small to be individually
+  prioritized to be addressed; collectively, papercuts degrade the perception
+  of the product. Grouped together, they receive higher priority and can be
+  tackled together within a development cycle.
   icon: fa fa-scissors
   child_types:
   - *experienceID
