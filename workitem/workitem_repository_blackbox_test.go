@@ -48,7 +48,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
 			return nil
 		}))
-		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID, uuid.NewV4())
 		require.NoError(t, err)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 0)
 		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 0)
@@ -59,7 +59,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
 		// when
 		fxt.WorkItems[0].Number = 0
-		_, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		_, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID, uuid.NewV4())
 		// then
 		assert.IsType(t, errors.NotFoundError{}, errs.Cause(err))
 	})
@@ -69,7 +69,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
 		oldDate, ok := fxt.WorkItems[0].Fields[workitem.SystemCreatedAt].(time.Time)
 		require.True(t, ok, "failed to convert interface{} to time.Time")
-		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID, uuid.NewV4())
 		newTime, ok := wiNew.Fields[workitem.SystemCreatedAt].(time.Time)
 		require.True(t, ok, "failed to convert interface{} to time.Time")
 		// then
@@ -94,7 +94,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		updatedWI.Fields[workitem.SystemOrder] = float64(6543)  // this is a read-only field, changes should be ignored
 		updatedWI.Fields[workitem.SystemNumber] = 1234          // this is a read-only field, changes should be ignored
 		// when
-		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, updatedWI, fxt.Identities[0].ID)
+		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, updatedWI, fxt.Identities[0].ID, uuid.NewV4())
 		// then
 		require.NoError(t, err)
 		require.NotPanics(t, func() {
@@ -114,7 +114,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
 		// when
 		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
-		newWi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		newWi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID, uuid.NewV4())
 		// then
 		require.NoError(s.T(), err)
 		assert.Equal(s.T(), fxt.WorkItemTypes[1].ID, newWi.Type)
@@ -608,7 +608,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 		t.Run("by updated descending", func(t *testing.T) {
 			// when
 			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
-				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID, uuid.NewV4())
 			}
 			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-updated"))
@@ -638,7 +638,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 		t.Run("by updated ascending", func(t *testing.T) {
 			// when
 			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
-				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID, uuid.NewV4())
 			}
 			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("updated"))

@@ -9,6 +9,7 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -39,12 +40,14 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 		// modify the workitem
 		wi.Fields[workitem.SystemTitle] = "Updated Title"
 		wi.Fields[workitem.SystemState] = workitem.SystemStateOpen
-		wi, err := s.repository.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[1].ID)
+		revUpdate1 := uuid.NewV4()
+		wi, err := s.repository.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[1].ID, revUpdate1)
 		require.NoError(t, err)
 		// modify again the workitem
 		wi.Fields[workitem.SystemTitle] = "Updated Title2"
 		wi.Fields[workitem.SystemState] = workitem.SystemStateInProgress
-		wi, err = s.repository.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[1].ID)
+		revUpdate2 := uuid.NewV4()
+		wi, err = s.repository.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[1].ID, revUpdate2)
 		require.NoError(t, err)
 		// delete the workitem
 		err = s.repository.Delete(s.Ctx, wi.ID, fxt.Identities[2].ID)
@@ -66,6 +69,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 		assert.Equal(t, workitem.SystemStateNew, revision1.WorkItemFields[workitem.SystemState])
 		// revision 2
 		revision2 := revisions[1]
+		assert.Equal(t, revUpdate1, revision2.ID)
 		t.Log(fmt.Sprintf("Work item revision 2: modifier:%s type: %v version:%v fields:%v", revision2.ModifierIdentity, revision2.Type, revision2.WorkItemVersion, revision2.WorkItemFields))
 		assert.Equal(t, wi.ID, revision2.WorkItemID)
 		assert.Equal(t, workitem.RevisionTypeUpdate, revision2.Type)
@@ -76,6 +80,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 		assert.Equal(t, workitem.SystemStateOpen, revision2.WorkItemFields[workitem.SystemState])
 		// revision 3
 		revision3 := revisions[2]
+		assert.Equal(t, revUpdate2, revision3.ID)
 		t.Log(fmt.Sprintf("Work item revision 3: modifier:%s type: %v version:%v fields:%v", revision3.ModifierIdentity, revision3.Type, revision3.WorkItemVersion, revision3.WorkItemFields))
 		assert.Equal(t, wi.ID, revision3.WorkItemID)
 		assert.Equal(t, workitem.RevisionTypeUpdate, revision3.Type)

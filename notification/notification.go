@@ -29,6 +29,7 @@ type Message struct {
 	UserID      *string
 	TargetID    string
 	MessageType string
+	Custom      map[string]interface{}
 }
 
 func (m Message) String() string {
@@ -41,8 +42,15 @@ func NewWorkItemCreated(workitemID string) Message {
 }
 
 // NewWorkItemUpdated creates a new message instance for the updated WorkItemID
-func NewWorkItemUpdated(workitemID string) Message {
-	return Message{MessageID: uuid.NewV4(), MessageType: "workitem.update", TargetID: workitemID}
+func NewWorkItemUpdated(workitemID string, revisionID uuid.UUID) Message {
+	return Message{
+		MessageID:   uuid.NewV4(),
+		MessageType: "workitem.update",
+		TargetID:    workitemID,
+		Custom: map[string]interface{}{
+			"revisionID": revisionID,
+		},
+	}
 }
 
 // NewCommentCreated creates a new message instance for the newly created CommentID
@@ -124,8 +132,9 @@ func (s *Service) Send(ctx context.Context, msg Message) {
 					Type: "notifications",
 					ID:   &msgID,
 					Attributes: &client.NotificationAttributes{
-						Type: msg.MessageType,
-						ID:   msg.TargetID,
+						Type:   msg.MessageType,
+						ID:     msg.TargetID,
+						Custom: msg.Custom,
 					},
 				},
 			},
@@ -135,6 +144,7 @@ func (s *Service) Send(ctx context.Context, msg Message) {
 				"message_id": msg.MessageID,
 				"type":       msg.MessageType,
 				"target_id":  msg.TargetID,
+				"custom":     msg.Custom,
 				"err":        err,
 			}, "unable to send notification")
 		} else if resp.StatusCode >= 400 {
@@ -143,6 +153,7 @@ func (s *Service) Send(ctx context.Context, msg Message) {
 				"message_id": msg.MessageID,
 				"type":       msg.MessageType,
 				"target_id":  msg.TargetID,
+				"custom":     msg.Custom,
 				"err":        err,
 			}, "unexpected response code")
 		}
