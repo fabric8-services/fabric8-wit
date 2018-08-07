@@ -415,7 +415,15 @@ func main() {
 			}
 
 			s := string(b)
-			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+config.GetHTTPAddress()+`"`, -1)
+			// if set, use the deployments service URL for a proper host URL
+			// and fallback to the configured HTTP Address
+			serviceURL := os.Getenv("F8_DEPLOYMENTS_SERVICEURL")
+			serviceURL = strings.Replace(serviceURL, "http://", "", -1)
+			serviceURL = strings.Replace(serviceURL, "https://", "", -1)
+			if serviceURL == "" {
+				serviceURL = config.GetHTTPAddress()
+			}
+			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+serviceURL+`"`, -1)
 
 			res.Header().Set("Access-Control-Allow-Origin", "*")
 			res.Header().Set("Access-Control-Allow-Methods", "GET")
