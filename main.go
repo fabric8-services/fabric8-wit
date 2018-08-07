@@ -422,6 +422,11 @@ func main() {
 			newHost = strings.Replace(newHost, "https://", "", -1)
 			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+newHost+`"`, -1)
 
+			// replace schemes in swagger with the current URL scheme
+			if req.URL != nil && strings.ToLower(req.URL.Scheme) == "https" {
+				s = strings.Replace(s, `"schemes":["http"]`, `"schemes":["https"]`, -1)
+			}
+
 			res.Header().Set("Access-Control-Allow-Origin", "*")
 			res.Header().Set("Access-Control-Allow-Methods", "GET")
 
