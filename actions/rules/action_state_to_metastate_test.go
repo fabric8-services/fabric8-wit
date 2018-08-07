@@ -75,7 +75,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			UserID: &fxt.Identities[0].ID,
 		}
 		var convertChanges []convert.Change
-		// note: changing the state does not require a configuration.
+		// note: the rule does not use the explicit configuration, but reads from the template.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
@@ -115,7 +115,52 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			UserID: &fxt.Identities[0].ID,
 		}
 		var convertChanges []convert.Change
-		// note: changing the state does not require a configuration.
+		// note: the rule does not use the explicit configuration, but reads from the template.
+		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
+		require.NoError(t, err)
+		require.Len(t, convertChanges, 2)
+		// check metastate validity.
+		require.Equal(t, workitem.SystemMetaState, convertChanges[0].AttributeName)
+		require.Nil(t, convertChanges[0].OldValue)
+		require.Equal(t, "mInprogress", convertChanges[0].NewValue)
+		require.Equal(t, "mInprogress", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemMetaState])
+		// check column validity.
+		require.Equal(t, workitem.SystemBoardcolumns, convertChanges[1].AttributeName)
+		require.Empty(t, convertChanges[1].OldValue)
+		require.Equal(t, fxt.WorkItemBoards[0].Columns[1].ID.String(), convertChanges[1].NewValue.([]interface{})[0])
+		require.Equal(t, "mInprogress", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemMetaState])
+		require.Len(t, afterActionWI.(workitem.WorkItem).Fields[workitem.SystemBoardcolumns].([]interface{}), 1)
+		require.Equal(t, fxt.WorkItemBoards[0].Columns[1].ID.String(), afterActionWI.(workitem.WorkItem).Fields[workitem.SystemBoardcolumns].([]interface{})[0])
+	})
+
+	s.T().Run("updating multiple attributes and state", func(t *testing.T) {
+		fxt := fxtFn(t)
+		// this should be a vanilla work item, where metastate and boardcolumns is nil
+		delete(fxt.WorkItems[0].Fields, workitem.SystemMetaState)
+		delete(fxt.WorkItems[0].Fields, workitem.SystemBoardcolumns)
+		// set the state to "in progress" and create a changeset.
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "in progress"
+		fxt.WorkItems[0].Fields[workitem.SystemTitle] = "Updated Title"
+		contextChanges := []convert.Change{
+			{
+				AttributeName: workitem.SystemTitle,
+				OldValue:      nil,
+				NewValue:      "Updated Title",
+			},
+			{
+				AttributeName: workitem.SystemState,
+				OldValue:      nil,
+				NewValue:      "in progress",
+			},
+		}
+		// run the test.
+		action := ActionStateToMetaState{
+			Db:     s.GormDB,
+			Ctx:    s.Ctx,
+			UserID: &fxt.Identities[0].ID,
+		}
+		var convertChanges []convert.Change
+		// note: the rule does not use the explicit configuration, but reads from the template.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
@@ -154,7 +199,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			UserID: &fxt.Identities[0].ID,
 		}
 		var convertChanges []convert.Change
-		// note: changing the state does not require a configuration.
+		// note: the rule does not use the explicit configuration, but reads from the template.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
@@ -191,7 +236,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			UserID: &fxt.Identities[0].ID,
 		}
 		var convertChanges []convert.Change
-		// note: changing the state does not require a configuration.
+		// note: the rule does not use the explicit configuration, but reads from the template.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
@@ -205,6 +250,52 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 		require.Equal(t, "new", convertChanges[1].OldValue)
 		require.Equal(t, "in progress", convertChanges[1].NewValue)
 		require.Equal(t, "in progress", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
+	})
+
+	s.T().Run("updating the state and columns for an existing work item", func(t *testing.T) {
+		fxt := fxtFn(t)
+		contextChanges := []convert.Change{
+			{
+				AttributeName: workitem.SystemState,
+				OldValue:      fxt.WorkItems[0].Fields[workitem.SystemState],
+				NewValue:      "resolved",
+			},
+			{
+				AttributeName: workitem.SystemBoardcolumns,
+				OldValue:      fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns],
+				NewValue:      []interface{}{fxt.WorkItemBoards[0].Columns[2].ID.String()},
+			},
+		}
+		// set the state
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "resolved"
+		// set the column to the "resolved" column and create a changeset.
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{fxt.WorkItemBoards[0].Columns[2].ID.String()}
+		// run the test.
+		action := ActionStateToMetaState{
+			Db:     s.GormDB,
+			Ctx:    s.Ctx,
+			UserID: &fxt.Identities[0].ID,
+		}
+		var convertChanges []convert.Change
+		// note: the rule does not use the explicit configuration, but reads from the template.
+		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
+		require.NoError(t, err)
+		require.Len(t, convertChanges, 2)
+		// check metastate validity.
+		require.Equal(t, workitem.SystemMetaState, convertChanges[0].AttributeName)
+		require.Equal(t, "mNew", convertChanges[0].OldValue)
+		require.Equal(t, "mResolved", convertChanges[0].NewValue)
+		require.Equal(t, "mResolved", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemMetaState])
+		// check column validity. For the resolved state, two columns are matching,
+		// but only the first one (column 2) should be used and available in the WI.
+		require.Equal(t, workitem.SystemBoardcolumns, convertChanges[1].AttributeName)
+		require.Equal(t, []interface{}{fxt.WorkItemBoards[0].Columns[2].ID.String()}, convertChanges[1].OldValue)
+		require.Equal(t, convertChanges[1].NewValue.([]interface{})[0], fxt.WorkItemBoards[0].Columns[2].ID.String())
+		require.Equal(t, "mResolved", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemMetaState])
+		require.Len(t, afterActionWI.(workitem.WorkItem).Fields[workitem.SystemBoardcolumns].([]interface{}), 1)
+		require.Equal(t, afterActionWI.(workitem.WorkItem).Fields[workitem.SystemBoardcolumns].([]interface{})[0], fxt.WorkItemBoards[0].Columns[2].ID.String())
+		// check state validity.
+		require.Equal(t, "resolved", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
 	})
 
 	s.T().Run("updating the columns for a vanilla work item", func(t *testing.T) {
@@ -226,7 +317,7 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			UserID: &fxt.Identities[0].ID,
 		}
 		var convertChanges []convert.Change
-		// note: changing the state does not require a configuration.
+		// note: the rule does not use the explicit configuration, but reads from the template.
 		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)

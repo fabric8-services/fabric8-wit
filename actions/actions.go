@@ -71,7 +71,6 @@ func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uu
 				UserID: &userID,
 			}, actionConfig, newContext, contextChanges, &actionChanges)
 		case rules.ActionKeyStateToMetastate:
-			// TODO(michaelkleinhenz): get db, ctx, and user.
 			newContext, actionChanges, err = executeAction(rules.ActionStateToMetaState{
 				Db:     db,
 				Ctx:    ctx,

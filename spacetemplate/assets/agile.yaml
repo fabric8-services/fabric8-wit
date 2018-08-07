@@ -92,6 +92,28 @@ work_item_types:
         - No Plan to Implement
         - Resolved
         - Closed
+    "system.metastate":
+      label: Meta State
+      description: The meta-state of the work item
+      read_only: no
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        # This will allow other WITs to overwrite the values of the state.
+        rewritable_values: yes
+        # the sequence of the values need to match the sequence of the 
+        # system.state attributes. This encapsulates the mapping.
+        values: 
+        - mNew
+        - mOpen
+        - mInprogress
+        - mDeferred
+        - mNoplantoimplement
+        - mResolved
+        - mClosed
     "business_value":
       label: Business Value
       description:
@@ -144,6 +166,28 @@ work_item_types:
         - Deferred
         - No Plan to Implement
         - Closed
+    "system.metastate":
+      label: Meta State
+      description: The meta-state of the work item
+      read_only: no
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        # This will allow other WITs to overwrite the values of the state.
+        rewritable_values: yes
+        # the sequence of the values need to match the sequence of the 
+        # system.state attributes. This encapsulates the mapping.
+        values: 
+        - mNew
+        - mOpen
+        - mInprogress
+        - mDeferred
+        - mNoplantoimplement
+        - mResolved
+        - mClosed
     "storypoints":
       label: Storypoints
       description: 
@@ -189,6 +233,27 @@ work_item_types:
         - Deferred
         - Resolved
         - Closed
+    "system.metastate":
+      label: Meta State
+      description: The meta-state of the work item
+      read_only: no
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        # This will allow other WITs to overwrite the values of the state.
+        rewritable_values: yes
+        # the sequence of the values need to match the sequence of the 
+        # system.state attributes. This encapsulates the mapping.
+        values: 
+        - mNew
+        - mOpen
+        - mInprogress
+        - mDeferred
+        - mResolved
+        - mClosed
     "storypoints":
       label: Storypoints
       description: 

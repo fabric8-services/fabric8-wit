@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
+// ActionStateToMetaState implements the bidirectional mapping between state and column.
 type ActionStateToMetaState struct {
 	Db     application.DB
 	Ctx    context.Context
@@ -177,6 +178,9 @@ func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUI
 	if err != nil {
 		return nil, err
 	}
+  if len(stateList) != len(metastateList) {
+		return nil, errs.New("inconsistent number of states and metatstates in the current template")
+	}
 	stateToMetastateMap := make(map[string]string)
 	for idx := range stateList {
 		thisState, ok := stateList[idx].(string)
@@ -234,21 +238,35 @@ func (act ActionStateToMetaState) addOrUpdateChange(changes []convert.Change, at
 	return newChanges
 }
 
+func (act ActionStateToMetaState) fuseChanges(c1 []convert.Change, c2 []convert.Change) *[]convert.Change {
+	for _, change := range c2 {
+		c1 = act.addOrUpdateChange(c1, change.AttributeName, change.OldValue, change.NewValue)
+	}
+	return &c1
+}
+
 // OnChange executes the action rule.
 func (act ActionStateToMetaState) OnChange(newContext convert.ChangeDetector, contextChanges []convert.Change, configuration string, actionChanges *[]convert.Change) (convert.ChangeDetector, []convert.Change, error) {
 	if len(contextChanges) == 0 {
 		// no changes, just return what we have.
 		return newContext, *actionChanges, nil
 	}
+	// if we have multiple changes, this iterates over them and cherrypicks, fusing the results together.
+	var err error
+	var executionChanges []convert.Change
 	for _, change := range contextChanges {
 		if change.AttributeName == workitem.SystemState {
-			return act.OnStateChange(newContext, contextChanges, configuration, actionChanges)
+			newContext, executionChanges, err = act.OnStateChange(newContext, contextChanges, configuration, actionChanges)
 		}
 		if change.AttributeName == workitem.SystemBoardcolumns {
-			return act.OnBoardColumnsChange(newContext, contextChanges, configuration, actionChanges)
+			newContext, executionChanges, err =  act.OnBoardColumnsChange(newContext, contextChanges, configuration, actionChanges)
 		}
+		if err != nil {
+			return nil, nil, err
+		}
+		actionChanges = act.fuseChanges(*actionChanges, executionChanges)
 	}
-	// no changes that match this rule.
+	// return the result
 	return newContext, *actionChanges, nil
 }
 
@@ -447,7 +465,9 @@ func (act ActionStateToMetaState) OnStateChange(newContext convert.ChangeDetecto
 							// only fail here when the conversion fails AND the slice is non nil.
 							return nil, nil, errs.New("error converting SystemBoardcolumns set")
 						}
-						wi.Fields[workitem.SystemBoardcolumns] = append(currentSystemBoardColumn, column.ID.String())
+						if !act.contains(currentSystemBoardColumn, column.ID.String()) {
+							wi.Fields[workitem.SystemBoardcolumns] = append(currentSystemBoardColumn, column.ID.String())
+						}
 						columnsChanged = true
 					} else {
 						// the column *does not* match the *new* metastate, so the column has to
