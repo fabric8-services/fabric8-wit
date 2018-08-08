@@ -103,7 +103,7 @@ func containsAll(a []interface{}, v []interface{}) bool {
 }
 
 func (t EnumType) ConvertFromModel(value interface{}) (interface{}, error) {
-	converted, err := t.BaseType.ConvertToModel(value)
+	converted, err := t.BaseType.ConvertFromModel(value)
 	if err != nil {
 		return nil, fmt.Errorf("error converting enum value: %s", err.Error())
 	}
