@@ -229,6 +229,8 @@ work_item_type_groups:
   - *fundamentalID
   - *papercutsID
   bucket: portfolio
+  description: Work item type group that focuses on the planning-oriented work
+  item types, such as scenario, fundamental, and papercuts.
   icon: fa fa-bullseye
 
 - name: Experiences
@@ -237,6 +239,8 @@ work_item_type_groups:
   - *experienceID
   - *valuePropositionID
   bucket: portfolio
+  description: Work item type group that focuses on the experience and value
+  proposition work item types that address the scenarios.
   icon: pficon pficon-infrastructure
 
 - name: Requirements
@@ -245,6 +249,8 @@ work_item_type_groups:
   - *featureID
   - *bugID
   bucket: requirement
+  description: Work item type group that focuses on execution-oriented work item
+  types such as feature, task, and bug.
   icon: fa fa-list-ul
 
 - name: Execution
@@ -254,4 +260,5 @@ work_item_type_groups:
   - *bugID
   - *featureID
   bucket: iteration
+  description:
   icon: fa fa-repeat
