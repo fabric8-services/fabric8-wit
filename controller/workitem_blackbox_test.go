@@ -1060,7 +1060,10 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 	})
 
 	s.T().Run("unauthorized", func(t *testing.T) {
-		// TODO
+		// Only Space owner and workitem creator is allowed to change type
+		svcNotAuthorized := testsupport.ServiceAsSpaceUser("TypeChange-Service", *fxt.Identities[1], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
+		test.UpdateWorkitemForbidden(t, svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, fxt.WorkItems[0].ID, &u)
 	})
 }
 
