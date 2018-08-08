@@ -448,6 +448,9 @@ func GetMigrations() Migrations {
 		},
 	})
 
+	// Version 101
+	m = append(m, steps{ExecuteSQLFile("101-add-description-to-witg.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
