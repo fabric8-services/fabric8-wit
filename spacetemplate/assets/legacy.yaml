@@ -224,6 +224,9 @@ work_item_type_groups:
 
 - name: Scenarios
   id: "679a563c-ac9b-4478-9f3e-4187f708dd30"
+  description: >
+    Work item type group that focuses on the planning-oriented work item types,
+    such as scenario, fundamental, and papercuts.
   type_list:
   - *scenarioID
   - *fundamentalID
