@@ -81,14 +81,14 @@ func (s *JSONComplianceTestSuite) TestSearchCodebases() {
 		fxt := tf.NewTestFixture(s.T(), s.DB,
 			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
 			tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
-				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/single/%d", idx)
+				fxt.Codebases[idx].URL = fmt.Sprintf("https://foo.com/single/%d", idx)
 				return nil
 			}),
 		)
 		svc := NewService(*fxt.Identities[0])
 		searchCtrl := NewSearchController(svc, s.GormDB, s.Configuration)
 		// when
-		_, codebaseList := test.CodebasesSearchOK(t, nil, svc, searchCtrl, nil, nil, "http://foo.com/single/0")
+		_, codebaseList := test.CodebasesSearchOK(t, nil, svc, searchCtrl, nil, nil, "https://foo.com/single/0")
 		// then
 		s.Validate(codebaseList)
 	})
@@ -99,15 +99,15 @@ func (s *JSONComplianceTestSuite) TestSearchCodebases() {
 			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
 			tf.Spaces(2),
 			tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
-				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/multi/0") // both codebases have the same URL...
-				fxt.Codebases[idx].SpaceID = fxt.Spaces[idx].ID                // ... but they belong to different spaces
+				fxt.Codebases[idx].URL = fmt.Sprintf("https://foo.com/multi/0") // both codebases have the same URL...
+				fxt.Codebases[idx].SpaceID = fxt.Spaces[idx].ID                 // ... but they belong to different spaces
 				return nil
 			}),
 		)
 		svc := NewService(*fxt.Identities[0])
 		searchCtrl := NewSearchController(svc, s.GormDB, s.Configuration)
 		// when
-		_, codebaseList := test.CodebasesSearchOK(t, nil, svc, searchCtrl, nil, nil, "http://foo.com/multi/0")
+		_, codebaseList := test.CodebasesSearchOK(t, nil, svc, searchCtrl, nil, nil, "https://foo.com/multi/0")
 		// then
 		// then
 		s.Validate(codebaseList)

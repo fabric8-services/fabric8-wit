@@ -7,7 +7,7 @@
         "last_used_workspace": "my-used-last-workspace",
         "stackId": "golang-default",
         "type": "git",
-        "url": "https://foo.com/single/0"
+        "url": "https://github.com/USERNAME/REPOSITORY.git"
       },
       "id": "00000000-0000-0000-0000-000000000001",
       "links": {
@@ -136,8 +136,8 @@
     }
   ],
   "links": {
-    "first": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=https://foo.com/single/0",
-    "last": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=https://foo.com/single/0"
+    "first": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=git@github.com:USERNAME/REPOSITORY.git",
+    "last": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=git@github.com:USERNAME/REPOSITORY.git"
   },
   "meta": {
     "totalCount": 1
