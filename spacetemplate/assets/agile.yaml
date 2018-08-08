@@ -196,9 +196,9 @@ work_item_types:
   can_construct: yes
   description: >
     Incremental work or requirements identified to deliver a product feature.
-    Typically, it is expressed from the user’s perspective in the following
-    format - As a *user*, I want to achieve an *objective*, so that this
-    *purpose* is met.
+    Typically, it is expressed from the user's perspective in the following
+    format - As a user, I want to achieve an objective, so that this purpose is
+    met.
   icon: pficon pficon-image
   fields:
     "system.state":

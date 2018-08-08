@@ -841,7 +841,7 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "Incremental work or requirements identified to deliver a product feature. Typically, it is expressed from the user’s perspective in the following format - As a *user*, I want to achieve an *objective*, so that this *purpose* is met.\n",
+        "description": "Incremental work or requirements identified to deliver a product feature. Typically, it is expressed from the user's perspective in the following format - As a user, I want to achieve an objective, so that this purpose is met.\n",
         "fields": {
           "acceptance_criteria": {
             "description": "The acceptance criteria describes rules for checking if a chunk of work is completed.\n",
