@@ -496,6 +496,8 @@
                 "mNew",
                 "mOpen",
                 "mInprogress",
+                "mDeferred",
+                "mNoplantoimplement",
                 "mResolved",
                 "mClosed"
               ]
@@ -722,6 +724,8 @@
                 "mNew",
                 "mOpen",
                 "mInprogress",
+                "mDeferred",
+                "mNoplantoimplement",
                 "mResolved",
                 "mClosed"
               ]
@@ -948,6 +952,7 @@
                 "mNew",
                 "mOpen",
                 "mInprogress",
+                "mDeferred",
                 "mResolved",
                 "mClosed"
               ]
