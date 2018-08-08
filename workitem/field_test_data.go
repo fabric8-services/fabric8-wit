@@ -161,7 +161,7 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 				return int(v)
 			},
 			Valid: []interface{}{
-				int(0),
+				0,
 				333,
 				-100,
 			},

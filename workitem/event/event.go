@@ -8,13 +8,12 @@ import (
 
 // Event represents work item event
 type Event struct {
-	ID             uuid.UUID
-	Name           string
-	WorkItemTypeID uuid.UUID
-	Timestamp      time.Time
-	Modifier       uuid.UUID
-	Old            interface{}
-	New            interface{}
+	ID        uuid.UUID
+	Name      string
+	Timestamp time.Time
+	Modifier  uuid.UUID
+	Old       interface{}
+	New       interface{}
 }
 
 // GetETagData returns the field values to use to generate the ETag
