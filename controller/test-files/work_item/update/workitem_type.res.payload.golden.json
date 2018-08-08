@@ -1,0 +1,96 @@
+{
+  "data": {
+    "attributes": {
+      "assinged-to": null,
+      "bar": "hello",
+      "fooBar": null,
+      "fooo": 2.5,
+      "reporter": null,
+      "system.created_at": "0001-01-01T00:00:00Z",
+      "system.description": "======= Missing fields in workitem type: work item type 00000000-0000-0000-0000-000000000001 =======\n\n\n Type1 Assigned To : 0, 1\n\n Type1 bar : hello\n\n Type1 fooBar : open\n\n Type1 reporter : Jon Doe\n\n================================================\n\ndescription1",
+      "system.description.markup": "PlainText",
+      "system.description.rendered": "======= Missing fields in workitem type: work item type 00000000-0000-0000-0000-000000000001 =======\n\n\n Type1 Assigned To : 0, 1\n\n Type1 bar : hello\n\n Type1 fooBar : open\n\n Type1 reporter : Jon Doe\n\n================================================\n\ndescription1",
+      "system.metastate": null,
+      "system.number": 1,
+      "system.order": 1000,
+      "system.remote_item_id": null,
+      "system.state": "new",
+      "system.title": "work item 00000000-0000-0000-0000-000000000002",
+      "system.updated_at": "0001-01-01T00:00:00Z",
+      "version": 1
+    },
+    "id": "00000000-0000-0000-0000-000000000003",
+    "links": {
+      "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003",
+      "self": "http:///api/workitems/00000000-0000-0000-0000-000000000003"
+    },
+    "relationships": {
+      "area": {},
+      "assignees": {},
+      "baseType": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000004",
+          "type": "workitemtypes"
+        },
+        "links": {
+          "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000004"
+        }
+      },
+      "children": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/children"
+        },
+        "meta": {
+          "hasChildren": false
+        }
+      },
+      "comments": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/comments",
+          "self": "http:///api/workitems/00000000-0000-0000-0000-000000000003/relationships/comments"
+        }
+      },
+      "creator": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000005",
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000005",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000005"
+          },
+          "type": "users"
+        }
+      },
+      "events": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/events"
+        }
+      },
+      "iteration": {},
+      "labels": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/labels"
+        }
+      },
+      "space": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000006",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000006",
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000006"
+        }
+      },
+      "system.boardcolumns": {},
+      "workItemLinks": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/links"
+        }
+      }
+    },
+    "type": "workitems"
+  },
+  "links": {
+    "self": "http:///api/workitems/00000000-0000-0000-0000-000000000003"
+  }
+}
