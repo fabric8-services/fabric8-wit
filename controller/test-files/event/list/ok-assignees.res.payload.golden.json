@@ -3,6 +3,8 @@
     {
       "attributes": {
         "name": "system.assignees",
+        "newValue": null,
+        "oldValue": null,
         "timestamp": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000001",
@@ -25,15 +27,7 @@
             }
           ]
         },
-        "workItemType": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
-            "type": "workitemtypes"
-          },
-          "links": {
-            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000003"
-          }
-        }
+        "oldValue": {}
       },
       "type": "events"
     }

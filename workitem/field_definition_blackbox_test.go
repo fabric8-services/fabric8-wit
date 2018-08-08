@@ -7,8 +7,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	uuid "github.com/satori/go.uuid"
-	"github.com/stretchr/testify/require"
 )
 
 func testFieldDefinitionMarshalUnmarshal(t *testing.T, def workitem.FieldDefinition) {
@@ -75,25 +73,4 @@ func TestFieldDefinition_Marshalling(t *testing.T) {
 		}
 		testFieldDefinitionMarshalUnmarshal(t, def)
 	})
-}
-
-func TestFieldDefinition_IsRelational(t *testing.T) {
-	// relational kinds
-	require.True(t, workitem.KindLabel.IsRelational())
-	require.True(t, workitem.KindArea.IsRelational())
-	require.True(t, workitem.KindIteration.IsRelational())
-	require.True(t, workitem.KindBoardColumn.IsRelational())
-	require.True(t, workitem.KindUser.IsRelational())
-	require.True(t, workitem.KindCodebase.IsRelational())
-	// composite kinds
-	require.False(t, workitem.KindList.IsRelational())
-	require.False(t, workitem.KindEnum.IsRelational())
-	// non-relational kinds
-	require.False(t, workitem.KindString.IsRelational())
-	require.False(t, workitem.KindInteger.IsRelational())
-	require.False(t, workitem.KindInstant.IsRelational())
-	require.False(t, workitem.KindFloat.IsRelational())
-	require.False(t, workitem.KindBoolean.IsRelational())
-	// random
-	require.False(t, workitem.Kind(uuid.NewV4().String()).IsRelational())
 }
