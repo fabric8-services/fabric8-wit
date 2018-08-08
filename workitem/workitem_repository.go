@@ -3,6 +3,7 @@ package workitem
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1157,6 +1158,7 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 	return workitems, nil
 }
 
+// ChangeWorkItemType changes the workitem in wiStorage to new type stored in UpdatedWorkitem. Returns error if operation fails
 func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, updatedWorkItem *WorkItem, spaceID uuid.UUID) error {
 	newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
 	if err != nil {
@@ -1199,18 +1201,25 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 			}
 		}
 	}
+	// We need fieldKeys to show keys in a defined order. Golang maps aren't ordered by default.
+	var fieldKeys []string
+	for fieldName := range fieldDiff {
+		fieldKeys = append(fieldKeys, fieldName)
+	}
+	// Sort the field keys to prevent random order of fields
+	sort.Strings(fieldKeys)
 	if len(fieldDiff) > 0 {
 		// Append diff (fields along with their values) between the workitem types to the description
 		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
 		textToPrepend := "======= Missing fields in workitem type: " + newWiType.Name + " =======\n"
-		for fieldName := range fieldDiff {
+		for _, fieldName := range fieldKeys {
 			var val string
 			oldKind := oldWIType.Fields[fieldName].Type.GetKind()
 			oldValue := fieldDiff[fieldName]
 			if oldKind.IsSimpleType() {
 				val = fmt.Sprint(fieldDiff[fieldName])
 				if oldKind.IsRelational() {
-					val, err = GetValueOfRelationalKind(r.db, oldValue, oldKind)
+					val, err = getValueOfRelationalKind(r.db, oldValue, oldKind)
 				}
 			} else {
 				switch t := oldWIType.Fields[fieldName].Type.(type) {
@@ -1218,7 +1227,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 					oldKind = t.BaseType.GetKind()
 					val = fmt.Sprint(oldValue)
 					if oldKind.IsRelational() {
-						val, err = GetValueOfRelationalKind(r.db, oldValue, oldKind)
+						val, err = getValueOfRelationalKind(r.db, oldValue, oldKind)
 						if err != nil {
 							return err
 						}
@@ -1230,7 +1239,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 					if oldKind.IsRelational() {
 						// Convert each value of the list type to its verbose value
 						for v := range valList {
-							val, err := GetValueOfRelationalKind(r.db, v, oldKind)
+							val, err := getValueOfRelationalKind(r.db, v, oldKind)
 							if err != nil {
 								return err
 							}
@@ -1262,7 +1271,8 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	return nil
 }
 
-func GetValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, error) {
+// getValueOfRelationKind resolved the relational value stored in val to it's verbose value. Eg: UUID of kind User to username.
+func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, error) {
 	var result string
 	switch kind {
 	case KindList, KindEnum:

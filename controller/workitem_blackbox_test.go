@@ -970,10 +970,6 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
-	/*
-	* Type 1 has ->
-	* Type 2 has ->
-	 */
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.CreateWorkItemEnvironment(),
 		tf.Identities(2, tf.SetIdentityUsernames("Jon Doe", "Lorem Ipsum")),
@@ -982,7 +978,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 			case 0:
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
 					"fooo": {
-						Label: "Type1 foo",
+						Label: "Type1 fooo",
 						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
 					},
 					"fooBar": {
@@ -993,8 +989,8 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 							Values:     []interface{}{"open", "done", "closed"},
 						},
 					},
-					"assignees": {
-						Label: "Assigned To",
+					"assinged-to": {
+						Label: "Type1 Assigned To",
 						Type: workitem.ListType{
 							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 							ComponentType: workitem.SimpleType{Kind: workitem.KindString},
@@ -1012,7 +1008,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 			case 1:
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
 					"fooo": {
-						Label: "Type1 foo",
+						Label: "Type2 fooo",
 						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
 					},
 					"bar": {
@@ -1037,7 +1033,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 			fxt.WorkItems[idx].Fields["fooBar"] = "open"
 			fxt.WorkItems[idx].Fields["bar"] = "hello"
 			fxt.WorkItems[idx].Fields["reporter"] = fxt.Identities[0].ID.String()
-			fxt.WorkItems[idx].Fields["assignees"] = []string{fxt.Identities[0].ID.String(), fxt.Identities[1].ID.String()}
+			fxt.WorkItems[idx].Fields["assinged-to"] = []string{fxt.Identities[0].ID.String(), fxt.Identities[1].ID.String()}
 			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("description1")
 			return nil
 		}),
@@ -1049,26 +1045,22 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 	u.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
 	}
+	svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
 	s.T().Run("ok", func(t *testing.T) {
-		svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
 		_, newWI := test.UpdateWorkitemOK(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+
 		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
-		assert.NotContains(t, newWI.Data.Attributes[workitem.SystemDescription], "fooo")
-		assert.Contains(t, newWI.Data.Attributes[workitem.SystemDescription], "bar")
-		assert.Contains(t, newWI.Data.Attributes[workitem.SystemDescription], "fooBar")
-		// compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
+		newDescription := newWI.Data.Attributes[workitem.SystemDescription]
+		assert.NotNil(t, newDescription)
+		// Type of old and new field is same
+		assert.NotContains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooo"].Label)
+		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["bar"].Label)
+		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooBar"].Label)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
 	})
 
 	s.T().Run("unauthorized", func(t *testing.T) {
 		// TODO
-	})
-	s.T().Run("different field Kinds", func(t *testing.T) {
-		t.Run("Markup", func(t *testing.T) {})
-		t.Run("Integer", func(t *testing.T) {})
-		t.Run("Boolean", func(t *testing.T) {})
-		t.Run("Markup", func(t *testing.T) {})
-		t.Run("String", func(t *testing.T) {})
-		t.Run("Float", func(t *testing.T) {})
 	})
 }
 
