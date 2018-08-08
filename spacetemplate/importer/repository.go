@@ -157,8 +157,16 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			for fieldName, fd := range wit.Fields {
 				// verify FieldType with original value
 				if originalType, ok := toBeFoundFields[fieldName]; ok {
-					if fd.Type.Equal(originalType) == false {
-						return errs.Errorf("type of the field %s changed from %s to %s", fieldName, originalType, fd.Type)
+					if equal := fd.Type.Equal(originalType); !equal {
+						// Special treatment for EnumType
+						origEnum, ok1 := originalType.(workitem.EnumType)
+						newEnum, ok2 := fd.Type.(workitem.EnumType)
+						if ok1 && ok2 {
+							equal = newEnum.EqualEnclosing(origEnum)
+						}
+						if !equal {
+							return errs.Errorf("type of the field %s changed from %s to %s", fieldName, originalType, fd.Type)
+						}
 					}
 				}
 				delete(toBeFoundFields, fieldName)
