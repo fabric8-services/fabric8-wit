@@ -178,7 +178,7 @@ func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUI
 	if err != nil {
 		return nil, err
 	}
-  if len(stateList) != len(metastateList) {
+	if len(stateList) != len(metastateList) {
 		return nil, errs.New("inconsistent number of states and metatstates in the current template")
 	}
 	stateToMetastateMap := make(map[string]string)
@@ -259,7 +259,7 @@ func (act ActionStateToMetaState) OnChange(newContext convert.ChangeDetector, co
 			newContext, executionChanges, err = act.OnStateChange(newContext, contextChanges, configuration, actionChanges)
 		}
 		if change.AttributeName == workitem.SystemBoardcolumns {
-			newContext, executionChanges, err =  act.OnBoardColumnsChange(newContext, contextChanges, configuration, actionChanges)
+			newContext, executionChanges, err = act.OnBoardColumnsChange(newContext, contextChanges, configuration, actionChanges)
 		}
 		if err != nil {
 			return nil, nil, err
