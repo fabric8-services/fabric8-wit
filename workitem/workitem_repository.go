@@ -576,7 +576,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, updatedWorkItem WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "save"}, time.Now())
-	wiStorage, oldWIType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.Number, true)
+	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.Number, true)
 	if err != nil {
 		return nil, err
 	}
@@ -586,7 +586,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	wiStorage.Version = wiStorage.Version + 1
 
 	wiStorage.Fields = Fields{}
-	for fieldName, fieldDef := range oldWIType.Fields {
+	for fieldName, fieldDef := range wiType.Fields {
 		if fieldDef.ReadOnly {
 			continue
 		}
@@ -613,10 +613,15 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	}
 	// Change of Work Item Type
 	if wiStorage.Type != updatedWorkItem.Type {
-		err := r.ChangeWorkItemType(ctx, wiStorage, oldWIType, &updatedWorkItem, spaceID)
+		newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
 		if err != nil {
+			return nil, errs.Wrapf(err, "failed to load workitemtype: %s ", updatedWorkItem.Type.String())
+		}
+		if err := r.ChangeWorkItemType(ctx, wiStorage, wiType, newWiType, spaceID); err != nil {
 			return nil, errs.Wrap(err, "unable to change workitem type")
 		}
+		// This will be used by the ConvertWorkItemStorageToModel function
+		wiType = newWiType
 	}
 	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)
 	if err := tx.Error; err != nil {
@@ -640,7 +645,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		"wi_id":    updatedWorkItem.ID,
 		"space_id": spaceID,
 	}, "Updated work item repository")
-	return ConvertWorkItemStorageToModel(oldWIType, wiStorage)
+	return ConvertWorkItemStorageToModel(wiType, wiStorage)
 }
 
 // CheckWIT returns true if the given workitem type (wit) belongs to the same space template as the space (spaceID)
@@ -1158,14 +1163,9 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 	return workitems, nil
 }
 
-// ChangeWorkItemType changes the workitem in wiStorage to new type stored in UpdatedWorkitem. Returns error if operation fails
-func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, updatedWorkItem *WorkItem, spaceID uuid.UUID) error {
-	newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
-	if err != nil {
-		return errors.NewInternalError(ctx, err)
-	}
-
-	allowedWIT, err := r.CheckWIT(ctx, newWiType, spaceID)
+// ChangeWorkItemType changes the workitem in wiStorage to newWIType. Returns error if the operation fails
+func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error {
+	allowedWIT, err := r.CheckWIT(ctx, newWIType, spaceID)
 	if err != nil {
 		return errors.NewBadParameterError("typeID", oldWIType.ID)
 
@@ -1173,16 +1173,13 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	if !allowedWIT {
 		return errors.NewBadParameterError("typeID", oldWIType.ID)
 	}
-
-	// Check only type has changed
-
 	var fieldDiff = Fields{}
 	// Loop through old workitem type
 	for oldFieldName := range oldWIType.Fields {
 		oldFieldType := oldWIType.Fields[oldFieldName].Type
-		newFieldType := newWiType.Fields[oldFieldName].Type
+		newFieldType := newWIType.Fields[oldFieldName].Type
 		// The field exists in old type but not in new type
-		if _, ok := newWiType.Fields[oldFieldName]; !ok {
+		if _, ok := newWIType.Fields[oldFieldName]; !ok {
 			if wiStorage.Fields[oldFieldName] != nil {
 				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
 				delete(wiStorage.Fields, oldFieldName)
@@ -1210,7 +1207,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	if len(fieldDiff) > 0 {
 		// Append diff (fields along with their values) between the workitem types to the description
 		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
-		textToPrepend := "======= Missing fields in workitem type: " + newWiType.Name + " =======\n"
+		textToPrepend := "======= Missing fields in workitem type: " + newWIType.Name + " =======\n"
 		for _, fieldName := range fieldKeys {
 			var val string
 			oldKind := oldWIType.Fields[fieldName].Type.GetKind()
@@ -1266,7 +1263,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 		}
 		wiStorage.Fields[SystemDescription] = originalDescription.ToMap()
 	}
-	wiStorage.Type = updatedWorkItem.Type
+	wiStorage.Type = newWIType.ID
 	return nil
 }
 
