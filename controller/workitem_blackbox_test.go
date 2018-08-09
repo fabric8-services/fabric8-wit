@@ -989,7 +989,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 							Values:     []interface{}{"open", "done", "closed"},
 						},
 					},
-					"assinged-to": {
+					"assigned-to": {
 						Label: "Type1 Assigned To",
 						Type: workitem.ListType{
 							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
@@ -1033,7 +1033,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 			fxt.WorkItems[idx].Fields["fooBar"] = "open"
 			fxt.WorkItems[idx].Fields["bar"] = "hello"
 			fxt.WorkItems[idx].Fields["reporter"] = fxt.Identities[0].ID.String()
-			fxt.WorkItems[idx].Fields["assinged-to"] = []string{fxt.Identities[0].ID.String(), fxt.Identities[1].ID.String()}
+			fxt.WorkItems[idx].Fields["assigned-to"] = []string{fxt.Identities[0].ID.String(), fxt.Identities[1].ID.String()}
 			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("description1")
 			return nil
 		}),
