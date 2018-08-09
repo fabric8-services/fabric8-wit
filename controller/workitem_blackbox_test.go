@@ -1040,7 +1040,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 	)
 	// when
 	u := minimumRequiredUpdatePayload()
-	u.Data.Attributes["version"] = fxt.WorkItems[0].Version
+	u.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[0].Version
 	u.Data.ID = &fxt.WorkItems[0].ID
 	u.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
@@ -1057,6 +1057,11 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["bar"].Label)
 		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooBar"].Label)
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
+	})
+
+	s.T().Run("disallow update of field along with type", func(t *testing.T) {
+		u.Data.Attributes[workitem.SystemTitle] = "xyz"
+		test.UpdateWorkitemConflict(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
 	})
 
 	s.T().Run("unauthorized", func(t *testing.T) {
