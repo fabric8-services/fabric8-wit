@@ -149,6 +149,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration97", testMigration97RemoveResolutionFieldFromImpediment)
 	t.Run("TestMigration98", testMigration98Boards)
 	t.Run("TestMigration99", testMigration99CodebaseCVEScanDefaultFalse)
+	t.Run("TestMigration100", testDropUserspacedataTable)
+	t.Run("TestMigration101", testTypeGroupHasDescriptionField)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1236,6 +1238,20 @@ func testMigration95Boards(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:95], 95)
 	assert.True(t, dialect.HasTable("work_item_boards"))
 	assert.True(t, dialect.HasTable("work_item_board_columns"))
+}
+
+// test that the userspace_data table no longer exists - previously
+// used as a temporary solution to get data from tenant jenkins
+func testDropUserspacedataTable(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:100], 100)
+	require.False(t, dialect.HasTable("userspace_data"))
+}
+
+// testTypeGroupHasDescriptionField checks that the work item type groups table
+// has a description after updating to DB version 101.
+func testTypeGroupHasDescriptionField(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:101], 101)
+	require.False(t, dialect.HasColumn("work_item_type_groups", "description"))
 }
 
 // migrateToVersion runs the migration of all the scripts to a certain version

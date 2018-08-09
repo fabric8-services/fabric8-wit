@@ -315,6 +315,7 @@ work_item_link_types:
 work_item_type_groups:
 - name: Scenarios
   id: "` + witgID.String() + `"
+  description: "description for scenarios"
   type_list:
     - "` + witID.String() + `"
   bucket: portfolio
@@ -417,6 +418,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 			{
 				ID:              witgID,
 				Name:            "Scenarios",
+				Description:     ptr.String("description for scenarios"),
 				Bucket:          workitem.BucketPortfolio,
 				Icon:            "fa fa-suitcase",
 				SpaceTemplateID: spaceTemplateID,

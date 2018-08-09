@@ -15,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestJsonMarshalListType constructs a work item type, writes it to JSON (marshalling),
@@ -290,4 +291,34 @@ func TestWorkItemTypeIsTypeOrSubtypeOf(t *testing.T) {
 	// Test we actually do return false someNodees
 	assert.False(t, workitem.WorkItemType{ID: id3, Path: node1 + "." + node2 + "." + node3}.IsTypeOrSubtypeOf(id4))
 	assert.False(t, workitem.WorkItemType{ID: id1, Path: node1}.IsTypeOrSubtypeOf(id4))
+}
+
+// TestConstants exists in order to avoid accidental changes to constants
+func TestConstants(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	require.Equal(t, "version", workitem.SystemVersion)
+	require.Equal(t, "system.remote_item_id", workitem.SystemRemoteItemID)
+	require.Equal(t, "system.number", workitem.SystemNumber)
+	require.Equal(t, "system.title", workitem.SystemTitle)
+	require.Equal(t, "system.description", workitem.SystemDescription)
+	require.Equal(t, "system.description.markup", workitem.SystemDescriptionMarkup)
+	require.Equal(t, "system.description.rendered", workitem.SystemDescriptionRendered)
+	require.Equal(t, "system.state", workitem.SystemState)
+	require.Equal(t, "system.assignees", workitem.SystemAssignees)
+	require.Equal(t, "system.creator", workitem.SystemCreator)
+	require.Equal(t, "system.created_at", workitem.SystemCreatedAt)
+	require.Equal(t, "system.updated_at", workitem.SystemUpdatedAt)
+	require.Equal(t, "system.order", workitem.SystemOrder)
+	require.Equal(t, "system.iteration", workitem.SystemIteration)
+	require.Equal(t, "system.area", workitem.SystemArea)
+	require.Equal(t, "system.codebase", workitem.SystemCodebase)
+	require.Equal(t, "system.labels", workitem.SystemLabels)
+	require.Equal(t, "system.boardcolumns", workitem.SystemBoardcolumns)
+	require.Equal(t, "Board", workitem.SystemBoard)
+	require.Equal(t, "open", workitem.SystemStateOpen)
+	require.Equal(t, "new", workitem.SystemStateNew)
+	require.Equal(t, "in progress", workitem.SystemStateInProgress)
+	require.Equal(t, "resolved", workitem.SystemStateResolved)
+	require.Equal(t, "closed", workitem.SystemStateClosed)
 }

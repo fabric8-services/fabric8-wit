@@ -12,20 +12,17 @@
         "modifier": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000002",
-            "links": {
-              "related": "http:///api/users/00000000-0000-0000-0000-000000000002"
-            },
-            "type": "identities"
+            "type": "users"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000002"
           }
         },
         "newValue": {
           "data": [
             {
               "id": "00000000-0000-0000-0000-000000000003",
-              "links": {
-                "related": "http:///api/areas/00000000-0000-0000-0000-000000000003",
-                "self": "http:///api/areas/00000000-0000-0000-0000-000000000003"
-              },
               "type": "areas"
             }
           ]
@@ -34,10 +31,6 @@
           "data": [
             {
               "id": "",
-              "links": {
-                "related": "http:///api/areas/",
-                "self": "http:///api/areas/"
-              },
               "type": "areas"
             }
           ]
