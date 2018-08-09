@@ -1056,6 +1056,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 		assert.NotContains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooo"].Label)
 		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["bar"].Label)
 		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooBar"].Label)
+		assert.Equal(t, "alpha", newWI.Data.Attributes["fooBar"]) // First value of enum for field foobar
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
 	})
 

@@ -1187,9 +1187,9 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 		} else if !oldFieldType.Equal(newFieldType) {
 			// Workitem types have field with same name but different type
 			fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
-
-			// Ensure enum value can be assigned to the new field. If not, remove the field from original workitem
-			if !oldFieldType.GetKind().IsSimpleType() {
+			if oldFieldType.GetKind().IsSimpleType() {
+				delete(wiStorage.Fields, oldFieldName)
+			} else { // Ensure enum value can be assigned to the new field. If not, remove the field from original workitem
 				// Make sure Enum values are compatible
 				if _, err := newFieldType.ConvertToModel(wiStorage.Fields[oldFieldName]); err != nil {
 					delete(wiStorage.Fields, oldFieldName)
@@ -1207,7 +1207,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	if len(fieldDiff) > 0 {
 		// Append diff (fields along with their values) between the workitem types to the description
 		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
-		textToPrepend := "======= Missing fields in workitem type: " + newWIType.Name + " =======\n"
+		textToPrepend := "```\n\n======= Missing fields in workitem type: " + newWIType.Name + " =======\n"
 		for _, fieldName := range fieldKeys {
 			var val string
 			oldKind := oldWIType.Fields[fieldName].Type.GetKind()
@@ -1254,14 +1254,19 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 				textToPrepend += fmt.Sprintf("\n\n %s : %s", oldWIType.Fields[fieldName].Label, val)
 			}
 		}
-		textToPrepend += "\n\n================================================\n\n"
+		textToPrepend += "\n\n================================================\n\n```\n\n"
 		// The workitem doesn't have a description
-		if originalDescription == nil {
-			originalDescription = rendering.NewMarkupContentFromValue(textToPrepend)
-		} else {
-			originalDescription.Content = textToPrepend + originalDescription.Content
+		originalDescription = rendering.NewMarkupContentFromValue(textToPrepend + originalDescription.Content)
+		wiStorage.Fields[SystemDescription] = *originalDescription
+	}
+	// Set default values for all field in newWIType
+	for fieldName, fieldDef := range newWIType.Fields {
+		fieldValue := wiStorage.Fields[fieldName]
+		// Assign default only if fieldValue is nil
+		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+		if err != nil {
+			return errs.Wrapf(err, "failed to convert field %s", fieldName)
 		}
-		wiStorage.Fields[SystemDescription] = originalDescription.ToMap()
 	}
 	wiStorage.Type = newWIType.ID
 	return nil
