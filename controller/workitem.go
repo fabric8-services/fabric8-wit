@@ -138,7 +138,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	}
 
 	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
-		ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
+		ctx.Payload.Data.Relationships.BaseType.Data != nil && ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
 		// Store new values of type and version
 		newType := ctx.Payload.Data.Relationships.BaseType
 		newVersion := ctx.Payload.Data.Attributes[workitem.SystemVersion]
