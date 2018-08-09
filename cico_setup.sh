@@ -85,7 +85,7 @@ function run_tests_without_coverage() {
 
 function run_e2e_tests() {
   make test-e2e
-  trap cleanup_env EXIT
+  make clean-e2e
   echo "CICO: ran e2e-tests"
 }
 
