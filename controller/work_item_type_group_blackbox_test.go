@@ -49,6 +49,7 @@ func (s *workItemTypeGroupSuite) TestList() {
 			"base_template":      spacetemplate.SystemBaseTemplateID,
 			"legacy_template":    spacetemplate.SystemLegacyTemplateID,
 			"scrum_template":     spacetemplate.SystemScrumTemplateID,
+			"agile_template":     spacetemplate.SystemAgileTemplateID,
 		}
 		// when
 		for name, spaceTemplateID := range testData {
