@@ -993,7 +993,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 						Label: "Type1 Assigned To",
 						Type: workitem.ListType{
 							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-							ComponentType: workitem.SimpleType{Kind: workitem.KindString},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindUser},
 						},
 					},
 					"bar": {

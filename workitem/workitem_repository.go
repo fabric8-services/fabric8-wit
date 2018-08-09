@@ -1193,9 +1193,8 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 
 			// Ensure enum value can be assigned to the new field. If not, remove the field from original workitem
 			if !oldFieldType.GetKind().IsSimpleType() {
-				eType, ok := newFieldType.(EnumType)
 				// Make sure Enum values are compatible
-				if ok && !eType.CanAssignValue(wiStorage.Fields[oldFieldName]) {
+				if _, err := newFieldType.ConvertToModel(wiStorage.Fields[oldFieldName]); err != nil {
 					delete(wiStorage.Fields, oldFieldName)
 				}
 			}
@@ -1238,7 +1237,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 					var tempList []string
 					if oldKind.IsRelational() {
 						// Convert each value of the list type to its verbose value
-						for v := range valList {
+						for _, v := range valList {
 							val, err := getValueOfRelationalKind(r.db, v, oldKind)
 							if err != nil {
 								return err
