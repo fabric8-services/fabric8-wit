@@ -105,14 +105,16 @@ func ConvertWorkItemLinkTypeFromModel(request *http.Request, modelLinkType link.
 			Type: link.EndpointWorkItemLinkTypes,
 			ID:   &modelLinkType.ID,
 			Attributes: &app.WorkItemLinkTypeAttributes{
-				Name:        &modelLinkType.Name,
-				Description: modelLinkType.Description,
-				Version:     &modelLinkType.Version,
-				CreatedAt:   &modelLinkType.CreatedAt,
-				UpdatedAt:   &modelLinkType.UpdatedAt,
-				ForwardName: &modelLinkType.ForwardName,
-				ReverseName: &modelLinkType.ReverseName,
-				Topology:    &topologyStr,
+				Name:               &modelLinkType.Name,
+				Description:        modelLinkType.Description,
+				Version:            &modelLinkType.Version,
+				CreatedAt:          &modelLinkType.CreatedAt,
+				UpdatedAt:          &modelLinkType.UpdatedAt,
+				ForwardName:        &modelLinkType.ForwardName,
+				ForwardDescription: modelLinkType.ForwardDescription,
+				ReverseName:        &modelLinkType.ReverseName,
+				ReverseDescription: modelLinkType.ReverseDescription,
+				Topology:           &topologyStr,
 			},
 			Relationships: &app.WorkItemLinkTypeRelationships{
 				LinkCategory: &app.RelationWorkItemLinkCategory{
@@ -163,9 +165,9 @@ func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*li
 			modelLinkType.Name = *attrs.Name
 		}
 
-		if attrs.Description != nil {
-			modelLinkType.Description = attrs.Description
-		}
+		modelLinkType.Description = attrs.Description
+		modelLinkType.ForwardDescription = attrs.ForwardDescription
+		modelLinkType.ReverseDescription = attrs.ReverseDescription
 
 		if attrs.Version != nil {
 			modelLinkType.Version = *attrs.Version
