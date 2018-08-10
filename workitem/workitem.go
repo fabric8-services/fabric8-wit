@@ -77,6 +77,7 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 				OldValue:      nil,
 			})
 		}
+		return changeSet, nil
 	}
 	olderWorkItem, ok := older.(WorkItem)
 	if !ok {

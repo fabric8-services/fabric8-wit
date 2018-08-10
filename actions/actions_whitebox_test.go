@@ -112,6 +112,18 @@ func (s *ActionSuite) TestChangeSet() {
 		require.Equal(t, fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns], changes[1].NewValue)
 		require.Equal(t, wiCopy.Fields[workitem.SystemBoardcolumns], changes[1].OldValue)
 	})
+
+	s.T().Run("new instance", func(t *testing.T) {
+		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{}
+		changes, err := fxt.WorkItems[0].ChangeSet(nil)
+		require.NoError(t, err)
+		require.Len(t, changes, 1)
+		require.Equal(t, workitem.SystemState, changes[0].AttributeName)
+		require.Equal(t, "new", changes[0].NewValue)
+		require.Nil(t, changes[0].OldValue)
+	})
+
 }
 
 func (s *ActionSuite) TestActionExecution() {
