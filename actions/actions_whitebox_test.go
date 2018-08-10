@@ -39,8 +39,6 @@ func createWICopy(wi workitem.WorkItem, state string, boardcolumns []interface{}
 
 func (s *ActionSuite) TestChangeSet() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
-	require.NotNil(s.T(), fxt)
-	require.Len(s.T(), fxt.WorkItems, 2)
 
 	s.T().Run("different ID", func(t *testing.T) {
 		_, err := fxt.WorkItems[0].ChangeSet(*fxt.WorkItems[1])
@@ -118,8 +116,6 @@ func (s *ActionSuite) TestChangeSet() {
 
 func (s *ActionSuite) TestActionExecution() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
-	require.NotNil(s.T(), fxt)
-	require.Len(s.T(), fxt.WorkItems, 2)
 	userID := fxt.Identities[0].ID
 
 	s.T().Run("by Old New", func(t *testing.T) {
