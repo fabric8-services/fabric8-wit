@@ -267,14 +267,16 @@ func (r *GormRepository) createOrUpdateWILTs(ctx context.Context, s *ImportHelpe
 					wilt.ID = uuid.NewV4()
 				}
 				_, err := wiltRepo.Create(ctx, link.WorkItemLinkType{
-					ID:              wilt.ID,
-					Name:            wilt.Name,
-					Description:     wilt.Description,
-					ForwardName:     wilt.ForwardName,
-					ReverseName:     wilt.ReverseName,
-					Topology:        wilt.Topology,
-					LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
-					SpaceTemplateID: s.Template.ID,
+					ID:                 wilt.ID,
+					Name:               wilt.Name,
+					Description:        wilt.Description,
+					ForwardName:        wilt.ForwardName,
+					ForwardDescription: wilt.ForwardDescription,
+					ReverseName:        wilt.ReverseName,
+					ReverseDescription: wilt.ReverseDescription,
+					Topology:           wilt.Topology,
+					LinkCategoryID:     link.SystemWorkItemLinkCategoryUserID,
+					SpaceTemplateID:    s.Template.ID,
 				})
 				if err != nil {
 					return errs.Wrapf(err, "failed to create work item link type '%s' from space template '%s'", wilt.Name, s.Template.ID)
@@ -289,7 +291,9 @@ func (r *GormRepository) createOrUpdateWILTs(ctx context.Context, s *ImportHelpe
 			loadedWILT.Name = wilt.Name
 			loadedWILT.Description = wilt.Description
 			loadedWILT.ForwardName = wilt.ForwardName
+			loadedWILT.ForwardDescription = wilt.ForwardDescription
 			loadedWILT.ReverseName = wilt.ReverseName
+			loadedWILT.ReverseDescription = wilt.ReverseDescription
 			db := r.db.Save(&loadedWILT)
 			if err := db.Error; err != nil {
 				return errs.Wrapf(err, "failed to update work item link type %s", wilt.ID)
