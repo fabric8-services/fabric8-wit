@@ -6,13 +6,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"html/template"
-	"testing"
-	"time"
-
-	"github.com/fabric8-services/fabric8-wit/spacetemplate"
-	"github.com/fabric8-services/fabric8-wit/workitem"
-
 	"github.com/davecgh/go-spew/spew"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -20,12 +13,17 @@ import (
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"html/template"
+	"testing"
+	"time"
 )
 
 // fn defines the type of function that can be part of a migration steps
@@ -149,6 +147,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration97", testMigration97RemoveResolutionFieldFromImpediment)
 	t.Run("TestMigration98", testMigration98Boards)
 	t.Run("TestMigration99", testMigration99CodebaseCVEScanDefaultFalse)
+	t.Run("TestMigration100", testMigration99CodebaseCVEScanDefaultFalse)
+	t.Run("TestMirgraion101", testMigration101UpdateRootIterationAreaPathField)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1176,6 +1176,32 @@ func testMigration99CodebaseCVEScanDefaultFalse(t *testing.T) {
 
 	// cleanup
 	require.Nil(t, runSQLscript(sqlDB, "099-codebase-cve-scan-default-false-cleanup.sql"))
+}
+
+// test that the userspace_data table no longer exists - previously
+// used as a temporary solution to get data from tenant jenkins
+func testMigration101UpdateRootIterationAreaPathField(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:100], 100)
+
+	// setup
+	require.Nil(t, runSQLscript(sqlDB, "101-insert-test-root-iteration.sql"))
+
+	// now see if the result is false
+	row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
+	require.NotNil(t, row)
+	var path string
+	err := row.Scan(&path)
+	require.NoError(t, err)
+	require.Equal(t, "", path)
+
+	// migrate to the current version
+	migrateToVersion(t, sqlDB, migrations[:101], 101)
+
+	row = sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
+	require.NotNil(t, row)
+	err = row.Scan(&path)
+	require.NoError(t, err)
+	require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443", path)
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

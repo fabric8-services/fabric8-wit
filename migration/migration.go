@@ -449,19 +449,23 @@ func GetMigrations() Migrations {
 	})
 
 	// Version 101
-	m = append(m, steps{
-		func(db *sql.Tx) error {
-			_, err := db.Exec("UPDATE iterations SET path = text2ltree(replace(cast(id as text), '-', '_')) WHERE path = ''")
-			if err != nil {
-				return errs.Wrapf(err, "failed to migrate field `path` in table `iterations`")
-			}
-			_, err = db.Exec("UPDATE areas SET path = text2ltree(replace(cast(id as text), '-', '_')) WHERE path = ''")
-			if err != nil {
-				return errs.Wrapf(err, "failed to migrate field `path` in table `areas`")
-			}
-			return nil
-		},
-	})
+	m = append(m, steps{ExecuteSQLFile("100-update-root-area-and-iteration-path-field.sql")})
+	// m = append(m, steps{
+	// 	func(db *sql.Tx) error {
+	// 		// update table iterations to contain converted ids in the path field
+	// 		_, err := db.Exec("UPDATE iterations SET path = text2ltree(replace(cast(id as text), '-', '_')) WHERE path = ''")
+	// 		_, err = db.Exec("UPDATE iterations SET name = 'KURIAN' WHERE id = '91111111-8333-7bbb-6000-500000000002'")
+	// 		if err != nil {
+	// 			return errs.Wrapf(err, "failed to migrate field `path` in table `iterations`")
+	// 		}
+	// 		// update table areas to contain converted ids in the path field
+	// 		_, err = db.Exec("UPDATE areas SET path = text2ltree(replace(cast(id as text), '-', '_')) WHERE path = ''")
+	// 		if err != nil {
+	// 			return errs.Wrapf(err, "failed to migrate field `path` in table `areas`")
+	// 		}
+	// 		return nil
+	// 	},
+	// })
 
 	// Version N
 	//
