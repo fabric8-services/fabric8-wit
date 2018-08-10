@@ -210,12 +210,11 @@ test-e2e: build docker-compose-up
 	## Start the WIT server
 	$(call start-wit)
 	# ## Clone the fabric8-test repo
-	# @if [ "$(FABRIC8_E2E_TEST_DIR)" ]; then \
-	# 	echo "Removing any existing dir $(FABRIC8_E2E_TEST_DIR)"; \
-	# 	rm -rf $(FABRIC8_E2E_TEST_DIR); \
-	# fi
-	# $(GIT_BIN_NAME) clone --depth=1 $(FABRIC8_E2E_TEST_REPO) $(FABRIC8_E2E_TEST_DIR)
-	
+	@if [ "$(FABRIC8_E2E_TEST_DIR)" ]; then \
+		echo "Removing any existing dir $(FABRIC8_E2E_TEST_DIR)"; \
+		rm -rf $(FABRIC8_E2E_TEST_DIR); \
+	fi
+	$(GIT_BIN_NAME) clone --depth=1 $(FABRIC8_E2E_TEST_REPO) $(FABRIC8_E2E_TEST_DIR)
 	## Install e2e test deps and run the tests
 	$(FABRIC8_E2E_TEST_DIR)/EE_API_automation/cico_run_EE_tests_wit.sh
 
