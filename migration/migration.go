@@ -437,9 +437,7 @@ func GetMigrations() Migrations {
 	// Version 99
 	m = append(m, steps{ExecuteSQLFile("099-codebase-cve-scan-default-false.sql")})
 
-	// Version 100
-	m = append(m, steps{ExecuteSQLFile("100-add-rules-to-wit.sql")})
-
+	// Version 100 - no migration SQL for this
 	m = append(m, steps{
 		func(db *sql.Tx) error {
 			_, err := db.Exec("DROP TABLE IF EXISTS userspace_data")
@@ -452,6 +450,9 @@ func GetMigrations() Migrations {
 
 	// Version 101
 	m = append(m, steps{ExecuteSQLFile("101-add-description-to-witg.sql")})
+
+	// Version 102
+	m = append(m, steps{ExecuteSQLFile("102-add-rules-to-wit.sql")})
 
 	// Version N
 	//
