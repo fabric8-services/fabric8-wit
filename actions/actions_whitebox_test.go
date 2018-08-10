@@ -123,7 +123,6 @@ func (s *ActionSuite) TestChangeSet() {
 		require.Equal(t, "new", changes[0].NewValue)
 		require.Nil(t, changes[0].OldValue)
 	})
-
 }
 
 func (s *ActionSuite) TestActionExecution() {

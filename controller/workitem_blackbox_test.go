@@ -583,6 +583,37 @@ func (s *WorkItemSuite) TestCreateWorkitemWithActionRule() {
 	assert.Equal(s.T(), 1, wi.Data.Attributes["version"])
 	// check if the state is "resolved" based on the rule config.
 	assert.Equal(s.T(), workitem.SystemStateResolved, wi.Data.Attributes[workitem.SystemState])
+	// due to the store of a work item setting the metastate (and any other enum) to the first entry in the value list, this gets to be set to "mNew".
+	assert.Equal(s.T(), "mNew", wi.Data.Attributes[workitem.SystemMetaState])
+	assert.Nil(s.T(), wi.Data.Attributes[workitem.SystemBoardcolumns])
+}
+
+// TestCreateWorkitemWithActionRule tests that when workitem is created, a defined action rule executes.
+func (s *WorkItemSuite) TestCreateWorkitemWithComplexActionRule() {
+	// create a wit with a set transrule setting. We're using the FieldSet rule here as it it easy to test.
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemBoards(1), tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+		fxt.WorkItemTypes[idx].TransRuleKey = rules.ActionKeyStateToMetastate
+		// Intentionally not using constants here.
+		fxt.WorkItemTypes[idx].TransRuleArgument = ""
+		return nil
+	}),
+	)
+	// check if fxt is sane.
+	assert.Equal(s.T(), rules.ActionKeyStateToMetastate, fxt.WorkItemTypes[0].TransRuleKey)
+	assert.Equal(s.T(), "", fxt.WorkItemTypes[0].TransRuleArgument)
+	// create the work item.
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
+	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	// version is "1" because the rule has also changed the WI, resulting in an incremented version.
+	assert.Equal(s.T(), 1, wi.Data.Attributes["version"])
+	// check if the state is "resolved" based on the rule config.
+	assert.Equal(s.T(), workitem.SystemStateNew, wi.Data.Attributes[workitem.SystemState])
+	// due to the store of a work item setting the metastate (and any other enum) to the first entry in the value list, this gets to be set to "mNew".
+	assert.Equal(s.T(), "mNew", wi.Data.Attributes[workitem.SystemMetaState])
+	assert.Len(s.T(), wi.Data.Relationships.SystemBoardcolumns.Data, 1)
+	assert.Equal(s.T(), fxt.WorkItemBoards[0].Columns[0].ID.String(), *wi.Data.Relationships.SystemBoardcolumns.Data[0].ID)
 }
 
 func (s *WorkItemSuite) TestUpdateWorkitemWithActionRule() {

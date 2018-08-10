@@ -3,7 +3,6 @@ package controller
 import (
 	"fmt"
 	"github.com/fabric8-services/fabric8-wit/actions"
-	conv "github.com/fabric8-services/fabric8-wit/convert"
 	"strconv"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -141,6 +140,10 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	}
 	// if this WIs WIT has an action rule defined, run it.
 	if workItemType.TransRuleKey != "" {
+		// we need to explicitly delete the metastate here as this is set by the
+		// system as a default value (first entry in the enum) on new WIs, but the
+		// action expects that to be not set on new WIs.
+		delete(wi.Fields, workitem.SystemMetaState)
 		// first, create the change set. As we create a new WI, this is an
 		// full set. We call ChangeSet() with nil.
 		changes, err := wi.ChangeSet(nil)
