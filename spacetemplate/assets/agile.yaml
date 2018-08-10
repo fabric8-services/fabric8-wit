@@ -24,7 +24,8 @@ work_item_types:
   name: Impediment
   can_construct: yes
   description: >
-    This describes an impediment blocking work on the project.
+    Any issue or blocker that slows down the velocity of a team and affects
+    team performance or progress.
   icon: fa fa-stumbleupon
   fields:
     "system.state":
@@ -63,194 +64,13 @@ work_item_types:
         - Out of Date
         - Verified
 
-- id: &themeID "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a"
-  extends: *agileCommonTypeID
-  name: Theme
-  can_construct: yes
-  description: 
-    A theme describes a high-level description of a functionality
-    on the system.
-  icon: fa fa-puzzle-piece
-  fields:
-    "system.state":
-      label: State
-      description: The state of the theme.
-      required: yes
-      type:
-        simple_type:
-          kind: enum
-        base_type:
-          kind: string
-        # TODO(michaelkleinhenz): remove New and Resolved
-        values:
-        - New
-        - Open
-        - In Progress
-        - Deferred
-        - No Plan to Implement
-        - Resolved
-        - Closed
-    "business_value":
-      label: Business Value
-      description:
-        Business value for this theme.
-      required: no
-      type:
-        kind: string
-    "target_date": 
-      label: Target date
-      description: 
-        The target completion date of the theme.
-      required: no
-      type:
-        kind: instant
-    "acceptance_criteria": 
-      label: Acceptance criteria
-      description: 
-        The acceptance criteria describes rules for checking
-        if a chunk of work is completed.
-      required: no
-      type:
-        kind: markup
-  child_types:
-  - *epicID
-  - *defectID
-  - *impedimentID
-
-- id: &epicID "2c169431-a55d-49eb-af74-cc19e895356f"
-  extends: *agileCommonTypeID
-  name: Epic
-  can_construct: yes
-  description: 
-    An epic describes a larger composition of stories to be implemented.
-  icon: fa fa-bullseye
-  fields:
-    "system.state":
-      label: State
-      description: The state of the Epic.
-      required: yes
-      type:
-        simple_type:
-          kind: enum
-        base_type:
-          kind: string
-        values:
-        - New
-        - Open
-        - In Progress
-        - Resolved
-        - Deferred
-        - No Plan to Implement
-        - Closed
-    "storypoints":
-      label: Storypoints
-      description: 
-        The effort needed to implement the epic.
-      required: no
-      type:
-        kind: float
-    "acceptance_criteria": 
-      label: Acceptance criteria
-      description: 
-        The acceptance criteria describes rules for checking
-        if a chunk of work is completed.
-      required: no
-      type:
-        kind: markup
-  child_types:
-  - *storyID
-  - *defectID
-  - *impedimentID
-
-- id: &storyID "6ff83406-caa7-47a9-9200-4ca796be11bb"
-  extends: *agileCommonTypeID
-  name: Story
-  can_construct: yes
-  description: 
-    A user story describes an executable chunk of a feature 
-    based on user experience.
-  icon: pficon pficon-image
-  fields:
-    "system.state":
-      label: State
-      description: The state of the story item.
-      required: yes
-      type:
-        simple_type:
-          kind: enum
-        base_type:
-          kind: string
-        values:
-        - New
-        - Open
-        - In Progress
-        - Deferred
-        - Resolved
-        - Closed
-    "storypoints":
-      label: Storypoints
-      description: 
-        The effort needed to implement this user story.
-      required: no
-      type:
-        kind: float
-    "acceptance_criteria": 
-      label: Acceptance criteria
-      description: 
-        The acceptance criteria describes rules for checking
-        if a chunk of work is completed.
-      required: no
-      type:
-        kind: markup
-    "component":
-      label: Component
-      description:
-        The component for this area of work.
-      required: no
-      type:
-        kind: string
-  child_types:
-  - *taskID
-  - *defectID
-  - *impedimentID
-
-- id: &taskID "2853459d-60ef-4fbe-aaf4-eccb9f554b34"
-  extends: *agileCommonTypeID
-  name: Task
-  can_construct: yes
-  description: 
-    An atomic task on the project.
-  icon: fa fa-tasks
-  fields:
-    "system.state":
-      label: State
-      description: The state of the Task.
-      required: yes
-      type:
-        simple_type:
-          kind: enum
-        base_type:
-          kind: string
-        values:
-        - New
-        - Open
-        - In Progress
-        - Resolved
-        - Closed
-    "effort":
-      label: Effort
-      description: 
-        The effort needed to implement this user story.
-      required: no
-      type:
-        kind: float
 
 - id: &defectID "fce0921f-ea70-4513-bb91-31d3aa8017f1"
   extends: *agileCommonTypeID
   name: Defect
   can_construct: yes
-  description: 
-    This describes a defect in the system.
+  description: >
+    A bug that causes unexpected behavior in the software.
   icon: fa fa-bug
   fields:
     "system.state":
@@ -262,7 +82,7 @@ work_item_types:
           kind: enum
         base_type:
           kind: string
-        values: 
+        values:
         - New
         - Open
         - In Progress
@@ -270,21 +90,21 @@ work_item_types:
         - Closed
     "effort":
       label: Effort
-      description: 
+      description: >
         The effort needed to fix this defect.
       required: no
       type:
         kind: float
     "environment":
       label: Environment
-      description:
+      description: >
         The environment where this defect appears.
       required: no
       type:
         kind: markup
     "repro_steps":
       label: Steps to reproduce
-      description: 
+      description: >
         Steps to reproduce the defect.
       required: no
       type:
@@ -327,7 +147,7 @@ work_item_types:
           kind: enum
         base_type:
           kind: string
-        values: 
+        values:
         - Done
         - Duplicate
         - Incomplete Description
@@ -336,6 +156,195 @@ work_item_types:
         - Won't Fix
         - Out of Date
         - Verified
+
+- id: &taskID "2853459d-60ef-4fbe-aaf4-eccb9f554b34"
+  extends: *agileCommonTypeID
+  name: Task
+  can_construct: yes
+  description: >
+    Work assigned to team members to implement a story. They are generally
+    measured in units of 0.5 days, for example, four hours, eight hours, sixteen
+    hours.
+  icon: fa fa-tasks
+  fields:
+    "system.state":
+      label: State
+      description: The state of the Task.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - Open
+        - In Progress
+        - Resolved
+        - Closed
+    "effort":
+      label: Effort
+      description: >
+        The effort needed to implement this user story.
+      required: no
+      type:
+        kind: float
+
+- id: &storyID "6ff83406-caa7-47a9-9200-4ca796be11bb"
+  extends: *agileCommonTypeID
+  name: Story
+  can_construct: yes
+  description: >
+    Incremental work or requirements identified to deliver a product feature.
+    Typically, it is expressed from the user's perspective in the following
+    format - As a user, I want to achieve an objective, so that this purpose is
+    met.
+  icon: pficon pficon-image
+  fields:
+    "system.state":
+      label: State
+      description: The state of the story item.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - Open
+        - In Progress
+        - Deferred
+        - Resolved
+        - Closed
+    "storypoints":
+      label: Storypoints
+      description: >
+        The effort needed to implement this user story.
+      required: no
+      type:
+        kind: float
+    "acceptance_criteria":
+      label: Acceptance criteria
+      description: >
+        The acceptance criteria describes rules for checking
+        if a chunk of work is completed.
+      required: no
+      type:
+        kind: markup
+    "component":
+      label: Component
+      description: >
+        The component for this area of work.
+      required: no
+      type:
+        kind: string
+  child_types:
+  - *taskID
+  - *defectID
+  - *impedimentID
+
+- id: &epicID "2c169431-a55d-49eb-af74-cc19e895356f"
+  extends: *agileCommonTypeID
+  name: Epic
+  can_construct: yes
+  description: >
+    A large user story, with a focused goal, that may need to be split into
+    multiple user stories spanning over multiple iterations to be realized. It
+    could comprise a short statement or phrase, a coherent aggregation of user
+    stories and requirements, or an idea.
+  icon: fa fa-bullseye
+  fields:
+    "system.state":
+      label: State
+      description: The state of the Epic.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - Open
+        - In Progress
+        - Resolved
+        - Deferred
+        - No Plan to Implement
+        - Closed
+    "storypoints":
+      label: Storypoints
+      description: >
+        The effort needed to implement the epic.
+      required: no
+      type:
+        kind: float
+    "acceptance_criteria":
+      label: Acceptance criteria
+      description: >
+        The acceptance criteria describes rules for checking
+        if a chunk of work is completed.
+      required: no
+      type:
+        kind: markup
+  child_types:
+  - *storyID
+  - *defectID
+  - *impedimentID
+
+- id: &themeID "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a"
+  extends: *agileCommonTypeID
+  name: Theme
+  can_construct: yes
+  description: >
+    A group of user stories with a common underlying thread. They have a broad
+    organization-level focus and are used to track related user stories.
+  icon: fa fa-puzzle-piece
+  fields:
+    "system.state":
+      label: State
+      description: The state of the theme.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        # TODO(michaelkleinhenz): remove New and Resolved
+        values:
+        - New
+        - Open
+        - In Progress
+        - Deferred
+        - No Plan to Implement
+        - Resolved
+        - Closed
+    "business_value":
+      label: Business Value
+      description: >
+        Business value for this theme.
+      required: no
+      type:
+        kind: string
+    "target_date":
+      label: Target date
+      description: >
+        The target completion date of the theme.
+      required: no
+      type:
+        kind: instant
+    "acceptance_criteria":
+      label: Acceptance criteria
+      description: >
+        The acceptance criteria describes rules for checking
+        if a chunk of work is completed.
+      required: no
+      type:
+        kind: markup
+  child_types:
+  - *epicID
+  - *defectID
+  - *impedimentID
 
 work_item_boards:
 
@@ -437,4 +446,3 @@ work_item_link_types:
   forward_name: impedes
   reverse_name: is impeded by
   topology: dependency
-  

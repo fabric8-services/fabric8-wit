@@ -4,6 +4,7 @@
       "attributes": {
         "bucket": "portfolio",
         "created-at": "0001-01-01T00:00:00Z",
+        "description": "Work item type group that focuses on the planning-oriented work item types, such as scenario, fundamental, and papercuts.\n",
         "icon": "fa fa-bullseye",
         "name": "Scenarios",
         "show-in-sidebar": true,
@@ -43,6 +44,7 @@
       "attributes": {
         "bucket": "portfolio",
         "created-at": "0001-01-01T00:00:00Z",
+        "description": "Work item type group that focuses on the experience and value proposition work item types that address the scenarios.\n",
         "icon": "pficon pficon-infrastructure",
         "name": "Experiences",
         "show-in-sidebar": true,
@@ -78,6 +80,7 @@
       "attributes": {
         "bucket": "requirement",
         "created-at": "0001-01-01T00:00:00Z",
+        "description": "Work item type group that focuses on execution-oriented work item types such as feature, task, and bug.\n",
         "icon": "fa fa-list-ul",
         "name": "Requirements",
         "show-in-sidebar": true,
