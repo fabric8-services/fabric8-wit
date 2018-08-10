@@ -155,7 +155,7 @@ ignored = [
   unused-packages = true
 
 [[constraint]]
-  revision = "2e52cf6e685269ed8aefec6390f3cac3ef74e730"
-  name = "github.com/oliveagle/jsonpath"
+  branch = "master"
+  name = "github.com/yalp/jsonpath"
 
 

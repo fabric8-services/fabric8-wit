@@ -13,15 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oliveagle/jsonpath"
-
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/oliveagle/jsonpath"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/require"
+	"github.com/yalp/jsonpath"
 )
 
 var updateGoldenFiles = flag.Bool("update", false, "when set, rewrite the golden files")
@@ -32,8 +30,13 @@ var updateGoldenFiles = flag.Bool("update", false, "when set, rewrite the golden
 // -update flag is given, that golden file is overwritten with the current
 // actual object. When adding new tests you first must run them with the -update
 // flag in order to create an initial golden version.
-func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}, stripDownTo ...jsonPath) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, false, stripDownTo)
+//
+// The stripDownToPattern is an optional argument that can take a JSON path (see
+// http://goessner.net/articles/JsonPath/) string to remove anything from the
+// actual and expected test output before comparison and saving it to a golden
+// file (if -update is given).
+func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}, stripDownToPattern ...string) {
+	err := _testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, false, stripDownToPattern...)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -50,8 +53,8 @@ func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}, s
 //
 // In addition to UUID replacement, we also replace all RFC3339 time strings
 // with "0001-01-01T00:00:00Z".
-func compareWithGoldenAgnostic(t *testing.T, goldenFile string, actualObj interface{}, stripDownTo ...jsonPath) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, true, stripDownTo)
+func compareWithGoldenAgnostic(t *testing.T, goldenFile string, actualObj interface{}, stripDownToPattern ...string) {
+	err := _testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, true, stripDownToPattern...)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -59,8 +62,8 @@ func compareWithGoldenAgnostic(t *testing.T, goldenFile string, actualObj interf
 
 // compareWithGoldenAgnosticUUID is only agnostic to UUIDs apart from that it is
 // the same as compareWithGoldenAgnostic.
-func compareWithGoldenAgnosticUUID(t *testing.T, goldenFile string, actualObj interface{}, stripDownTo ...jsonPath) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, false, stripDownTo)
+func compareWithGoldenAgnosticUUID(t *testing.T, goldenFile string, actualObj interface{}, stripDownToPattern ...string) {
+	err := _testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, false, stripDownToPattern...)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -68,14 +71,14 @@ func compareWithGoldenAgnosticUUID(t *testing.T, goldenFile string, actualObj in
 
 // compareWithGoldenAgnosticTime is only agnostic to times apart from that it is
 // the same as compareWithGoldenAgnostic.
-func compareWithGoldenAgnosticTime(t *testing.T, goldenFile string, actualObj interface{}, stripDownTo ...jsonPath) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, true, stripDownTo)
+func compareWithGoldenAgnosticTime(t *testing.T, goldenFile string, actualObj interface{}, stripDownToPattern ...string) {
+	err := _testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, true, stripDownToPattern...)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 }
 
-func testableCompareWithGolden(update bool, goldenFile string, actualObj interface{}, uuidAgnostic bool, timeAgnostic bool, stripDownTo ...jsonPath) error {
+func _testableCompareWithGolden(update bool, goldenFile string, actualObj interface{}, uuidAgnostic bool, timeAgnostic bool, stripDownToPattern ...string) error {
 	absPath, err := filepath.Abs(goldenFile)
 	if err != nil {
 		return errs.WithStack(err)
@@ -83,6 +86,9 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 	actual, err := json.MarshalIndent(actualObj, "", "  ")
 	if err != nil {
 		return errs.WithStack(err)
+	}
+	if len(stripDownToPattern) > 1 {
+		return errs.Errorf("the number of strip down parameters must not be greater than 1 but is: %d", len(stripDownToPattern))
 	}
 	if update {
 		// Make sure the directory exists where to write the file to
@@ -95,15 +101,22 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 		// Eliminate concrete UUIDs if requested. This makes adding changes to
 		// golden files much more easy in git.
 		if uuidAgnostic {
-			tmp, err = replaceUUIDs(tmp)
+			tmp, err = _replaceUUIDs(tmp)
 			if err != nil {
 				return errs.Wrap(err, "failed to replace UUIDs with more generic ones")
 			}
 		}
 		if timeAgnostic {
-			tmp, err = replaceTimes(tmp)
+			tmp, err = _replaceTimes(tmp)
 			if err != nil {
 				return errs.Wrap(err, "failed to replace RFC3339 times with default time")
+			}
+		}
+		if len(stripDownToPattern) > 0 {
+			pattern := stripDownToPattern[0]
+			tmp, err = _stripDownTo(tmp, pattern)
+			if err != nil {
+				return errs.Wrapf(err, "failed strip down expected string to pattern: %s", pattern)
 			}
 		}
 		err = ioutil.WriteFile(absPath, []byte(tmp), os.ModePerm)
@@ -119,53 +132,51 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 	expectedStr := string(expected)
 	actualStr := string(actual)
 	if uuidAgnostic {
-		expectedStr, err = replaceUUIDs(expectedStr)
+		expectedStr, err = _replaceUUIDs(expectedStr)
 		if err != nil {
 			return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
 		}
-		actualStr, err = replaceUUIDs(actualStr)
+		actualStr, err = _replaceUUIDs(actualStr)
 		if err != nil {
 			return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
 		}
 	}
 	if timeAgnostic {
-		expectedStr, err = replaceTimes(expectedStr)
+		expectedStr, err = _replaceTimes(expectedStr)
 		if err != nil {
 			return errs.Wrap(err, "failed to replace RFC3339 times with default time")
 		}
-		actualStr, err = replaceTimes(actualStr)
+		actualStr, err = _replaceTimes(actualStr)
 		if err != nil {
 			return errs.Wrap(err, "failed to replace RFC3339 times with default time")
 		}
 	}
-	if len(stripDownTo) > 0 {
-		pattern := stripDownTo[0]
-		e, err := stripDownTo(expectedStr, pattern)
+	if len(stripDownToPattern) > 0 {
+		pattern := stripDownToPattern[0]
+		expectedStr, err = _stripDownTo(expectedStr, pattern)
 		if err != nil {
 			return errs.Wrapf(err, "failed strip down expected string to pattern: %s", pattern)
 		}
-		a, err := stripDownTo(actual, pattern)
+		actualStr, err = _stripDownTo(actualStr, pattern)
 		if err != nil {
 			return errs.Wrapf(err, "failed strip down actual string to pattern: %s", pattern)
 		}
-		expectedStr = string(e)
-		actualStr = string(a)
 	}
 	if expectedStr != actualStr {
-		log.Error(nil, nil, "testableCompareWithGolden: expected value %v", expectedStr)
-		log.Error(nil, nil, "testableCompareWithGolden: actual value %v", actualStr)
+		log.Error(nil, nil, "_testableCompareWithGolden: expected value %v", expectedStr)
+		log.Error(nil, nil, "_testableCompareWithGolden: actual value %v", actualStr)
 
 		dmp := diffmatchpatch.New()
 		diffs := dmp.DiffMain(expectedStr, actualStr, false)
-		log.Error(nil, nil, "testableCompareWithGolden: mismatch of actual output and golden-file %s:\n %s \n", absPath, dmp.DiffPrettyText(diffs))
+		log.Error(nil, nil, "_testableCompareWithGolden: mismatch of actual output and golden-file %s:\n %s \n", absPath, dmp.DiffPrettyText(diffs))
 		return errs.Errorf("mismatch of actual output and golden-file %s:\n %s \n", absPath, dmp.DiffPrettyText(diffs))
 	}
 	return nil
 }
 
-// findUUIDs returns an array of uniq UUIDs that have been found in the given
+// _findUUIDs returns an array of unique UUIDs that have been found in the given
 // string
-func findUUIDs(str string) ([]uuid.UUID, error) {
+func _findUUIDs(str string) ([]uuid.UUID, error) {
 	pattern := "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
 	uuidRegexp, err := regexp.Compile(pattern)
 	if err != nil {
@@ -188,13 +199,13 @@ func findUUIDs(str string) ([]uuid.UUID, error) {
 	return res, nil
 }
 
-// replaceUUIDs finds all UUIDs in the given string and replaces them with
+// _replaceUUIDs finds all UUIDs in the given string and replaces them with
 // "00000000-0000-0000-0000-000000000001,
 // "00000000-0000-0000-0000-000000000002", ...,
 // "00000000-0000-0000-0000-00000000000N"
-func replaceUUIDs(str string) (string, error) {
+func _replaceUUIDs(str string) (string, error) {
 	replacementPattern := "00000000-0000-0000-0000-%012d"
-	ids, err := findUUIDs(str)
+	ids, err := _findUUIDs(str)
 	if err != nil {
 		return "", errs.Wrapf(err, "failed to find UUIDs in string %s", str)
 	}
@@ -205,10 +216,10 @@ func replaceUUIDs(str string) (string, error) {
 	return newStr, nil
 }
 
-// replaceTimes finds all RFC3339 times and RFC7232 (section 2.2) times in the
+// _replaceTimes finds all RFC3339 times and RFC7232 (section 2.2) times in the
 // given string and replaces them with "0001-01-01T00:00:00Z" (for RFC3339) or
 // "Mon, 01 Jan 0001 00:00:00 GMT" (for RFC7232) respectively.
-func replaceTimes(str string) (string, error) {
+func _replaceTimes(str string) (string, error) {
 	year := "([0-9]+)"
 	month := "(0[1-9]|1[012])"
 	day := "(0[1-9]|[12][0-9]|3[01])"
@@ -248,53 +259,58 @@ func replaceTimes(str string) (string, error) {
 	return lastModifiedPattern.ReplaceAllString(res, `Mon, 01 Jan 0001 00:00:00 GMT`), nil
 }
 
-// stripDownTo strips down the given string JSON string to the given JSON Path
-func stripDownTo(obj, jsonPath string) (string, err) {
-	pattern, err := jsonpath.Compile(jsonPath)
-	if err != nil {
-		return "", errs.Wrapf(err, "failed to compile lookup pattern: %s", jsonPath)
-	}
-
+// _stripDownTo strips down the given JSON string using the given JSON Path. See
+// also: http://goessner.net/articles/JsonPath/ for more information on JSON
+// Path and https://godoc.org/github.com/yalp/jsonpath#example-Read for the
+// implementation and its limitations, e.g. strings in square brackets must use
+// double quotes.
+func _stripDownTo(obj, jsonPath string) (string, error) {
 	var jsonObj interface{}
 	if err := json.Unmarshal([]byte(obj), &jsonObj); err != nil {
 		return "", errs.Wrapf(err, "failed to unmarshall string as JSON: %s", obj)
 	}
 
-	strippedDown, err := pattern.Lookup(jsonObj)
+	strippedDown, err := jsonpath.Read(jsonObj, jsonPath)
 	if err != nil {
-		return "", errs.Wrapf(err, "failed to lookup path in JSON: %s", jsonPath)
+		return "", errs.Wrapf(err, "failed to lookup path `%s` in JSON: %s", jsonPath, obj)
 	}
 
 	e, err := json.Marshal(strippedDown)
 	if err != nil {
-		return "", errs.Wrapf(err, "failed marshal stripped down JSON to string")
+		return "", errs.Wrapf(err, "failed marshal stripped down JSON to string: %s", strippedDown)
 	}
-
 	return string(e), nil
 }
 
 func TestStripDownTo(t *testing.T) {
 	type testData struct {
-		testName  string
-		input     string
-		pattern   string
-		output    string
-		expectErr error
+		testName string
+		input    string
+		pattern  string
+		output   string
+		wantErr  bool
 	}
-	td := testData{
-		{"Simple query", `{"foo": "bar"}`, "$.foo", "bar", false},
+	td := []testData{
+		{"Simple query with dot", `{"foo": "bar"}`, `$.foo`, `"bar"`, false},
+		{"Simple query with slash", `{"foo": "bar"}`, `$["foo"]`, `"bar"`, false},
+		{"with dot in name", `{"system.title": "foobar"}`, `$["system.title"]`, `"foobar"`, false},
+		{"mixed addressing", `{"data":{"attributes":{"system.title": "foobar"}}}`, `$.data.attributes["system.title"]`, `"foobar"`, false},
+		{"error in input (missing closing bracket)", `{"foo":"bar"`, `$.foo.bar`, "", true},
 	}
-	for _, d := range testData {
+	for _, d := range td {
 		t.Run(d.testName, func(t *testing.T) {
-			output, err := stripDownTo(d.input, d.pattern)
-			if (err != nil) != d.expectErr {
-				require.NoError(t, err)
+			output, err := _stripDownTo(d.input, d.pattern)
+			if d.wantErr {
+				require.Error(t, err)
+				return
 			}
+			require.NoError(t, err)
+			require.Equal(t, d.output, output)
 		})
 	}
 }
 
-const testInputStr = `
+const _testInputStr = `
 {
 	"data": {
 		"attributes": {
@@ -325,7 +341,7 @@ const testInputStr = `
 	}
 }`
 
-const testUUIDOutputStr = `
+const _testUUIDOutputStr = `
 {
 	"data": {
 		"attributes": {
@@ -356,11 +372,11 @@ const testUUIDOutputStr = `
 	}
 }`
 
-func TestGoldenFindUUIDs(t *testing.T) {
+func TestGolden_findUUIDs(t *testing.T) {
 	t.Parallel()
 	t.Run("find UUIDs", func(t *testing.T) {
 		t.Parallel()
-		ids, err := findUUIDs(testInputStr)
+		ids, err := _findUUIDs(_testInputStr)
 		require.NoError(t, err)
 		require.Equal(t, []uuid.UUID{
 			uuid.FromStringOrNil("d7a282f6-1c10-459e-bb44-55a1a6d48bdd"),
@@ -369,17 +385,17 @@ func TestGoldenFindUUIDs(t *testing.T) {
 	})
 }
 
-func TestGoldenReplaceUUIDs(t *testing.T) {
+func TestGolden_replaceUUIDs(t *testing.T) {
 	t.Parallel()
 	t.Run("replace UUIDs", func(t *testing.T) {
 		t.Parallel()
-		newStr, err := replaceUUIDs(testInputStr)
+		newStr, err := _replaceUUIDs(_testInputStr)
 		require.NoError(t, err)
-		require.Equal(t, testUUIDOutputStr, newStr)
+		require.Equal(t, _testUUIDOutputStr, newStr)
 	})
 }
 
-const testTimesOutputStr = `
+const _testTimesOutputStr = `
 {
 	"data": {
 		"attributes": {
@@ -410,13 +426,13 @@ const testTimesOutputStr = `
 	}
 }`
 
-func TestGoldenReplaceTimes(t *testing.T) {
+func TestGolden_replaceTimes(t *testing.T) {
 	t.Parallel()
 	t.Run("rfc3339", func(t *testing.T) {
 		t.Parallel()
-		newStr, err := replaceTimes(testInputStr)
+		newStr, err := _replaceTimes(_testInputStr)
 		require.NoError(t, err)
-		require.Equal(t, testTimesOutputStr, newStr)
+		require.Equal(t, _testTimesOutputStr, newStr)
 	})
 	timeStrings := map[string]string{
 		"rfc7232":                  `"last-modified": "Thu, 15 Mar 2018 09:23:37 GMT",`,
@@ -428,7 +444,7 @@ func TestGoldenReplaceTimes(t *testing.T) {
 		t.Run(timeType, func(t *testing.T) {
 			t.Parallel()
 			expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
-			actual, err := replaceTimes(timeString)
+			actual, err := _replaceTimes(timeString)
 			// then
 			require.NoError(t, err)
 			require.Equal(t, expected, actual)
@@ -452,7 +468,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// given
 			f := "not_existing_file.golden.json"
 			// when
-			err := testableCompareWithGolden(false, f, dummy, agnostic, agnostic)
+			err := _testableCompareWithGolden(false, f, dummy, agnostic, agnostic)
 			// then
 			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
@@ -462,7 +478,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// given
 			f := "not/existing/folder/file.golden.json"
 			// when
-			err := testableCompareWithGolden(true, f, dummy, agnostic, agnostic)
+			err := _testableCompareWithGolden(true, f, dummy, agnostic, agnostic)
 			// then
 			// then double check that file exists and no error occurred
 			require.NoError(t, err)
@@ -474,7 +490,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// given
 			f := "test-files/codebase/show/ok_without_auth.golden.json"
 			// when
-			err := testableCompareWithGolden(false, f, dummy, agnostic, agnostic)
+			err := _testableCompareWithGolden(false, f, dummy, agnostic, agnostic)
 			// then
 			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
@@ -490,21 +506,21 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 		require.NoError(t, err)
 		err = ioutil.WriteFile(f, bs, os.ModePerm)
 		require.NoError(t, err)
-		defer func() {
-			err := os.Remove(f)
+		defer func(t *testing.T, filepath string) {
+			err := os.Remove(filepath)
 			require.NoError(t, err)
-		}()
+		}(t, f)
 
 		t.Run("comparing with the same object", func(t *testing.T) {
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, false, false)
+				err = _testableCompareWithGolden(false, f, dummy, false, false)
 				// then
 				require.NoError(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, true, true)
+				err = _testableCompareWithGolden(false, f, dummy, true, true)
 				// then
 				require.NoError(t, err)
 			})
@@ -513,13 +529,13 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			dummy.ID = uuid.NewV4()
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, false, false)
+				err = _testableCompareWithGolden(false, f, dummy, false, false)
 				// then
 				require.Error(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, true, true)
+				err = _testableCompareWithGolden(false, f, dummy, true, true)
 				// then
 				require.NoError(t, err)
 			})
@@ -528,23 +544,35 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			dummy.CreatedAt = time.Now()
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, false, false)
+				err = _testableCompareWithGolden(false, f, dummy, false, false)
 				// then
 				require.Error(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, true, true)
+				err = _testableCompareWithGolden(false, f, dummy, true, true)
 				// then
 				require.NoError(t, err)
 			})
 		})
-		t.Run("comparing while stripping down", func(t *testing.T) {
-			t.Run("agnostic", func(t *testing.T) {
+		t.Run("strip down", func(t *testing.T) {
+			t.Run("ok", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, true, true, "$.Foo.Bar")
+				err = _testableCompareWithGolden(false, f, dummy, true, true, "$.Bar")
 				// then
 				require.NoError(t, err)
+			})
+			t.Run("error: more than one pattern given", func(t *testing.T) {
+				// when
+				err = _testableCompareWithGolden(false, f, dummy, true, true, "$.Bar", "$.Bar")
+				// then
+				require.Error(t, err)
+			})
+			t.Run("error: not existing path", func(t *testing.T) {
+				// when
+				err = _testableCompareWithGolden(false, f, dummy, true, true, "$.not.existing.path")
+				// then
+				require.Error(t, err)
 			})
 		})
 	})
