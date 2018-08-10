@@ -1244,15 +1244,15 @@ func testMigration95Boards(t *testing.T) {
 // test that the userspace_data table no longer exists - previously
 // used as a temporary solution to get data from tenant jenkins
 func testDropUserspacedataTable(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:100], 100)
+	migrateToVersion(t, sqlDB, migrations[:101], 101)
 	require.False(t, dialect.HasTable("userspace_data"))
 }
 
 // testTypeGroupHasDescriptionField checks that the work item type groups table
 // has a description after updating to DB version 101.
 func testTypeGroupHasDescriptionField(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:101], 101)
-	require.False(t, dialect.HasColumn("work_item_type_groups", "description"))
+	migrateToVersion(t, sqlDB, migrations[:102], 102)
+	require.True(t, dialect.HasColumn("work_item_type_groups", "description"))
 }
 
 // testLinkTypeDescriptionFields checks that the work item link types table has
