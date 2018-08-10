@@ -151,6 +151,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration99", testMigration99CodebaseCVEScanDefaultFalse)
 	t.Run("TestMigration100", testDropUserspacedataTable)
 	t.Run("TestMigration101", testTypeGroupHasDescriptionField)
+	t.Run("TestMigration102", testLinkTypeDescriptionFields)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1252,6 +1253,15 @@ func testDropUserspacedataTable(t *testing.T) {
 func testTypeGroupHasDescriptionField(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:101], 101)
 	require.False(t, dialect.HasColumn("work_item_type_groups", "description"))
+}
+
+// testLinkTypeDescriptionFields checks that the work item link types table has
+// a forward_description and a reverse_description after updating to DB version
+// 102.
+func testLinkTypeDescriptionFields(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:103], 103)
+	require.True(t, dialect.HasColumn("work_item_link_types", "forward_description"))
+	require.True(t, dialect.HasColumn("work_item_link_types", "reverse_description"))
 }
 
 // migrateToVersion runs the migration of all the scripts to a certain version
