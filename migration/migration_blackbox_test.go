@@ -1189,7 +1189,7 @@ func testMigration100DropUserspacedataTable(t *testing.T) {
 }
 
 // testTypeGroupHasDescriptionField checks that the work item type groups table
-// has a description after updating to DB version 101.
+// has a description after updating to DB version 102.
 func testMigration101TypeGroupHasDescriptionField(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:102], 102)
 	require.True(t, dialect.HasColumn("work_item_type_groups", "description"))
