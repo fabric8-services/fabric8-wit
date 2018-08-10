@@ -57,6 +57,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 			"ok.agile":  spacetemplate.SystemAgileTemplateID,
 			"ok.legacy": spacetemplate.SystemLegacyTemplateID,
 			"ok.scrum":  spacetemplate.SystemScrumTemplateID,
+			"ok.base":   spacetemplate.SystemBaseTemplateID,
 		}
 		for testName, templateID := range td {
 			t.Run(testName, func(t *testing.T) {
@@ -70,7 +71,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 			})
 		}
 	})
-	
+
 	s.T().Run("not found for non-existing-spacetemplate", func(t *testing.T) {
 		// given
 		spaceTemplateID := uuid.NewV4()
