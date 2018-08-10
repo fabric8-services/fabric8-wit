@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -50,13 +52,24 @@ func (s *workItemLinkTypesSuite) TestList() {
 	_, ctrl := s.UnSecuredController()
 
 	s.T().Run("ok", func(t *testing.T) {
-		// when
-		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.SpaceTemplates[0].ID, nil, nil)
-		// then
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.payload.golden.json"), wilts)
-		safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.headers.golden.json"), res.Header())
-		assertResponseHeaders(t, res)
+		// given
+		td := map[string]uuid.UUID{
+			"ok":        fxt.SpaceTemplates[0].ID,
+			"ok.agile":  spacetemplate.SystemAgileTemplateID,
+			"ok.legacy": spacetemplate.SystemLegacyTemplateID,
+			"ok.scrum":  spacetemplate.SystemScrumTemplateID,
+		}
+		for testName, templateID := range td {
+			t.Run(testName, func(t *testing.T) {
+				// when
+				res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, templateID, nil, nil)
+				// then
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", testName+".res.payload.golden.json"), wilts)
+				safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", testName+".res.headers.golden.json"), res.Header())
+				assertResponseHeaders(t, res)
+			})
+		}
 	})
 
 	s.T().Run("not found for non-existing-spacetemplate", func(t *testing.T) {
