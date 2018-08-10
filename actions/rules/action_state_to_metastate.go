@@ -50,6 +50,8 @@ func (act ActionStateToMetaState) removeElement(s []interface{}, e interface{}) 
 	return s
 }
 
+// difference returns the differences between two slices. It returns two slices containing
+// the added and removed elements compared from old and new arguments.
 func (act ActionStateToMetaState) difference(old []interface{}, new []interface{}) ([]interface{}, []interface{}) {
 	var added []interface{}
 	var removed []interface{}

@@ -43,6 +43,7 @@ import (
 
 // ExecuteActionsByOldNew executes all actions given in the actionConfigList
 // using the mapped configuration strings and returns the new context entity.
+// It takes the old version and the new version of the context entity, comparing them.
 func ExecuteActionsByOldNew(ctx context.Context, db application.DB, userID uuid.UUID, oldContext convert.ChangeDetector, newContext convert.ChangeDetector, actionConfigList map[string]string) (convert.ChangeDetector, []convert.Change, error) {
 	if oldContext == nil || newContext == nil {
 		return nil, nil, errs.New("execute actions called with nil entities")
@@ -56,6 +57,7 @@ func ExecuteActionsByOldNew(ctx context.Context, db application.DB, userID uuid.
 
 // ExecuteActionsByChangeset executes all actions given in the actionConfigs
 // using the mapped configuration strings and returns the new context entity.
+// It takes a []Change that describes the differences between the old and the new context.
 func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uuid.UUID, newContext convert.ChangeDetector, contextChanges []convert.Change, actionConfigs map[string]string) (convert.ChangeDetector, []convert.Change, error) {
 	var actionChanges []convert.Change
 	var err error
