@@ -188,7 +188,7 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "This describes an impediment blocking work on the project.\n",
+        "description": "Any issue or blocker that slows down the velocity of a team and affects team performance or progress.\n",
         "fields": {
           "resolution": {
             "description": "The reason why this work item's state was last changed.\n",
@@ -392,22 +392,79 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "A theme describes a high-level description of a functionality on the system.",
+        "description": "A bug that causes unexpected behavior in the software.\n",
         "fields": {
-          "acceptance_criteria": {
-            "description": "The acceptance criteria describes rules for checking if a chunk of work is completed.",
-            "label": "Acceptance criteria",
+          "effort": {
+            "description": "The effort needed to fix this defect.\n",
+            "label": "Effort",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
+          "environment": {
+            "description": "The environment where this defect appears.\n",
+            "label": "Environment",
             "required": false,
             "type": {
               "kind": "markup"
             }
           },
-          "business_value": {
-            "description": "Business value for this theme.",
-            "label": "Business Value",
+          "priority": {
+            "description": "The order in which the developer should resolve a defect.",
+            "label": "Priority",
             "required": false,
             "type": {
-              "kind": "string"
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "P1 - Critical",
+                "P2 - High",
+                "P3 - Medium",
+                "P4 - Low"
+              ]
+            }
+          },
+          "repro_steps": {
+            "description": "Steps to reproduce the defect.\n",
+            "label": "Steps to reproduce",
+            "required": false,
+            "type": {
+              "kind": "markup"
+            }
+          },
+          "resolution": {
+            "description": "The reason why this defect's state was last changed.\n",
+            "label": "Resolution",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "Done",
+                "Duplicate",
+                "Incomplete Description",
+                "Can not Reproduce",
+                "Deferred",
+                "Won't Fix",
+                "Out of Date",
+                "Verified"
+              ]
+            }
+          },
+          "severity": {
+            "description": "The degree of impact that a defect has on the operation of the product or impact on security.",
+            "label": "Severity",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "SEV1 - Urgent",
+                "SEV2 - High",
+                "SEV3 - Medium",
+                "SEV4 - Low"
+              ]
             }
           },
           "system.area": {
@@ -528,7 +585,7 @@
             }
           },
           "system.state": {
-            "description": "The state of the theme.",
+            "description": "The state of the defect.",
             "label": "State",
             "required": true,
             "type": {
@@ -538,8 +595,6 @@
                 "New",
                 "Open",
                 "In Progress",
-                "Deferred",
-                "No Plan to Implement",
                 "Resolved",
                 "Closed"
               ]
@@ -560,39 +615,15 @@
             "type": {
               "kind": "instant"
             }
-          },
-          "target_date": {
-            "description": "The target completion date of the theme.",
-            "label": "Target date",
-            "required": false,
-            "type": {
-              "kind": "instant"
-            }
           }
         },
-        "icon": "fa fa-puzzle-piece",
-        "name": "Theme",
+        "icon": "fa fa-bug",
+        "name": "Defect",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a",
+      "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
       "relationships": {
-        "guidedChildTypes": {
-          "data": [
-            {
-              "id": "2c169431-a55d-49eb-af74-cc19e895356f",
-              "type": "workitemtypes"
-            },
-            {
-              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
-              "type": "workitemtypes"
-            },
-            {
-              "id": "03b9bb64-4f65-4fa7-b165-494cd4f01401",
-              "type": "workitemtypes"
-            }
-          ]
-        },
         "space": {
           "data": {
             "id": "2e0698d8-753e-4cef-bb7c-f027634824a2",
@@ -620,19 +651,11 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "An epic describes a larger composition of stories to be implemented.",
+        "description": "Work assigned to team members to implement a story. They are generally measured in units of 0.5 days, for example, four hours, eight hours, sixteen hours.\n",
         "fields": {
-          "acceptance_criteria": {
-            "description": "The acceptance criteria describes rules for checking if a chunk of work is completed.",
-            "label": "Acceptance criteria",
-            "required": false,
-            "type": {
-              "kind": "markup"
-            }
-          },
-          "storypoints": {
-            "description": "The effort needed to implement the epic.",
-            "label": "Storypoints",
+          "effort": {
+            "description": "The effort needed to implement this user story.\n",
+            "label": "Effort",
             "required": false,
             "type": {
               "kind": "float"
@@ -756,7 +779,7 @@
             }
           },
           "system.state": {
-            "description": "The state of the Epic.",
+            "description": "The state of the Task.",
             "label": "State",
             "required": true,
             "type": {
@@ -767,8 +790,6 @@
                 "Open",
                 "In Progress",
                 "Resolved",
-                "Deferred",
-                "No Plan to Implement",
                 "Closed"
               ]
             }
@@ -790,29 +811,13 @@
             }
           }
         },
-        "icon": "fa fa-bullseye",
-        "name": "Epic",
+        "icon": "fa fa-tasks",
+        "name": "Task",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "2c169431-a55d-49eb-af74-cc19e895356f",
+      "id": "2853459d-60ef-4fbe-aaf4-eccb9f554b34",
       "relationships": {
-        "guidedChildTypes": {
-          "data": [
-            {
-              "id": "6ff83406-caa7-47a9-9200-4ca796be11bb",
-              "type": "workitemtypes"
-            },
-            {
-              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
-              "type": "workitemtypes"
-            },
-            {
-              "id": "03b9bb64-4f65-4fa7-b165-494cd4f01401",
-              "type": "workitemtypes"
-            }
-          ]
-        },
         "space": {
           "data": {
             "id": "2e0698d8-753e-4cef-bb7c-f027634824a2",
@@ -840,10 +845,10 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "A user story describes an executable chunk of a feature based on user experience.",
+        "description": "Incremental work or requirements identified to deliver a product feature. Typically, it is expressed from the user's perspective in the following format - As a user, I want to achieve an objective, so that this purpose is met.\n",
         "fields": {
           "acceptance_criteria": {
-            "description": "The acceptance criteria describes rules for checking if a chunk of work is completed.",
+            "description": "The acceptance criteria describes rules for checking if a chunk of work is completed.\n",
             "label": "Acceptance criteria",
             "required": false,
             "type": {
@@ -851,7 +856,7 @@
             }
           },
           "component": {
-            "description": "The component for this area of work.",
+            "description": "The component for this area of work.\n",
             "label": "Component",
             "required": false,
             "type": {
@@ -859,7 +864,7 @@
             }
           },
           "storypoints": {
-            "description": "The effort needed to implement this user story.",
+            "description": "The effort needed to implement this user story.\n",
             "label": "Storypoints",
             "required": false,
             "type": {
@@ -1066,11 +1071,19 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "An atomic task on the project.",
+        "description": "A large user story, with a focused goal, that may need to be split into multiple user stories spanning over multiple iterations to be realized. It could comprise a short statement or phrase, a coherent aggregation of user stories and requirements, or an idea.\n",
         "fields": {
-          "effort": {
-            "description": "The effort needed to implement this user story.",
-            "label": "Effort",
+          "acceptance_criteria": {
+            "description": "The acceptance criteria describes rules for checking if a chunk of work is completed.\n",
+            "label": "Acceptance criteria",
+            "required": false,
+            "type": {
+              "kind": "markup"
+            }
+          },
+          "storypoints": {
+            "description": "The effort needed to implement the epic.\n",
+            "label": "Storypoints",
             "required": false,
             "type": {
               "kind": "float"
@@ -1192,7 +1205,7 @@
             }
           },
           "system.state": {
-            "description": "The state of the Task.",
+            "description": "The state of the Epic.",
             "label": "State",
             "required": true,
             "type": {
@@ -1203,6 +1216,8 @@
                 "Open",
                 "In Progress",
                 "Resolved",
+                "Deferred",
+                "No Plan to Implement",
                 "Closed"
               ]
             }
@@ -1224,13 +1239,29 @@
             }
           }
         },
-        "icon": "fa fa-tasks",
-        "name": "Task",
+        "icon": "fa fa-bullseye",
+        "name": "Epic",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "2853459d-60ef-4fbe-aaf4-eccb9f554b34",
+      "id": "2c169431-a55d-49eb-af74-cc19e895356f",
       "relationships": {
+        "guidedChildTypes": {
+          "data": [
+            {
+              "id": "6ff83406-caa7-47a9-9200-4ca796be11bb",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "03b9bb64-4f65-4fa7-b165-494cd4f01401",
+              "type": "workitemtypes"
+            }
+          ]
+        },
         "space": {
           "data": {
             "id": "2e0698d8-753e-4cef-bb7c-f027634824a2",
@@ -1258,79 +1289,22 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "This describes a defect in the system.",
+        "description": "A group of user stories with a common underlying thread. They have a broad organization-level focus and are used to track related user stories.\n",
         "fields": {
-          "effort": {
-            "description": "The effort needed to fix this defect.",
-            "label": "Effort",
-            "required": false,
-            "type": {
-              "kind": "float"
-            }
-          },
-          "environment": {
-            "description": "The environment where this defect appears.",
-            "label": "Environment",
+          "acceptance_criteria": {
+            "description": "The acceptance criteria describes rules for checking if a chunk of work is completed.\n",
+            "label": "Acceptance criteria",
             "required": false,
             "type": {
               "kind": "markup"
             }
           },
-          "priority": {
-            "description": "The order in which the developer should resolve a defect.",
-            "label": "Priority",
+          "business_value": {
+            "description": "Business value for this theme.\n",
+            "label": "Business Value",
             "required": false,
             "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "P1 - Critical",
-                "P2 - High",
-                "P3 - Medium",
-                "P4 - Low"
-              ]
-            }
-          },
-          "repro_steps": {
-            "description": "Steps to reproduce the defect.",
-            "label": "Steps to reproduce",
-            "required": false,
-            "type": {
-              "kind": "markup"
-            }
-          },
-          "resolution": {
-            "description": "The reason why this defect's state was last changed.\n",
-            "label": "Resolution",
-            "required": false,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "Done",
-                "Duplicate",
-                "Incomplete Description",
-                "Can not Reproduce",
-                "Deferred",
-                "Won't Fix",
-                "Out of Date",
-                "Verified"
-              ]
-            }
-          },
-          "severity": {
-            "description": "The degree of impact that a defect has on the operation of the product or impact on security.",
-            "label": "Severity",
-            "required": false,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "SEV1 - Urgent",
-                "SEV2 - High",
-                "SEV3 - Medium",
-                "SEV4 - Low"
-              ]
+              "kind": "string"
             }
           },
           "system.area": {
@@ -1449,7 +1423,7 @@
             }
           },
           "system.state": {
-            "description": "The state of the defect.",
+            "description": "The state of the theme.",
             "label": "State",
             "required": true,
             "type": {
@@ -1459,6 +1433,8 @@
                 "New",
                 "Open",
                 "In Progress",
+                "Deferred",
+                "No Plan to Implement",
                 "Resolved",
                 "Closed"
               ]
@@ -1479,15 +1455,39 @@
             "type": {
               "kind": "instant"
             }
+          },
+          "target_date": {
+            "description": "The target completion date of the theme.\n",
+            "label": "Target date",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
           }
         },
-        "icon": "fa fa-bug",
-        "name": "Defect",
+        "icon": "fa fa-puzzle-piece",
+        "name": "Theme",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
+      "id": "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a",
       "relationships": {
+        "guidedChildTypes": {
+          "data": [
+            {
+              "id": "2c169431-a55d-49eb-af74-cc19e895356f",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "03b9bb64-4f65-4fa7-b165-494cd4f01401",
+              "type": "workitemtypes"
+            }
+          ]
+        },
         "space": {
           "data": {
             "id": "2e0698d8-753e-4cef-bb7c-f027634824a2",

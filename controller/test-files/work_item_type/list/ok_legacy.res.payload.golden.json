@@ -4,7 +4,7 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "TBD",
+        "description": "Work assigned to various team members to implement a feature. They are generally measured in units of 0.5 days, for example, four hours, eight hours, sixteen hours.\n",
         "fields": {
           "system.area": {
             "description": "The area to which the work item belongs",
@@ -188,7 +188,7 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "TBD",
+        "description": "A defect that causes unexpected behavior in the software and that needs to be fixed.\n",
         "fields": {
           "system.area": {
             "description": "The area to which the work item belongs",
@@ -380,7 +380,7 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "TBD",
+        "description": "Features, often expressed as user stories, are required to actualize parent experiences or epics. They are scoped so that they are generally achievable within a sprint.\n",
         "fields": {
           "system.area": {
             "description": "The area to which the work item belongs",
@@ -576,7 +576,7 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "TBD",
+        "description": "An experience is a way to address a scenario, fundamental, or a set of papercuts, each of which often have multiple realizing experiences. Often written as a demonstration script, it describes the ideal end-user work flow for realizing one or more of the associated value propositions.\n",
         "fields": {
           "system.area": {
             "description": "The area to which the work item belongs",
@@ -772,7 +772,7 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "TBD",
+        "description": "A statement of the value provided to the user by addressing a scenario, fundamental, or papercut. Each of which can have multiple value propositions.\n",
         "fields": {
           "system.area": {
             "description": "The area to which the work item belongs",
@@ -968,7 +968,7 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "TBD",
+        "description": "A scenario identifies a real-world user problem to resolve. Addressing the scenario provides tangible user value. Prioritize scenarios that deliver maximum user value by evaluating their associated value propositions.\n",
         "fields": {
           "system.area": {
             "description": "The area to which the work item belongs",
@@ -1164,7 +1164,7 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "TBD",
+        "description": "A fundamental describes the basic essentials of a software product, such as quality and performance standards. It is a non-negotiable aspect of a product and its absence reduces the value provided to the user.\n",
         "fields": {
           "system.area": {
             "description": "The area to which the work item belongs",
@@ -1360,7 +1360,7 @@
       "attributes": {
         "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "TBD",
+        "description": "A papercut is a minor issue, often too small to be individually prioritized to be addressed; collectively, papercuts degrade the perception of the product. Grouped together, they receive higher priority and can be tackled together within a development cycle.\n",
         "fields": {
           "system.area": {
             "description": "The area to which the work item belongs",

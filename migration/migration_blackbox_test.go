@@ -149,7 +149,9 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration97", testMigration97RemoveResolutionFieldFromImpediment)
 	t.Run("TestMigration98", testMigration98Boards)
 	t.Run("TestMigration99", testMigration99CodebaseCVEScanDefaultFalse)
-	t.Run("TestMigration99", testMigration100Actions)
+	t.Run("TestMigration100", testDropUserspacedataTable)
+	t.Run("TestMigration101", testTypeGroupHasDescriptionField)
+	t.Run("TestMigration102", testMigration102Actions)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1179,12 +1181,6 @@ func testMigration99CodebaseCVEScanDefaultFalse(t *testing.T) {
 	require.Nil(t, runSQLscript(sqlDB, "099-codebase-cve-scan-default-false-cleanup.sql"))
 }
 
-func testMigration100Actions(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:101], 101)
-	require.True(t, dialect.HasColumn("work_item_types", "trans_rule_key"))
-	require.True(t, dialect.HasColumn("work_item_types", "trans_rule_argument"))
-}
-
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
@@ -1249,7 +1245,20 @@ func testMigration95Boards(t *testing.T) {
 // used as a temporary solution to get data from tenant jenkins
 func testDropUserspacedataTable(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:100], 100)
-	assert.False(t, dialect.HasTable("userspace_data"))
+	require.False(t, dialect.HasTable("userspace_data"))
+}
+
+// testTypeGroupHasDescriptionField checks that the work item type groups table
+// has a description after updating to DB version 101.
+func testTypeGroupHasDescriptionField(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:101], 101)
+	require.False(t, dialect.HasColumn("work_item_type_groups", "description"))
+}
+
+func testMigration102Actions(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:103], 103)
+	require.True(t, dialect.HasColumn("work_item_types", "trans_rule_key"))
+	require.True(t, dialect.HasColumn("work_item_types", "trans_rule_argument"))
 }
 
 // migrateToVersion runs the migration of all the scripts to a certain version
