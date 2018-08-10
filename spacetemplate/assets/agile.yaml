@@ -9,6 +9,7 @@ space_template:
 work_item_types:
 
 - id: &agileCommonTypeID "719beee7-07cb-489c-9a4b-9618d45df35a"
+  # Note: the expansion of the child types only use the fields, not other attributes.
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Agile Common Type
   can_construct: no
@@ -25,6 +26,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Impediment
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     Any issue or blocker that slows down the velocity of a team and affects
     team performance or progress.
@@ -70,6 +73,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Defect
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     A bug that causes unexpected behavior in the software.
   icon: fa fa-bug
@@ -169,6 +174,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Task
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     Work assigned to team members to implement a story. They are generally
     measured in units of 0.5 days, for example, four hours, eight hours, sixteen
@@ -209,6 +216,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Story
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     Incremental work or requirements identified to deliver a product feature.
     Typically, it is expressed from the user's perspective in the following
@@ -284,6 +293,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Epic
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     A large user story, with a focused goal, that may need to be split into
     multiple user stories spanning over multiple iterations to be realized. It
@@ -354,6 +365,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Theme
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     A group of user stories with a common underlying thread. They have a broad
     organization-level focus and are used to track related user stories.
