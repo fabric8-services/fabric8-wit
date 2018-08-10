@@ -63,18 +63,20 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 	if older == nil {
 		// this is changeset for a new ChangeDetector, report all observed attributes to
 		// the change set. This needs extension once we support more attributes.
-		return []convert.Change{
+		changeSet := []convert.Change{
 			{
 				AttributeName: SystemState,
 				NewValue:      wi.Fields[SystemState],
 				OldValue:      nil,
 			},
-			{
+		}
+		if wi.Fields[SystemBoardcolumns] != nil && len(wi.Fields[SystemBoardcolumns].([]interface{})) != 0 {
+			changeSet = append(changeSet, convert.Change{
 				AttributeName: SystemBoardcolumns,
 				NewValue:      wi.Fields[SystemBoardcolumns],
 				OldValue:      nil,
-			},
-		}, nil
+			})
+		}
 	}
 	olderWorkItem, ok := older.(WorkItem)
 	if !ok {
