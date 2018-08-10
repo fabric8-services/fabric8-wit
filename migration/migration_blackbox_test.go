@@ -6,6 +6,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"testing"
+	"time"
+
 	"github.com/davecgh/go-spew/spew"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -21,9 +25,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"html/template"
-	"testing"
-	"time"
 )
 
 // fn defines the type of function that can be part of a migration steps
@@ -147,8 +148,9 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration97", testMigration97RemoveResolutionFieldFromImpediment)
 	t.Run("TestMigration98", testMigration98Boards)
 	t.Run("TestMigration99", testMigration99CodebaseCVEScanDefaultFalse)
-	t.Run("TestMigration100", testMigration99CodebaseCVEScanDefaultFalse)
-	t.Run("TestMirgraion101", testMigration101UpdateRootIterationAreaPathField)
+	t.Run("TestMigration100", testDropUserspacedataTable)
+	t.Run("TestMigration101", testTypeGroupHasDescriptionField)
+	t.Run("TestMirgraion102", testMigration102UpdateRootIterationAreaPathField)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1180,11 +1182,11 @@ func testMigration99CodebaseCVEScanDefaultFalse(t *testing.T) {
 
 // test that the userspace_data table no longer exists - previously
 // used as a temporary solution to get data from tenant jenkins
-func testMigration101UpdateRootIterationAreaPathField(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:100], 100)
+func testMigration102UpdateRootIterationAreaPathField(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:102], 102)
 
 	// setup
-	require.Nil(t, runSQLscript(sqlDB, "101-insert-test-root-iteration.sql"))
+	require.Nil(t, runSQLscript(sqlDB, "102-insert-test-root-iteration.sql"))
 
 	// now see if the result is false
 	row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
@@ -1195,7 +1197,7 @@ func testMigration101UpdateRootIterationAreaPathField(t *testing.T) {
 	require.Equal(t, "", path)
 
 	// migrate to the current version
-	migrateToVersion(t, sqlDB, migrations[:101], 101)
+	migrateToVersion(t, sqlDB, migrations[:103], 103)
 
 	row = sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
 	require.NotNil(t, row)
@@ -1267,8 +1269,15 @@ func testMigration95Boards(t *testing.T) {
 // test that the userspace_data table no longer exists - previously
 // used as a temporary solution to get data from tenant jenkins
 func testDropUserspacedataTable(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:100], 100)
-	assert.False(t, dialect.HasTable("userspace_data"))
+	migrateToVersion(t, sqlDB, migrations[:101], 101)
+	require.False(t, dialect.HasTable("userspace_data"))
+}
+
+// testTypeGroupHasDescriptionField checks that the work item type groups table
+// has a description after updating to DB version 101.
+func testTypeGroupHasDescriptionField(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:102], 102)
+	require.True(t, dialect.HasColumn("work_item_type_groups", "description"))
 }
 
 // migrateToVersion runs the migration of all the scripts to a certain version

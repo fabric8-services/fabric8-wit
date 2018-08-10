@@ -449,7 +449,11 @@ func GetMigrations() Migrations {
 	})
 
 	// Version 101
-	m = append(m, steps{ExecuteSQLFile("100-update-root-area-and-iteration-path-field.sql")})
+	m = append(m, steps{ExecuteSQLFile("101-add-description-to-witg.sql")})
+
+	// Version 102
+	m = append(m, steps{ExecuteSQLFile("102-update-root-area-and-iteration-path-field.sql")})
+
 	// m = append(m, steps{
 	// 	func(db *sql.Tx) error {
 	// 		// update table iterations to contain converted ids in the path field
