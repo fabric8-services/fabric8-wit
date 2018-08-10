@@ -132,20 +132,12 @@ func _testableCompareWithGolden(update bool, goldenFile string, actualObj interf
 	expectedStr := string(expected)
 	actualStr := string(actual)
 	if uuidAgnostic {
-		expectedStr, err = _replaceUUIDs(expectedStr)
-		if err != nil {
-			return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
-		}
 		actualStr, err = _replaceUUIDs(actualStr)
 		if err != nil {
 			return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
 		}
 	}
 	if timeAgnostic {
-		expectedStr, err = _replaceTimes(expectedStr)
-		if err != nil {
-			return errs.Wrap(err, "failed to replace RFC3339 times with default time")
-		}
 		actualStr, err = _replaceTimes(actualStr)
 		if err != nil {
 			return errs.Wrap(err, "failed to replace RFC3339 times with default time")
@@ -153,10 +145,6 @@ func _testableCompareWithGolden(update bool, goldenFile string, actualObj interf
 	}
 	if len(stripDownToPattern) > 0 {
 		pattern := stripDownToPattern[0]
-		expectedStr, err = _stripDownTo(expectedStr, pattern)
-		if err != nil {
-			return errs.Wrapf(err, "failed strip down expected string to pattern: %s", pattern)
-		}
 		actualStr, err = _stripDownTo(actualStr, pattern)
 		if err != nil {
 			return errs.Wrapf(err, "failed strip down actual string to pattern: %s", pattern)
@@ -501,26 +489,57 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 
 	t.Run("comparing with existing file", func(t *testing.T) {
 		// given
-		f := "test-files/dummy.golden.json"
 		bs, err := json.MarshalIndent(dummy, "", "  ")
 		require.NoError(t, err)
-		err = ioutil.WriteFile(f, bs, os.ModePerm)
-		require.NoError(t, err)
-		defer func(t *testing.T, filepath string) {
+
+		removeFile := func(t *testing.T, filepath string) {
 			err := os.Remove(filepath)
 			require.NoError(t, err)
-		}(t, f)
+		}
+
+		filePure := "test-files/dummy.golden.json"
+		err = ioutil.WriteFile(filePure, bs, os.ModePerm)
+		require.NoError(t, err)
+		defer removeFile(t, filePure)
+
+		fileAgnosticTime := "test-files/dummy-agnostic-time.golden.json"
+		replacedTimes, err := _replaceTimes(string(bs))
+		require.NoError(t, err)
+		err = ioutil.WriteFile(fileAgnosticTime, []byte(replacedTimes), os.ModePerm)
+		require.NoError(t, err)
+		defer removeFile(t, fileAgnosticTime)
+
+		fileAgnosticUUID := "test-files/dummy-agnostic-uuid.golden.json"
+		replacedUUIDs, err := _replaceUUIDs(string(bs))
+		require.NoError(t, err)
+		err = ioutil.WriteFile(fileAgnosticUUID, []byte(replacedUUIDs), os.ModePerm)
+		require.NoError(t, err)
+		defer removeFile(t, fileAgnosticUUID)
+
+		fileAgnostic := "test-files/dummy-agnostic.golden.json"
+		replacedUUIDsAndTimes, err := _replaceUUIDs(replacedTimes)
+		require.NoError(t, err)
+		err = ioutil.WriteFile(fileAgnostic, []byte(replacedUUIDsAndTimes), os.ModePerm)
+		require.NoError(t, err)
+		defer removeFile(t, fileAgnostic)
+
+		fileBar := "test-files/dummy-bar.golden.json"
+		justBar, err := _stripDownTo(string(bs), "$.Bar")
+		require.NoError(t, err)
+		err = ioutil.WriteFile(fileBar, []byte(justBar), os.ModePerm)
+		require.NoError(t, err)
+		defer removeFile(t, fileBar)
 
 		t.Run("comparing with the same object", func(t *testing.T) {
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = _testableCompareWithGolden(false, f, dummy, false, false)
+				err = _testableCompareWithGolden(false, filePure, dummy, false, false)
 				// then
 				require.NoError(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = _testableCompareWithGolden(false, f, dummy, true, true)
+				err = _testableCompareWithGolden(false, fileAgnostic, dummy, true, true)
 				// then
 				require.NoError(t, err)
 			})
@@ -529,13 +548,13 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			dummy.ID = uuid.NewV4()
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = _testableCompareWithGolden(false, f, dummy, false, false)
+				err = _testableCompareWithGolden(false, filePure, dummy, false, false)
 				// then
 				require.Error(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = _testableCompareWithGolden(false, f, dummy, true, true)
+				err = _testableCompareWithGolden(false, fileAgnostic, dummy, true, true)
 				// then
 				require.NoError(t, err)
 			})
@@ -544,13 +563,13 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			dummy.CreatedAt = time.Now()
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = _testableCompareWithGolden(false, f, dummy, false, false)
+				err = _testableCompareWithGolden(false, filePure, dummy, false, false)
 				// then
 				require.Error(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = _testableCompareWithGolden(false, f, dummy, true, true)
+				err = _testableCompareWithGolden(false, fileAgnostic, dummy, true, true)
 				// then
 				require.NoError(t, err)
 			})
@@ -558,19 +577,19 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 		t.Run("strip down", func(t *testing.T) {
 			t.Run("ok", func(t *testing.T) {
 				// when
-				err = _testableCompareWithGolden(false, f, dummy, true, true, "$.Bar")
+				err = _testableCompareWithGolden(false, fileBar, dummy, false, false, "$.Bar")
 				// then
 				require.NoError(t, err)
 			})
 			t.Run("error: more than one pattern given", func(t *testing.T) {
 				// when
-				err = _testableCompareWithGolden(false, f, dummy, true, true, "$.Bar", "$.Bar")
+				err = _testableCompareWithGolden(false, fileBar, dummy, false, false, "$.Bar", "$.Bar")
 				// then
 				require.Error(t, err)
 			})
 			t.Run("error: not existing path", func(t *testing.T) {
 				// when
-				err = _testableCompareWithGolden(false, f, dummy, true, true, "$.not.existing.path")
+				err = _testableCompareWithGolden(false, fileBar, dummy, false, false, "$.not.existing.path")
 				// then
 				require.Error(t, err)
 			})
