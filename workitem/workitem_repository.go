@@ -1293,7 +1293,7 @@ func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 	var result string
 	switch kind {
 	case KindList, KindEnum:
-		return result, errors.NewInternalErrorFromString("cannot fetch KindList or KindEnum")
+		return result, errors.NewInternalErrorFromString("cannot resolve relational value for KindList or KindEnum")
 	case KindUser:
 		var identity account.Identity
 		tx := db.Model(&account.Identity{}).Where("id = ?", val).Find(&identity)
@@ -1312,7 +1312,7 @@ func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 		var column BoardColumn
 		tx := db.Model(column.TableName()).Where("id = ?", val).First(&column)
 		if tx.Error != nil {
-			return result, errs.Wrap(tx.Error, "failed to find area")
+			return result, errs.Wrap(tx.Error, "failed to find boardcolumn")
 		}
 		result = column.Name
 
@@ -1320,7 +1320,7 @@ func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 		var iteration iteration.Iteration
 		tx := db.Model(iteration.TableName()).Where("id = ?", val).First(&iteration)
 		if tx.Error != nil {
-			return result, errs.Wrap(tx.Error, "failed to find area")
+			return result, errs.Wrap(tx.Error, "failed to find iteration")
 		}
 		result = iteration.Name
 
@@ -1328,7 +1328,7 @@ func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 		var codebase codebase.Codebase
 		tx := db.Model(codebase.TableName()).Where("id = ?", val).First(&codebase)
 		if tx.Error != nil {
-			return result, errs.Wrap(tx.Error, "failed to find area")
+			return result, errs.Wrap(tx.Error, "failed to find codebase")
 		}
 		result = codebase.ID.String() // TODO: Figure out what we should be here. Codebase does not have a name.
 
