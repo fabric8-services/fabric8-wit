@@ -1217,55 +1217,56 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
 		textToPrepend := "\n\n======= Missing fields in workitem type: " + newWIType.Name + " =======\n"
 		for _, fieldName := range fieldKeys {
-			var val string
-			oldKind := oldWIType.Fields[fieldName].Type.GetKind()
+			fieldDef := oldWIType.Fields[fieldName]
+			oldKind := fieldDef.Type.GetKind()
 			oldValue := fieldDiff[fieldName]
-			if oldKind.IsSimpleType() {
-				val = fmt.Sprint(fieldDiff[fieldName])
+
+			if oldKind == KindEnum {
+				enumType, ok := fieldDef.Type.(EnumType)
+				if !ok {
+					return errs.Errorf("failed to convert field \"%s\" to enum type: %+v", fieldName, fieldDef)
+				}
+				oldKind = enumType.BaseType.GetKind()
+			}
+			// handle all single value fields (including Enums)
+			if oldKind != KindList {
+				var val string
 				if oldKind.IsRelational() {
 					val, err = getValueOfRelationalKind(r.db, oldValue, oldKind)
 					if err != nil {
 						return errs.Wrapf(err, "failed to get relational value for field %s", fieldName)
 					}
-				}
-			} else {
-				// The old field isn't simple kind. It would be enum or list kind
-				switch t := oldWIType.Fields[fieldName].Type.(type) {
-				case EnumType:
-					oldKind = t.BaseType.GetKind()
+				} else {
 					val = fmt.Sprint(oldValue)
-					// The value inside Enum kind can also be relational
-					if oldKind.IsRelational() {
-						val, err = getValueOfRelationalKind(r.db, oldValue, oldKind)
-						if err != nil {
-							return errs.Wrapf(err, "failed to get relational value for field %s", fieldName)
-						}
-					}
-				case ListType:
-					oldKind = t.ComponentType.GetKind()
-					valList := fieldDiff[fieldName].([]interface{})
-					var tempList []string
-					if oldKind.IsRelational() {
-						// Convert each value of the list type to its verbose value
-						for _, v := range valList {
-							val, err := getValueOfRelationalKind(r.db, v, oldKind)
-							if err != nil {
-								return errs.Wrapf(err, "failed to get relational value for field %s", fieldName)
-							}
-							tempList = append(tempList, val)
-						}
-					} else {
-						for v := range valList {
-							tempList = append(tempList, fmt.Sprint(v))
-						}
-					}
-					// Convert []string to comma seperated strings.
-					val = strings.Join(tempList, ", ")
 				}
-			}
-			if val != "" {
 				textToPrepend += fmt.Sprintf("\n\n %s : %s", oldWIType.Fields[fieldName].Label, val)
+				continue
 			}
+
+			// Deal with multi value field (KindList)
+			listType, ok := fieldDef.Type.(ListType)
+			if !ok {
+				return errs.Errorf("failed to convert field \"%s\" to list type: %+v", fieldName, fieldDef)
+			}
+			oldKind = listType.ComponentType.GetKind()
+			valList, ok := fieldDiff[fieldName].([]interface{})
+			if !ok {
+				return errs.Errorf("failed to convert list value of field \"%s\" to []interface{}: %+v", fieldName, fieldDiff[fieldName])
+			}
+
+			var tempList []string
+			for _, v := range valList {
+				val := fmt.Sprint(v)
+				if oldKind.IsRelational() {
+					val, err = getValueOfRelationalKind(r.db, v, oldKind)
+					if err != nil {
+						return errs.Wrapf(err, "failed to get relational value for field %s", fieldName)
+					}
+				}
+				tempList = append(tempList, val)
+			}
+			// Convert []string to comma seperated strings.
+			textToPrepend += fmt.Sprintf("\n\n %s : %s", oldWIType.Fields[fieldName].Label, strings.Join(tempList, ", "))
 		}
 		textToPrepend += "\n\n================================================\n\n"
 		wiStorage.Fields[SystemDescription] = *(rendering.NewMarkupContentFromValue(textToPrepend + originalDescription.Content))
@@ -1292,7 +1293,7 @@ func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 	var result string
 	switch kind {
 	case KindList, KindEnum:
-		return "", errors.NewInternalErrorFromString("cannot fetch KindList or KindEnum")
+		return result, errors.NewInternalErrorFromString("cannot fetch KindList or KindEnum")
 	case KindUser:
 		var identity account.Identity
 		tx := db.Model(&account.Identity{}).Where("id = ?", val).Find(&identity)
