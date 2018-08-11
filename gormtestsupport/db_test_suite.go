@@ -5,6 +5,7 @@ import (
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
@@ -62,7 +63,7 @@ func (s *DBTestSuite) SetupSuite() {
 
 // SetupTest implements suite.SetupTest
 func (s *DBTestSuite) SetupTest() {
-	// s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 }
 
 // TearDownTest implements suite.TearDownTest
