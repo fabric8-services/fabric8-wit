@@ -1166,8 +1166,7 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error {
 	allowedWIT, err := r.CheckWIT(ctx, newWIType, spaceID)
 	if err != nil {
-		return errors.NewBadParameterError("typeID", oldWIType.ID)
-
+		return errs.Wrap(err, "failed to check workitem type")
 	}
 	if !allowedWIT {
 		return errors.NewBadParameterError("typeID", oldWIType.ID)
@@ -1175,7 +1174,6 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	var fieldDiff = Fields{}
 	// Loop through old workitem type
 	for oldFieldName := range oldWIType.Fields {
-		// oldFieldType := oldWIType.Fields[oldFieldName].Type
 		newFieldType := newWIType.Fields[oldFieldName].Type
 		// Temporary workaround to not add metastates to the field diff
 		// We need to have a special handling for fields are shouldn't be set by user (or affected by type change)
@@ -1207,7 +1205,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 			}
 		}
 	}
-	// We need fieldKeys to show keys in a defined order. Golang maps aren't ordered by default.
+	// We need fieldKeys to show field diff in a defined order. Golang maps aren't ordered by default.
 	var fieldKeys []string
 	for fieldName := range fieldDiff {
 		fieldKeys = append(fieldKeys, fieldName)
@@ -1216,7 +1214,6 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	sort.Strings(fieldKeys)
 	// Append diff (fields along with their values) between the workitem types to the description
 	if len(fieldDiff) > 0 {
-		// Append diff (fields along with their values) between the workitem types to the description
 		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
 		textToPrepend := "\n\n======= Missing fields in workitem type: " + newWIType.Name + " =======\n"
 		for _, fieldName := range fieldKeys {
@@ -1227,16 +1224,21 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 				val = fmt.Sprint(fieldDiff[fieldName])
 				if oldKind.IsRelational() {
 					val, err = getValueOfRelationalKind(r.db, oldValue, oldKind)
+					if err != nil {
+						return errs.Wrapf(err, "failed to get relational value for field %s", fieldName)
+					}
 				}
 			} else {
+				// The old field isn't simple kind. It would be enum or list kind
 				switch t := oldWIType.Fields[fieldName].Type.(type) {
 				case EnumType:
 					oldKind = t.BaseType.GetKind()
 					val = fmt.Sprint(oldValue)
+					// The value inside Enum kind can also be relational
 					if oldKind.IsRelational() {
 						val, err = getValueOfRelationalKind(r.db, oldValue, oldKind)
 						if err != nil {
-							return err
+							return errs.Wrapf(err, "failed to get relational value for field %s", fieldName)
 						}
 					}
 				case ListType:
@@ -1248,7 +1250,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 						for _, v := range valList {
 							val, err := getValueOfRelationalKind(r.db, v, oldKind)
 							if err != nil {
-								return err
+								return errs.Wrapf(err, "failed to get relational value for field %s", fieldName)
 							}
 							tempList = append(tempList, val)
 						}
