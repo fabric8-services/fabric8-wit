@@ -1207,7 +1207,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	if len(fieldDiff) > 0 {
 		// Append diff (fields along with their values) between the workitem types to the description
 		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
-		textToPrepend := "```\n\n======= Missing fields in workitem type: " + newWIType.Name + " =======\n"
+		textToPrepend := "\n\n======= Missing fields in workitem type: " + newWIType.Name + " =======\n"
 		for _, fieldName := range fieldKeys {
 			var val string
 			oldKind := oldWIType.Fields[fieldName].Type.GetKind()
@@ -1254,10 +1254,8 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 				textToPrepend += fmt.Sprintf("\n\n %s : %s", oldWIType.Fields[fieldName].Label, val)
 			}
 		}
-		textToPrepend += "\n\n================================================\n\n```\n\n"
-		// The workitem doesn't have a description
-		originalDescription = rendering.NewMarkupContentFromValue(textToPrepend + originalDescription.Content)
-		wiStorage.Fields[SystemDescription] = *originalDescription
+		textToPrepend += "\n\n================================================\n\n"
+		wiStorage.Fields[SystemDescription] = *(rendering.NewMarkupContentFromValue(textToPrepend + originalDescription.Content))
 	}
 	// Set default values for all field in newWIType
 	for fieldName, fieldDef := range newWIType.Fields {
