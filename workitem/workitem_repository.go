@@ -584,7 +584,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	wiStorage.Version = wiStorage.Version + 1
-	fmt.Println("##################################", wiStorage.Fields[SystemDescription])
 	wiStorage.Fields = Fields{}
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldDef.ReadOnly {
@@ -1178,6 +1177,11 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	for oldFieldName := range oldWIType.Fields {
 		// oldFieldType := oldWIType.Fields[oldFieldName].Type
 		newFieldType := newWIType.Fields[oldFieldName].Type
+		// Temporary workaround to not add metastates to the field diff
+		// We need to have a special handling for fields are shouldn't be set by user (or affected by type change)
+		if oldFieldName == SystemMetaState {
+			continue
+		}
 		// The field exists in old type and new type
 		if _, ok := newWIType.Fields[oldFieldName]; ok {
 			// Try to assign the old value to the new field
@@ -1202,19 +1206,6 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 				delete(wiStorage.Fields, oldFieldName)
 			}
 		}
-
-		// else if !oldFieldType.Equal(newFieldType) {
-		// 	// Workitem types have field with same name but different type
-		// 	fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
-		// 	if oldFieldType.GetKind().IsSimpleType() {
-		// 		delete(wiStorage.Fields, oldFieldName)
-		// 	} else { // Ensure enum value can be assigned to the new field. If not, remove the field from original workitem
-		// 		// Make sure Enum values are compatible
-		// 		if _, err := newFieldType.ConvertToModel(wiStorage.Fields[oldFieldName]); err != nil {
-		// 			delete(wiStorage.Fields, oldFieldName)
-		// 		}
-		// 	}
-		// }
 	}
 	// We need fieldKeys to show keys in a defined order. Golang maps aren't ordered by default.
 	var fieldKeys []string
@@ -1280,6 +1271,10 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	// Set default values for all field in newWIType
 	for fieldName, fieldDef := range newWIType.Fields {
 		fieldValue := wiStorage.Fields[fieldName]
+		// Do not assign default value to metastate
+		if fieldName == SystemMetaState {
+			continue
+		}
 		// Assign default only if fieldValue is nil
 		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
