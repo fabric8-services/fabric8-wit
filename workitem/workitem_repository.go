@@ -584,7 +584,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	wiStorage.Version = wiStorage.Version + 1
-
+	fmt.Println("##################################", wiStorage.Fields[SystemDescription])
 	wiStorage.Fields = Fields{}
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldDef.ReadOnly {
@@ -1176,26 +1176,45 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	var fieldDiff = Fields{}
 	// Loop through old workitem type
 	for oldFieldName := range oldWIType.Fields {
-		oldFieldType := oldWIType.Fields[oldFieldName].Type
+		// oldFieldType := oldWIType.Fields[oldFieldName].Type
 		newFieldType := newWIType.Fields[oldFieldName].Type
-		// The field exists in old type but not in new type
-		if _, ok := newWIType.Fields[oldFieldName]; !ok {
+		// The field exists in old type and new type
+		if _, ok := newWIType.Fields[oldFieldName]; ok {
+			// Try to assign the old value to the new field
+			_, err := newFieldType.ConvertToModel(wiStorage.Fields[oldFieldName])
+			if err != nil {
+				// The field might be a list type. Try to assign it to a list
+				if newFieldType.GetKind() == KindList {
+					interfaceArray, ok := wiStorage.Fields[oldFieldName].([]interface{})
+					if ok {
+						_, err = newFieldType.ConvertToModel(interfaceArray)
+					}
+				}
+			}
+			if err != nil {
+				// Failed to assign the new value to the old field
+				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
+				delete(wiStorage.Fields, oldFieldName)
+			}
+		} else { // field doesn't exist in new type
 			if wiStorage.Fields[oldFieldName] != nil {
 				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
 				delete(wiStorage.Fields, oldFieldName)
 			}
-		} else if !oldFieldType.Equal(newFieldType) {
-			// Workitem types have field with same name but different type
-			fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
-			if oldFieldType.GetKind().IsSimpleType() {
-				delete(wiStorage.Fields, oldFieldName)
-			} else { // Ensure enum value can be assigned to the new field. If not, remove the field from original workitem
-				// Make sure Enum values are compatible
-				if _, err := newFieldType.ConvertToModel(wiStorage.Fields[oldFieldName]); err != nil {
-					delete(wiStorage.Fields, oldFieldName)
-				}
-			}
 		}
+
+		// else if !oldFieldType.Equal(newFieldType) {
+		// 	// Workitem types have field with same name but different type
+		// 	fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
+		// 	if oldFieldType.GetKind().IsSimpleType() {
+		// 		delete(wiStorage.Fields, oldFieldName)
+		// 	} else { // Ensure enum value can be assigned to the new field. If not, remove the field from original workitem
+		// 		// Make sure Enum values are compatible
+		// 		if _, err := newFieldType.ConvertToModel(wiStorage.Fields[oldFieldName]); err != nil {
+		// 			delete(wiStorage.Fields, oldFieldName)
+		// 		}
+		// 	}
+		// }
 	}
 	// We need fieldKeys to show keys in a defined order. Golang maps aren't ordered by default.
 	var fieldKeys []string
@@ -1204,6 +1223,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	}
 	// Sort the field keys to prevent random order of fields
 	sort.Strings(fieldKeys)
+	// Append diff (fields along with their values) between the workitem types to the description
 	if len(fieldDiff) > 0 {
 		// Append diff (fields along with their values) between the workitem types to the description
 		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
