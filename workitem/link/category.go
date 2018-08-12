@@ -1,6 +1,8 @@
 package link
 
 import (
+	"reflect"
+
 	convert "github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	uuid "github.com/satori/go.uuid"
@@ -44,7 +46,7 @@ func (c WorkItemLinkCategory) Equal(u convert.Equaler) bool {
 	if c.Version != other.Version {
 		return false
 	}
-	if !strPtrIsNilOrContentIsEqual(c.Description, other.Description) {
+	if !reflect.DeepEqual(c.Description, other.Description) {
 		return false
 	}
 	return true

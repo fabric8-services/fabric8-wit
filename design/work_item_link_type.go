@@ -63,7 +63,7 @@ For example, if a bug blocks a user story, the reverse name name is "blocked by"
 	})
 	a.Attribute("reverse_description", d.String, "Description of reverse name of the link type (optional)")
 	a.Attribute("topology", d.String, `The topology determines the restrictions placed on the usage of each work item link type.`, func() {
-		a.Enum("network", "tree")
+		a.Enum("network", "tree", "dependency")
 	})
 
 	// IMPORTANT: We cannot require any field here because these "attributes" will be used

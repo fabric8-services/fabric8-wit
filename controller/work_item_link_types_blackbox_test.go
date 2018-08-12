@@ -12,6 +12,7 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -58,6 +59,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 			"ok.agile":  spacetemplate.SystemAgileTemplateID,
 			"ok.legacy": spacetemplate.SystemLegacyTemplateID,
 			"ok.scrum":  spacetemplate.SystemScrumTemplateID,
+			"ok.base":   spacetemplate.SystemBaseTemplateID,
 		}
 		for testName, templateID := range td {
 			t.Run(testName, func(t *testing.T) {

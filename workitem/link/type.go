@@ -19,22 +19,6 @@ var (
 	SystemWorkItemLinkTypeParentChildID    = uuid.FromStringOrNil("25C326A7-6D03-4F5A-B23B-86A9EE4171E9")
 )
 
-// returns true if the left hand and right hand side string
-// pointers either both point to nil or reference the same
-// content; otherwise false is returned.
-func strPtrIsNilOrContentIsEqual(l, r *string) bool {
-	if l == nil && r != nil {
-		return false
-	}
-	if l != nil && r == nil {
-		return false
-	}
-	if l == nil && r == nil {
-		return true
-	}
-	return *l == *r
-}
-
 // WorkItemLinkType represents the type of a work item link as it is stored in
 // the db
 type WorkItemLinkType struct {
