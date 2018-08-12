@@ -108,16 +108,32 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 	})
 
 	s.T().Run("change is not prohibited", func(t *testing.T) {
-		// tests that you can change the type of a work item. NOTE: This
-		// functionality only works on the DB layer and is not exposed to REST.
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
 		// when
 		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
 		newWi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		// then
-		require.NoError(s.T(), err)
-		assert.Equal(s.T(), fxt.WorkItemTypes[1].ID, newWi.Type)
+		require.NoError(t, err)
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWi.Type)
+	})
+
+	s.T().Run("change of type along with field is not prohibited", func(t *testing.T) {
+		// tests that you can change the type of a work item and its fields at the same time.
+		// NOTE: This functionality only works on the DB layer and is not exposed to REST.
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "foo"
+			return nil
+		}), tf.WorkItemTypes(2))
+		// when
+		fxt.WorkItems[0].Fields[workitem.SystemTitle] = "bar"
+		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
+		newWi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWi.Type)
+		assert.Equal(t, "bar", newWi.Fields[workitem.SystemTitle])
 	})
 }
 

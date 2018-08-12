@@ -63,6 +63,20 @@ func (k Kind) String() string {
 	return string(k)
 }
 
+// IsRelational returns 'true' if the kind must be represented with a relationship
+func (k Kind) IsRelational() bool {
+	switch k {
+	case KindIteration,
+		KindArea,
+		KindLabel,
+		KindBoardColumn,
+		KindCodebase,
+		KindUser:
+		return true
+	}
+	return false
+}
+
 // FieldType describes the possible values of a FieldDefinition
 type FieldType interface {
 	GetKind() Kind
