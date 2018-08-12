@@ -444,7 +444,7 @@ work_item_link_types:
   name: Impedes
   description: One work item item impedes another one
   forward_name: impedes
-  forward_description: "TODO: write a forward description"
+  forward_description: (TODO) write a forward description for "impedes"
   reverse_name: is impeded by
-  reverse_description: "TODO: write a reverse description"
+  reverse_description: (TODO) write a reverse description for "is impeded by"
   topology: dependency

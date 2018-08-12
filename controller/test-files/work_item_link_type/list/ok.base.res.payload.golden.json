@@ -4,8 +4,10 @@
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
         "description": "One work item item blocks another one",
+        "forward_description": "(TODO) write a forward description for \"blocks\"",
         "forward_name": "blocks",
         "name": "Blocker",
+        "reverse_description": "(TODO) write a reverse description for \"is blocked by\"",
         "reverse_name": "is blocked by",
         "topology": "network",
         "updated-at": "0001-01-01T00:00:00Z",
@@ -53,11 +55,13 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "One work item relates to another one.",
-        "forward_name": "relates to",
-        "name": "Related",
-        "reverse_name": "is related to",
-        "topology": "network",
+        "description": "One work item is the parent of another one.",
+        "forward_description": "(TODO) write a forward description for \"is parent of\"",
+        "forward_name": "is parent of",
+        "name": "Parenting",
+        "reverse_description": "(TODO) write a reverse description for \"is child of\"",
+        "reverse_name": "is child of",
+        "topology": "tree",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -103,11 +107,13 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "One work item is the parent of another one.",
-        "forward_name": "is parent of",
-        "name": "Parenting",
-        "reverse_name": "is child of",
-        "topology": "tree",
+        "description": "One work item relates to another one.",
+        "forward_description": "(TODO) write a forward description for \"relates to\"",
+        "forward_name": "relates to",
+        "name": "Related",
+        "reverse_description": "(TODO) write a reverse description for \"is related to\"",
+        "reverse_name": "is related to",
+        "topology": "network",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
