@@ -1039,7 +1039,7 @@ func (s *WorkItem2Suite) TestWI2UpdateFieldOfDifferentSimpleTypes() {
 						// Update the work item
 						res, updatedWI := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, wi.ID, &u)
 						// Check for updated value
-						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".res.payload.golden.json"), updatedWI)
+						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".res.payload.golden.json"), updatedWI, `$.data.attributes["`+kind.String()+`_field"]`)
 						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".res.headers.golden.json"), res.Header())
 						_, loadedWi := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, *updatedWI.Data.ID, nil, nil)
 						require.NotNil(t, loadedWi)

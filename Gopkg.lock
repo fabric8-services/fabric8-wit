@@ -589,6 +589,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/yalp/jsonpath"
+  packages = ["."]
+  revision = "5cc68e5049a040829faef3a44c00ec4332f6dec7"
+
+[[projects]]
+  branch = "master"
   name = "github.com/zach-klippenstein/goregen"
   packages = ["."]
   revision = "795b5e3961ea1912fde60af417ad85e86acc0d6a"
@@ -815,6 +821,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2cc7ef0be20098d353879618874ca294af4e31fb40a9612f0949ec06419da65f"
+  inputs-digest = "3847984e317f7f997a55112557354ae0968625fe4fd62dc16d3df50d5681a4c9"
   solver-name = "gps-cdcl"
   solver-version = 1
