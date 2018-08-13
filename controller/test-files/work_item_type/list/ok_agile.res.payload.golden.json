@@ -395,7 +395,7 @@
         "description": "A bug that causes unexpected behavior in the software.\n",
         "fields": {
           "business_value": {
-            "description": "Business value for this theme.",
+            "description": "Business value for this defect.",
             "label": "Business Value",
             "required": false,
             "type": {
@@ -660,7 +660,7 @@
         "description": "Work assigned to team members to implement a story. They are generally measured in units of 0.5 days, for example, four hours, eight hours, sixteen hours.\n",
         "fields": {
           "effort": {
-            "description": "The effort needed to implement this user story.\n",
+            "description": "The effort needed to implement this task.\n",
             "label": "Effort",
             "required": false,
             "type": {
@@ -668,7 +668,7 @@
             }
           },
           "storypoints": {
-            "description": "The effort needed to implement the epic.",
+            "description": "The effort needed to implement the task.",
             "label": "Storypoints",
             "required": false,
             "type": {
