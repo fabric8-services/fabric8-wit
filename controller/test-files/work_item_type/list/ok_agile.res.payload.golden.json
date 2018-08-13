@@ -394,6 +394,14 @@
         "created-at": "0001-01-01T00:00:00Z",
         "description": "A bug that causes unexpected behavior in the software.\n",
         "fields": {
+          "business_value": {
+            "description": "Business value for this theme.",
+            "label": "Business Value",
+            "required": false,
+            "type": {
+              "kind": "string"
+            }
+          },
           "effort": {
             "description": "The effort needed to fix this defect.\n",
             "label": "Effort",
@@ -553,8 +561,6 @@
                 "mNew",
                 "mOpen",
                 "mInprogress",
-                "mDeferred",
-                "mNoplantoimplement",
                 "mResolved",
                 "mClosed"
               ]
@@ -661,6 +667,14 @@
               "kind": "float"
             }
           },
+          "storypoints": {
+            "description": "The effort needed to implement the epic.",
+            "label": "Storypoints",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
           "system.area": {
             "description": "The area to which the work item belongs",
             "label": "Area",
@@ -747,8 +761,6 @@
                 "mNew",
                 "mOpen",
                 "mInprogress",
-                "mDeferred",
-                "mNoplantoimplement",
                 "mResolved",
                 "mClosed"
               ]
@@ -1175,6 +1187,8 @@
                 "mNew",
                 "mOpen",
                 "mInprogress",
+                "mDeferred",
+                "mNoplantoimplement",
                 "mResolved",
                 "mClosed"
               ]
@@ -1393,6 +1407,8 @@
                 "mNew",
                 "mOpen",
                 "mInprogress",
+                "mDeferred",
+                "mNoplantoimplement",
                 "mResolved",
                 "mClosed"
               ]
