@@ -55,13 +55,13 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "One work item item impedes another one",
-        "forward_description": "(TODO) write a forward description for \"impedes\"",
-        "forward_name": "impedes",
-        "name": "Impedes",
-        "reverse_description": "(TODO) write a reverse description for \"is impeded by\"",
-        "reverse_name": "is impeded by",
-        "topology": "dependency",
+        "description": "One work item relates to another one.",
+        "forward_description": "(TODO) write a forward description for \"relates to\"",
+        "forward_name": "relates to",
+        "name": "Related",
+        "reverse_description": "(TODO) write a reverse description for \"is related to\"",
+        "reverse_name": "is related to",
+        "topology": "network",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -93,12 +93,12 @@
         },
         "space_template": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000006",
+            "id": "00000000-0000-0000-0000-000000000004",
             "type": "spacetemplates"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000006",
-            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000006"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
           }
         }
       },
@@ -114,6 +114,58 @@
         "reverse_description": "(TODO) write a reverse description for \"is child of\"",
         "reverse_name": "is child of",
         "topology": "tree",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000006",
+      "links": {
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000006",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000006"
+      },
+      "relationships": {
+        "link_category": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "workitemlinkcategories"
+          },
+          "links": {
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+          }
+        },
+        "space_template": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "spacetemplates"
+          },
+          "links": {
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
+          }
+        }
+      },
+      "type": "workitemlinktypes"
+    },
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "One work item item impedes another one",
+        "forward_description": "(TODO) write a forward description for \"impedes\"",
+        "forward_name": "impedes",
+        "name": "Impedes",
+        "reverse_description": "(TODO) write a reverse description for \"is impeded by\"",
+        "reverse_name": "is impeded by",
+        "topology": "dependency",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -145,64 +197,12 @@
         },
         "space_template": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000004",
+            "id": "00000000-0000-0000-0000-000000000008",
             "type": "spacetemplates"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
-            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
-          }
-        }
-      },
-      "type": "workitemlinktypes"
-    },
-    {
-      "attributes": {
-        "created-at": "0001-01-01T00:00:00Z",
-        "description": "One work item relates to another one.",
-        "forward_description": "(TODO) write a forward description for \"relates to\"",
-        "forward_name": "relates to",
-        "name": "Related",
-        "reverse_description": "(TODO) write a reverse description for \"is related to\"",
-        "reverse_name": "is related to",
-        "topology": "network",
-        "updated-at": "0001-01-01T00:00:00Z",
-        "version": 0
-      },
-      "id": "00000000-0000-0000-0000-000000000008",
-      "links": {
-        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000008",
-        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000008"
-      },
-      "relationships": {
-        "link_category": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
-            "type": "workitemlinkcategories"
-          },
-          "links": {
-            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
-            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
-          }
-        },
-        "space": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
-            "type": "spaces"
-          },
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
-          }
-        },
-        "space_template": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000004",
-            "type": "spacetemplates"
-          },
-          "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
-            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000008",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000008"
           }
         }
       },
