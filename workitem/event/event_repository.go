@@ -16,6 +16,9 @@ import (
 // APIStringTypeEvents represent the type of event
 const APIStringTypeEvents = "events"
 
+// WorkitemTypeChangeEvent represents the attribute name for type change event
+const WorkitemTypeChangeEvent = "workitemtype"
+
 // Repository encapsulates retrieval of work item events
 type Repository interface {
 	//repository.Exister
@@ -77,7 +80,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 		if oldRev.WorkItemTypeID != newRev.WorkItemTypeID {
 			event := Event{
 				ID:             newRev.ID,
-				Name:           "workitemtypes",
+				Name:           WorkitemTypeChangeEvent,
 				WorkItemTypeID: newRev.WorkItemTypeID,
 				Timestamp:      newRev.Time,
 				Modifier:       modifierID.ID,

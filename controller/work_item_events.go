@@ -107,7 +107,7 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 		},
 	}
 
-	if wiEvent.Name == APIStringTypeWorkItemType {
+	if wiEvent.Name == event.WorkitemTypeChangeEvent {
 		oldTypeUUID, ok := wiEvent.Old.(uuid.UUID)
 		if !ok {
 			return nil, errs.Errorf("failed to convert old workitem type ID to UUID: %s", wiEvent.Old)
