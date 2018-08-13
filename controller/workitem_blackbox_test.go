@@ -2234,7 +2234,7 @@ func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfNoneMatchHeader() {
 }
 
 func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI app.WorkItemSingle) {
-	assert.NotNil(t, fetchedWI.Data)make form	
+	assert.NotNil(t, fetchedWI.Data)
 	assert.NotNil(t, fetchedWI.Data.ID)
 	assert.Equal(t, createdWI.Data.ID, fetchedWI.Data.ID)
 	assert.NotNil(t, fetchedWI.Data.Type)
