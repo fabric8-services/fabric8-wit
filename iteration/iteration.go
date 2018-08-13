@@ -137,6 +137,7 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
+		u.Path = append(u.Path, u.ID)
 	}
 	if !u.State.IsSet() {
 		u.State = StateNew

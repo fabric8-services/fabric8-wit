@@ -80,6 +80,7 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
+		u.Path = append(u.Path, u.ID)
 	}
 	err := m.db.Create(u).Error
 	if err != nil {
