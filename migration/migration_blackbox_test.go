@@ -1183,27 +1183,32 @@ func testMigration99CodebaseCVEScanDefaultFalse(t *testing.T) {
 // test that the userspace_data table no longer exists - previously
 // used as a temporary solution to get data from tenant jenkins
 func testMigration102UpdateRootIterationAreaPathField(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:102], 102)
+	t.Run("migrate to previous version", func(t *testing.T) {
+		migrateToVersion(t, sqlDB, migrations[:102], 102)
+	})
 
-	// setup
-	require.Nil(t, runSQLscript(sqlDB, "102-insert-test-root-iteration.sql"))
-
-	// now see if the result is false
-	row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
-	require.NotNil(t, row)
-	var path string
-	err := row.Scan(&path)
-	require.NoError(t, err)
-	require.Equal(t, "", path)
-
-	// migrate to the current version
-	migrateToVersion(t, sqlDB, migrations[:103], 103)
-
-	row = sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
-	require.NotNil(t, row)
-	err = row.Scan(&path)
-	require.NoError(t, err)
-	require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443", path)
+	t.Run("setup", func(t *testing.T) {
+		require.Nil(t, runSQLscript(sqlDB, "102-insert-test-root-iteration.sql"))
+	})
+	t.Run("check that 1 iteration with empty path exists", func(t *testing.T) {
+		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
+		require.NotNil(t, row)
+		var path string
+		err := row.Scan(&path)
+		require.NoError(t, err)
+		require.Equal(t, "", path)
+	})
+	t.Run("migrate to current version", func(t *testing.T) {
+		migrateToVersion(t, sqlDB, migrations[:103], 103)
+	})
+	t.Run("check that no iteration with empty path exists", func(t *testing.T) {
+		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
+		require.NotNil(t, row)
+		var path string
+		err := row.Scan(&path)
+		require.NoError(t, err)
+		require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443", path)
+	})
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
