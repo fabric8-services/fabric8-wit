@@ -72,10 +72,10 @@ func (act ActionStateToMetaState) difference(old []interface{}, new []interface{
 
 func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID) ([]*workitem.Board, error) {
 	if act.Ctx == nil {
-		return nil, errs.New("Context is nil")
+		return nil, errs.New("context is nil")
 	}
 	if act.Db == nil {
-		return nil, errs.New("Database is nil")
+		return nil, errs.New("database is nil")
 	}
 	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
 	if err != nil {
@@ -90,10 +90,10 @@ func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID)
 
 func (act ActionStateToMetaState) loadWorkItemTypeGroupsBySpaceID(spaceID uuid.UUID) ([]*workitem.WorkItemTypeGroup, error) {
 	if act.Ctx == nil {
-		return nil, errs.New("Context is nil")
+		return nil, errs.New("context is nil")
 	}
 	if act.Db == nil {
-		return nil, errs.New("Database is nil")
+		return nil, errs.New("database is nil")
 	}
 	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
 	if err != nil {
@@ -108,10 +108,10 @@ func (act ActionStateToMetaState) loadWorkItemTypeGroupsBySpaceID(spaceID uuid.U
 
 func (act ActionStateToMetaState) loadWorkItemTypeByID(id uuid.UUID) (*workitem.WorkItemType, error) {
 	if act.Ctx == nil {
-		return nil, errs.New("Context is nil")
+		return nil, errs.New("context is nil")
 	}
 	if act.Db == nil {
-		return nil, errs.New("Database is nil")
+		return nil, errs.New("database is nil")
 	}
 	wit, err := act.Db.WorkItemTypes().Load(act.Ctx, id)
 	if err != nil {
@@ -122,10 +122,10 @@ func (act ActionStateToMetaState) loadWorkItemTypeByID(id uuid.UUID) (*workitem.
 
 func (act ActionStateToMetaState) loadWorkItemByID(id uuid.UUID) (*workitem.WorkItem, error) {
 	if act.Ctx == nil {
-		return nil, errs.New("Context is nil")
+		return nil, errs.New("context is nil")
 	}
 	if act.Db == nil {
-		return nil, errs.New("Database is nil")
+		return nil, errs.New("database is nil")
 	}
 	wi, err := act.Db.WorkItems().LoadByID(act.Ctx, id)
 	if err != nil {
@@ -136,13 +136,13 @@ func (act ActionStateToMetaState) loadWorkItemByID(id uuid.UUID) (*workitem.Work
 
 func (act ActionStateToMetaState) storeWorkItem(workitem *workitem.WorkItem) (*workitem.WorkItem, error) {
 	if act.Ctx == nil {
-		return nil, errs.New("Context is nil")
+		return nil, errs.New("context is nil")
 	}
 	if act.Db == nil {
-		return nil, errs.New("Database is nil")
+		return nil, errs.New("database is nil")
 	}
 	if act.UserID == nil {
-		return nil, errs.New("UserID is nil")
+		return nil, errs.New("userID is nil")
 	}
 	err := application.Transactional(act.Db, func(appl application.Application) error {
 		var err error

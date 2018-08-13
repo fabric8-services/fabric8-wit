@@ -28,13 +28,13 @@ var _ Action = ActionFieldSet{}
 
 func (act ActionFieldSet) storeWorkItem(wi *workitem.WorkItem) (*workitem.WorkItem, error) {
 	if act.Ctx == nil {
-		return nil, errs.New("Context is nil")
+		return nil, errs.New("context is nil")
 	}
 	if act.Db == nil {
-		return nil, errs.New("Database is nil")
+		return nil, errs.New("database is nil")
 	}
 	if act.UserID == nil {
-		return nil, errs.New("UserID is nil")
+		return nil, errs.New("userID is nil")
 	}
 	var storeResultWorkItem *workitem.WorkItem
 	err := application.Transactional(act.Db, func(appl application.Application) error {
@@ -58,21 +58,35 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 	if !ok {
 		return nil, nil, errs.New("given context is not a WorkItem: " + reflect.TypeOf(newContext).String())
 	}
-	// deserialize the config JSON
+	// deserialize the config JSON.
 	var rawType map[string]interface{}
 	err := json.Unmarshal([]byte(configuration), &rawType)
 	if err != nil {
 		return nil, nil, errs.Wrap(err, "failed to unmarshall from action configuration to a map: "+configuration)
 	}
+	// load WIT.
+	wit, err := act.Db.WorkItemTypes().Load(act.Ctx, wiContext.Type)
+	if err != nil {
+		return nil, nil, errs.Wrap(err, "error loading work item type: "+err.Error())
+	}
+	// iterate over the fields.
 	var convertChanges []convert.Change
 	for k, v := range rawType {
 		if wiContext.Fields[k] != v {
+			fieldType, ok := wit.Fields[k]
+			if !ok {
+				return nil, nil, errs.New("unknown field name: " + k)
+			}
 			convertChanges = append(convertChanges, convert.Change{
 				AttributeName: k,
 				NewValue:      v,
 				OldValue:      wiContext.Fields[k],
 			})
-			wiContext.Fields[k] = v
+			newValue, err := fieldType.Type.ConvertToModel(v)
+			if err != nil {
+				return nil, nil, errs.Wrap(err, "error converting new value to model")
+			}
+			wiContext.Fields[k] = newValue
 		}
 	}
 	// store the WorkItem.

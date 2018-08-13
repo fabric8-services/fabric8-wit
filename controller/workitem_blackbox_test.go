@@ -2234,7 +2234,7 @@ func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfNoneMatchHeader() {
 }
 
 func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI app.WorkItemSingle) {
-	assert.NotNil(t, fetchedWI.Data)
+	assert.NotNil(t, fetchedWI.Data)make form	
 	assert.NotNil(t, fetchedWI.Data.ID)
 	assert.Equal(t, createdWI.Data.ID, fetchedWI.Data.ID)
 	assert.NotNil(t, fetchedWI.Data.Type)
@@ -2248,7 +2248,7 @@ func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI 
 	assert.Contains(t, *fetchedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Empty(t, fetchedWI.Data.Relationships.Labels.Data)
 	require.NotNil(t, fetchedWI.Data.Relationships.SystemBoardcolumns)
-	assert.Empty(t, fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
+	assert.Len(t, fetchedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
 }
 
 func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (etag string, lastModified string, cacheControl string) {
@@ -3184,7 +3184,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	_, updated := test.UpdateWorkitemOK(s.T(), svc.Context, svc, workitemCtrl, *wi.Data.ID, &payload2)
 
 	assert.Equal(s.T(), *wi.Data.ID, *updated.Data.ID)
-	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 2), updated.Data.Attributes["version"])
 	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
 
 	// A not-space collaborator can create a work item in a space which belongs to the openshiftio test identity
@@ -3212,7 +3212,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	_, updated = test.UpdateWorkitemOK(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi2.Data.ID, &payload4)
 
 	assert.Equal(s.T(), *wi2.Data.ID, *updated.Data.ID)
-	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 2), updated.Data.Attributes["version"])
 	assert.Equal(s.T(), wi2.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
 
 	// Check the execution order

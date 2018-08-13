@@ -60,8 +60,8 @@ func ExecuteActionsByOldNew(ctx context.Context, db application.DB, userID uuid.
 // It takes a []Change that describes the differences between the old and the new context.
 func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uuid.UUID, newContext convert.ChangeDetector, contextChanges []convert.Change, actionConfigs map[string]string) (convert.ChangeDetector, []convert.Change, error) {
 	var actionChanges []convert.Change
-	var err error
 	for actionKey := range actionConfigs {
+		var err error
 		actionConfig := actionConfigs[actionKey]
 		switch actionKey {
 		case rules.ActionKeyNil:
@@ -92,5 +92,8 @@ func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uu
 // prior action executions. The execution is expected to add/update their changes on this
 // change set.
 func executeAction(act rules.Action, configuration string, newContext convert.ChangeDetector, contextChanges []convert.Change, actionChanges *[]convert.Change) (convert.ChangeDetector, []convert.Change, error) {
+	if act == nil {
+		return nil, nil, errs.New("rule can not be nil")
+	}
 	return act.OnChange(newContext, contextChanges, configuration, actionChanges)
 }
