@@ -1180,8 +1180,7 @@ func testMigration99CodebaseCVEScanDefaultFalse(t *testing.T) {
 	require.Nil(t, runSQLscript(sqlDB, "099-codebase-cve-scan-default-false-cleanup.sql"))
 }
 
-// test that the userspace_data table no longer exists - previously
-// used as a temporary solution to get data from tenant jenkins
+// test that root iterations are no longer empty and containt he converted id
 func testMigration102UpdateRootIterationAreaPathField(t *testing.T) {
 	t.Run("migrate to previous version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:102], 102)
