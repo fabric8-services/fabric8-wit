@@ -151,7 +151,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration99", testMigration99CodebaseCVEScanDefaultFalse)
 	t.Run("TestMigration100", testMigration100DropUserspacedataTable)
 	t.Run("TestMigration101", testMigration101TypeGroupHasDescriptionField)
-	t.Run("TestMigration102", testMigration102Actions)
+	t.Run("TestMigration102", testMigration102LinkTypeDescriptionFields)
+	t.Run("TestMigration103", testMigration103Actions)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1195,8 +1196,17 @@ func testMigration101TypeGroupHasDescriptionField(t *testing.T) {
 	require.True(t, dialect.HasColumn("work_item_type_groups", "description"))
 }
 
-func testMigration102Actions(t *testing.T) {
+// testLinkTypeDescriptionFields checks that the work item link types table has
+// a forward_description and a reverse_description after updating to DB version
+// 102.
+func testMigration102LinkTypeDescriptionFields(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:103], 103)
+	require.True(t, dialect.HasColumn("work_item_link_types", "forward_description"))
+	require.True(t, dialect.HasColumn("work_item_link_types", "reverse_description"))
+}
+
+func testMigration103Actions(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:104], 104)
 	require.True(t, dialect.HasColumn("work_item_types", "trans_rule_key"))
 	require.True(t, dialect.HasColumn("work_item_types", "trans_rule_argument"))
 }

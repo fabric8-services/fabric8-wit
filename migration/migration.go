@@ -452,7 +452,10 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("101-add-description-to-witg.sql")})
 
 	// Version 102
-	m = append(m, steps{ExecuteSQLFile("102-add-rules-to-wit.sql")})
+	m = append(m, steps{ExecuteSQLFile("102-add-forward-and-reverse-link-type-descriptions.sql")})
+
+	// Version 103
+	m = append(m, steps{ExecuteSQLFile("103-add-rules-to-wit.sql")})
 
 	// Version N
 	//
