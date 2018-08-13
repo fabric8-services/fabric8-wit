@@ -438,15 +438,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("099-codebase-cve-scan-default-false.sql")})
 
 	// Version 100
-	m = append(m, steps{
-		func(db *sql.Tx) error {
-			_, err := db.Exec("DROP TABLE IF EXISTS userspace_data")
-			if err != nil {
-				return errs.Wrapf(err, "failed to drop table `userspace_data`")
-			}
-			return nil
-		},
-	})
+	m = append(m, steps{ExecuteSQLFile("100-drop-userspace-data.sql")})
 
 	// Version 101
 	m = append(m, steps{ExecuteSQLFile("101-add-description-to-witg.sql")})
