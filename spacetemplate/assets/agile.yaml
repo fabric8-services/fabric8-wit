@@ -97,7 +97,7 @@ work_item_types:
     "business_value":
       label: Business Value
       description:
-        Business value for this theme.
+        Business value for this defect.
       required: no
       type:
         kind: string
@@ -200,14 +200,14 @@ work_item_types:
     "storypoints":
       label: Storypoints
       description: 
-        The effort needed to implement the epic.
+        The effort needed to implement the task.
       required: no
       type:
         kind: float
     "effort":
       label: Effort
       description: >
-        The effort needed to implement this user story.
+        The effort needed to implement this task.
       required: no
       type:
         kind: float
