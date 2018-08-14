@@ -33,8 +33,7 @@ type Area struct {
 // MakeChildOf does all the path magic to make the current area a child of
 // the given parent area.
 func (m *Area) MakeChildOf(parent Area) {
-	m.Path = append(parent.Path, parent.ID)
-	m.Path = append(m.Path, m.ID)
+	m.Path = append(parent.Path, m.ID)
 }
 
 // GetETagData returns the field values to use to generate the ETag

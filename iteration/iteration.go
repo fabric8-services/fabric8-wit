@@ -47,8 +47,7 @@ type Iteration struct {
 // MakeChildOf does all the path magic to make the current iteration a child of
 // the given parent iteration.
 func (m *Iteration) MakeChildOf(parent Iteration) {
-	m.Path = append(parent.Path, parent.ID)
-	m.Path = append(m.Path, m.ID)
+	m.Path = append(parent.Path, m.ID)
 }
 
 // FullPath returns the Path by appending self ID to it.

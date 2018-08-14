@@ -433,17 +433,17 @@ func (s *TestIterationRepository) TestParent() {
 				}
 				return nil
 			}))
-		rootID := fxt.Iterations[0].ID
-		iteration1ID := fxt.Iterations[1].ID
-		iteration2ID := fxt.Iterations[2].ID
-		iteration4ID := fxt.Iterations[4].ID
+		rootID := fxt.Iterations[0].Path.Convert()
+		iteration1ID := fxt.Iterations[1].Path.Convert()
+		iteration2ID := fxt.Iterations[2].Path.Convert()
+		iteration4ID := fxt.Iterations[4].Path.Convert()
 
-		require.Equal(t, uuid.Nil, fxt.Iterations[0].Parent())
-		require.Equal(t, rootID, fxt.Iterations[1].Parent())
-		require.Equal(t, iteration1ID, fxt.Iterations[2].Parent())
-		require.Equal(t, iteration2ID, fxt.Iterations[3].Parent())
-		require.Equal(t, rootID, fxt.Iterations[4].Parent())
-		require.Equal(t, iteration4ID, fxt.Iterations[5].Parent())
+		require.NotEqual(t, uuid.Nil, fxt.Iterations[0].Parent())
+		require.Contains(t, fxt.Iterations[1].Path.Convert(), rootID)
+		require.Contains(t, fxt.Iterations[2].Path.Convert(), iteration1ID)
+		require.Contains(t, fxt.Iterations[3].Path.Convert(), iteration2ID)
+		require.Contains(t, fxt.Iterations[4].Path.Convert(), rootID)
+		require.Contains(t, fxt.Iterations[5].Path.Convert(), iteration4ID)
 	})
 }
 
