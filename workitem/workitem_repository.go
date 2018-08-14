@@ -1298,9 +1298,14 @@ func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 		var identity account.Identity
 		tx := db.Model(&account.Identity{}).Where("id = ?", val).Find(&identity)
 		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find identity")
+		}
+		var user account.User
+		tx = db.Model(&account.User{}).Where("id = ?", identity.UserID).Find(&user)
+		if tx.Error != nil {
 			return result, errs.Wrap(tx.Error, "failed to find user")
 		}
-		result = fmt.Sprintf("%s (%s)", identity.User.FullName, identity.Username)
+		result = fmt.Sprintf("%s (%s)", user.FullName, identity.Username)
 	case KindArea:
 		var area area.Area
 		tx := db.Model(area.TableName()).Where("id = ?", val).First(&area)
