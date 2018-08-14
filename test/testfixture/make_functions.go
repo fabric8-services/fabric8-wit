@@ -26,6 +26,30 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+func makeUsers(fxt *TestFixture) error {
+	if fxt.info[kindUsers] == nil {
+		return nil
+	}
+	userRepo := account.NewUserRepository(fxt.db)
+	fxt.Users = make([]*account.User, fxt.info[kindUsers].numInstances)
+	for i := range fxt.Users {
+		id := uuid.NewV4()
+		fxt.Users[i] = &account.User{
+			ID:       id,
+			Email:    fmt.Sprintf("%s@example.com", id),
+			FullName: testsupport.CreateRandomValidTestName("user"),
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindUsers); err != nil {
+			return errs.WithStack(err)
+		}
+		err := userRepo.Create(fxt.ctx, fxt.Users[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create user: %+v", fxt.Users[i])
+		}
+	}
+	return nil
+}
+
 func makeIdentities(fxt *TestFixture) error {
 	if fxt.info[kindIdentities] == nil {
 		return nil
@@ -35,6 +59,7 @@ func makeIdentities(fxt *TestFixture) error {
 		fxt.Identities[i] = &account.Identity{
 			Username:     testsupport.CreateRandomValidTestName("John Doe "),
 			ProviderType: account.KeycloakIDP,
+			User:         *fxt.Users[0],
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindIdentities); err != nil {
 			return errs.WithStack(err)

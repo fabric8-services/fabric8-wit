@@ -13,22 +13,25 @@ import (
 
 // constants for describing possible field types
 const (
-	KindString      Kind = "string"
-	KindInteger     Kind = "integer"
-	KindFloat       Kind = "float"
-	KindBoolean     Kind = "bool"
-	KindInstant     Kind = "instant"
-	KindDuration    Kind = "duration"
-	KindURL         Kind = "url"
+	// non-relational
+	KindString   Kind = "string"
+	KindInteger  Kind = "integer"
+	KindFloat    Kind = "float"
+	KindBoolean  Kind = "bool"
+	KindInstant  Kind = "instant"
+	KindDuration Kind = "duration"
+	KindURL      Kind = "url"
+	KindMarkup   Kind = "markup"
+	// relational
 	KindIteration   Kind = "iteration"
 	KindUser        Kind = "user"
 	KindLabel       Kind = "label"
 	KindBoardColumn Kind = "boardcolumn"
-	KindEnum        Kind = "enum"
-	KindList        Kind = "list"
-	KindMarkup      Kind = "markup"
 	KindArea        Kind = "area"
 	KindCodebase    Kind = "codebase"
+	// composite
+	KindEnum Kind = "enum"
+	KindList Kind = "list"
 )
 
 // Kind is the kind of field type
@@ -37,6 +40,21 @@ type Kind string
 // IsSimpleType returns 'true' if the kind is simple, i.e., not a list nor an enum
 func (k Kind) IsSimpleType() bool {
 	return k != KindEnum && k != KindList
+}
+
+// IsRelational returns 'true' if the kind must be represented with a
+// relationship.
+func (k Kind) IsRelational() bool {
+	switch k {
+	case KindIteration,
+		KindUser,
+		KindLabel,
+		KindBoardColumn,
+		KindArea,
+		KindCodebase:
+		return true
+	}
+	return false
 }
 
 // String implements the Stringer interface and returns the kind as a string

@@ -29,7 +29,9 @@ type WorkItemLinkType struct {
 	Version               int       `json:"version"`               // Version for optimistic concurrency control
 	Topology              Topology  `json:"topology"`              // Valid values: network, directed_network, dependency, tree
 	ForwardName           string    `json:"forward_name"`
+	ForwardDescription    *string   `json:"forward_description,omitempty"`
 	ReverseName           string    `json:"reverse_name"`
+	ReverseDescription    *string   `json:"reverse_description,omitempty"`
 	LinkCategoryID        uuid.UUID `sql:"type:uuid" json:"link_category_id"`
 	SpaceTemplateID       uuid.UUID `sql:"type:uuid" json:"space_template_id"` // Reference to a space template
 }
@@ -54,6 +56,12 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if !reflect.DeepEqual(t.Description, other.Description) {
+		return false
+	}
+	if !reflect.DeepEqual(t.ForwardDescription, other.ForwardDescription) {
+		return false
+	}
+	if !reflect.DeepEqual(t.ReverseDescription, other.ReverseDescription) {
 		return false
 	}
 	if t.Topology != other.Topology {
