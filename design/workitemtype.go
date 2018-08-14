@@ -12,7 +12,7 @@ var fieldType = a.Type("fieldType", func() {
 	a.Attribute("componentType", d.String, "The kind of type of the individual elements for a list type. Required for list types. Must be a simple type, not  enum or list")
 	a.Attribute("baseType", d.String, "The kind of type of the enumeration values for an enum type. Required for enum types. Must be a simple type, not  enum or list")
 	a.Attribute("values", a.ArrayOf(d.Any), "The possible values for an enum type. The values must be of a type convertible to the base type")
-
+	a.Attribute("defaultValue", d.Any, "Optional default value (if any)")
 	a.Required("kind")
 })
 

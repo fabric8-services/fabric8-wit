@@ -1,19 +1,19 @@
 {
   "data": {
     "attributes": {
-      "user_field": "john doe",
+      "user_field": "00000000-0000-0000-0000-000000000001",
       "version": 0
     },
-    "id": "00000000-0000-0000-0000-000000000001",
+    "id": "00000000-0000-0000-0000-000000000002",
     "relationships": {
       "space": {
         "data": {
-          "id": "00000000-0000-0000-0000-000000000002",
+          "id": "00000000-0000-0000-0000-000000000003",
           "type": "spaces"
         },
         "links": {
-          "related": "http://api.service.domain.org/api/spaces/00000000-0000-0000-0000-000000000002",
-          "self": "http://api.service.domain.org/api/spaces/00000000-0000-0000-0000-000000000002"
+          "related": "http://api.service.domain.org/api/spaces/00000000-0000-0000-0000-000000000003",
+          "self": "http://api.service.domain.org/api/spaces/00000000-0000-0000-0000-000000000003"
         }
       }
     },

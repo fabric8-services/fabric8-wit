@@ -5,12 +5,14 @@ import (
 	"reflect"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
+	errs "github.com/pkg/errors"
 )
 
-//ListType describes a list of SimpleType values
+// ListType describes a list of SimpleType values
 type ListType struct {
 	SimpleType    `json:"simple_type"`
-	ComponentType SimpleType `json:"component_type"`
+	ComponentType SimpleType  `json:"component_type"`
+	DefaultValue  interface{} `json:"default_value,omitempty"`
 }
 
 // Ensure ListType implements the FieldType interface
@@ -21,9 +23,38 @@ var _ FieldType = (*ListType)(nil)
 var _ convert.Equaler = ListType{}
 var _ convert.Equaler = (*ListType)(nil)
 
-// DefaultValue implements FieldType
-func (t ListType) DefaultValue(value interface{}) (interface{}, error) {
-	return value, nil
+// Validate checks that the type of the list is "list", that the component type
+// iteself a simple tpye (e.g. not a list or an enum) and that the default value
+// matches the Kind of the ComponentType.
+func (t ListType) Validate() error {
+	if t.Kind != KindList {
+		return errs.Errorf(`list type cannot have a base type "%s" but needs "%s"`, t.Kind, KindList)
+	}
+	if !t.ComponentType.Kind.IsSimpleType() {
+		return errs.Errorf(`list type must have a simple component type and not "%s"`, t.Kind)
+	}
+	if t.DefaultValue != nil {
+		_, err := t.ComponentType.ConvertToModel(t.DefaultValue)
+		if err != nil {
+			return errs.Wrapf(err, `failed to convert default list value to kind "%s": %+v`, t.Kind, t.DefaultValue)
+		}
+	}
+	return nil
+}
+
+// GetDefaultValue implements FieldType
+func (t ListType) GetDefaultValue(value interface{}) (interface{}, error) {
+	if err := t.Validate(); err != nil {
+		return nil, errs.Wrapf(err, "failed to validate list type")
+	}
+	if value != nil {
+		v, err := t.ComponentType.ConvertToModel(value)
+		if err != nil {
+			return nil, errs.Wrapf(err, `value "%+v" is not a valid list value`)
+		}
+		return v, nil
+	}
+	return t.DefaultValue, nil
 }
 
 // Equal returns true if two ListType objects are equal; otherwise false is returned.
@@ -33,6 +64,9 @@ func (t ListType) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if !t.SimpleType.Equal(other.SimpleType) {
+		return false
+	}
+	if !reflect.DeepEqual(t.DefaultValue, other.DefaultValue) {
 		return false
 	}
 	return t.ComponentType.Equal(other.ComponentType)

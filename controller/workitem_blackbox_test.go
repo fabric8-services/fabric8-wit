@@ -39,11 +39,11 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	errs "github.com/pkg/errors"
-
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	// "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -285,43 +285,61 @@ func (s *WorkItemSuite) TestCreateWI() {
 
 		// when
 		for kind, iv := range vals {
-			witID := fxt.WorkItemTypeByName(kind.String()).ID
+			wit := fxt.WorkItemTypeByName(kind.String())
+			field, ok := wit.Fields[fieldName]
+			_ = field
+			require.True(t, ok)
+
+			require.NotNil(t, wit)
 			t.Run(kind.String(), func(t *testing.T) {
 				// Handle cases where the conversion is supposed to work
 				t.Run("legal", func(t *testing.T) {
-					for _, expected := range iv.Valid {
-						t.Run(spew.Sdump(expected), func(t *testing.T) {
-							payload := minimumRequiredCreateWithTypeAndSpace(witID, fxt.Spaces[0].ID)
-							payload.Data.Attributes[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Test WI")
-							payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-							payload.Data.Attributes[fieldName] = expected
-							_, created := test.CreateWorkitemsCreated(t, s.svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
-							_ = created
-							require.NotNil(t, created)
-							require.NotNil(t, created.Data)
-							require.NotNil(t, created.Data.ID)
-
-							_, loadedWi := test.ShowWorkitemOK(t, s.svc.Context, svc, workitemCtrl, *created.Data.ID, nil, nil)
-							require.NotNil(t, loadedWi)
-							// // compensate for errors when interpreting ambigous actual values
-							actual := loadedWi.Data.Attributes[fieldName]
-							if iv.Compensate != nil {
-								actual = iv.Compensate(actual)
-							}
-							require.Equal(t, expected, actual, "expected no error when loading and comparing the workitem with a '%s': %#v", kind, spew.Sdump(expected))
+					for _, inOut := range iv.Valid {
+						t.Run(fmt.Sprintf("%s -> %s", spew.Sdump(inOut.Input), spew.Sdump(inOut.Output)), func(t *testing.T) {
+							var created, loaded *app.WorkItemSingle
+							t.Run("create work item", func(t *testing.T) {
+								// Construct a work item creation payload but don't use it right away.
+								payload := minimumRequiredCreateWithTypeAndSpace(wit.ID, fxt.Spaces[0].ID)
+								payload.Data.Attributes[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Test WI")
+								payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+								payload.Data.Attributes[fieldName] = inOut.Input
+								_, created = test.CreateWorkitemsCreated(t, s.svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
+								require.NotNil(t, created)
+								require.NotNil(t, created.Data)
+								require.NotNil(t, created.Data.ID)
+								require.Equal(t, inOut.Output, created.Data.Attributes[fieldName])
+							})
+							t.Run("show work item", func(t *testing.T) {
+								// Load the object back in and check that it has the
+								// right value for the updated field.
+								_, loaded = test.ShowWorkitemOK(t, s.svc.Context, svc, workitemCtrl, *created.Data.ID, nil, nil)
+								require.NotNil(t, loaded)
+								require.Equal(t, inOut.Output, loaded.Data.Attributes[fieldName])
+							})
 						})
 					}
 				})
 				t.Run("illegal", func(t *testing.T) {
 					// Handle cases where the conversion is supposed to NOT work
-					for _, expected := range iv.Invalid {
-						t.Run(spew.Sdump(expected), func(t *testing.T) {
-							payload := minimumRequiredCreateWithTypeAndSpace(witID, fxt.Spaces[0].ID)
+					for _, invalidValue := range iv.Invalid {
+						t.Run(spew.Sdump(invalidValue), func(t *testing.T) {
+							payload := minimumRequiredCreateWithTypeAndSpace(wit.ID, fxt.Spaces[0].ID)
 							payload.Data.Attributes[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Test WI")
 							payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-							payload.Data.Attributes[fieldName] = expected
+							payload.Data.Attributes[fieldName] = invalidValue
 							_, jerrs := test.CreateWorkitemsBadRequest(t, s.svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
-							require.NotNil(t, jerrs, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+							require.NotNil(t, jerrs, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(invalidValue))
+						})
+					}
+					// Handle cases where the conversion is supposed to NOT work
+					for _, invalidValue := range iv.InvalidWhenRequired {
+						t.Run(spew.Sdump(invalidValue), func(t *testing.T) {
+							payload := minimumRequiredCreateWithTypeAndSpace(wit.ID, fxt.Spaces[0].ID)
+							payload.Data.Attributes[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Test WI")
+							payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+							payload.Data.Attributes[fieldName] = invalidValue
+							_, jerrs := test.CreateWorkitemsBadRequest(t, s.svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
+							require.NotNil(t, jerrs, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(invalidValue))
 						})
 					}
 				})
@@ -970,95 +988,96 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateFieldOfDifferentSimpleTypes() {
-	s.T().Run("field types", func(t *testing.T) {
-		vals := workitem.GetFieldTypeTestData(t)
-		kinds := vals.GetKinds()
-		numKinds := len(kinds)
-		// Create a work item type and a work item for each kind and initialize
-		// it with the first valid value.
-		fxt := tf.NewTestFixture(t, s.DB,
-			tf.CreateWorkItemEnvironment(),
-			// we need these many spaces because they the WI numbers are tigt to
-			// the space.
-			tf.WorkItemTypes(numKinds, func(fxt *tf.TestFixture, idx int) error {
-				kind := kinds[idx]
-				fxt.WorkItemTypes[idx].Name = kind.String() + "_wit"
-				// Add one field that is used for testing
-				fxt.WorkItemTypes[idx].Fields[kind.String()+"_field"] = workitem.FieldDefinition{
-					Required:    true,
-					Label:       kind.String(),
-					Description: fmt.Sprintf("This field is used for testing values for the field kind '%s'", kind),
-					Type: workitem.SimpleType{
-						Kind: kind,
-					},
-				}
-				return nil
-			}),
-			tf.WorkItems(numKinds, func(fxt *tf.TestFixture, idx int) error {
-				kind := kinds[idx]
-				if len(vals[kind].Valid) < 2 {
-					return errs.Errorf("test map for kind %s needs to have more than one value, one for creation and one for updating", kind)
-				}
-				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = kind.String() + "_wi"
-				fxt.WorkItems[idx].Fields[kind.String()+"_field"] = vals[kind].Valid[0]
-				fxt.WorkItems[idx].Type = fxt.WorkItemTypes[idx].ID
-				fxt.WorkItems[idx].Number = idx
-				return nil
-			}),
-		)
+	vals := workitem.GetFieldTypeTestData(s.T())
+	kinds := vals.GetKinds()
+	numKinds := len(kinds)
+	// Create a work item type and a work item for each kind and initialize
+	// it with the first valid value.
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.CreateWorkItemEnvironment(),
+		// we need these many spaces because they the WI numbers are tigt to
+		// the space.
+		tf.WorkItemTypes(numKinds, func(fxt *tf.TestFixture, idx int) error {
+			kind := kinds[idx]
+			fxt.WorkItemTypes[idx].Name = kind.String() + "_wit"
+			// Add one field that is used for testing
+			fxt.WorkItemTypes[idx].Fields[kind.String()+"_field"] = workitem.FieldDefinition{
+				Required:    true,
+				Label:       kind.String(),
+				Description: fmt.Sprintf("This field is used for testing values for the field kind '%s'", kind),
+				Type: workitem.SimpleType{
+					Kind: kind,
+				},
+			}
+			return nil
+		}),
+		tf.WorkItems(numKinds, func(fxt *tf.TestFixture, idx int) error {
+			kind := kinds[idx]
+			if len(vals[kind].Valid) < 2 {
+				return errs.Errorf("test map for kind %s needs to have more than one value, one for creation and one for updating", kind)
+			}
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = kind.String() + "_wi"
+			fxt.WorkItems[idx].Fields[kind.String()+"_field"] = vals[kind].Valid[0].Input
+			fxt.WorkItems[idx].Type = fxt.WorkItemTypes[idx].ID
+			fxt.WorkItems[idx].Number = idx
+			return nil
+		}),
+	)
 
-		// when
-		for kind, iv := range vals {
-			t.Run(kind.String(), func(t *testing.T) {
-				kindSpace := fxt.Spaces[0]
-				require.NotNil(t, kindSpace)
-				kindSpaceTemplate := fxt.SpaceTemplates[0]
-				require.NotNil(t, kindSpaceTemplate)
+	// when
+	for kind, iv := range vals {
+		s.T().Run(kind.String(), func(t *testing.T) {
+			kindSpace := fxt.Spaces[0]
+			require.NotNil(t, kindSpace)
+			kindSpaceTemplate := fxt.SpaceTemplates[0]
+			require.NotNil(t, kindSpaceTemplate)
 
-				// dump the wit as a golden file for reference
-				wit := fxt.WorkItemTypeByName(kind.String()+"_wit", kindSpaceTemplate.ID)
-				require.NotNil(t, wit)
-				_, witApp := test.ShowWorkitemtypeOK(t, s.svc.Context, s.svc, s.witCtrl, wit.ID, nil, nil)
-				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), kind.String()+"_wit.res.payload.golden.json"), witApp)
+			// dump the wit as a golden file for reference
+			wit := fxt.WorkItemTypeByName(kind.String()+"_wit", kindSpaceTemplate.ID)
+			require.NotNil(t, wit)
+			_, witApp := test.ShowWorkitemtypeOK(t, s.svc.Context, s.svc, s.witCtrl, wit.ID, nil, nil)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), kind.String()+"_wit.res.payload.golden.json"), witApp)
 
-				wi := fxt.WorkItemByTitle(kind.String()+"_wi", kindSpace.ID)
-				require.NotNil(t, wi)
-				version := wi.Version
+			wi := fxt.WorkItemByTitle(kind.String()+"_wi", kindSpace.ID)
+			require.NotNil(t, wi)
+			version := wi.Version
 
-				// Handle cases where the conversion is supposed to work
+			// Handle cases where the conversion is supposed to work
+			t.Run("legal", func(t *testing.T) {
 				for i := 1; i < len(iv.Valid); i++ {
-					newValue := iv.Valid[i]
-					t.Run(fmt.Sprintf("legal sample %d", i), func(t *testing.T) {
+					sample := iv.Valid[i]
+					t.Run(fmt.Sprintf("%+v -> %+v", spew.Sdump(sample.Input), spew.Sdump(sample.Output)), func(t *testing.T) {
 						// construct an update request
 						u := minimumRequiredUpdatePayloadWithSpace(kindSpaceTemplate.ID)
 						u.Data.Attributes["version"] = version
-						u.Data.Attributes[kind.String()+"_field"] = newValue
+						u.Data.Attributes[kind.String()+"_field"] = sample.Input
 						u.Data.ID = &wi.ID
 						// when
 						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".req.payload.golden.json"), u)
 						// Update the work item
-						res, updatedWI := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, wi.ID, &u)
+						_, updatedWI := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, wi.ID, &u)
 						// Check for updated value
 						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".res.payload.golden.json"), updatedWI)
-						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".res.headers.golden.json"), res.Header())
 						_, loadedWi := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, *updatedWI.Data.ID, nil, nil)
 						require.NotNil(t, loadedWi)
 						// compensate for errors when interpreting ambigous actual values
 						actual := loadedWi.Data.Attributes[kind.String()+"_field"]
-						if iv.Compensate != nil {
-							actual = iv.Compensate(actual)
-						}
-						require.Equal(t, newValue, actual, "expected no error when loading and comparing the workitem with a '%s' kind: %#v", kind, spew.Sdump(newValue))
+						// if iv.Compensate != nil {
+						// 	actual = iv.Compensate(actual)
+						// }
+						require.Equal(t, sample.Output, actual, "expected no error when loading and comparing the workitem with a '%s' kind: %#v", kind, spew.Sdump(sample.Output))
 
 						var ok bool
 						version, ok = loadedWi.Data.Attributes[workitem.SystemVersion].(int)
 						require.True(t, ok, "failed to get updated version")
 					})
 				}
+			})
+			t.Run("illegal", func(t *testing.T) {
 				// Handle cases where the conversion is supposed to NOT work
 				for i := 0; i < len(iv.Invalid); i++ {
 					newValue := iv.Invalid[i]
-					t.Run(fmt.Sprintf("illegal sample %d", i), func(t *testing.T) {
+					t.Run(fmt.Sprintf("%+v", spew.Sdump(newValue)), func(t *testing.T) {
 						// construct an update request
 						u := minimumRequiredUpdatePayloadWithSpace(kindSpaceTemplate.ID)
 						u.Data.Attributes["version"] = version
@@ -1071,8 +1090,8 @@ func (s *WorkItem2Suite) TestWI2UpdateFieldOfDifferentSimpleTypes() {
 					})
 				}
 			})
-		}
-	})
+		})
+	}
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {

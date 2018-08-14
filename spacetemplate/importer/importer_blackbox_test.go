@@ -283,6 +283,7 @@ work_item_types:
       required: yes
       type:
         kind: string
+        default_value: "foobar"
     state:
       label: State
       description: The state of the bug
@@ -295,6 +296,7 @@ work_item_types:
         values:
           - new
           - closed
+        default_value: closed
     priority:
       label: Priority
       description: The priority of the bug
@@ -304,6 +306,7 @@ work_item_types:
           kind: list
         component_type:
           kind: integer
+        default_value: 42
 work_item_link_types:
 - id: "` + wiltID.String() + `"
   name: Blocker
@@ -375,7 +378,8 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 						Description: "The title of the bug",
 						Required:    true,
 						Type: workitem.SimpleType{
-							Kind: workitem.KindString,
+							Kind:         workitem.KindString,
+							DefaultValue: "foobar",
 						},
 					},
 					"state": {
@@ -390,6 +394,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 								"new",
 								"closed",
 							},
+							DefaultValue: "closed",
 						},
 					},
 					"priority": {
@@ -399,6 +404,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 						Type: workitem.ListType{
 							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 							ComponentType: workitem.SimpleType{Kind: workitem.KindInteger},
+							DefaultValue:  42.0,
 						},
 					},
 				},

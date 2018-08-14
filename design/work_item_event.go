@@ -29,10 +29,10 @@ var eventAttributes = a.Type("EventAttributes", func() {
 	a.Attribute("name", d.String, "The name of the event occured", func() {
 		a.Example("closed")
 	})
-	a.Attribute("oldValue", d.String, "The user who was assigned to (or unassigned from). Only for 'assigned' and 'unassigned' events.", func() {
+	a.Attribute("oldValue", d.Any, "The user who was assigned to (or unassigned from). Only for 'assigned' and 'unassigned' events.", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
-	a.Attribute("newValue", d.String, "The user who performed the assignment (or unassignment). Only for 'assigned' and 'unassigned' events..", func() {
+	a.Attribute("newValue", d.Any, "The user who performed the assignment (or unassignment). Only for 'assigned' and 'unassigned' events..", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
 	a.Required("timestamp", "name")

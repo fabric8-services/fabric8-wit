@@ -1,7 +1,6 @@
 package workitem
 
 import (
-	"fmt"
 	"math"
 	"sort"
 	"testing"
@@ -9,24 +8,8 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/rendering"
-	"github.com/stretchr/testify/require"
+	uuid "github.com/satori/go.uuid"
 )
-
-// ValidInvalid given a bunch of tests with expected error results for each work
-// item type field kind, a work item type for each kind...
-type ValidInvalid struct {
-	// Valid should contain more than one valid examples so a test function can
-	// properly handle work item creation and updating
-	Valid   []interface{}
-	Invalid []interface{}
-	// When the actual value is a zero (0), it will be interpreted as a float64
-	// rather than an int. To compensate for that ambiguity, a kind can opt-in
-	// to provide a construction function that returns the correct value.
-	Compensate func(interface{}) interface{}
-}
-
-// FieldTypeTestDataMap defines a map with additional functionality on it.
-type FieldTypeTestDataMap map[Kind]ValidInvalid
 
 // GetKinds returns the keys of the test data map in sorted order.
 func (s FieldTypeTestDataMap) GetKinds() []Kind {
@@ -44,159 +27,206 @@ func (s FieldTypeTestDataMap) GetKinds() []Kind {
 	return kinds
 }
 
+// A FieldTypeTestDataMap can hold valid and invalid tests data stored for each
+// work item field kind
+type FieldTypeTestDataMap map[Kind]ValidInvalid
+
+// ValidInvalid given a bunch of tests with expected error results for each work
+// item type field kind, a work item type for each kind...
+type ValidInvalid struct {
+	// Valid should contain more than one valid examples so a test function can
+	// properly handle work item creation and updating
+	Valid               []InputOutput
+	Invalid             []interface{}
+	InvalidWhenRequired []interface{}
+}
+
+// InputOutput defines how an input is represented in model an in storage space
+type InputOutput struct {
+	// Input is what a client or Go code can input when creating a work item.
+	Input interface{}
+	// Output is what the Go code in model space will be for the given input.
+	Output interface{}
+	// Storage is what is stored in the DB for the given input.
+	Storage interface{}
+}
+
+func inAsOut(in interface{}) InputOutput {
+	return InputOutput{Input: in, Output: in, Storage: in}
+}
+
 // GetFieldTypeTestData returns a list of legal and illegal values to be used
 // with a given field type (here: the map key).
 func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
-	// helper function to convert a string into a duration and handling the
-	// error
-	validDuration := func(s string) time.Duration {
-		d, err := time.ParseDuration(s)
-		if err != nil {
-			require.NoError(t, err, "we expected the duration to be valid: %s", s)
-		}
-		return d
+	// create a time value
+	timeNow := time.Now()
+	_ = timeNow
+
+	// structure that can be used by all kinds that store UUIDs
+	uuidVal := uuid.NewV4()
+	validInvalidForUUID := ValidInvalid{
+		Valid: []InputOutput{
+			inAsOut(uuid.NewV4()),
+			{Input: uuidVal.String(), Output: uuidVal, Storage: uuidVal},
+			{Input: uuid.Nil, Output: uuid.Nil, Storage: uuid.Nil},
+		},
+		Invalid: []interface{}{
+			"john doe", // users have to be IDs
+			0,
+			true,
+			0.1,
+			"",
+		},
+		InvalidWhenRequired: []interface{}{
+			nil,
+		},
 	}
+	_ = validInvalidForUUID
 
 	res := FieldTypeTestDataMap{
 		KindString: {
-			Valid: []interface{}{
-				"foo",
-				"bar",
+			Valid: []InputOutput{
+				inAsOut("foo"),
+				inAsOut("bar"),
 			},
 			Invalid: []interface{}{
-				"", // NOTE: an empty string is not allowed in a required field.
-				nil,
 				0,
 				true,
 				0.1,
 			},
-		},
-		KindUser: {
-			Valid: []interface{}{
-				"jane doe", // TODO(kwk): do we really allow usernames with spaces?
-				"john doe",
-				"", // TODO(kwk): do we really allow empty usernames?
-			},
-			Invalid: []interface{}{
+			InvalidWhenRequired: []interface{}{
+				"",
 				nil,
-				0,
-				true,
-				0.1,
 			},
 		},
-		KindIteration: {
-			Valid: []interface{}{
-				"63b792d8-eede-40d9-b311-b43f84285e98",
-				"058c9b12-39a9-4495-b24b-b053514a7edb",
-				"", // TODO(kwk): do we really allow empty iteration names?
-			},
-			Invalid: []interface{}{
-				nil,
-				0,
-				true,
-				0.1,
-			},
-		},
-		KindArea: {
-			Valid: []interface{}{
-				"dde919b1-3c61-4d3a-8cda-941c62813749",
-				"8aab8647-35e0-4f18-9468-f5c2fbc02b3d",
-				//"", // TODO(kwk): do we really allow empty area names?
-			},
-			Invalid: []interface{}{
-				nil,
-				0,
-				true,
-				0.1,
-			},
-		},
-		KindLabel: {
-			Valid: []interface{}{
-				"8eea6cf3-ddf2-4b93-ade2-13c6b75de1df",
-				"6efaad81-b35a-44bc-898a-6c66336c7cff",
-				"", // TODO(kwk): do we really allow empty label names?
-			},
-			Invalid: []interface{}{
-				nil,
-				0,
-				true,
-				0.1,
-			},
-		},
-		KindBoardColumn: {
-			Valid: []interface{}{
-				"d05b66fb-9162-4f7b-ac0f-19d9c41324f4",
-				"400956cf-741c-4b4d-a89b-a44f4dead04e",
-			},
-			Invalid: []interface{}{
-				nil,
-				0,
-				true,
-				0.1,
-			},
-		},
+		KindUser:        validInvalidForUUID,
+		KindIteration:   validInvalidForUUID,
+		KindArea:        validInvalidForUUID,
+		KindLabel:       validInvalidForUUID,
+		KindBoardColumn: validInvalidForUUID,
 		KindURL: {
-			Valid: []interface{}{
-				"127.0.0.1",
-				"http://www.openshift.io",
-				"openshift.io",
-				"ftp://url.with.port.and.different.protocol.port.and.parameters.com:8080/fooo?arg=bar&key=value",
+			Valid: []InputOutput{
+				inAsOut("127.0.0.1"),
+				inAsOut("http://www.openshift.io"),
+				inAsOut("openshift.io"),
+				inAsOut("ftp://url.with.port.and.different.protocol.port.and.parameters.com:8080/fooo?arg=bar&key=value"),
 			},
 			Invalid: []interface{}{
 				0,
-				"", // NOTE: An empty URL is not allowed when the field is required (see simple_type.go:53)
 				"http://url with whitespace.com",
 				"http://www.example.com/foo bar",
 				"localhost", // TODO(kwk): shall we disallow localhost?
 				"foo",
+				"",
+			},
+			InvalidWhenRequired: []interface{}{
+				nil,
 			},
 		},
 		KindInteger: {
-			// Compensate for wrong interpretation of 0
-			Compensate: func(in interface{}) interface{} {
-				v := in.(float64) // NOTE: float64 is correct here because a 0 will first and foremost be treated as float64
-				if v != math.Trunc(v) {
-					panic(fmt.Sprintf("value is not a whole number %v", v))
-				}
-				return int(v)
-			},
-			Valid: []interface{}{
-				0,
-				333,
-				-100,
+			Valid: []InputOutput{
+				{0, int32(0), int32(0)},
+				{333, int32(333), int32(333)},
+				{-100, int32(-100), int32(-100)},
+				{222.0, int32(222), int32(222)},
+				{"0", int32(0), int32(0)},
+				{"123", int32(123), int32(123)},
+				{int(123), int32(123), int32(123)},
+				{int8(8), int32(8), int32(8)},
+				{int16(16), int32(16), int32(16)},
+				{int32(32), int32(32), int32(32)},
+				{int64(64), int32(64), int32(64)},
+				{int(-123), int32(-123), int32(-123)},
+				{int8(-8), int32(-8), int32(-8)},
+				{int16(-16), int32(-16), int32(-16)},
+				{int32(-32), int32(-32), int32(-32)},
+				{int64(-64), int32(-64), int32(-64)},
+				{uint(123), int32(123), int32(123)},
+				{uint8(8), int32(8), int32(8)},
+				{uint16(16), int32(16), int32(16)},
+				{uint32(32), int32(32), int32(32)},
+				{uint64(64), int32(64), int32(64)},
+				{float32(32), int32(32), int32(32)},
+				{float64(64), int32(64), int32(64)},
+				// min
+				{int64(math.MinInt32), int32(math.MinInt32), int32(math.MinInt32)},
+				{int32(math.MinInt32), int32(math.MinInt32), int32(math.MinInt32)},
+				{float64(math.MinInt32), int32(math.MinInt32), int32(math.MinInt32)},
+				// max
+				{uint32(math.MaxInt32), int32(math.MaxInt32), int32(math.MaxInt32)},
+				{uint64(math.MaxInt32), int32(math.MaxInt32), int32(math.MaxInt32)},
+				{int64(math.MaxInt32), int32(math.MaxInt32), int32(math.MaxInt32)},
+				{int32(math.MaxInt32), int32(math.MaxInt32), int32(math.MaxInt32)},
+				{float64(math.MaxInt32), int32(math.MaxInt32), int32(math.MaxInt32)},
 			},
 			Invalid: []interface{}{
-				1.23,
-				nil,
-				"",
+				int64(math.MaxInt32) + 1,
+				int64(math.MinInt32) - 1,
+				1.2,
 				"foo",
+				"123.2",
 				0.1,
 				true,
 				false,
+			},
+			InvalidWhenRequired: []interface{}{
+				"",
+				nil,
 			},
 		},
 		KindFloat: {
-			Valid: []interface{}{
-				0.1,
-				-1111.1,
-				+555.2,
+			Valid: []InputOutput{
+				{0.1, float64(0.1), float64(0.1)},
+				{-1111.1, float64(-1111.1), float64(-1111.1)},
+				{+555.2, float64(555.2), float64(555.2)},
+				{123, float64(123), float64(123)},
+				{0, float64(0), float64(0)},
+				{"123", float64(123), float64(123)},
+				{"123.2", float64(123.2), float64(123.2)},
+				{"0", float64(0), float64(0)},
+				{int(123), float64(123), float64(123)},
+				{int8(8), float64(8), float64(8)},
+				{int16(16), float64(16), float64(16)},
+				{int32(32), float64(32), float64(32)},
+				{int64(64), float64(64), float64(64)},
+				{int(-123), float64(-123), float64(-123)},
+				{int8(-8), float64(-8), float64(-8)},
+				{int16(-16), float64(-16), float64(-16)},
+				{int32(-32), float64(-32), float64(-32)},
+				{int64(-64), float64(-64), float64(-64)},
+				{uint(123), float64(123), float64(123)},
+				{uint8(8), float64(8), float64(8)},
+				{uint16(16), float64(16), float64(16)},
+				{uint32(32), float64(32), float64(32)},
+				{uint64(64), float64(64), float64(64)},
+				// min/max
+				{float64(math.MaxFloat64), float64(math.MaxFloat64), float64(math.MaxFloat64)},
+				{float64(-math.MaxFloat64), float64(-math.MaxFloat64), float64(-math.MaxFloat64)},
+				{maxAcurateInt64InFloat64, float64(maxAcurateInt64InFloat64), float64(maxAcurateInt64InFloat64)},
+				{minAcurateInt64InFloat64, float64(minAcurateInt64InFloat64), float64(minAcurateInt64InFloat64)},
 			},
 			Invalid: []interface{}{
-				1,
-				0,
 				"string",
+				true,
+				false,
+				minAcurateInt64InFloat64 - 1,
+				maxAcurateInt64InFloat64 + 1,
+				int64(math.MaxInt64),
+				int64(math.MinInt64),
+			},
+			InvalidWhenRequired: []interface{}{
+				"",
+				nil,
 			},
 		},
 		KindBoolean: {
-			Valid: []interface{}{
-				true,
-				false,
+			Valid: []InputOutput{
+				inAsOut(true),
+				inAsOut(false),
 			},
 			Invalid: []interface{}{
-				nil,
 				0,
 				1,
-				"",
 				"yes",
 				"no",
 				"0",
@@ -204,94 +234,144 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 				"true",
 				"false",
 			},
-		},
-		KindDuration: {
-			// Compensate for wrong interpretation of 0
-			Compensate: func(in interface{}) interface{} {
-				i := in.(float64)
-				return time.Duration(int64(i))
-			},
-			Valid: []interface{}{
-				validDuration("0"),
-				validDuration("300ms"),
-				validDuration("-1.5h"),
-				// 0, // TODO(kwk): should work because an untyped integer constant can be converted to time.Duration's underlying type: int64
-			},
-			Invalid: []interface{}{
-				// 0, // TODO(kwk): 0 doesn't fit in legal nor illegal
+			InvalidWhenRequired: []interface{}{
+				"",
 				nil,
-				"1e2",
-				"4000",
 			},
 		},
 		KindInstant: {
-			// Compensate for wrong interpretation of location value and default to UTC
-			Compensate: func(in interface{}) interface{} {
-				v := in.(time.Time)
-				return v.UTC()
-			},
-			Valid: []interface{}{
-				// NOTE: If we don't use UTC(), the unmarshalled JSON will
-				// have a different time zone (read up on JSON an time
-				// location if you don't believe me).
-				func() interface{} {
-					v, err := time.Parse("02 Jan 06 15:04 -0700", "02 Jan 06 15:04 -0700")
-					require.NoError(t, err)
-					return v.UTC()
-				}(),
-				func() interface{} {
-					v, err := time.Parse("02 Jan 06 15:04 -0700", "03 Jan 06 15:04 -0700")
-					require.NoError(t, err)
-					return v.UTC()
-				}(),
-				// time.Now().UTC(), // TODO(kwk): Somehow this fails due to different nsec
+			Valid: []InputOutput{
+				{
+					timeNow.UTC().String(),
+					time.Unix(timeNow.Unix(), 0).UTC(),
+					time.Unix(timeNow.Unix(), 0).UTC().Unix(),
+				},
+				{
+					timeNow.UTC(),
+					time.Unix(timeNow.Unix(), 0).UTC(),
+					time.Unix(timeNow.Unix(), 0).UTC().Unix(),
+				},
+				{
+					timeNow.Unix(),
+					time.Unix(timeNow.Unix(), 0).UTC(),
+					time.Unix(timeNow.Unix(), 0).UTC().Unix(),
+				},
+				{
+					timeNow.UnixNano(),
+					time.Unix(timeNow.Unix(), 0).UTC(),
+					time.Unix(timeNow.Unix(), 0).UTC().Unix(),
+				},
+				{
+					float64(timeNow.Unix()),
+					time.Unix(timeNow.Unix(), 0).UTC(),
+					time.Unix(timeNow.Unix(), 0).UTC().Unix(),
+				},
+				{
+					float64(timeNow.UnixNano()),
+					time.Unix(timeNow.Unix(), 0).UTC(),
+					time.Unix(timeNow.Unix(), 0).UTC().Unix(),
+				},
+				{
+					"2006-01-02",
+					time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
+					time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC).Unix(),
+				},
+				{
+					"Monday, 02-Jan-06 15:04:05 UTC",
+					time.Date(2006, 01, 02, 15, 4, 5, 0, time.UTC),
+					time.Date(2006, 01, 02, 15, 4, 5, 0, time.UTC).Unix(),
+				},
+				{
+					"2009-11-10 23:00:00 +0000 UTC m=+0.000000001",
+					time.Date(2009, 11, 10, 23, 0, 0, 0, time.UTC),
+					time.Date(2009, 11, 10, 23, 0, 0, 0, time.UTC).Unix(),
+				},
 			},
 			Invalid: []interface{}{
-				time.Now().String(),
-				time.Now().UTC().String(),
-				"2017-09-27 13:40:48.099780356 +0200 CEST", // NOTE: looks like a time.Time but is a string
-				"",
 				0,
-				333,
-				100,
-				1e2,
+			},
+			InvalidWhenRequired: []interface{}{
+				"",
 				nil,
-				"foo",
-				0.1,
-				true,
-				false,
 			},
 		},
 		KindMarkup: {
-			Valid: []interface{}{
-				rendering.MarkupContent{Content: "plain text", Markup: rendering.SystemMarkupPlainText},
-				rendering.MarkupContent{Content: "default", Markup: rendering.SystemMarkupDefault},
-				rendering.MarkupContent{Content: "# markdown", Markup: rendering.SystemMarkupMarkdown},
+			Valid: []InputOutput{
+				{
+					rendering.MarkupContent{Content: "plain text", Markup: rendering.SystemMarkupPlainText},
+					rendering.MarkupContent{Content: "plain text", Markup: rendering.SystemMarkupPlainText},
+					rendering.MarkupContent{Content: "plain text", Markup: rendering.SystemMarkupPlainText}.ToMap(),
+				},
+				{
+					rendering.MarkupContent{Content: "default", Markup: rendering.SystemMarkupDefault},
+					rendering.MarkupContent{Content: "default", Markup: rendering.SystemMarkupDefault},
+					rendering.MarkupContent{Content: "default", Markup: rendering.SystemMarkupDefault}.ToMap(),
+				},
+				{
+					rendering.MarkupContent{Content: "# markdown", Markup: rendering.SystemMarkupMarkdown},
+					rendering.MarkupContent{Content: "# markdown", Markup: rendering.SystemMarkupMarkdown},
+					rendering.MarkupContent{Content: "# markdown", Markup: rendering.SystemMarkupMarkdown}.ToMap(),
+				},
 			},
 			Invalid: []interface{}{
 				0,
-				rendering.MarkupContent{Content: "jira", Markup: rendering.SystemMarkupJiraWiki}, // TODO(kwk): not supported yet
+				rendering.MarkupContent{Content: "jira", Markup: rendering.SystemMarkupJiraWiki}, // TODO(kwk): JIRA markup not supported yet
 				rendering.MarkupContent{Content: "", Markup: ""},                                 // NOTE: We allow allow empty strings
 				rendering.MarkupContent{Content: "foo", Markup: "unknown markup type"},
-				"",
 				"foo",
+			},
+			InvalidWhenRequired: []interface{}{
+				"",
+				nil,
 			},
 		},
 		KindCodebase: {
-			Valid: []interface{}{
-				codebase.Content{
-					Repository: "git://github.com/ember-cli/ember-cli.git#ff786f9f",
-					Branch:     "foo",
-					FileName:   "bar.js",
-					LineNumber: 10,
-					CodebaseID: "dunno",
+			Valid: []InputOutput{
+				{
+					codebase.Content{
+						Repository: "git://github.com/ember-cli/ember-cli.git#ff786f9f",
+						Branch:     "foo",
+						FileName:   "bar.js",
+						LineNumber: 10,
+						CodebaseID: "dunno",
+					},
+					codebase.Content{
+						Repository: "git://github.com/ember-cli/ember-cli.git#ff786f9f",
+						Branch:     "foo",
+						FileName:   "bar.js",
+						LineNumber: 10,
+						CodebaseID: "dunno",
+					},
+					codebase.Content{
+						Repository: "git://github.com/ember-cli/ember-cli.git#ff786f9f",
+						Branch:     "foo",
+						FileName:   "bar.js",
+						LineNumber: 10,
+						CodebaseID: "dunno",
+					}.ToMap(),
 				},
-				codebase.Content{
-					Repository: "git://github.com/pkg/error.git",
-					Branch:     "master",
-					FileName:   "main.go",
-					LineNumber: 15,
-					CodebaseID: "dunno",
+				{
+					codebase.Content{
+						Repository: "git://github.com/pkg/error.git",
+						Branch:     "master",
+						FileName:   "main.go",
+						LineNumber: 15,
+						CodebaseID: "dunno",
+					},
+					codebase.Content{
+						Repository: "git://github.com/pkg/error.git",
+						Branch:     "master",
+						FileName:   "main.go",
+						LineNumber: 15,
+						CodebaseID: "dunno",
+					},
+					codebase.Content{
+						Repository: "git://github.com/pkg/error.git",
+						Branch:     "master",
+						FileName:   "main.go",
+						LineNumber: 15,
+						CodebaseID: "dunno",
+					}.ToMap(),
 				},
 			},
 			Invalid: []interface{}{
@@ -311,16 +391,18 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 					LineNumber: 10,
 					CodebaseID: "dunno",
 				},
-				"",
 				0,
 				333,
 				100,
 				1e2,
-				nil,
 				"foo",
 				0.1,
 				true,
 				false,
+			},
+			InvalidWhenRequired: []interface{}{
+				"",
+				nil,
 			},
 		},
 		//KindEnum:  {}, // TODO(kwk): Add test for KindEnum

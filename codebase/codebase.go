@@ -37,7 +37,7 @@ const (
 )
 
 // ToMap converts Content to a map of string->Interface{}
-func (c *Content) ToMap() map[string]interface{} {
+func (c Content) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res[RepositoryKey] = c.Repository
 	res[BranchKey] = c.Branch

@@ -104,7 +104,11 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if creator == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
 	}
-	authorized, err := authorizeWorkitemEditor(ctx, c.db, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+	creatorID, err := workitem.ConvertAnyToUUID(creator)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	authorized, err := authorizeWorkitemEditor(ctx, c.db, wi.SpaceID, creatorID.String(), currentUserIdentityID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
