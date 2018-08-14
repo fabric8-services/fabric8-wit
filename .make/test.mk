@@ -206,7 +206,7 @@ endef
 
 .PHONY: test-e2e
 ## Runs the end-to-end tests WITHOUT producing coverage files for each package.
-test-e2e: build docker-compose-up
+test-e2e: $(BINARY_SERVER_BIN) docker-compose-up
 	$(call log-info,"Running tests: $@")
 	# Start the WIT server
 	$(call start-wit)
