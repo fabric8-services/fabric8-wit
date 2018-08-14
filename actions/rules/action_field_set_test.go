@@ -44,9 +44,9 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 
 	s.T().Run("sideffects", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
-		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateNew
 		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
-		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
+		newVersion := createWICopy(*fxt.WorkItems[0], workitem.SystemStateOpen, []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
 		require.NoError(t, err)
 		action := ActionFieldSet{
@@ -60,16 +60,50 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 1)
 		require.Equal(t, workitem.SystemState, convertChanges[0].AttributeName)
-		require.Equal(t, "open", convertChanges[0].OldValue)
-		require.Equal(t, "resolved", convertChanges[0].NewValue)
-		require.Equal(t, "resolved", afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
+		require.Equal(t, workitem.SystemStateOpen, convertChanges[0].OldValue)
+		require.Equal(t, workitem.SystemStateResolved, convertChanges[0].NewValue)
+		require.Equal(t, workitem.SystemStateResolved, afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
+	})
+
+	s.T().Run("stacking", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
+		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateNew
+		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
+		newVersion := createWICopy(*fxt.WorkItems[0], workitem.SystemStateOpen, []interface{}{"bcid0", "bcid1"})
+		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
+		require.NoError(t, err)
+		action := ActionFieldSet{
+			Db:     s.GormDB,
+			Ctx:    s.Ctx,
+			UserID: &fxt.Identities[0].ID,
+		}
+		var convertChanges []convert.Change
+		// Not using constants here intentionally.
+		afterActionWI, convertChanges, err := action.OnChange(newVersion, contextChanges, "{ \"system.state\": \"resolved\" }", &convertChanges)
+		require.NoError(t, err)
+		require.Len(t, convertChanges, 1)
+		require.Equal(t, workitem.SystemState, convertChanges[0].AttributeName)
+		require.Equal(t, workitem.SystemStateOpen, convertChanges[0].OldValue)
+		require.Equal(t, workitem.SystemStateResolved, convertChanges[0].NewValue)
+		require.Equal(t, workitem.SystemStateResolved, afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
+		// doing another change, the convertChange needs to stack.
+		afterActionWI, convertChanges, err = action.OnChange(afterActionWI, []convert.Change{}, "{ \"system.state\": \"new\" }", &convertChanges)
+		require.NoError(t, err)
+		require.Len(t, convertChanges, 2)
+		require.Equal(t, workitem.SystemState, convertChanges[0].AttributeName)
+		require.Equal(t, workitem.SystemStateOpen, convertChanges[0].OldValue)
+		require.Equal(t, workitem.SystemStateResolved, convertChanges[0].NewValue)
+		require.Equal(t, workitem.SystemState, convertChanges[1].AttributeName)
+		require.Equal(t, workitem.SystemStateResolved, convertChanges[1].OldValue)
+		require.Equal(t, workitem.SystemStateNew, convertChanges[1].NewValue)
+		require.Equal(t, workitem.SystemStateNew, afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
 	})
 
 	s.T().Run("unknown field", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
-		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateNew
 		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
-		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
+		newVersion := createWICopy(*fxt.WorkItems[0], workitem.SystemStateOpen, []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
 		require.NoError(t, err)
 		action := ActionFieldSet{
@@ -84,9 +118,9 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 
 	s.T().Run("non-json configuration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2))
-		fxt.WorkItems[0].Fields[workitem.SystemState] = "new"
+		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateNew
 		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
-		newVersion := createWICopy(*fxt.WorkItems[0], "open", []interface{}{"bcid0", "bcid1"})
+		newVersion := createWICopy(*fxt.WorkItems[0], workitem.SystemStateOpen, []interface{}{"bcid0", "bcid1"})
 		contextChanges, err := fxt.WorkItems[0].ChangeSet(newVersion)
 		require.NoError(t, err)
 		action := ActionFieldSet{

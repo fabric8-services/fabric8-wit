@@ -70,14 +70,13 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 		return nil, nil, errs.Wrap(err, "error loading work item type: "+err.Error())
 	}
 	// iterate over the fields.
-	var convertChanges []convert.Change
 	for k, v := range rawType {
 		if wiContext.Fields[k] != v {
 			fieldType, ok := wit.Fields[k]
 			if !ok {
 				return nil, nil, errs.New("unknown field name: " + k)
 			}
-			convertChanges = append(convertChanges, convert.Change{
+			*actionChanges = append(*actionChanges, convert.Change{
 				AttributeName: k,
 				NewValue:      v,
 				OldValue:      wiContext.Fields[k],
@@ -101,5 +100,5 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 			return nil, nil, errs.New("field attribute unknown: " + k)
 		}
 	}
-	return *actionResultContext, convertChanges, nil
+	return *actionResultContext, *actionChanges, nil
 }
