@@ -193,6 +193,7 @@ test-remote-no-coverage: prebuild-check $(SOURCES)
 test-migration: prebuild-check migration/sqlbindata.go migration/sqlbindata_test.go
 	F8_RESOURCE_DATABASE=1 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) github.com/fabric8-services/fabric8-wit/migration
 
+# Starts the WIT server and waits until its running
 define start-wit
 	echo "Starting WIT and ensuring that it is running..."; \
 	F8_LOG_LEVEL=ERROR ./wit+pmcd.sh & 
@@ -209,7 +210,7 @@ test-e2e: build docker-compose-up
 	$(call log-info,"Running tests: $@")
 	## Start the WIT server
 	$(call start-wit)
-	# ## Clone the fabric8-test repo
+	## Clone the fabric8-test repo
 	@if [ "$(FABRIC8_E2E_TEST_DIR)" ]; then \
 		echo "Removing any existing dir $(FABRIC8_E2E_TEST_DIR)"; \
 		rm -rf $(FABRIC8_E2E_TEST_DIR); \
@@ -576,6 +577,7 @@ clean-coverage-remote:
 
 CLEAN_TARGETS += clean-e2e
 .PHONY: clean-e2e
+## Cleans up environment of e2e tests
 clean-e2e:
 	## Kills the WIT process
 	$(shell ps aux | grep 'bin/[w]it' | awk '{print $$2}' | xargs kill)
