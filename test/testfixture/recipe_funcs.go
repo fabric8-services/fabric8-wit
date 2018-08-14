@@ -44,7 +44,7 @@ type CustomizeUserFunc CustomizeEntityFunc
 // is guaranteed to be ready to be used for creation. That means, you don't
 // necessarily have to touch it to avoid unique key violation for example. This
 // is totally optional.
-func Users(n int, fns ...CustomizeIdentityFunc) RecipeFunction {
+func Users(n int, fns ...CustomizeUserFunc) RecipeFunction {
 	return func(fxt *TestFixture) error {
 		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.Users)
