@@ -1,8 +1,7 @@
 #!/bin/bash
 
-echo "The end to end tests check will be implemented in"
-echo "https://github.com/fabric8-services/fabric8-wit/pull/2197 "
-echo "but for the CI to execute the task in an individual job we need"
-echo "to have an \".sh\" file in place."
+. cico_setup.sh
 
-exit 1
+cico_setup;
+
+run_e2e_tests;

@@ -84,8 +84,8 @@ function run_tests_without_coverage() {
 }
 
 function run_e2e_tests() {
-  make test-e2e
-  make clean-e2e
+  make docker-test-e2e
+  make docker-clean-e2e
   echo "CICO: ran e2e-tests"
 }
 
