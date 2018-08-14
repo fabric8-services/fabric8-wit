@@ -77,7 +77,7 @@ func (m Iteration) GetLastModified() time.Time {
 func (m Iteration) IsRoot(spaceID uuid.UUID) bool {
 
 	length := len(strings.Split(m.Path.String(), path.SepInService))
-	return (m.SpaceID == spaceID && length < 3) // TINA KURIAN && m.Path.String() == path.SepInService
+	return (m.SpaceID == spaceID && length < 3) // TODO: (tkurian) && m.Path.String() == path.SepInService
 }
 
 // Parent returns UUID of parent iteration or uuid.Nil
@@ -313,14 +313,7 @@ func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterat
 		return nil, errors.NewNotFoundError("iteration", parentIterationID.String())
 	}
 	var objs []Iteration
-	selfPath := parentIteration.Path.Convert()
-	var query string
-	if selfPath != "" {
-		query = parentIteration.Path.Convert() + path.SepInDatabase + path.ConvertToLtree(parentIteration.ID)
-	} else {
-		query = path.ConvertToLtree(parentIteration.ID)
-	}
-	err = m.db.Where("path <@ ?", query).Order("updated_at").Find(&objs).Error
+	err = m.db.Where("path <@ ?", parentIteration.Path.Convert()).Order("updated_at").Find(&objs).Error
 	if err != nil {
 		return nil, err
 	}

@@ -212,7 +212,7 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 			CreatedAt:  &ar.CreatedAt,
 			UpdatedAt:  &ar.UpdatedAt,
 			Version:    &ar.Version,
-			ParentPath: ptr.String(ar.Path.String()), // /uuid1/uuid2/uuid3s TINA KURIAN
+			ParentPath: ptr.String(ar.Path.String()), // TODO: (tkurian) /uuid1/uuid2/uuid3s
 		},
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{

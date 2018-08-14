@@ -246,9 +246,14 @@ func (s *TestIterationRepository) TestLoad() {
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB,
 			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
+				i := fxt.Iterations[idx]
 				switch idx {
-				case 1, 2:
-					fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+				case 1:
+					i.Name = "Level 1 iteration"
+					i.MakeChildOf(*fxt.Iterations[idx-1])
+				case 2:
+					i.Name = "Level 2 iteration"
+					i.MakeChildOf(*fxt.Iterations[idx-1])
 				}
 				return nil
 			}),
