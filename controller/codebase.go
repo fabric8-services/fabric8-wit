@@ -474,6 +474,21 @@ func getBranch(projects []che.WorkspaceProject, codebaseURL string) string {
 	return ""
 }
 
+// ConvertCodebaseSimple converts a simple codebase ID into a Generic Relationship
+func ConvertCodebaseSimple(request *http.Request, id interface{}) (*app.GenericData, *app.GenericLinks) {
+	i := fmt.Sprint(id)
+	data := &app.GenericData{
+		Type: ptr.String(APIStringTypeCodebase),
+		ID:   &i,
+	}
+	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(i))
+	links := &app.GenericLinks{
+		Self:    &relatedURL,
+		Related: &relatedURL,
+	}
+	return data, links
+}
+
 // ConvertCodebase converts between internal and external REST representation
 func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options ...CodebaseConvertFunc) *app.Codebase {
 	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))

@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
@@ -164,10 +165,9 @@ func ConvertLabelsSimple(request *http.Request, labelIDs []interface{}) []*app.G
 
 // ConvertLabelSimple converts a Label ID into a Generic Relationship
 func ConvertLabelSimple(request *http.Request, labelID interface{}) *app.GenericData {
-	t := label.APIStringTypeLabels
 	i := fmt.Sprint(labelID)
 	return &app.GenericData{
-		Type: &t,
+		Type: ptr.String(label.APIStringTypeLabels),
 		ID:   &i,
 	}
 }

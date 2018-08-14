@@ -98,13 +98,13 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		}
 	}
 
-	// identity and work item link categories will always work
-
-	t.Run("identities", func(t *testing.T) {
+	// user and work item link categories will always work
+	t.Run("users", func(t *testing.T) {
 		// given
-		c, err := fxtCtor(db, tf.Identities(n))
+		c, err := fxtCtor(db, tf.Users(n))
 		// then
 		require.NoError(t, err)
+		require.NotNil(t, c)
 		require.Nil(t, c.Check())
 		// manual checking
 		require.Len(t, c.Identities, n)
@@ -117,6 +117,19 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		require.Nil(t, c.Check())
 		// manual checking
 		require.Len(t, c.WorkItemLinkCategories, n)
+	})
+
+	t.Run("identities", func(t *testing.T) {
+		// given
+		c, err := fxtCtor(db, tf.Identities(n))
+		// then
+		require.NoError(t, err)
+		require.Nil(t, c.Check())
+		// manual checking
+		require.Len(t, c.Identities, n)
+		if !isolated {
+			require.Len(t, c.Users, 1)
+		}
 	})
 	t.Run("space_templates", func(t *testing.T) {
 		// given

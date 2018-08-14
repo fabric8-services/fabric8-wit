@@ -22,28 +22,55 @@ func (fxt *TestFixture) deps(fns ...RecipeFunction) error {
 	return nil
 }
 
-// CustomizeIdentityFunc is directly compatible with CustomizeEntityFunc
-// but it can only be used for the Identites() recipe-function.
-type CustomizeIdentityFunc CustomizeEntityFunc
+// CustomizeUserFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the Users() recipe-function.
+type CustomizeUserFunc CustomizeEntityFunc
 
-// Identities tells the test fixture to create at least n identity objects.
+// Users tells the test fixture to create at least n user objects.
 //
 // If called multiple times with differently n's, the biggest n wins. All
 // customize-entitiy-functions fns from all calls will be respected when
 // creating the test fixture.
 //
-// Here's an example how you can create 42 identites and give them a numbered
-// user name like "John Doe 0", "John Doe 1", and so forth:
-//    Identities(42, func(fxt *TestFixture, idx int) error{
-//        fxt.Identities[idx].Username = "Jane Doe " + strconv.FormatInt(idx, 10)
+// Here's an example how you can create 10 users and give them a numbered
+// fullname like "John Doe 0", "John Doe 1", and so forth:
+//    Users(10, func(fxt *TestFixture, idx int) error{
+//        fxt.Users[idx].FullName = "Jane Doe " + strconv.FormatInt(idx, 10)
 //        return nil
 //    })
 // Notice that the index idx goes from 0 to n-1 and that you have to manually
-// lookup the object from the test fixture. The identity object referenced by
-//    fxt.Identities[idx]
+// lookup the object from the test fixture. The User object referenced by
+//    fxt.Users[idx]
 // is guaranteed to be ready to be used for creation. That means, you don't
 // necessarily have to touch it to avoid unique key violation for example. This
 // is totally optional.
+func Users(n int, fns ...CustomizeUserFunc) RecipeFunction {
+	return func(fxt *TestFixture) error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
+			l := len(fxt.Users)
+			if l < n {
+				return errs.Errorf(checkStr, n, kindUsers, l)
+			}
+			return nil
+		})
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		return fxt.setupInfo(n, kindUsers, customFuncs...)
+	}
+}
+
+// CustomizeIdentityFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the Identites() recipe-function.
+type CustomizeIdentityFunc CustomizeEntityFunc
+
+// Identities tells the test fixture to create at least n identity objects.
+// See also the Users() function for more general information on n and fns.
+// When called in NewFixture() this function call will also call
+// 		Users(1)
+// but with NewFixtureIsolated(), no other objects will be created.
 func Identities(n int, fns ...CustomizeIdentityFunc) RecipeFunction {
 	return func(fxt *TestFixture) error {
 		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
@@ -58,7 +85,10 @@ func Identities(n int, fns ...CustomizeIdentityFunc) RecipeFunction {
 		for idx := range fns {
 			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
 		}
-		return fxt.setupInfo(n, kindIdentities, customFuncs...)
+		if err := fxt.setupInfo(n, kindIdentities, customFuncs...); err != nil {
+			return err
+		}
+		return fxt.deps(Users(1))
 	}
 }
 
