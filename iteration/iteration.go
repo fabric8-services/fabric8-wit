@@ -3,14 +3,14 @@ package iteration
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -75,7 +75,9 @@ func (m Iteration) GetLastModified() time.Time {
 
 // IsRoot Checks if given iteration is a root iteration or not
 func (m Iteration) IsRoot(spaceID uuid.UUID) bool {
-	return (m.SpaceID == spaceID && m.Path.String() == path.SepInService)
+
+	length := len(strings.Split(m.Path.String(), path.SepInService))
+	return (m.SpaceID == spaceID && length < 3) // TINA KURIAN && m.Path.String() == path.SepInService
 }
 
 // Parent returns UUID of parent iteration or uuid.Nil
@@ -137,7 +139,7 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
-		u.Path = append(u.Path, u.ID)
+		u.Path = path.Path{u.ID}
 	}
 	if !u.State.IsSet() {
 		u.State = StateNew

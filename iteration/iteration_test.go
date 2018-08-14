@@ -2,16 +2,16 @@ package iteration_test
 
 import (
 	"context"
+	"github.com/fabric8-services/fabric8-wit/iteration"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
-
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -95,21 +95,49 @@ func (s *TestIterationRepository) TestCreateIteration() {
 	})
 
 	t.Run("fail - same iteration name within a space", func(t *testing.T) {
-		name := "Iteration name test"
-		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB,
-			tf.Iterations(1, tf.SetIterationNames(name)),
-		)
+		t.Run("root iteration", func(t *testing.T) {
+			name := "Iteration name test"
+			// given
+			fxt := tf.NewTestFixture(s.T(), s.DB,
+				tf.Iterations(1, tf.SetIterationNames(name)),
+			)
 
-		i := *fxt.Iterations[0]
-		// another iteration with same name within same sapce, should fail
-		i2 := i
-		i2.ID = uuid.Nil
-		// when
-		err := repo.Create(context.Background(), &i2)
-		// then
-		require.Error(t, err)
-		assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
+			i := *fxt.Iterations[0]
+			// another iteration with same name within same sapce, should fail
+			i2 := i
+			i2.ID = uuid.Nil
+			// when
+			err := repo.Create(context.Background(), &i2)
+			// then
+			require.Error(t, err)
+			assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
+		})
+
+		t.Run("sub iteration", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(s.T(), s.DB,
+				tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+					if idx == 1 {
+						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[idx-1])
+					}
+					return nil
+				}),
+			)
+
+			// another iteration with same name within same sapce, should fail
+			iterationID := uuid.NewV4()
+			i3 := iteration.Iteration{
+				ID:      iterationID,
+				Path:    path.Path{fxt.Iterations[0].ID, iterationID},
+				Name:    fxt.Iterations[1].Name,
+				SpaceID: fxt.Iterations[1].SpaceID,
+			}
+			// when
+			err := repo.Create(context.Background(), &i3)
+			// then
+			require.Error(t, err)
+			assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
+		})
 	})
 
 	t.Run("pass - same iteration name across different space", func(t *testing.T) {
@@ -155,14 +183,11 @@ func (s *TestIterationRepository) TestLoad() {
 		// when
 		repo.Create(context.Background(), &i)
 
-		parentPath := append(i.Path, i.ID)
-		require.NotNil(t, parentPath)
 		i2 := iteration.Iteration{
 			Name:    name2,
 			SpaceID: fxt.Spaces[0].ID,
 			StartAt: &start,
 			EndAt:   &end,
-			Path:    parentPath,
 		}
 		repo.Create(context.Background(), &i2)
 		// then
@@ -221,27 +246,19 @@ func (s *TestIterationRepository) TestLoad() {
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB,
 			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
-				i := fxt.Iterations[idx]
 				switch idx {
-				case 0:
-					i.Name = "Top level iteration"
-				case 1:
-					i.Name = "Level 1 iteration"
-					i.MakeChildOf(*fxt.Iterations[idx-1])
-				case 2:
-					i.Name = "Level 2 iteration"
-					i.MakeChildOf(*fxt.Iterations[idx-1])
+				case 1, 2:
+					fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
 				}
 				return nil
 			}),
 		)
-		i1 := *fxt.Iterations[0]
 		i2 := *fxt.Iterations[1]
 		i3 := *fxt.Iterations[2]
 
 		// when
 		// fetch all children of top level iteration
-		childIterations1, err := repo.LoadChildren(context.Background(), i1.ID)
+		childIterations1, err := repo.LoadChildren(context.Background(), fxt.Iterations[0].ID)
 		// then
 		require.NoError(t, err)
 		require.Equal(t, 2, len(childIterations1))

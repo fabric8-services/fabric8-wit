@@ -80,7 +80,7 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
-		u.Path = append(u.Path, u.ID)
+		u.Path = path.Path{u.ID}
 	}
 	err := m.db.Create(u).Error
 	if err != nil {
@@ -154,7 +154,7 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 	defer goa.MeasureSince([]string{"goa", "db", "Area", "querychild"}, time.Now())
 	var objs []Area
 
-	tx := m.db.Where("path ~ ?", path.ToExpression(parentArea.Path, parentArea.ID)).Find(&objs)
+	tx := m.db.Where("path ~ ($1 || '.*{1}')::lquery", parentArea.Path.Convert()).Find(&objs)
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("Area", parentArea.ID.String())
 	}
