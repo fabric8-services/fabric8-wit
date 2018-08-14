@@ -158,19 +158,25 @@ work_item_link_types:
   name: Blocker
   description: One work item item blocks another one
   forward_name: blocks
+  forward_description: (TODO) write a forward description for "blocks"
   reverse_name: is blocked by
+  reverse_description: (TODO) write a reverse description for "is blocked by"
   topology: network
 
 - id: "9B631885-83B1-4ABB-A340-3A9EDE8493FA"
   name: Related
   description: One work item relates to another one.
   forward_name: relates to
+  forward_description: (TODO) write a forward description for "relates to"
   reverse_name: is related to
+  reverse_description: (TODO) write a reverse description for "is related to"
   topology: network
 
 - id: "25C326A7-6D03-4F5A-B23B-86A9EE4171E9"
   name: Parenting
   description: One work item is the parent of another one.
   forward_name: is parent of
+  forward_description: (TODO) write a forward description for "is parent of"
   reverse_name: is child of
+  reverse_description: (TODO) write a reverse description for "is child of"
   topology: tree
