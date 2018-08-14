@@ -1234,7 +1234,7 @@ func testMigration103UpdateNonRootIterationAreaPathField(t *testing.T) {
 		var path string
 		err := row.Scan(&path)
 		require.NoError(t, err)
-		require.Equal(t, "4f6f8bed_263a_4643_97c3_4cc861337ed7_f7918e5f_f998_4852_987e_135fa565503b", path)
+		require.Equal(t, "4f6f8bed_263a_4643_97c3_4cc861337ed7.f7918e5f_f998_4852_987e_135fa565503b", path)
 	})
 }
 
