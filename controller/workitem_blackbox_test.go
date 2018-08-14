@@ -972,7 +972,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.CreateWorkItemEnvironment(),
-		tf.Identities(2, tf.SetIdentityUsernames("Jon Doe", "Lorem Ipsum")),
+		tf.Identities(2, tf.SetIdentityUsernames("jon_doe", "lorem_ipsum")),
 		tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
 			switch idx {
 			case 0:

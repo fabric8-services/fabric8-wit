@@ -1300,14 +1300,14 @@ func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 		if tx.Error != nil {
 			return result, errs.Wrap(tx.Error, "failed to find user")
 		}
-		result = identity.Username // TODO: verify if we want the username or full name
+		result = fmt.Sprintf("%s (%s)", identity.User.FullName, identity.Username)
 	case KindArea:
 		var area area.Area
 		tx := db.Model(area.TableName()).Where("id = ?", val).First(&area)
 		if tx.Error != nil {
 			return result, errs.Wrap(tx.Error, "failed to find area")
 		}
-		result = area.Name
+		result = fmt.Sprintf("%s (%s)", area.Name, area.Path)
 	case KindBoardColumn:
 		var column BoardColumn
 		tx := db.Model(column.TableName()).Where("id = ?", val).First(&column)
@@ -1322,7 +1322,7 @@ func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 		if tx.Error != nil {
 			return result, errs.Wrap(tx.Error, "failed to find iteration")
 		}
-		result = iteration.Name
+		result = fmt.Sprintf("%s (%s)", iteration.Name, iteration.Path)
 
 	case KindCodebase:
 		var codebase codebase.Codebase
@@ -1330,7 +1330,7 @@ func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 		if tx.Error != nil {
 			return result, errs.Wrap(tx.Error, "failed to find codebase")
 		}
-		result = codebase.ID.String() // TODO: Figure out what we should be here. Codebase does not have a name.
+		result = codebase.URL // TODO: Figure out what we should be here. Codebase does not have a name.
 
 	case KindLabel:
 		var label label.Label
