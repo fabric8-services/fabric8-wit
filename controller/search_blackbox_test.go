@@ -1083,7 +1083,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
 		})
 		t.Run("with one child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[1].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s/**"}`, fxt.Iterations[1].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 6)
@@ -1103,7 +1103,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
 		})
 		t.Run("with two child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[0].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s/**"}`, fxt.Iterations[0].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 9)
@@ -1144,52 +1144,8 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			}
 			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
 		})
-		t.Run("with one child iteration - implicit", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[1].ID)
-			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-			require.NotEmpty(t, result.Data)
-			assert.Len(t, result.Data, 6)
-			toBeFound := id.MapFromSlice(id.Slice{
-				fxt.WorkItems[3].ID,
-				fxt.WorkItems[4].ID,
-				fxt.WorkItems[5].ID,
-				fxt.WorkItems[6].ID,
-				fxt.WorkItems[7].ID,
-				fxt.WorkItems[8].ID,
-			})
-			for _, wi := range result.Data {
-				_, ok := toBeFound[*wi.ID]
-				require.True(t, ok, "unknown work item found: %s", *wi.ID)
-				delete(toBeFound, *wi.ID)
-			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
-		})
-		t.Run("with two child iteration - implicit", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[0].ID)
-			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-			require.NotEmpty(t, result.Data)
-			assert.Len(t, result.Data, 9)
-			toBeFound := id.MapFromSlice(id.Slice{
-				fxt.WorkItems[0].ID,
-				fxt.WorkItems[1].ID,
-				fxt.WorkItems[2].ID,
-				fxt.WorkItems[3].ID,
-				fxt.WorkItems[4].ID,
-				fxt.WorkItems[5].ID,
-				fxt.WorkItems[6].ID,
-				fxt.WorkItems[7].ID,
-				fxt.WorkItems[8].ID,
-			})
-			for _, wi := range result.Data {
-				_, ok := toBeFound[*wi.ID]
-				require.True(t, ok, "unknown work item found: %s", *wi.ID)
-				delete(toBeFound, *wi.ID)
-			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
-		})
-
 		t.Run("without child iteration - false option", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[2].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[2].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 4)
@@ -1207,7 +1163,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
 		})
 		t.Run("with one child iteration - false option", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[1].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[1].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 2)
@@ -1223,7 +1179,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
 		})
 		t.Run("with two child iteration - false option", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[0].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[0].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 3)
