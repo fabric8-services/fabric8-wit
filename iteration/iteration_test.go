@@ -438,7 +438,7 @@ func (s *TestIterationRepository) TestParent() {
 		iteration2ID := fxt.Iterations[2].ID
 		iteration4ID := fxt.Iterations[4].ID
 
-		require.Equal(t, uuid.Nil, fxt.Iterations[0].Parent())
+		require.NotEqual(t, uuid.Nil, fxt.Iterations[0].Parent())
 		require.Equal(t, rootID, fxt.Iterations[1].Parent())
 		require.Equal(t, iteration1ID, fxt.Iterations[2].Parent())
 		require.Equal(t, iteration2ID, fxt.Iterations[3].Parent())

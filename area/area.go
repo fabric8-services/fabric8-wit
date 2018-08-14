@@ -33,7 +33,7 @@ type Area struct {
 // MakeChildOf does all the path magic to make the current area a child of
 // the given parent area.
 func (m *Area) MakeChildOf(parent Area) {
-	m.Path = append(parent.Path, parent.ID)
+	m.Path = append(parent.Path, m.ID)
 }
 
 // GetETagData returns the field values to use to generate the ETag
@@ -80,6 +80,7 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
+		u.Path = append(u.Path, u.ID)
 	}
 	err := m.db.Create(u).Error
 	if err != nil {

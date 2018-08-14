@@ -47,7 +47,7 @@ type Iteration struct {
 // MakeChildOf does all the path magic to make the current iteration a child of
 // the given parent iteration.
 func (m *Iteration) MakeChildOf(parent Iteration) {
-	m.Path = append(parent.Path, parent.ID)
+	m.Path = append(parent.Path, m.ID)
 }
 
 // FullPath returns the Path by appending self ID to it.
@@ -137,6 +137,7 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
+		u.Path = append(u.Path, u.ID)
 	}
 	if !u.State.IsSet() {
 		u.State = StateNew
