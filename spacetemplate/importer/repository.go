@@ -126,7 +126,7 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			switch cause.(type) {
 			case errors.NotFoundError:
 				// Create WIT
-				_, err := witRepo.Create(ctx, s.Template.ID, &wit.ID, &wit.Extends, wit.Name, wit.Description, wit.Icon, wit.Fields, wit.CanConstruct)
+				_, err := witRepo.CreateFromModel(ctx, *wit)
 				if err != nil {
 					return errs.Wrapf(err, "failed to create work item type '%s' from space template '%s'", wit.Name, s.Template.ID)
 				}
@@ -266,16 +266,9 @@ func (r *GormRepository) createOrUpdateWILTs(ctx context.Context, s *ImportHelpe
 				if uuid.Equal(wilt.ID, uuid.Nil) {
 					wilt.ID = uuid.NewV4()
 				}
-				_, err := wiltRepo.Create(ctx, link.WorkItemLinkType{
-					ID:              wilt.ID,
-					Name:            wilt.Name,
-					Description:     wilt.Description,
-					ForwardName:     wilt.ForwardName,
-					ReverseName:     wilt.ReverseName,
-					Topology:        wilt.Topology,
-					LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
-					SpaceTemplateID: s.Template.ID,
-				})
+				wilt.LinkCategoryID = link.SystemWorkItemLinkCategoryUserID
+				wilt.SpaceTemplateID = s.Template.ID
+				_, err := wiltRepo.Create(ctx, *wilt)
 				if err != nil {
 					return errs.Wrapf(err, "failed to create work item link type '%s' from space template '%s'", wilt.Name, s.Template.ID)
 				}
@@ -286,11 +279,7 @@ func (r *GormRepository) createOrUpdateWILTs(ctx context.Context, s *ImportHelpe
 			if loadedWILT.SpaceTemplateID != s.Template.ID {
 				return errs.Errorf("work item link type %s exists and is bound to space template %s instead of the new one %s", loadedWILT.ID, loadedWILT.SpaceTemplateID, s.Template.ID)
 			}
-			loadedWILT.Name = wilt.Name
-			loadedWILT.Description = wilt.Description
-			loadedWILT.ForwardName = wilt.ForwardName
-			loadedWILT.ReverseName = wilt.ReverseName
-			db := r.db.Save(&loadedWILT)
+			db := r.db.Save(&*wilt)
 			if err := db.Error; err != nil {
 				return errs.Wrapf(err, "failed to update work item link type %s", wilt.ID)
 			}
