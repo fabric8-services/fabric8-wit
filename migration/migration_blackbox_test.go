@@ -151,7 +151,6 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration100", testDropUserspacedataTable)
 	t.Run("TestMigration101", testTypeGroupHasDescriptionField)
 	t.Run("TestMirgraion102", testMigration102UpdateRootIterationAreaPathField)
-	t.Run("TestMirgraion103", testMigration103UpdateNonRootIterationAreaPathField)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1197,6 +1196,14 @@ func testMigration102UpdateRootIterationAreaPathField(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "", path)
 	})
+	t.Run("check that 1 iteration without current iteration converted id exists", func(t *testing.T) {
+		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'f7918e5f-f998-4852-987e-135fa565503b'")
+		require.NotNil(t, row)
+		var path string
+		err := row.Scan(&path)
+		require.NoError(t, err)
+		require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443", path)
+	})
 	t.Run("migrate to current version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:103], 103)
 	})
@@ -1208,33 +1215,13 @@ func testMigration102UpdateRootIterationAreaPathField(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443", path)
 	})
-}
-
-func testMigration103UpdateNonRootIterationAreaPathField(t *testing.T) {
-	t.Run("migrate to previous version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:103], 103)
-	})
-	t.Run("setup", func(t *testing.T) {
-		require.Nil(t, runSQLscript(sqlDB, "103-insert-non-root-iterations.sql"))
-	})
-	t.Run("check that 1 iteration without current iteration converted id exists", func(t *testing.T) {
-		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'f7918e5f-f998-4852-987e-135fa565503b'")
-		require.NotNil(t, row)
-		var path string
-		err := row.Scan(&path)
-		require.NoError(t, err)
-		require.Equal(t, "4f6f8bed_263a_4643_97c3_4cc861337ed7", path)
-	})
-	t.Run("migrate to current version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:104], 104)
-	})
 	t.Run("check that no iteration without current iterations converted id", func(t *testing.T) {
 		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'f7918e5f-f998-4852-987e-135fa565503b'")
 		require.NotNil(t, row)
 		var path string
 		err := row.Scan(&path)
 		require.NoError(t, err)
-		require.Equal(t, "4f6f8bed_263a_4643_97c3_4cc861337ed7.f7918e5f_f998_4852_987e_135fa565503b", path)
+		require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443.f7918e5f_f998_4852_987e_135fa565503b", path)
 	})
 }
 

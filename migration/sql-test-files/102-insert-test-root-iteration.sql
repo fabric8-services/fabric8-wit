@@ -7,3 +7,6 @@ insert into spaces (id,name,space_template_id) values ('652f8798-ef89-49ac-81f9-
 
 -- create root iteration
 insert into iterations (id, name, path, space_id) values ('abd93233-75c9-4419-a2e8-3c328736c443', 'test iteration', '', '652f8798-ef89-49ac-81f9-4bb937a5d175');
+
+-- create child iteration
+insert into iterations (id, name, path, space_id) values ('f7918e5f-f998-4852-987e-135fa565503b', 'test child iteration', 'abd93233_75c9_4419_a2e8_3c328736c443', '652f8798-ef89-49ac-81f9-4bb937a5d175');
