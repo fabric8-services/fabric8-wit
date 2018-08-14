@@ -3,7 +3,6 @@ package controller_test
 import (
 	"context"
 	"fmt"
-	"html"
 	"strings"
 	"testing"
 	"time"
@@ -155,7 +154,7 @@ func assertComment(t *testing.T, resultData *app.Comment, expectedIdentity accou
 	assert.Equal(t, expectedBody, *resultData.Attributes.Body)
 	require.NotNil(t, resultData.Attributes.Markup)
 	assert.Equal(t, expectedMarkup, *resultData.Attributes.Markup)
-	assert.Equal(t, rendering.RenderMarkupToHTML(html.EscapeString(expectedBody), expectedMarkup), *resultData.Attributes.BodyRendered)
+	assert.Equal(t, rendering.RenderMarkupToHTML(expectedBody, expectedMarkup), *resultData.Attributes.BodyRendered)
 	require.NotNil(t, resultData.Relationships)
 	require.NotNil(t, resultData.Relationships.Creator)
 	require.NotNil(t, resultData.Relationships.Creator.Data)
