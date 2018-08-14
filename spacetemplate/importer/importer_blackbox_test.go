@@ -309,12 +309,15 @@ work_item_link_types:
   name: Blocker
   description: work item blocks another one
   forward_name: blocks
+  forward_description: description for blocks
   reverse_name: blocked by
+  reverse_description: description for blocked by
   topology: tree
   link_category_id: "2F24724F-797C-4073-8B16-4BB8CE9E84A6"
 work_item_type_groups:
 - name: Scenarios
   id: "` + witgID.String() + `"
+  description: "description for scenarios"
   type_list:
     - "` + witID.String() + `"
   bucket: portfolio
@@ -403,20 +406,23 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 		},
 		WILTs: []*link.WorkItemLinkType{
 			{
-				ID:              wiltID,
-				SpaceTemplateID: spaceTemplateID,
-				Name:            "Blocker",
-				Description:     ptr.String("work item blocks another one"),
-				ForwardName:     "blocks",
-				ReverseName:     "blocked by",
-				Topology:        "tree",
-				LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
+				ID:                 wiltID,
+				SpaceTemplateID:    spaceTemplateID,
+				Name:               "Blocker",
+				Description:        ptr.String("work item blocks another one"),
+				ForwardName:        "blocks",
+				ForwardDescription: ptr.String("description for blocks"),
+				ReverseName:        "blocked by",
+				ReverseDescription: ptr.String("description for blocked by"),
+				Topology:           "tree",
+				LinkCategoryID:     link.SystemWorkItemLinkCategoryUserID,
 			},
 		},
 		WITGs: []*workitem.WorkItemTypeGroup{
 			{
 				ID:              witgID,
 				Name:            "Scenarios",
+				Description:     ptr.String("description for scenarios"),
 				Bucket:          workitem.BucketPortfolio,
 				Icon:            "fa fa-suitcase",
 				SpaceTemplateID: spaceTemplateID,

@@ -56,6 +56,23 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 	return true
 }
 
+// EqualEnclosing returns true if two EnumType objects are equal and/or the
+// values set is enclosing (larger and containing) the other values set.
+func (t EnumType) EqualEnclosing(other EnumType) bool {
+	if !t.SimpleType.Equal(other.SimpleType) {
+		return false
+	}
+	if !t.BaseType.Equal(other.BaseType) {
+		return false
+	}
+	// if the local list of values is completely contained
+	// in the other values set, consider it enclosing.
+	if !t.RewritableValues {
+		return containsAll(t.Values, other.Values)
+	}
+	return true
+}
+
 func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {
 	converted, err := t.BaseType.ConvertToModel(value)
 	if err != nil {
@@ -75,6 +92,14 @@ func contains(a []interface{}, v interface{}) bool {
 		}
 	}
 	return false
+}
+
+func containsAll(a []interface{}, v []interface{}) bool {
+	result := true
+	for _, element := range v {
+		result = result && contains(a, element)
+	}
+	return result
 }
 
 func (t EnumType) ConvertFromModel(value interface{}) (interface{}, error) {
