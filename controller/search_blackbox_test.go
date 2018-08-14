@@ -1564,11 +1564,11 @@ func (s *searchControllerTestSuite) TestSearchCodebases() {
 		tf.NewTestFixture(s.T(), s.DB,
 			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
 			tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
-				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/single/%d", idx)
+				fxt.Codebases[idx].URL = fmt.Sprintf("https://foo.com/single/%d", idx)
 				return nil
 			}),
 		) // when
-		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "http://foo.com/single/0")
+		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "https://foo.com/single/0")
 		// then
 		require.NotNil(t, codebaseList)
 		require.NotNil(t, codebaseList.Data)
@@ -1583,12 +1583,12 @@ func (s *searchControllerTestSuite) TestSearchCodebases() {
 			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
 			tf.Spaces(count),
 			tf.Codebases(count, func(fxt *tf.TestFixture, idx int) error {
-				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/multi/0") // both codebases have the same URL...
-				fxt.Codebases[idx].SpaceID = fxt.Spaces[idx].ID                // ... but they belong to different spaces
+				fxt.Codebases[idx].URL = fmt.Sprintf("https://foo.com/multi/0") // both codebases have the same URL...
+				fxt.Codebases[idx].SpaceID = fxt.Spaces[idx].ID                 // ... but they belong to different spaces
 				return nil
 			}),
 		) // when
-		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "http://foo.com/multi/0")
+		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "https://foo.com/multi/0")
 		// then
 		require.NotNil(t, codebaseList)
 		require.NotNil(t, codebaseList.Data)
@@ -1600,6 +1600,27 @@ func (s *searchControllerTestSuite) TestSearchCodebases() {
 		// for included spaces, we must sort the spaces by their ID
 		sort.Sort(SortableIncludedSpacesByID(codebaseList.Included))
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_multi_match.json"), codebaseList)
+	})
+
+	s.T().Run("codebase with git@github.com", func(t *testing.T) {
+		// this is saved in database
+		savedURL := "https://github.com/USERNAME/REPOSITORY.git"
+		tf.NewTestFixture(t, s.DB,
+			tf.Codebases(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Codebases[idx].URL = savedURL
+				return nil
+			}),
+		)
+
+		// when this URL is queried we should get what is in database
+		queryURL := "git@github.com:USERNAME/REPOSITORY.git"
+		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, queryURL)
+		// then
+		require.NotNil(t, codebaseList)
+		require.NotNil(t, codebaseList.Data)
+		require.Len(t, codebaseList.Data, 1)
+		require.Equal(t, savedURL, *codebaseList.Data[0].Attributes.URL)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "search_codebase_git_url.json"), codebaseList)
 	})
 }
 

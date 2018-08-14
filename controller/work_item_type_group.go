@@ -70,6 +70,7 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 		Attributes: &app.WorkItemTypeGroupAttributes{
 			Bucket:        tg.Bucket.String(),
 			Name:          tg.Name,
+			Description:   tg.Description,
 			Icon:          tg.Icon,
 			CreatedAt:     &createdAt,
 			UpdatedAt:     &updatedAt,
