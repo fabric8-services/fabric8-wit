@@ -305,7 +305,7 @@ func (s *CommentsSuite) TestShowCommentWithTextAndCodeblock() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 	wiID := fxt.WorkItems[0].ID
-	body := " Hello World ``` \nint x = 1\n ```"
+	body := " \"Hello World\" ``` \nint x = 1\n ```"
 	c := s.createWorkItemComment(s.testIdentity, wiID, body, &markdownMarkup, nil)
 	// when
 	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
