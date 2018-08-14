@@ -301,6 +301,22 @@ func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
 	assertComment(s.T(), result.Data, s.testIdentity, "<img src=x onerror=alert('body') />", rendering.SystemMarkupPlainText)
 }
 
+func (s *CommentsSuite) TestShowCommentWithTextAndCodeblock() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
+	body := " Hello World " +
+		"```\n" +
+		"int x = 1\n" +
+		"\n```"
+	c := s.createWorkItemComment(s.testIdentity, wiID, body, &markdownMarkup, nil)
+	// when
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
+	// then
+	assertComment(s.T(), result.Data, s.testIdentity, body, rendering.SystemMarkupMarkdown)
+}
+
 func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
