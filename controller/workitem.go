@@ -169,9 +169,9 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		// The Number and Type of a work item are not allowed to be changed
-		// which is why we overwrite those values with their old value after the
-		// work item was converted.
+		// The Number of a work item is not allowed to be changed which is why
+		// we overwrite the values with its old value after the work item was
+		// converted.
 		oldNumber := wi.Number
 		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.Type, wi.SpaceID)
 		if err != nil {
