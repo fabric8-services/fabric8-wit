@@ -1008,6 +1008,13 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 						Label: "Type1 reporter",
 						Type:  &workitem.SimpleType{Kind: workitem.KindUser},
 					},
+					"integer-or-float-list": {
+						Label: "Type1 integer-or-float-list",
+						Type: workitem.ListType{
+							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindInteger},
+						},
+					},
 				}
 			case 1:
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
@@ -1027,12 +1034,20 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 							Values:     []interface{}{"alpha", "beta", "gamma"},
 						},
 					},
+					"integer-or-float-list": {
+						Label: "Type2 integer-or-float-list",
+						Type: workitem.ListType{
+							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindFloat},
+						},
+					},
 				}
 			}
 			return nil
 		}),
 		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
 			fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+			fxt.WorkItems[idx].Fields["integer-or-float-list"] = []int{101}
 			fxt.WorkItems[idx].Fields["fooo"] = 2.5
 			fxt.WorkItems[idx].Fields["fooBar"] = "open"
 			fxt.WorkItems[idx].Fields["bar"] = "hello"
