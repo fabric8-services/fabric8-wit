@@ -313,6 +313,7 @@ func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterat
 		return nil, errors.NewNotFoundError("iteration", parentIterationID.String())
 	}
 	var objs []Iteration
+
 	err = m.db.Where("path <@ ?", parentIteration.Path.Convert()).Order("updated_at").Find(&objs).Error
 	if err != nil {
 		return nil, err
