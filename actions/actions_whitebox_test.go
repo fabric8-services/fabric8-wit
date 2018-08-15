@@ -133,12 +133,11 @@ func (s *ActionSuite) TestActionExecution() {
 		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateNew
 		fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns] = []interface{}{"bcid0", "bcid1"}
 		newVersion := createWICopy(*fxt.WorkItems[0], workitem.SystemStateOpen, []interface{}{"bcid0", "bcid1"})
-		afterActionWI, changes, err := ExecuteActionsByOldNew(s.Ctx, s.GormDB, userID, fxt.WorkItems[0], newVersion, map[string]string{
+		_, changes, err := ExecuteActionsByOldNew(s.Ctx, s.GormDB, userID, fxt.WorkItems[0], newVersion, map[string]string{
 			"Nil": "{ noConfig: 'none' }",
 		})
 		require.NoError(t, err)
 		require.Len(t, changes, 0)
-		require.Equal(t, workitem.SystemStateOpen, afterActionWI.(workitem.WorkItem).Fields["system.state"])
 	})
 
 	s.T().Run("by ChangeSet", func(t *testing.T) {
