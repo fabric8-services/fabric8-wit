@@ -15,5 +15,5 @@ ALTER TABLE iterations DROP CONSTRAINT iterations_name_space_id_path_unique;
 ALTER TABLE areas DROP CONSTRAINT areas_name_space_id_path_unique;
 
 -- add constraints for subpaths
-CREATE UNIQUE INDEX areas_name_space_id_path_unique ON areas (space_id, (CASE WHEN nlevel(path) > 1 THEN subpath(path, 0, -1) ELSE path END), name) WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX iterations_name_space_id_path_unique ON iterations (space_id, (CASE WHEN nlevel(path) > 1 THEN subpath(path, 0, -1) ELSE path END), name) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX areas_name_space_id_path_unique ON areas (space_id, (CASE WHEN nlevel(path) > 0 THEN subpath(path, 0, -1) ELSE path END), name) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX iterations_name_space_id_path_unique ON iterations (space_id, (CASE WHEN nlevel(path) > 0 THEN subpath(path, 0, -1) ELSE path END), name) WHERE deleted_at IS NULL;
