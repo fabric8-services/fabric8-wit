@@ -1287,7 +1287,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	return nil
 }
 
-// getValueOfRelationKind resolved the relational value stored in val to it's verbose value. Eg: UUID of kind User to username.
+// getValueOfRelationKind resolves the relational value stored in val to it's verbose value. Eg: UUID of kind User to username.
 func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, error) {
 	var result string
 	switch kind {
@@ -1334,7 +1334,7 @@ func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, 
 		if tx.Error != nil {
 			return result, errs.Wrap(tx.Error, "failed to find codebase")
 		}
-		result = codebase.URL // TODO: Figure out what we should be here. Codebase does not have a name.
+		result = codebase.URL // TODO(ibrahim): Figure out what we should be here. Codebase does not have a name.
 
 	case KindLabel:
 		var label label.Label
