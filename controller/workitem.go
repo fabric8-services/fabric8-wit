@@ -71,19 +71,21 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 		config:       config}
 }
 
-// Change of workitemtype on a workitem is allowed by work item creator or space owner
+// authorizeWorkitemTypeEditor returns true if the modifier is allowed to change
+// workitem type else it returns false.
+// Only space owner and workitem creator are allowed to change workitem type
 func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, db application.DB, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
 	// check if workitem editor is same as workitem creator
 	if editorID == creatorID {
 		return true, nil
 	}
-	// check if workitem editor is same as space owner
 	var authorized bool
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		space, err := appl.Spaces().Load(ctx, spaceID)
 		if err != nil {
 			return errors.NewNotFoundError("space", spaceID.String())
 		}
+		// check if workitem editor is same as space owner
 		if editorID == space.OwnerID.String() {
 			authorized = true
 			return nil
