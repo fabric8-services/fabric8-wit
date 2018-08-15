@@ -305,13 +305,15 @@ func (s *CommentsSuite) TestShowCommentWithTextAndCodeblock() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 	wiID := fxt.WorkItems[0].ID
-	body := " \"Hello World\" ``` \nint x = 1\n ```"
+	body := "Hello, World \n```\n { \"foo\":\"bar\" } \n``` "
+	expectedBody := "<p>Hello, World</p>\n\n<pre><code class=\"prettyprint\"> <span class=\"pun\">{</span> <span class=\"str\">&#34;foo&#34;</span><span class=\"pun\">:</span><span class=\"str\">&#34;bar&#34;</span> <span class=\"pun\">}</span> \n</code></pre>\n"
 	c := s.createWorkItemComment(s.testIdentity, wiID, body, &markdownMarkup, nil)
 	// when
 	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
 	// then
-	assertComment(s.T(), result.Data, s.testIdentity, body, rendering.SystemMarkupMarkdown)
+	assert.Equal(s.T(), body, *result.Data.Attributes.Body)
+	assert.Equal(s.T(), expectedBody, *result.Data.Attributes.BodyRendered)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
