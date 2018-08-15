@@ -1192,8 +1192,8 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 					}
 				}
 			}
+			// Failed to assign the new value to the old field
 			if err != nil {
-				// Failed to assign the new value to the old field
 				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
 				delete(wiStorage.Fields, oldFieldName)
 			}
