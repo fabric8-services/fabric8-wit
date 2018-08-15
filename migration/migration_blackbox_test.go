@@ -150,11 +150,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration99", testMigration99CodebaseCVEScanDefaultFalse)
 	t.Run("TestMigration100", testDropUserspacedataTable)
 	t.Run("TestMigration101", testTypeGroupHasDescriptionField)
-<<<<<<< HEAD
-	t.Run("TestMirgraion102", testMigration102UpdateRootIterationAreaPathField)
-=======
 	t.Run("TestMigration102", testLinkTypeDescriptionFields)
->>>>>>> master
+	t.Run("TestMirgraion103", testMigration103UpdateRootIterationAreaPathField)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1185,12 +1182,12 @@ func testMigration99CodebaseCVEScanDefaultFalse(t *testing.T) {
 }
 
 // test that root iterations are no longer empty and containt he converted id
-func testMigration102UpdateRootIterationAreaPathField(t *testing.T) {
+func testMigration103UpdateRootIterationAreaPathField(t *testing.T) {
 	t.Run("migrate to previous version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:102], 102)
+		migrateToVersion(t, sqlDB, migrations[:103], 103)
 	})
 	t.Run("setup", func(t *testing.T) {
-		require.Nil(t, runSQLscript(sqlDB, "102-insert-test-root-iteration.sql"))
+		require.Nil(t, runSQLscript(sqlDB, "103-insert-test-root-iteration.sql"))
 	})
 	t.Run("check that 1 iteration with empty path exists", func(t *testing.T) {
 		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
@@ -1200,7 +1197,7 @@ func testMigration102UpdateRootIterationAreaPathField(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "", path)
 	})
-	t.Run("check that 1 iteration without current iteration converted id exists", func(t *testing.T) {
+	t.Run("check that 1 iteration without current iteration converted id exists tina", func(t *testing.T) {
 		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'f7918e5f-f998-4852-987e-135fa565503b'")
 		require.NotNil(t, row)
 		var path string
@@ -1209,8 +1206,9 @@ func testMigration102UpdateRootIterationAreaPathField(t *testing.T) {
 		require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443", path)
 	})
 	t.Run("migrate to current version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:103], 103)
+		migrateToVersion(t, sqlDB, migrations[:104], 104)
 	})
+
 	t.Run("check that no iteration with empty path exists", func(t *testing.T) {
 		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
 		require.NotNil(t, row)

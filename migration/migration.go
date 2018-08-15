@@ -444,11 +444,10 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("101-add-description-to-witg.sql")})
 
 	// Version 102
-<<<<<<< HEAD
-	m = append(m, steps{ExecuteSQLFile("102-update-root-area-and-iteration-path-field.sql")})
-=======
 	m = append(m, steps{ExecuteSQLFile("102-add-forward-and-reverse-link-type-descriptions.sql")})
->>>>>>> master
+
+	// Version 103
+	m = append(m, steps{ExecuteSQLFile("103-update-root-area-and-iteration-path-field.sql")})
 
 	// Version N
 	//
