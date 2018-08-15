@@ -79,7 +79,7 @@ func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID)
 	}
 	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
 	if err != nil {
-		return nil, errs.New("error loading space: " + err.Error())
+		return nil, errs.Wrap(err, "error loading space: " + err.Error())
 	}
 	boards, err := act.Db.Boards().List(act.Ctx, space.SpaceTemplateID)
 	if err != nil {
@@ -181,7 +181,7 @@ func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUI
 		return nil, err
 	}
 	if len(stateList) != len(metastateList) {
-		return nil, errs.New("inconsistent number of states and metatstates in the current template")
+		return nil, errs.New("inconsistent number of states and metatstates in the current work item type (must be equal)")
 	}
 	stateToMetastateMap := make(map[string]string)
 	for idx := range stateList {
@@ -249,6 +249,9 @@ func (act ActionStateToMetaState) fuseChanges(c1 []convert.Change, c2 []convert.
 
 // OnChange executes the action rule.
 func (act ActionStateToMetaState) OnChange(newContext convert.ChangeDetector, contextChanges []convert.Change, configuration string, actionChanges *[]convert.Change) (convert.ChangeDetector, []convert.Change, error) {
+	if actionChanges == nil {
+		return nil, nil, errs.New("given actionChanges is nil")
+	}
 	if len(contextChanges) == 0 {
 		// no changes, just return what we have.
 		return newContext, *actionChanges, nil

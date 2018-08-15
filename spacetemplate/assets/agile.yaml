@@ -253,7 +253,7 @@ work_item_types:
           kind: string
         # This will allow other WITs to overwrite the values of the state.
         rewritable_values: yes
-        # the sequence of the values need to match the sequence of the 
+        # the sequence and number of the values need to match the sequence of the 
         # system.state attributes. This encapsulates the mapping.
         values: 
         - mNew
