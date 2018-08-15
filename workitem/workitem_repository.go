@@ -1174,22 +1174,21 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	var fieldDiff = Fields{}
 	// Loop through old workitem type
 	for oldFieldName := range oldWIType.Fields {
-		newFieldType := newWIType.Fields[oldFieldName].Type
 		// Temporary workaround to not add metastates to the field diff
 		// We need to have a special handling for fields are shouldn't be set by user (or affected by type change)
 		if oldFieldName == SystemMetaState {
 			continue
 		}
 		// The field exists in old type and new type
-		if _, ok := newWIType.Fields[oldFieldName]; ok {
+		if newField, ok := newWIType.Fields[oldFieldName]; ok {
 			// Try to assign the old value to the new field
-			_, err := newFieldType.ConvertToModel(wiStorage.Fields[oldFieldName])
+			_, err := newField.Type.ConvertToModel(wiStorage.Fields[oldFieldName])
 			if err != nil {
 				// The field might be a list type. Try to assign it to a list
-				if newFieldType.GetKind() == KindList {
+				if newField.Type.GetKind() == KindList {
 					interfaceArray, ok := wiStorage.Fields[oldFieldName].([]interface{})
 					if ok {
-						_, err = newFieldType.ConvertToModel(interfaceArray)
+						_, err = newField.Type.ConvertToModel(interfaceArray)
 					}
 				}
 			}
