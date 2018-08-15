@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -79,23 +80,23 @@ func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, db
 	if editorID == creatorID {
 		return true, nil
 	}
-	var authorized bool
+	var space *space.Space
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		space, err := appl.Spaces().Load(ctx, spaceID)
+		var err error
+		space, err = appl.Spaces().Load(ctx, spaceID)
 		if err != nil {
 			return errors.NewNotFoundError("space", spaceID.String())
-		}
-		// check if workitem editor is same as space owner
-		if editorID == space.OwnerID.String() {
-			authorized = true
-			return nil
 		}
 		return nil
 	})
 	if err != nil {
-		return false, errors.NewUnauthorizedError(err.Error())
+		return false, err
 	}
-	return authorized, nil
+	// check if workitem editor is same as space owner
+	if space != nil && editorID == space.OwnerID.String() {
+		return true, nil
+	}
+	return false, errors.NewUnauthorizedError("user is not allowed to change workitem type")
 }
 
 // Returns true if the user is the work item creator or space collaborator
