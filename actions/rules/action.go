@@ -3,10 +3,14 @@ package rules
 import "github.com/fabric8-services/fabric8-wit/convert"
 
 const (
-	ActionKeyNil              = "Nil"
-	ActionKeyFieldSet         = "FieldSet"
+	// ActionKeyNil is the key for the ActionKeyNil action rule.
+	ActionKeyNil = "Nil"
+	// ActionKeyFieldSet is the key for the ActionKeyFieldSet action rule.
+	ActionKeyFieldSet = "FieldSet"
+	// ActionKeyStateToMetastate is the key for the ActionKeyStateToMetastate action rule.
 	ActionKeyStateToMetastate = "BidirectionalStateToColumn"
 
+	// ActionKeyStateToMetastateConfigMetastate is the key for the ActionKeyStateToMetastateConfigMetastate config parameter.
 	ActionKeyStateToMetastateConfigMetastate = "metaState"
 )
 
