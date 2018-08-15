@@ -617,7 +617,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 			return nil, errs.Wrapf(err, "failed to load workitemtype: %s ", updatedWorkItem.Type)
 		}
 		if err := r.ChangeWorkItemType(ctx, wiStorage, wiType, newWiType, spaceID); err != nil {
-			errs.Wrapf(err, "unable to change workitem type from %s (ID: %s) to %s (ID: %s)", wiType.Name, wiType.ID, newWiType.Name, newWiType.ID)
+			return nil, errs.Wrapf(err, "unable to change workitem type from %s (ID: %s) to %s (ID: %s)", wiType.Name, wiType.ID, newWiType.Name, newWiType.ID)
 		}
 		// This will be used by the ConvertWorkItemStorageToModel function
 		wiType = newWiType
