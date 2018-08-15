@@ -110,6 +110,7 @@ type WorkItemType struct {
 	// identified by TransRuleKey.
 	TransRuleArgument string `gorm:"trans_rule_argument" json:"trans_rule_argument,omitempty"`
 
+	// CanConstruct is true when you can create work items from this work item
 	CanConstruct bool `gorm:"can_construct" json:"can_construct,omitempty"`
 
 	// ChildTypeIDs is a list of work item type IDs that can be used as child

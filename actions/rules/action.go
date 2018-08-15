@@ -6,7 +6,7 @@ const (
 	ActionKeyNil              = "Nil"
 	ActionKeyFieldSet         = "FieldSet"
 	ActionKeyStateToMetastate = "BidirectionalStateToColumn"
-	
+
 	ActionKeyStateToMetastateConfigMetastate = "metaState"
 )
 

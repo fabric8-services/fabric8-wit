@@ -79,7 +79,7 @@ func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID)
 	}
 	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
 	if err != nil {
-		return nil, errs.Wrap(err, "error loading space: " + err.Error())
+		return nil, errs.Wrap(err, "error loading space: "+err.Error())
 	}
 	boards, err := act.Db.Boards().List(act.Ctx, space.SpaceTemplateID)
 	if err != nil {
