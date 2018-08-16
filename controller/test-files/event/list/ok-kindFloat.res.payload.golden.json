@@ -3,8 +3,8 @@
     {
       "attributes": {
         "name": "myFloatType",
-        "newValue": "2.99",
-        "oldValue": "1.99",
+        "newValue": 2.99,
+        "oldValue": 1.99,
         "timestamp": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000001",
@@ -17,6 +17,15 @@
           "links": {
             "related": "http:///api/users/00000000-0000-0000-0000-000000000002",
             "self": "http:///api/users/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "workItemType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000003"
           }
         }
       },
