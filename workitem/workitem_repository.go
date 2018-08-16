@@ -1162,7 +1162,8 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 	return workitems, nil
 }
 
-// ChangeWorkItemType changes the workitem in wiStorage to newWIType. Returns error if the operation fails
+// ChangeWorkItemType changes the workitem in wiStorage to newWIType. Returns
+// error if the operation fails
 func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error {
 	allowedWIT, err := r.CheckWITypeBelongsToSpace(ctx, newWIType, spaceID)
 	if err != nil {
@@ -1174,8 +1175,9 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	var fieldDiff = Fields{}
 	// Loop through old workitem type
 	for oldFieldName := range oldWIType.Fields {
-		// Temporary workaround to not add metastates to the field diff
-		// We need to have a special handling for fields are shouldn't be set by user (or affected by type change)
+		// Temporary workaround to not add metastates to the field diff. We need
+		// to have a special handling for fields are shouldn't be set by user
+		// (or affected by type change)
 		if oldFieldName == SystemMetaState {
 			continue
 		}
@@ -1192,8 +1194,8 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 					}
 				}
 			}
-			// Failed to assign the old value to the new field
-			// Add the field to the diff and remove it from the old workitem.
+			// Failed to assign the old value to the new field. Add the field to
+			// the diff and remove it from the old workitem.
 			if err != nil {
 				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
 				delete(wiStorage.Fields, oldFieldName)
@@ -1205,14 +1207,16 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 			}
 		}
 	}
-	// We need fieldKeys to show field diff in a defined order. Golang maps aren't ordered by default.
+	// We need fieldKeys to show field diff in a defined order. Golang maps
+	// aren't ordered by default.
 	var fieldKeys []string
 	for fieldName := range fieldDiff {
 		fieldKeys = append(fieldKeys, fieldName)
 	}
 	// Sort the field keys to prevent random order of fields
 	sort.Strings(fieldKeys)
-	// Append diff (fields along with their values) between the workitem types to the description
+	// Append diff (fields along with their values) between the workitem types
+	// to the description
 	if len(fieldDiff) > 0 {
 		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
 		textToPrepend := "\n\n======= Missing fields in workitem type: " + newWIType.Name + " =======\n"
@@ -1288,7 +1292,8 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	return nil
 }
 
-// getValueOfRelationKind resolves the relational value stored in val to it's verbose value. Eg: UUID of kind User to username.
+// getValueOfRelationKind resolves the relational value stored in val to it's
+// verbose value. Eg: UUID of kind User to username.
 func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, error) {
 	var result string
 	switch kind {
