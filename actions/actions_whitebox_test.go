@@ -88,8 +88,6 @@ func (s *ActionSuite) TestChangeSet() {
 		changes, err := fxt.WorkItems[0].ChangeSet(wiCopy)
 		require.NoError(t, err)
 		require.Len(t, changes, 1)
-		fmt.Println(changes[0].OldValue)
-		fmt.Println(changes[0].NewValue)
 		require.Equal(t, workitem.SystemBoardcolumns, changes[0].AttributeName)
 		require.Equal(t, wiCopy.Fields[workitem.SystemBoardcolumns], changes[0].OldValue)
 		require.Equal(t, fxt.WorkItems[0].Fields[workitem.SystemBoardcolumns], changes[0].NewValue)
