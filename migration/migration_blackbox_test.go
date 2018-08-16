@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
@@ -1186,79 +1188,90 @@ func testMigration103UpdateRootIterationAreaPathField(t *testing.T) {
 	t.Run("migrate to previous version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:103], 103)
 	})
-	t.Run("setup", func(t *testing.T) {
-		require.Nil(t, runSQLscript(sqlDB, "103-insert-test-root-iteration.sql"))
-	})
-	t.Run("check that 1 iteration with empty path exists", func(t *testing.T) {
-		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
-		require.NotNil(t, row)
-		var path string
-		err := row.Scan(&path)
-		require.NoError(t, err)
-		require.Equal(t, "", path)
-	})
-	t.Run("check that 1 iteration without current iteration converted id exists tina", func(t *testing.T) {
-		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'f7918e5f-f998-4852-987e-135fa565503b'")
-		require.NotNil(t, row)
-		var path string
-		err := row.Scan(&path)
-		require.NoError(t, err)
-		require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443", path)
+
+	spaceID := uuid.NewV4()
+	iterRootEmptyPathID := uuid.NewV4()
+	iterRootNullPathID := uuid.NewV4()
+	iterChildOfEmptyPathID := uuid.NewV4()
+	iterChildOfNullPathID := uuid.NewV4()
+	areaRootEmptyPathID := uuid.NewV4()
+	areaRootNullPathID := uuid.NewV4()
+	areaChildOfEmptyPathID := uuid.NewV4()
+	areaChildOfNullPathID := uuid.NewV4()
+
+	t.Run("setup test data to migrate", func(t *testing.T) {
+		require.Nil(t, runSQLscript(sqlDB, "103-insert-test-root-iteration.sql",
+			spaceID.String(),
+			iterRootEmptyPathID.String(),
+			iterRootNullPathID.String(),
+			iterChildOfEmptyPathID.String(),
+			iterChildOfNullPathID.String(),
+			areaRootEmptyPathID.String(),
+			areaRootNullPathID.String(),
+			areaChildOfEmptyPathID.String(),
+			areaChildOfNullPathID.String(),
+		))
 	})
 
-	t.Run("check that 1 area with empty path exists", func(t *testing.T) {
-		row := sqlDB.QueryRow("SELECT path FROM areas WHERE id = 'd87705c4-f367-4c3e-9069-c77f1e8c6c34'")
+	// Helper functions
+
+	getPathOf := func(t *testing.T, table string, id uuid.UUID) *string {
+		q := fmt.Sprintf("SELECT path FROM %s WHERE id = '%s'", table, id)
+		fmt.Printf("q: %s\n", q)
+		row := sqlDB.QueryRow(q)
 		require.NotNil(t, row)
-		var path string
-		err := row.Scan(&path)
-		require.NoError(t, err)
-		require.Equal(t, "", path)
+		// we have to scan the path into an interface because it can be nil
+		var p interface{}
+		err := row.Scan(&p)
+		require.NoError(t, err, "%+v", err)
+		if p == nil {
+			return nil
+		}
+		return ptr.String(string(p.([]byte)))
+	}
+
+	getPathOfIteration := func(t *testing.T, iterID uuid.UUID) *string { return getPathOf(t, "iterations", iterID) }
+
+	getPathOfArea := func(t *testing.T, areaID uuid.UUID) *string { return getPathOf(t, "areas", areaID) }
+
+	// UUIDsToLtreePath mimics path.Path struct functionality but we don't want
+	// to rely on code in migrations
+	UUIDsToLtreePath := func(arr ...uuid.UUID) *string {
+		strArr := make([]string, len(arr))
+		for i, u := range arr {
+			strArr[i] = strings.Replace(u.String(), "-", "_", -1)
+		}
+		return ptr.String(strings.Join(strArr, "."))
+	}
+
+	t.Run("check iterations before migration", func(t *testing.T) {
+		require.Equal(t, nil, getPathOfIteration(t, iterRootEmptyPathID))
+		require.Equal(t, nil, getPathOfIteration(t, iterRootNullPathID))
+		require.Equal(t, UUIDsToLtreePath(iterRootEmptyPathID), getPathOfIteration(t, iterChildOfEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(iterRootNullPathID), getPathOfIteration(t, iterChildOfNullPathID))
 	})
-	t.Run("check that 1 area without current iteration converted id exists", func(t *testing.T) {
-		row := sqlDB.QueryRow("SELECT path FROM areas WHERE id = '1516f95a-c546-45ca-953b-5483e63bd000'")
-		require.NotNil(t, row)
-		var path string
-		err := row.Scan(&path)
-		require.NoError(t, err)
-		require.Equal(t, "d87705c4_f367_4c3e_9069_c77f1e8c6c34", path)
+	t.Run("check areas before migration", func(t *testing.T) {
+		require.Equal(t, nil, getPathOfArea(t, areaRootEmptyPathID))
+		require.Equal(t, nil, getPathOfArea(t, areaRootNullPathID))
+		require.Equal(t, UUIDsToLtreePath(areaRootEmptyPathID), getPathOfArea(t, areaChildOfEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(areaRootNullPathID), getPathOfArea(t, areaChildOfNullPathID))
 	})
 
 	t.Run("migrate to current version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:104], 104)
 	})
 
-	t.Run("check that no iteration with empty path exists", func(t *testing.T) {
-		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'abd93233-75c9-4419-a2e8-3c328736c443'")
-		require.NotNil(t, row)
-		var path string
-		err := row.Scan(&path)
-		require.NoError(t, err)
-		require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443", path)
+	t.Run("check iterations after migration", func(t *testing.T) {
+		require.Equal(t, UUIDsToLtreePath(iterRootEmptyPathID), getPathOfIteration(t, iterRootEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(iterRootNullPathID), getPathOfIteration(t, iterRootNullPathID))
+		require.Equal(t, UUIDsToLtreePath(iterRootEmptyPathID, iterChildOfEmptyPathID), getPathOfIteration(t, iterChildOfEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(iterRootNullPathID, iterChildOfNullPathID), getPathOfIteration(t, iterChildOfNullPathID))
 	})
-	t.Run("check that no iteration without current iterations converted id", func(t *testing.T) {
-		row := sqlDB.QueryRow("SELECT path FROM iterations WHERE id = 'f7918e5f-f998-4852-987e-135fa565503b'")
-		require.NotNil(t, row)
-		var path string
-		err := row.Scan(&path)
-		require.NoError(t, err)
-		require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443.f7918e5f_f998_4852_987e_135fa565503b", path)
-	})
-
-	t.Run("check that no area with empty path exists", func(t *testing.T) {
-		row := sqlDB.QueryRow("SELECT path FROM areas WHERE id = 'd87705c4-f367-4c3e-9069-c77f1e8c6c34'")
-		require.NotNil(t, row)
-		var path string
-		err := row.Scan(&path)
-		require.NoError(t, err)
-		require.Equal(t, "d87705c4_f367_4c3e_9069_c77f1e8c6c34", path)
-	})
-	t.Run("check that no area without current iterations converted id", func(t *testing.T) {
-		row := sqlDB.QueryRow("SELECT path FROM areas WHERE id = '1516f95a-c546-45ca-953b-5483e63bd000'")
-		require.NotNil(t, row)
-		var path string
-		err := row.Scan(&path)
-		require.NoError(t, err)
-		require.Equal(t, "d87705c4_f367_4c3e_9069_c77f1e8c6c34.1516f95a_c546_45ca_953b_5483e63bd000", path)
+	t.Run("check areas after migration", func(t *testing.T) {
+		require.Equal(t, UUIDsToLtreePath(areaRootEmptyPathID), getPathOfArea(t, areaRootEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(areaRootNullPathID), getPathOfArea(t, areaRootNullPathID))
+		require.Equal(t, UUIDsToLtreePath(areaRootEmptyPathID, areaChildOfEmptyPathID), getPathOfArea(t, areaChildOfEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(areaRootNullPathID, areaChildOfNullPathID), getPathOfArea(t, areaChildOfNullPathID))
 	})
 }
 
