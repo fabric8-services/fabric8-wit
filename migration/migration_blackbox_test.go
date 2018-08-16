@@ -1205,6 +1205,24 @@ func testMigration103UpdateRootIterationAreaPathField(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443", path)
 	})
+
+	t.Run("check that 1 area with empty path exists", func(t *testing.T) {
+		row := sqlDB.QueryRow("SELECT path FROM areas WHERE id = 'd87705c4-f367-4c3e-9069-c77f1e8c6c34'")
+		require.NotNil(t, row)
+		var path string
+		err := row.Scan(&path)
+		require.NoError(t, err)
+		require.Equal(t, "", path)
+	})
+	t.Run("check that 1 area without current iteration converted id exists", func(t *testing.T) {
+		row := sqlDB.QueryRow("SELECT path FROM areas WHERE id = '1516f95a-c546-45ca-953b-5483e63bd000'")
+		require.NotNil(t, row)
+		var path string
+		err := row.Scan(&path)
+		require.NoError(t, err)
+		require.Equal(t, "d87705c4_f367_4c3e_9069_c77f1e8c6c34", path)
+	})
+
 	t.Run("migrate to current version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:104], 104)
 	})
@@ -1224,6 +1242,23 @@ func testMigration103UpdateRootIterationAreaPathField(t *testing.T) {
 		err := row.Scan(&path)
 		require.NoError(t, err)
 		require.Equal(t, "abd93233_75c9_4419_a2e8_3c328736c443.f7918e5f_f998_4852_987e_135fa565503b", path)
+	})
+
+	t.Run("check that no area with empty path exists", func(t *testing.T) {
+		row := sqlDB.QueryRow("SELECT path FROM areas WHERE id = 'd87705c4-f367-4c3e-9069-c77f1e8c6c34'")
+		require.NotNil(t, row)
+		var path string
+		err := row.Scan(&path)
+		require.NoError(t, err)
+		require.Equal(t, "d87705c4_f367_4c3e_9069_c77f1e8c6c34", path)
+	})
+	t.Run("check that no area without current iterations converted id", func(t *testing.T) {
+		row := sqlDB.QueryRow("SELECT path FROM areas WHERE id = '1516f95a-c546-45ca-953b-5483e63bd000'")
+		require.NotNil(t, row)
+		var path string
+		err := row.Scan(&path)
+		require.NoError(t, err)
+		require.Equal(t, "d87705c4_f367_4c3e_9069_c77f1e8c6c34.1516f95a_c546_45ca_953b_5483e63bd000", path)
 	})
 }
 
