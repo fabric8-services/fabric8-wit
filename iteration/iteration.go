@@ -3,14 +3,15 @@ package iteration
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -314,7 +315,7 @@ func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterat
 	}
 	var objs []Iteration
 
-	err = m.db.Where("path <@ ?", parentIteration.Path.Convert()).Order("updated_at").Find(&objs).Error
+	err = m.db.Where(fmt.Sprintf("path ~ '%s.*{1,}'", parentIteration.Path.Convert())).Order("updated_at").Find(&objs).Error
 	if err != nil {
 		return nil, err
 	}

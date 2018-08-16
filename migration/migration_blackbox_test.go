@@ -16,7 +16,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
@@ -1215,9 +1214,8 @@ func testMigration103UpdateRootIterationAreaPathField(t *testing.T) {
 
 	// Helper functions
 
-	getPathOf := func(t *testing.T, table string, id uuid.UUID) *string {
+	getPathOf := func(t *testing.T, table string, id uuid.UUID) string {
 		q := fmt.Sprintf("SELECT path FROM %s WHERE id = '%s'", table, id)
-		fmt.Printf("q: %s\n", q)
 		row := sqlDB.QueryRow(q)
 		require.NotNil(t, row)
 		// we have to scan the path into an interface because it can be nil
@@ -1225,34 +1223,34 @@ func testMigration103UpdateRootIterationAreaPathField(t *testing.T) {
 		err := row.Scan(&p)
 		require.NoError(t, err, "%+v", err)
 		if p == nil {
-			return nil
+			return ""
 		}
-		return ptr.String(string(p.([]byte)))
+		return string(p.([]byte))
 	}
 
-	getPathOfIteration := func(t *testing.T, iterID uuid.UUID) *string { return getPathOf(t, "iterations", iterID) }
+	getPathOfIteration := func(t *testing.T, iterID uuid.UUID) string { return getPathOf(t, "iterations", iterID) }
 
-	getPathOfArea := func(t *testing.T, areaID uuid.UUID) *string { return getPathOf(t, "areas", areaID) }
+	getPathOfArea := func(t *testing.T, areaID uuid.UUID) string { return getPathOf(t, "areas", areaID) }
 
 	// UUIDsToLtreePath mimics path.Path struct functionality but we don't want
 	// to rely on code in migrations
-	UUIDsToLtreePath := func(arr ...uuid.UUID) *string {
+	UUIDsToLtreePath := func(arr ...uuid.UUID) string {
 		strArr := make([]string, len(arr))
 		for i, u := range arr {
 			strArr[i] = strings.Replace(u.String(), "-", "_", -1)
 		}
-		return ptr.String(strings.Join(strArr, "."))
+		return strings.Join(strArr, ".")
 	}
 
 	t.Run("check iterations before migration", func(t *testing.T) {
-		require.Equal(t, nil, getPathOfIteration(t, iterRootEmptyPathID))
-		require.Equal(t, nil, getPathOfIteration(t, iterRootNullPathID))
+		require.Equal(t, "", getPathOfIteration(t, iterRootEmptyPathID))
+		require.Equal(t, "", getPathOfIteration(t, iterRootNullPathID))
 		require.Equal(t, UUIDsToLtreePath(iterRootEmptyPathID), getPathOfIteration(t, iterChildOfEmptyPathID))
 		require.Equal(t, UUIDsToLtreePath(iterRootNullPathID), getPathOfIteration(t, iterChildOfNullPathID))
 	})
 	t.Run("check areas before migration", func(t *testing.T) {
-		require.Equal(t, nil, getPathOfArea(t, areaRootEmptyPathID))
-		require.Equal(t, nil, getPathOfArea(t, areaRootNullPathID))
+		require.Equal(t, "", getPathOfArea(t, areaRootEmptyPathID))
+		require.Equal(t, "", getPathOfArea(t, areaRootNullPathID))
 		require.Equal(t, UUIDsToLtreePath(areaRootEmptyPathID), getPathOfArea(t, areaChildOfEmptyPathID))
 		require.Equal(t, UUIDsToLtreePath(areaRootNullPathID), getPathOfArea(t, areaChildOfNullPathID))
 	})

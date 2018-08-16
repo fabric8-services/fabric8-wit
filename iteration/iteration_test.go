@@ -2,10 +2,11 @@ package iteration_test
 
 import (
 	"context"
-	"github.com/fabric8-services/fabric8-wit/iteration"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/fabric8-services/fabric8-wit/iteration"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
