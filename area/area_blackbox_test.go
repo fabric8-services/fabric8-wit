@@ -27,7 +27,7 @@ func TestRunAreaRepository(t *testing.T) {
 	suite.Run(t, &TestAreaRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
-func (s *TestAreaRepository) TestCreateAreaWithSameNameDoesntFail() {
+func (s *TestAreaRepository) TestCreateAreaWithSameNameFail() {
 	// given
 	repo := area.NewAreaRepository(s.DB)
 	name := "TestCreateAreaWithSameNameFail"
@@ -44,10 +44,9 @@ func (s *TestAreaRepository) TestCreateAreaWithSameNameDoesntFail() {
 	// when
 	err := repo.Create(context.Background(), &anotherAreaWithSameName)
 	// then
-	require.NoError(s.T(), err)
+	require.Error(s.T(), err)
 	// In case of unique constrain error, a DataConflictError is returned.
-	_, ok := errs.Cause(err).(errors.DataConflictError)
-	assert.False(s.T(), ok)
+	assert.IsType(s.T(), errors.DataConflictError{}, errs.Cause(err))
 }
 
 func (s *TestAreaRepository) TestCreateArea() {
