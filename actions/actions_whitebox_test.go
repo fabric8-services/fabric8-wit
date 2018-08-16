@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
