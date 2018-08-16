@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -80,17 +79,9 @@ func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, sp
 	if editorID == creatorID {
 		return true, nil
 	}
-	var space *space.Space
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		var err error
-		space, err = appl.Spaces().Load(ctx, spaceID)
-		if err != nil {
-			return errors.NewNotFoundError("space", spaceID.String())
-		}
-		return nil
-	})
+	space, err := c.db.Spaces().Load(ctx, spaceID)
 	if err != nil {
-		return false, err
+		return false, errors.NewNotFoundError("space", spaceID.String())
 	}
 	// check if workitem editor is same as space owner
 	if space != nil && editorID == space.OwnerID.String() {
