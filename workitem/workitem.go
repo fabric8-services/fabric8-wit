@@ -139,9 +139,7 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 		})
 		return changes, nil
 	}
-	// because go has a fundamentally broken handling of interface{}
-	// types, we need to do a totally overshooting manual conversion
-	// here.
+	// because of the handing of interface{}, we need to do manual conversion here.
 	thisCopyStr := make([]string, len(bcThis))
 	for i := range bcThis {
 		thisCopyStr[i], ok = bcThis[i].(string)
