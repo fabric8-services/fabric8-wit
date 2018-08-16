@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
@@ -76,9 +75,7 @@ func (m Iteration) GetLastModified() time.Time {
 
 // IsRoot Checks if given iteration is a root iteration or not
 func (m Iteration) IsRoot(spaceID uuid.UUID) bool {
-
-	length := len(strings.Split(m.Path.String(), path.SepInService))
-	return (m.SpaceID == spaceID && length < 3) // TODO: (tkurian) && m.Path.String() == path.SepInService
+	return m.SpaceID == spaceID && len(m.Path) == 1 && m.Path[0] == m.ID
 }
 
 // Parent returns UUID of parent iteration or uuid.Nil
@@ -190,7 +187,7 @@ func (m *GormIterationRepository) Root(ctx context.Context, spaceID uuid.UUID) (
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "query"}, time.Now())
 	var itr Iteration
 
-	tx := m.db.Where("space_id = ? and path::text not like '.%'", spaceID).First(&itr)
+	tx := m.db.Where("space_id = ? AND nlevel(path)=1", spaceID).First(&itr)
 	if tx.Error != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
