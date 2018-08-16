@@ -318,6 +318,7 @@ func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 	// Get all deployments of this app for each environment in this space
 	deployments := []*app.SimpleDeployment{}
 	for envName := range kc.envMap {
+		// Only look for the application in environments where the user can deploy applications
 		if kc.CanDeploy(envName) {
 			deployment, err := kc.GetDeployment(spaceName, appName, envName)
 			if err != nil {
@@ -342,7 +343,7 @@ func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 // ScaleDeployment adjusts the desired number of replicas for a specified application, returning the
 // previous number of desired replicas
 func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName string, deployNumber int) (*int, error) {
-	envNS, err := kc.getEnvironmentNamespace(envName, false)
+	envNS, err := kc.getDeployableEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, err
 	}
@@ -426,7 +427,7 @@ func (kc *kubeClient) getApplicationURL(envNS string, deploy *deployment) (*stri
 // GetDeployment returns information about the current deployment of an application within a
 // particular environment. The application must exist within the provided space.
 func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeployment, error) {
-	envNS, err := kc.getEnvironmentNamespace(envName, false)
+	envNS, err := kc.getDeployableEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +499,7 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 // beyond the specified start time, which are then aggregated into a single data point.
 func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envName string,
 	startTime time.Time) (*app.SimpleDeploymentStats, error) {
-	envNS, err := kc.getEnvironmentNamespace(envName, false)
+	envNS, err := kc.getDeployableEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, err
 	}
@@ -557,7 +558,7 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 // limit argument, only the newest datapoints within that limit are returned.
 func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, envName string,
 	startTime time.Time, endTime time.Time, limit int) (*app.SimpleDeploymentStatSeries, error) {
-	envNS, err := kc.getEnvironmentNamespace(envName, false)
+	envNS, err := kc.getDeployableEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, err
 	}
@@ -614,7 +615,7 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 }
 
 func (kc *kubeClient) DeleteDeployment(spaceName string, appName string, envName string) error {
-	envNS, err := kc.getEnvironmentNamespace(envName, false)
+	envNS, err := kc.getDeployableEnvironmentNamespace(envName)
 	if err != nil {
 		return err
 	}
@@ -670,6 +671,7 @@ func (kc *kubeClient) DeleteDeployment(spaceName string, appName string, envName
 func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
 	envs := []*app.SimpleEnvironment{}
 	for envName := range kc.envMap {
+		// Only return environments where the user can deploy applications
 		if kc.CanDeploy(envName) {
 			env, err := kc.GetEnvironment(envName)
 			if err != nil {
@@ -683,7 +685,7 @@ func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
 
 // GetEnvironment returns information on an environment with the provided name
 func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, error) {
-	envNS, err := kc.getEnvironmentNamespace(envName, false)
+	envNS, err := kc.getDeployableEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, err
 	}
@@ -767,9 +769,21 @@ func (oc *openShiftAPIClient) GetBuildConfigs(namespace string, labelSelector st
 	return oc.getResource(bcURL, false)
 }
 
-func (kc *kubeClient) getEnvironmentNamespace(envName string, includeInternal bool) (string, error) {
+// getDeployableEnvironmentNamespace finds a namespace with the corresponding environment name.
+// Differs from getEnvironmentNamespace in that the environment must be one where the user can deploy
+// applications
+func (kc *kubeClient) getDeployableEnvironmentNamespace(envName string) (string, error) {
 	envNS, pres := kc.envMap[envName]
-	if !pres || !kc.CanDeploy(envName) && !includeInternal {
+	if !pres || !kc.CanDeploy(envName) {
+		return "", errs.Errorf("unknown environment: %s", envName)
+	}
+	return envNS, nil
+}
+
+// getEnvironmentNamespace finds a namespace with the corresponding environment name
+func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
+	envNS, pres := kc.envMap[envName]
+	if !pres {
 		return "", errs.Errorf("unknown environment: %s", envName)
 	}
 	return envNS, nil

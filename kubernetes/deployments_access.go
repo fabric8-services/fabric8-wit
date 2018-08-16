@@ -70,6 +70,7 @@ func (rulesMap accessRules) isAuthorized(reqs []*requestedAccess) bool {
 	return true
 }
 
+// CanGetSpace returns whether the user is authorized to call KubeClientInterface.GetSpace
 func (kc *kubeClient) CanGetSpace() (bool, error) {
 	// Also need access to build configs and builds in user namespace
 	ok, err := kc.checkAuthorizedInEnv(getBuildConfigsAndBuildsRules, environmentTypeUser)
@@ -92,6 +93,7 @@ func (kc *kubeClient) CanGetSpace() (bool, error) {
 	return true, nil
 }
 
+// CanGetApplication returns whether the user is authorized to call KubeClientInterface.GetApplication
 func (kc *kubeClient) CanGetApplication() (bool, error) {
 	// Also need access to builds in user namespace
 	ok, err := kc.checkAuthorizedInEnv(getBuildsRules, environmentTypeUser)
@@ -122,6 +124,7 @@ var getDeploymentRules = []*requestedAccess{
 	{qualifiedResource{"", "routes"}, []string{verbList}},
 }
 
+// CanGetDeployment returns whether the user is authorized to call KubeClientInterface.GetDeployment
 func (kc *kubeClient) CanGetDeployment(envName string) (bool, error) {
 	return kc.checkAuthorizedWithBuilds(envName, getDeploymentRules)
 }
@@ -132,6 +135,7 @@ var scaleDeploymentRules = []*requestedAccess{
 	{qualifiedResource{"", "deploymentconfigs/scale"}, []string{verbUpdate}},
 }
 
+// CanScaleDeployment returns whether the user is authorized to call KubeClientInterface.ScaleDeployment
 func (kc *kubeClient) CanScaleDeployment(envName string) (bool, error) {
 	return kc.checkAuthorizedWithBuilds(envName, scaleDeploymentRules)
 }
@@ -142,6 +146,7 @@ var deleteDeploymentRules = []*requestedAccess{
 	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet, verbDelete}},
 }
 
+// CanDeleteDeployment returns whether the user is authorized to call KubeClientInterface.DeleteDeployment
 func (kc *kubeClient) CanDeleteDeployment(envName string) (bool, error) {
 	return kc.checkAuthorizedWithBuilds(envName, deleteDeploymentRules)
 }
@@ -152,16 +157,18 @@ var getDeploymentStatsRules = []*requestedAccess{
 	{qualifiedResource{"", "pods"}, []string{verbList}},
 }
 
+// CanGetDeploymentStats returns whether the user is authorized to call KubeClientInterface.GetDeploymentStats
 func (kc *kubeClient) CanGetDeploymentStats(envName string) (bool, error) {
 	return kc.checkAuthorizedWithBuilds(envName, getDeploymentStatsRules)
 }
 
+// CanGetDeploymentStatSeries returns whether the user is authorized to call KubeClientInterface.GetDeploymentStatSeries
 func (kc *kubeClient) CanGetDeploymentStatSeries(envName string) (bool, error) {
 	return kc.checkAuthorizedWithBuilds(envName, getDeploymentStatsRules)
 }
 
 func (kc *kubeClient) checkAuthorizedWithBuilds(envName string, reqs []*requestedAccess) (bool, error) {
-	// Also need access to builds in user namespace
+	// Builds are located in user namespace
 	ok, err := kc.checkAuthorizedInEnv(getBuildsRules, environmentTypeUser)
 	if err != nil {
 		return false, err
@@ -196,6 +203,7 @@ var getEnvironmentRules = []*requestedAccess{
 	{qualifiedResource{"", "resourcequotas"}, []string{verbList}},
 }
 
+// CanGetEnvironments returns whether the user is authorized to call KubeClientInterface.GetEnvironments
 func (kc *kubeClient) CanGetEnvironments() (bool, error) {
 	for envName := range kc.envMap {
 		if kc.CanDeploy(envName) {
@@ -210,6 +218,7 @@ func (kc *kubeClient) CanGetEnvironments() (bool, error) {
 	return true, nil
 }
 
+// CanGetEnvironment returns whether the user is authorized to call KubeClientInterface.GetEnvironment
 func (kc *kubeClient) CanGetEnvironment(envName string) (bool, error) {
 	return kc.checkAuthorizedInEnv(getEnvironmentRules, envName)
 }
@@ -223,7 +232,7 @@ func (kc *kubeClient) getRulesForEnvironment(envName string) (*accessRules, erro
 	}
 
 	// Lookup authorization rules for this environment
-	envNS, err := kc.getEnvironmentNamespace(envName, true)
+	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, err
 	}
