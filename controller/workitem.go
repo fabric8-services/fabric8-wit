@@ -75,7 +75,7 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 // authorizeWorkitemTypeEditor returns true if the modifier is allowed to change
 // workitem type else it returns false.
 // Only space owner and workitem creator are allowed to change workitem type
-func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, db application.DB, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
+func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
 	// check if workitem editor is same as workitem creator
 	if editorID == creatorID {
 		return true, nil
@@ -143,7 +143,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
 		ctx.Payload.Data.Relationships.BaseType.Data != nil && ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
 
-		authorized, err := c.authorizeWorkitemTypeEditor(ctx, c.db, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+		authorized, err := c.authorizeWorkitemTypeEditor(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
