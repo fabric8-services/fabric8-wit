@@ -1,6 +1,6 @@
 package rules
 
-import "github.com/fabric8-services/fabric8-wit/convert"
+import "github.com/fabric8-services/fabric8-wit/actions/change"
 
 const (
 	// ActionKeyNil is the key for the ActionKeyNil action rule.
@@ -24,5 +24,5 @@ type Action interface {
 	// updated attributes. It returns the new context. Note that this
 	// needs the new (after change) context and the old value(s) as
 	// part of the changeset.
-	OnChange(newContext convert.ChangeDetector, contextChanges []convert.Change, configuration string, actionChanges *[]convert.Change) (convert.ChangeDetector, []convert.Change, error)
+	OnChange(newContext change.Detector, contextChanges []change.Change, configuration string, actionChanges *[]change.Change) (change.Detector, []change.Change, error)
 }

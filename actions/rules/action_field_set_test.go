@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/actions/change"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -54,7 +54,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges []convert.Change
+		var convertChanges []change.Change
 		// Not using constants here intentionally.
 		afterActionWI, convertChanges, err := action.OnChange(newVersion, contextChanges, "{ \"system.state\": \"resolved\" }", &convertChanges)
 		require.NoError(t, err)
@@ -77,7 +77,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges []convert.Change
+		var convertChanges []change.Change
 		// Not using constants here intentionally.
 		afterActionWI, convertChanges, err := action.OnChange(newVersion, contextChanges, "{ \"system.state\": \"resolved\" }", &convertChanges)
 		require.NoError(t, err)
@@ -87,7 +87,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		require.Equal(t, workitem.SystemStateResolved, convertChanges[0].NewValue)
 		require.Equal(t, workitem.SystemStateResolved, afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
 		// doing another change, the convertChange needs to stack.
-		afterActionWI, convertChanges, err = action.OnChange(afterActionWI, []convert.Change{}, "{ \"system.state\": \"new\" }", &convertChanges)
+		afterActionWI, convertChanges, err = action.OnChange(afterActionWI, []change.Change{}, "{ \"system.state\": \"new\" }", &convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		require.Equal(t, workitem.SystemState, convertChanges[0].AttributeName)
@@ -111,7 +111,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges []convert.Change
+		var convertChanges []change.Change
 		_, _, err = action.OnChange(newVersion, contextChanges, "{ \"system.notavailable\": \"updatedState\" }", &convertChanges)
 		require.NotNil(t, err)
 	})
@@ -128,7 +128,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges []convert.Change
+		var convertChanges []change.Change
 		_, convertChanges, err = action.OnChange(newVersion, contextChanges, "someNonJSON", &convertChanges)
 		require.NotNil(t, err)
 	})

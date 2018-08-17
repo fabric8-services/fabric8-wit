@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/actions/change"
 
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -59,11 +59,11 @@ func (wi WorkItem) GetLastModified() time.Time {
 }
 
 // ChangeSet derives a changeset between this workitem and a given workitem.
-func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, error) {
+func (wi WorkItem) ChangeSet(older change.Detector) ([]change.Change, error) {
 	if older == nil {
 		// this is changeset for a new ChangeDetector, report all observed attributes to
 		// the change set. This needs extension once we support more attributes.
-		changeSet := []convert.Change{
+		changeSet := []change.Change{
 			{
 				AttributeName: SystemState,
 				NewValue:      wi.Fields[SystemState],
@@ -71,7 +71,7 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 			},
 		}
 		if wi.Fields[SystemBoardcolumns] != nil && len(wi.Fields[SystemBoardcolumns].([]interface{})) != 0 {
-			changeSet = append(changeSet, convert.Change{
+			changeSet = append(changeSet, change.Change{
 				AttributeName: SystemBoardcolumns,
 				NewValue:      wi.Fields[SystemBoardcolumns],
 				OldValue:      nil,
@@ -86,14 +86,14 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 	if wi.ID != olderWorkItem.ID {
 		return nil, errs.New("Other entity has not the same ID: " + olderWorkItem.ID.String())
 	}
-	changes := []convert.Change{}
+	changes := []change.Change{}
 	// CAUTION: we're only supporting changes to the system.state and to the
 	// board position relationship for now. If we need to support more
 	// attribute changes, this has to be added here. This will be likely
 	// necessary when adding new Actions.
 	// compare system.state
 	if wi.Fields[SystemState] != olderWorkItem.Fields[SystemState] {
-		changes = append(changes, convert.Change{
+		changes = append(changes, change.Change{
 			AttributeName: SystemState,
 			NewValue:      wi.Fields[SystemState],
 			OldValue:      olderWorkItem.Fields[SystemState],
@@ -106,7 +106,7 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 		return changes, nil
 	}
 	if wi.Fields[SystemBoardcolumns] == nil || olderWorkItem.Fields[SystemBoardcolumns] == nil {
-		changes = append(changes, convert.Change{
+		changes = append(changes, change.Change{
 			AttributeName: SystemBoardcolumns,
 			NewValue:      wi.Fields[SystemBoardcolumns],
 			OldValue:      olderWorkItem.Fields[SystemBoardcolumns],
@@ -119,7 +119,7 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 			return changes, nil
 		}
 		// one of the lists is empty, do return a change.
-		changes = append(changes, convert.Change{
+		changes = append(changes, change.Change{
 			AttributeName: SystemBoardcolumns,
 			NewValue:      wi.Fields[SystemBoardcolumns],
 			OldValue:      olderWorkItem.Fields[SystemBoardcolumns],
@@ -132,7 +132,7 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 		return nil, errs.New("Boardcolumn slice is not a interface{} slice")
 	}
 	if len(bcThis) != len(bcOlder) {
-		changes = append(changes, convert.Change{
+		changes = append(changes, change.Change{
 			AttributeName: SystemBoardcolumns,
 			NewValue:      wi.Fields[SystemBoardcolumns],
 			OldValue:      olderWorkItem.Fields[SystemBoardcolumns],
@@ -157,7 +157,7 @@ func (wi WorkItem) ChangeSet(older convert.ChangeDetector) ([]convert.Change, er
 	sort.Strings(thisCopyStr)
 	sort.Strings(olderCopyStr)
 	if !reflect.DeepEqual(thisCopyStr, olderCopyStr) {
-		changes = append(changes, convert.Change{
+		changes = append(changes, change.Change{
 			AttributeName: SystemBoardcolumns,
 			NewValue:      wi.Fields[SystemBoardcolumns],
 			OldValue:      olderWorkItem.Fields[SystemBoardcolumns],

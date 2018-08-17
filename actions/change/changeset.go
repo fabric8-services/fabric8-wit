@@ -1,10 +1,10 @@
-package convert
+package change
 
 // ChangeDetector defines funcs for getting a changeset from two
 // instances of a class. This interface has to be implemented by
 // all entities that should trigger action rule runs.
-type ChangeDetector interface {
-	ChangeSet(older ChangeDetector) ([]Change, error)
+type Detector interface {
+	ChangeSet(older Detector) ([]Change, error)
 }
 
 // Change defines a set of changed values in an entity. It holds

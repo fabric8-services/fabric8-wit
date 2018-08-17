@@ -9,7 +9,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/actions/change"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
@@ -52,7 +52,7 @@ func (act ActionFieldSet) storeWorkItem(wi *workitem.WorkItem) (*workitem.WorkIt
 }
 
 // OnChange executes the action rule.
-func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextChanges []convert.Change, configuration string, actionChanges *[]convert.Change) (convert.ChangeDetector, []convert.Change, error) {
+func (act ActionFieldSet) OnChange(newContext change.Detector, contextChanges []change.Change, configuration string, actionChanges *[]change.Change) (change.Detector, []change.Change, error) {
 	// check if the newContext is a WorkItem, fail otherwise.
 	wiContext, ok := newContext.(workitem.WorkItem)
 	if !ok {
@@ -76,7 +76,7 @@ func (act ActionFieldSet) OnChange(newContext convert.ChangeDetector, contextCha
 			if !ok {
 				return nil, nil, errs.New("unknown field name: " + k)
 			}
-			*actionChanges = append(*actionChanges, convert.Change{
+			*actionChanges = append(*actionChanges, change.Change{
 				AttributeName: k,
 				NewValue:      v,
 				OldValue:      wiContext.Fields[k],
