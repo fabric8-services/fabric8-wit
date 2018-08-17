@@ -104,7 +104,6 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	t := test.T()
 	resource.Require(t, resource.Database)
-	test.DB.LogMode(true)
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
