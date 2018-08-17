@@ -206,8 +206,19 @@ endef
 
 .PHONY: test-e2e
 ## Runs the end-to-end tests WITHOUT producing coverage files for each package.
-test-e2e: $(BINARY_SERVER_BIN) docker-compose-up
+test-e2e: $(BINARY_SERVER_BIN)
 	$(call log-info,"Running tests: $@")
+ifeq ($(OS),Windows_NT)
+	$(error End to end tests currently cannot run on Windows based operating systems.)
+endif
+	$(call download-docker-compose)
+ifeq ($(UNAME_S),Darwin)
+	@echo "Running docker-compose with macOS network settings"
+	$(DOCKER_COMPOSE_BIN_ALT) -f docker-compose.macos.yml up -d db auth
+else
+	@echo "Running docker-compose with Linux network settings"
+	$(DOCKER_COMPOSE_BIN_ALT) up -d db auth
+endif
 	# Start the WIT server
 	$(call start-wit)
 	# Clone the fabric8-test repo
