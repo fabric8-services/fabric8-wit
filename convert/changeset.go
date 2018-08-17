@@ -2,7 +2,7 @@ package convert
 
 // ChangeDetector defines funcs for getting a changeset from two
 // instances of a class. This interface has to be implemented by
-// all
+// all entities that should trigger action rule runs.
 type ChangeDetector interface {
 	ChangeSet(older ChangeDetector) ([]Change, error)
 }
