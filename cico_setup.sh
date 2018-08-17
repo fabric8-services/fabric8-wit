@@ -38,7 +38,8 @@ function install_deps() {
     docker \
     make \
     git \
-    curl
+    curl \
+    nc
 
   service docker start
 
@@ -81,12 +82,6 @@ function run_tests_without_coverage() {
   make docker-test-integration-no-coverage
   make docker-test-remote-no-coverage
   echo "CICO: ran tests without coverage"
-}
-
-function run_e2e_tests() {
-  trap "make clean-e2e" EXIT
-  make test-e2e  
-  echo "CICO: ran e2e-tests"
 }
 
 function run_go_benchmarks() {
