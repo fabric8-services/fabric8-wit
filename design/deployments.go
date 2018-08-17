@@ -151,6 +151,11 @@ var simpleDeploymentStatSeries = a.Type("SimpleDeploymentStatSeries", func() {
 	a.Attribute("net_rx", a.ArrayOf(timedNumberTuple))
 })
 
+var simpleDeploymentPodLimitRange = a.Type("SimpleDeploymentPodLimitRange", func() {
+	a.Description("pod limit range")
+	a.Attribute("limits", podsQuota)
+})
+
 var simpleSpaceSingle = JSONSingle(
 	"SimpleSpace", "Holds a single response to a space request",
 	simpleSpace,
@@ -170,6 +175,11 @@ var simpleDeploymentStatsSingle = JSONSingle(
 var simpleDeploymentStatSeriesSingle = JSONSingle(
 	"SimpleDeploymentStatSeries", "Holds a response to a stat series query",
 	simpleDeploymentStatSeries,
+	nil)
+
+var simpleDeploymentPodLimitRangeSingle = JSONSingle(
+	"simpleDeploymentPodLimitRange", "Holds a response to a pod limit range query",
+	simpleDeploymentPodLimitRange,
 	nil)
 
 var _ = a.Resource("deployments", func() {
@@ -225,6 +235,23 @@ var _ = a.Resource("deployments", func() {
 			a.Param("limit", d.Integer, "maximum number of data points to return")
 		})
 		a.Response(d.OK, simpleDeploymentStatSeriesSingle)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+	})
+
+	a.Action("showDeploymentPodLimitRange", func() {
+		a.Routing(
+			a.GET("/spaces/:spaceID/environments/:envName/applications/:appName/podlimits"),
+		)
+		a.Description("get pod resource limit range")
+		a.Params(func() {
+			a.Param("spaceID", d.UUID, "ID of the space")
+			a.Param("appName", d.String, "Name of the application")
+			a.Param("envName", d.String, "Name of the environment")
+		})
+		a.Response(d.OK, simpleDeploymentPodLimitRangeSingle)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)

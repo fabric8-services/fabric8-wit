@@ -80,6 +80,7 @@ type KubeClientInterface interface {
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
 	GetMetricsClient(envNS string) (Metrics, error)
 	WatchEventsInNamespace(nameSpace string) (*cache.FIFO, chan struct{})
+	GetDeploymentPodQuota(namespace string, appName string, spaceName string) (*app.SimpleDeploymentPodLimitRange, error)
 	Close()
 	KubeAccessControl
 }
@@ -162,6 +163,8 @@ var _ KubeClientInterface = (*kubeClient)(nil)
 
 // Receiver for default implementation of KubeRESTAPIGetter and MetricsGetter
 type defaultGetter struct{}
+
+const limitRangeName = "resource-limits"
 
 // NewKubeClient creates a KubeClientInterface given a configuration. The returned
 // KubeClientInterface must be closed using the Close method, when no longer needed.
@@ -1480,6 +1483,122 @@ func (kc *kubeClient) getPodsQuota(pods []*v1.Pod) (*app.PodsQuota, error) {
 	}
 
 	return result, nil
+}
+
+func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, namespace string) (*app.SimpleDeploymentPodLimitRange, error) {
+	// Inputs: namespace (environment), appname, spacename
+	dcName, err := kc.getDeploymentConfigNameForApp(namespace, appName, spaceName)
+	if err != nil {
+		return nil, errs.Errorf("could not retrieve deployment with the given namespace %s, app name %s and space name %s", namespace, appName, spaceName)
+	}
+
+	deploymentConfig, err := kc.GetDeploymentConfig(namespace, dcName)
+	if err != nil {
+		return nil, errs.Errorf("could not retrieve deployment config with name %s for namespace %s", dcName, namespace)
+	}
+
+	spec, ok := deploymentConfig["spec"].(map[string]interface{})
+	if !ok {
+		return nil, errs.Errorf("spec is missing from deployment config %s: %+v", dcName, spec)
+	}
+
+	template, ok := spec["template"].(map[string]interface{})
+	if !ok {
+		return nil, errs.Errorf("template is missing from deployment config %s: %+v", dcName, template)
+	}
+
+	innerSpec, ok := template["spec"].(map[string]interface{})
+	if !ok {
+		return nil, errs.Errorf("inner spec is missing from deployment config %s: %+v", dcName, innerSpec)
+	}
+
+	// This should be checked, to see if maps[string]interface is appropriate type for iterable arr
+	containers, ok := innerSpec["containers"].([]interface{})
+	if !ok {
+		return nil, errs.Errorf("containers is missing from deployment config %s: %+v", dcName, containers)
+	}
+
+	noQuotaContainers := 0.0
+	podCPULimit := 0.0
+	podMemLimit := 0.0
+
+	for _, container := range containers {
+		resources, ok := container.(map[string]interface{})["resources"].(map[string]interface{})
+		if len(resources) == 0 {
+			noQuotaContainers++
+			continue
+		}
+
+		limits, ok := resources["limits"].(map[string]string)
+		if !ok {
+			return nil, errs.Errorf("limits is missing from deployment config %s: %+v", dcName, resources)
+		}
+
+		cpuQuantity, err := resource.ParseQuantity(limits["cpucores"])
+
+		if err != nil {
+			return nil, errs.Errorf("could not parse cpu quantity for %+v of %s ", container, dcName)
+		}
+
+		memoryQuantity, err := resource.ParseQuantity(limits["memory"])
+
+		if err != nil {
+			return nil, errs.Errorf("could not parse memory quantity for %+v of %s ", container, dcName)
+		}
+
+		cpuValue, err := quantityToFloat64(cpuQuantity)
+
+		if err != nil {
+			return nil, errs.Errorf("could not convert cpu quantity %+v to float64 value", cpuQuantity)
+		}
+
+		memoryValue, err := quantityToFloat64(memoryQuantity)
+
+		if err != nil {
+			return nil, errs.Errorf("could not convert memory quantity %+v to float64 value", memoryQuantity)
+		}
+
+		podCPULimit += cpuValue
+		podMemLimit += memoryValue
+	}
+
+	if noQuotaContainers > 0 {
+		// Must use default values
+		opts := metaV1.GetOptions{
+			TypeMeta: metaV1.TypeMeta{ // Normally set automatically by k8s client-go
+				Kind:       "",
+				APIVersion: "",
+			},
+		}
+
+		limitRange, err := kc.LimitRanges(namespace).Get(limitRangeName, opts)
+
+		if err != nil {
+			return nil, errs.Errorf("could not retrieve limitRange info for namespace %s", namespace)
+		}
+
+		defaultCPULimit := 0.0
+		defaultMemLimit := 0.0
+		for _, limit := range limitRange.Spec.Limits {
+			if limit.Type == "Container" {
+				defaultCPULimit, _ = quantityToFloat64(*limit.Default.Cpu())
+				defaultMemLimit, _ = quantityToFloat64(*limit.Default.Memory())
+			}
+		}
+
+		additionalCPUUsage := defaultCPULimit * noQuotaContainers
+		additionalMEMUsage := defaultMemLimit * noQuotaContainers
+
+		podCPULimit += additionalCPUUsage
+		podMemLimit += additionalMEMUsage
+	}
+
+	return &app.SimpleDeploymentPodLimitRange{
+		Limits: &app.PodsQuota{
+			Cpucores: &podCPULimit,
+			Memory:   &podMemLimit,
+		},
+	}, nil
 }
 
 // Pod status constants
