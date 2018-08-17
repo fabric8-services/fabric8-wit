@@ -1179,8 +1179,12 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	// Loop through old workitem type
 	for oldFieldName := range oldWIType.Fields {
 		// Temporary workaround to not add metastates to the field diff. We need
-		// to have a special handling for fields are shouldn't be set by user
-		// (or affected by type change)
+		// to have a special handling for fields that shouldn't be set by user
+		// (or affected by type change) MetaState is a system level detail and
+		// that shouldn't be affected by type change, even if it is affected, it
+		// shouldn't show up in the field diff. The purpose of
+		// fieldDiff is to get the list of fields that should be added to the
+		// description. Metastate shouldn't show up in the description
 		if oldFieldName == SystemMetaState {
 			continue
 		}
