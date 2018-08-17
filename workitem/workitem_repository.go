@@ -1297,13 +1297,9 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 		}
 		descriptionTemplate := template.Must(template.New("test").Parse("```" +
 			`
-
-======= Missing fields in workitem type: {{ .NewTypeName }} =======
+Missing fields in workitem type: {{ .NewTypeName }}
 {{range $index, $element := .FieldNameValues }}
-{{$index}} : {{$element}}
-{{end}}
-
-================================================
+{{$index}} : {{$element}}{{end}}
 ` + "```" + `
 {{.OriginalDescription}}
 `))

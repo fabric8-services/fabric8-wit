@@ -970,16 +970,23 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
+	userFullName := []string{"First User", "Second User"}
+	userUserName := []string{"jon_doe", "lorem_ipsum"}
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.CreateWorkItemEnvironment(),
-		tf.Users(2),
+		tf.Users(2, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Users[idx].FullName = userFullName[idx]
+			return nil
+		}),
 		tf.Identities(2, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Identities[idx].Username = userUserName[idx]
 			fxt.Identities[idx].User = *fxt.Users[idx]
 			return nil
 		}),
 		tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
 			switch idx {
 			case 0:
+				fxt.WorkItemTypes[idx].Name = "First WorkItem Type"
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
 					"fooo": {
 						Label: "Type1 fooo",
@@ -1017,6 +1024,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 					},
 				}
 			case 1:
+				fxt.WorkItemTypes[idx].Name = "Second WorkItem Type"
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
 					"fooo": {
 						Label: "Type2 fooo",
