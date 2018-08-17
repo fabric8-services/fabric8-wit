@@ -650,8 +650,10 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	return ConvertWorkItemStorageToModel(wiType, wiStorage)
 }
 
-// CheckWITypeBelongsToSpace returns true if the given workitem type (wit) belongs to the same space template as the space (spaceID)
-func (r *GormWorkItemRepository) CheckWITypeBelongsToSpace(ctx context.Context, wit *WorkItemType, spaceID uuid.UUID) (bool, error) {
+// CheckTypeAndSpaceShareTemplate returns true if the given workitem type (wit)
+// belongs to the same space template as the space (spaceID); otherwise false is
+// returned
+func (r *GormWorkItemRepository) CheckTypeAndSpaceShareTemplate(ctx context.Context, wit *WorkItemType, spaceID uuid.UUID) (bool, error) {
 	// Prohibit creation of work items from a base type.
 	if !wit.CanConstruct {
 		return false, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from \"%s\" (%s)", wit.Name, wit.ID))
@@ -691,7 +693,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		return nil, errors.NewBadParameterError("typeID", typeID)
 	}
 
-	allowedWIT, err := r.CheckWITypeBelongsToSpace(ctx, wiType, spaceID)
+	allowedWIT, err := r.CheckTypeAndSpaceShareTemplate(ctx, wiType, spaceID)
 	if err != nil {
 		return nil, err
 
@@ -1168,7 +1170,7 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 // ChangeWorkItemType changes the workitem in wiStorage to newWIType. Returns
 // error if the operation fails
 func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error {
-	allowedWIT, err := r.CheckWITypeBelongsToSpace(ctx, newWIType, spaceID)
+	allowedWIT, err := r.CheckTypeAndSpaceShareTemplate(ctx, newWIType, spaceID)
 	if err != nil {
 		return errs.Wrap(err, "failed to check workitem type")
 	}
