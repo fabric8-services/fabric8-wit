@@ -72,12 +72,14 @@ func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uu
 				Ctx:    ctx,
 				UserID: &userID,
 			}, actionConfig, newContext, contextChanges, &actionChanges)
+		/* commented out for now until this rule is added
 		case rules.ActionKeyStateToMetastate:
 			newContext, actionChanges, err = executeAction(rules.ActionStateToMetaState{
 				Db:     db,
 				Ctx:    ctx,
 				UserID: &userID,
 			}, actionConfig, newContext, contextChanges, &actionChanges)
+		*/
 		default:
 			return nil, nil, errs.New("action key " + actionKey + " is unknown")
 		}
