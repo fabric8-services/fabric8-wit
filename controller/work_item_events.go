@@ -81,7 +81,6 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 	if err != nil {
 		return nil, errs.Wrapf(err, "failed to load work item type: %s", wiEvent.WorkItemTypeID)
 	}
-
 	modifierData, modifierLinks := ConvertUserSimple(req, wiEvent.Modifier)
 	e := app.Event{
 		Type: event.APIStringTypeEvents,

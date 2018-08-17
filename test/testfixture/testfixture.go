@@ -38,7 +38,8 @@ type TestFixture struct {
 	customLinkCreation bool // on when you've used WorkItemLinksCustom in your recipe
 	normalLinkCreation bool // on when you've used WorkItemLinks in your recipe
 
-	Identities             []*account.Identity            // Itentities (if any) that were created for this test fixture.
+	Users                  []*account.User                // Users (if any) that were created for this test fixture.
+	Identities             []*account.Identity            // Identities (if any) that were created for this test fixture.
 	Iterations             []*iteration.Iteration         // Iterations (if any) that were created for this test fixture.
 	Areas                  []*area.Area                   // Areas (if any) that were created for this test fixture.
 	Spaces                 []*space.Space                 // Spaces (if any) that were created for this test fixture.
@@ -154,6 +155,7 @@ func (fxt *TestFixture) Check() error {
 type kind string
 
 const (
+	kindUsers                  kind = "user"
 	kindIdentities             kind = "identity"
 	kindIterations             kind = "iteration"
 	kindAreas                  kind = "area"
@@ -221,11 +223,12 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 	}
 	makeFuncs := []func(fxt *TestFixture) error{
 		// make the objects that DON'T have any dependency
-		makeIdentities,
+		makeUsers,
 		makeTrackers,
 		makeWorkItemLinkCategories,
 		makeSpaceTemplates,
 		// actually make the objects that DO have dependencies
+		makeIdentities,
 		makeSpaces,
 		makeLabels,
 		makeQueries,
