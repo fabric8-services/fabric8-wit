@@ -151,6 +151,9 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 		// Ensure we do not have any other change in payload except type change
 		if (app.WorkItemRelationships{}) != *ctx.Payload.Data.Relationships || len(ctx.Payload.Data.Attributes) > 0 {
+			// Todo(ibrahim) - Change this error to 422 Unprocessable entity
+			// error once we have this error in our error package. Please see
+			// https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r208842063
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("cannot update type along with other fields"))
 		}
 
