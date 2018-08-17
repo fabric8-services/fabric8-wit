@@ -446,6 +446,9 @@ func GetMigrations() Migrations {
 	// Version 102
 	m = append(m, steps{ExecuteSQLFile("102-add-forward-and-reverse-link-type-descriptions.sql")})
 
+	// Version 103
+	m = append(m, steps{ExecuteSQLFile("103-add-rules-to-wit.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

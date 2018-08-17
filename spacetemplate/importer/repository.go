@@ -144,6 +144,8 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			loadedWIT.Description = wit.Description
 			loadedWIT.Icon = wit.Icon
 			loadedWIT.CanConstruct = wit.CanConstruct
+			loadedWIT.TransRuleKey = wit.TransRuleKey
+			loadedWIT.TransRuleArgument = wit.TransRuleArgument
 
 			//--------------------------------------------------------------------------------
 			// Double check all existing fields are still present in new fields with same type

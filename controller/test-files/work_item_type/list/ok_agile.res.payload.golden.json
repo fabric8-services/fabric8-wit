@@ -394,6 +394,14 @@
         "created-at": "0001-01-01T00:00:00Z",
         "description": "A bug that causes unexpected behavior in the software.\n",
         "fields": {
+          "business_value": {
+            "description": "Business value for this defect.",
+            "label": "Business Value",
+            "required": false,
+            "type": {
+              "kind": "string"
+            }
+          },
           "effort": {
             "description": "The effort needed to fix this defect.\n",
             "label": "Effort",
@@ -652,8 +660,16 @@
         "description": "Work assigned to team members to implement a story. They are generally measured in units of 0.5 days, for example, four hours, eight hours, sixteen hours.\n",
         "fields": {
           "effort": {
-            "description": "The effort needed to implement this user story.\n",
+            "description": "The effort needed to implement this task.\n",
             "label": "Effort",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
+          "storypoints": {
+            "description": "The effort needed to implement the task.",
+            "label": "Storypoints",
             "required": false,
             "type": {
               "kind": "float"
@@ -953,6 +969,7 @@
                 "mNew",
                 "mOpen",
                 "mInprogress",
+                "mDeferred",
                 "mResolved",
                 "mClosed"
               ]
@@ -1170,6 +1187,8 @@
                 "mNew",
                 "mOpen",
                 "mInprogress",
+                "mDeferred",
+                "mNoplantoimplement",
                 "mResolved",
                 "mClosed"
               ]
@@ -1388,6 +1407,8 @@
                 "mNew",
                 "mOpen",
                 "mInprogress",
+                "mDeferred",
+                "mNoplantoimplement",
                 "mResolved",
                 "mClosed"
               ]

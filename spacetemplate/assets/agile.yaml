@@ -9,9 +9,12 @@ space_template:
 work_item_types:
 
 - id: &agileCommonTypeID "719beee7-07cb-489c-9a4b-9618d45df35a"
+  # Note: the expansion of the child types only use the fields, not other attributes.
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Agile Common Type
   can_construct: no
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     This is the work item type that defines the common fields that are shared
     among all for all work item types of the agile template. It extends the
@@ -23,6 +26,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Impediment
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     Any issue or blocker that slows down the velocity of a team and affects
     team performance or progress.
@@ -64,11 +69,12 @@ work_item_types:
         - Out of Date
         - Verified
 
-
 - id: &defectID "fce0921f-ea70-4513-bb91-31d3aa8017f1"
   extends: *agileCommonTypeID
   name: Defect
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     A bug that causes unexpected behavior in the software.
   icon: fa fa-bug
@@ -88,6 +94,13 @@ work_item_types:
         - In Progress
         - Resolved
         - Closed
+    "business_value":
+      label: Business Value
+      description:
+        Business value for this defect.
+      required: no
+      type:
+        kind: string
     "effort":
       label: Effort
       description: >
@@ -161,6 +174,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Task
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     Work assigned to team members to implement a story. They are generally
     measured in units of 0.5 days, for example, four hours, eight hours, sixteen
@@ -182,10 +197,17 @@ work_item_types:
         - In Progress
         - Resolved
         - Closed
+    "storypoints":
+      label: Storypoints
+      description: 
+        The effort needed to implement the task.
+      required: no
+      type:
+        kind: float
     "effort":
       label: Effort
       description: >
-        The effort needed to implement this user story.
+        The effort needed to implement this task.
       required: no
       type:
         kind: float
@@ -194,6 +216,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Story
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     Incremental work or requirements identified to deliver a product feature.
     Typically, it is expressed from the user's perspective in the following
@@ -217,6 +241,27 @@ work_item_types:
         - Deferred
         - Resolved
         - Closed
+    "system.metastate":
+      label: Meta State
+      description: The meta-state of the work item
+      read_only: no
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        # This will allow other WITs to overwrite the values of the state.
+        rewritable_values: yes
+        # the sequence and number of the values need to match the sequence of the 
+        # system.state attributes. This encapsulates the mapping.
+        values: 
+        - mNew
+        - mOpen
+        - mInprogress
+        - mDeferred
+        - mResolved
+        - mClosed
     "storypoints":
       label: Storypoints
       description: >
@@ -248,6 +293,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Epic
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     A large user story, with a focused goal, that may need to be split into
     multiple user stories spanning over multiple iterations to be realized. It
@@ -272,6 +319,28 @@ work_item_types:
         - Deferred
         - No Plan to Implement
         - Closed
+    "system.metastate":
+      label: Meta State
+      description: The meta-state of the work item
+      read_only: no
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        # This will allow other WITs to overwrite the values of the state.
+        rewritable_values: yes
+        # the sequence of the values need to match the sequence of the 
+        # system.state attributes. This encapsulates the mapping.
+        values: 
+        - mNew
+        - mOpen
+        - mInprogress
+        - mDeferred
+        - mNoplantoimplement
+        - mResolved
+        - mClosed
     "storypoints":
       label: Storypoints
       description: >
@@ -296,6 +365,8 @@ work_item_types:
   extends: *agileCommonTypeID
   name: Theme
   can_construct: yes
+  trans_rule_key: "BidirectionalStateToColumn"
+  trans_rule_argument: ""
   description: >
     A group of user stories with a common underlying thread. They have a broad
     organization-level focus and are used to track related user stories.
@@ -319,6 +390,28 @@ work_item_types:
         - No Plan to Implement
         - Resolved
         - Closed
+    "system.metastate":
+      label: Meta State
+      description: The meta-state of the work item
+      read_only: no
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        # This will allow other WITs to overwrite the values of the state.
+        rewritable_values: yes
+        # the sequence of the values need to match the sequence of the 
+        # system.state attributes. This encapsulates the mapping.
+        values: 
+        - mNew
+        - mOpen
+        - mInprogress
+        - mDeferred
+        - mNoplantoimplement
+        - mResolved
+        - mClosed
     "business_value":
       label: Business Value
       description: >
@@ -357,27 +450,27 @@ work_item_boards:
   - id: "7389fa7d-39c8-4865-8094-eda9a7836161"
     name: "New"
     order: 0
-    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_key: "BidirectionalStateToColumn"
     trans_rule_argument: "{ \"metaState\": \"mNew\" }"
   - id: "7063ae46-994d-49e8-99f9-2ad867dd340e"
     name: "Open"
     order: 1
-    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_key: "BidirectionalStateToColumn"
     trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
   - id: "f7243e68-1d2b-4256-b6e7-3c657c944ff1"
     name: "In Progress"
     order: 2
-    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_key: "BidirectionalStateToColumn"
     trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
   - id: "9f780106-4d71-41bf-b017-001ca7e19162"
     name: "Done"
     order: 3
-    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_key: "BidirectionalStateToColumn"
     trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
   - id: "b454daf3-d7f4-44d2-a8fb-c767984ecd9d"
     name: "Verified"
     order: 4
-    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_key: "BidirectionalStateToColumn"
     trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
 
 - id: "0331cca0-0c6c-48fb-b2cd-002f957f9e31"
@@ -389,27 +482,27 @@ work_item_boards:
   - id: "7e3bbf09-44c4-419e-8d43-10e00400ca80"
     name: "New"
     order: 0
-    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_key: "BidirectionalStateToColumn"
     trans_rule_argument: "{ \"metaState\": \"mNew\" }"
   - id: "29124ef0-d651-47c4-84a7-28acb7a4ab7a"
     name: "Open"
     order: 1
-    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_key: "BidirectionalStateToColumn"
     trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
   - id: "a30fc0e0-bfa9-43b1-a83d-b62ae2d5d0f7"
     name: "In Progress"
     order: 2
-    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_key: "BidirectionalStateToColumn"
     trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
   - id: "ca1ea842-1650-4435-88b3-560e5bf47d42"
     name: "Done"
     order: 3
-    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_key: "BidirectionalStateToColumn"
     trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
   - id: "c3589823-203c-4890-b548-f003ba77af53"
     name: "Verified"
     order: 4
-    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_key: "BidirectionalStateToColumn"
     trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
 
 work_item_type_groups:

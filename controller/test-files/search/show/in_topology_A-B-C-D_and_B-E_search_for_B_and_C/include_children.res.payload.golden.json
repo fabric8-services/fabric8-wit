@@ -3,7 +3,7 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
-        "system.metastate": null,
+        "system.metastate": "mNew",
         "system.number": 2,
         "system.order": 2000,
         "system.remote_item_id": null,
@@ -92,7 +92,7 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
-        "system.metastate": null,
+        "system.metastate": "mNew",
         "system.number": 3,
         "system.order": 3000,
         "system.remote_item_id": null,
@@ -183,7 +183,7 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
-        "system.metastate": null,
+        "system.metastate": "mNew",
         "system.number": 1,
         "system.order": 1000,
         "system.remote_item_id": null,
@@ -267,7 +267,7 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
-        "system.metastate": null,
+        "system.metastate": "mNew",
         "system.number": 5,
         "system.order": 5000,
         "system.remote_item_id": null,

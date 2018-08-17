@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/fabric8-services/fabric8-wit/actions"
 	"html"
 	"net/http"
 	"strconv"
@@ -111,6 +112,11 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
+	// load the current version of the work item.
+	oldWi, err := c.db.WorkItems().LoadByID(ctx.Context, wi.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load existing work item: %s", wi.ID))
+	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		// The Number and Type of a work item are not allowed to be changed
 		// which is why we overwrite those values with their old value after the
@@ -135,6 +141,23 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	wit, err := c.db.WorkItemTypes().Load(ctx.Context, wi.Type)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load work item type: %s", wi.Type))
+	}
+	// if this WIs WIT has an action rule defined, run it.
+	if wit.TransRuleKey != "" {
+		// first, create the change set.
+		changes, err := wi.ChangeSet(*oldWi)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create work item changeset"))
+		}
+		// then execute the action, overwriting the existing wi as the action might have a sideffect on the wi.
+		newContext, _, err := actions.ExecuteActionsByChangeset(ctx, c.db, *currentUserIdentityID, *wi, changes, map[string]string{
+			wit.TransRuleKey: wit.TransRuleArgument,
+		})
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to execute update actions on work item"))
+		}
+		result := newContext.(workitem.WorkItem)
+		wi = &result
 	}
 	c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String()))
 	converted, err := ConvertWorkItem(ctx.Request, *wit, *wi, workItemIncludeHasChildren(ctx, c.db))

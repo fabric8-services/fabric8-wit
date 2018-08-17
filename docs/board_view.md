@@ -4,6 +4,9 @@ Implements User Stories:
  - Board Configuration on Process Template: https://openshift.io/openshiftio/openshiftio/plan/detail/1725
  - Basic Board View for Planner: https://openshift.io/openshiftio/openshiftio/plan/detail/2073
 
+Reference Documentation for the Board View:
+ - https://docs.google.com/presentation/d/18xKQmkf3UKlGoP7qLqUnrIYiflza674n_paUZXKuepA/edit
+
 ## Description
 This implements the backend support for board views. It contains changes to the JSONAPI services as well as to the space template system. It provides backend support for a flexible, extensible board view implementation.
 

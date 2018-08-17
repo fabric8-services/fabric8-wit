@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/fabric8-services/fabric8-wit/actions"
 	"strconv"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -137,6 +138,29 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+	// if this WIs WIT has an action rule defined, run it.
+	if workItemType.TransRuleKey != "" {
+		// we need to explicitly delete the metastate here as this is set by the
+		// system as a default value (first entry in the enum) on new WIs, but the
+		// action expects that to be not set on new WIs.
+		delete(wi.Fields, workitem.SystemMetaState)
+		// first, create the change set. As we create a new WI, this is an
+		// full set. We call ChangeSet() with nil.
+		changes, err := wi.ChangeSet(nil)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create work item changeset"))
+		}
+		// then execute the action, overwriting the existing wi as the action might have a sideffect on the wi.
+		newContext, _, err := actions.ExecuteActionsByChangeset(ctx, c.db, *currentUserIdentityID, *wi, changes, map[string]string{
+			workItemType.TransRuleKey: workItemType.TransRuleArgument,
+		})
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to execute update actions on work item"))
+		}
+		newContextWi := newContext.(workitem.WorkItem)
+		wi = &newContextWi
+	}
+	// construct response
 	wi2, err := ConvertWorkItem(ctx.Request, *workItemType, *wi, hasChildren)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)

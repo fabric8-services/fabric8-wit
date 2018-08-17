@@ -26,6 +26,7 @@ const (
 	SystemDescriptionMarkup   = "system.description.markup"
 	SystemDescriptionRendered = "system.description.rendered"
 	SystemState               = "system.state"
+	SystemMetaState           = "system.metastate"
 	SystemAssignees           = "system.assignees"
 	SystemCreator             = "system.creator"
 	SystemCreatedAt           = "system.created_at"
@@ -101,8 +102,15 @@ type WorkItemType struct {
 	// the DB. Instead the Path member contains the information.
 	Extends uuid.UUID `gorm:"-" json:"extends,omitempty"`
 
+	// TransRuleKey holds the key to the action rule to be executed when data
+	// on a work item of this type changes.
+	TransRuleKey string `gorm:"trans_rule_key" json:"trans_rule_key,omitempty"`
+
+	// TransRuleArgument holds the configuration for the action rule
+	// identified by TransRuleKey.
+	TransRuleArgument string `gorm:"trans_rule_argument" json:"trans_rule_argument,omitempty"`
+
 	// CanConstruct is true when you can create work items from this work item
-	// type.
 	CanConstruct bool `gorm:"can_construct" json:"can_construct,omitempty"`
 
 	// ChildTypeIDs is a list of work item type IDs that can be used as child
