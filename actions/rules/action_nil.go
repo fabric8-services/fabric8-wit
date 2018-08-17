@@ -12,6 +12,6 @@ type ActionNil struct {
 var _ Action = ActionNil{}
 
 // OnChange executes the action rule.
-func (act ActionNil) OnChange(newContext change.Detector, contextChanges []change.Change, configuration string, actionChanges *[]change.Change) (change.Detector, []change.Change, error) {
+func (act ActionNil) OnChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error) {
 	return newContext, nil, nil
 }

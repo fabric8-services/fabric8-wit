@@ -54,7 +54,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges []change.Change
+		var convertChanges change.Set
 		// Not using constants here intentionally.
 		afterActionWI, convertChanges, err := action.OnChange(newVersion, contextChanges, "{ \"system.state\": \"resolved\" }", &convertChanges)
 		require.NoError(t, err)
@@ -77,7 +77,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges []change.Change
+		var convertChanges change.Set
 		// Not using constants here intentionally.
 		afterActionWI, convertChanges, err := action.OnChange(newVersion, contextChanges, "{ \"system.state\": \"resolved\" }", &convertChanges)
 		require.NoError(t, err)
@@ -87,7 +87,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 		require.Equal(t, workitem.SystemStateResolved, convertChanges[0].NewValue)
 		require.Equal(t, workitem.SystemStateResolved, afterActionWI.(workitem.WorkItem).Fields[workitem.SystemState])
 		// doing another change, the convertChange needs to stack.
-		afterActionWI, convertChanges, err = action.OnChange(afterActionWI, []change.Change{}, "{ \"system.state\": \"new\" }", &convertChanges)
+		afterActionWI, convertChanges, err = action.OnChange(afterActionWI, change.Set{}, "{ \"system.state\": \"new\" }", &convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		require.Equal(t, workitem.SystemState, convertChanges[0].AttributeName)
@@ -111,7 +111,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges []change.Change
+		var convertChanges change.Set
 		_, _, err = action.OnChange(newVersion, contextChanges, "{ \"system.notavailable\": \"updatedState\" }", &convertChanges)
 		require.NotNil(t, err)
 	})
@@ -128,7 +128,7 @@ func (s *ActionFieldSetSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges []change.Change
+		var convertChanges change.Set
 		_, convertChanges, err = action.OnChange(newVersion, contextChanges, "someNonJSON", &convertChanges)
 		require.NotNil(t, err)
 	})

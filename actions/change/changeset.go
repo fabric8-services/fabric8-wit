@@ -1,10 +1,13 @@
 package change
 
+// Set is a set of changes to an entitiy.
+type Set []Change
+
 // ChangeDetector defines funcs for getting a changeset from two
 // instances of a class. This interface has to be implemented by
 // all entities that should trigger action rule runs.
 type Detector interface {
-	ChangeSet(older Detector) ([]Change, error)
+	ChangeSet(older Detector) (Set, error)
 }
 
 // Change defines a set of changed values in an entity. It holds

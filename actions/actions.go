@@ -44,7 +44,7 @@ import (
 // ExecuteActionsByOldNew executes all actions given in the actionConfigList
 // using the mapped configuration strings and returns the new context entity.
 // It takes the old version and the new version of the context entity, comparing them.
-func ExecuteActionsByOldNew(ctx context.Context, db application.DB, userID uuid.UUID, oldContext change.Detector, newContext change.Detector, actionConfigList map[string]string) (change.Detector, []change.Change, error) {
+func ExecuteActionsByOldNew(ctx context.Context, db application.DB, userID uuid.UUID, oldContext change.Detector, newContext change.Detector, actionConfigList map[string]string) (change.Detector, change.Set, error) {
 	if oldContext == nil || newContext == nil {
 		return nil, nil, errs.New("execute actions called with nil entities")
 	}
@@ -58,8 +58,8 @@ func ExecuteActionsByOldNew(ctx context.Context, db application.DB, userID uuid.
 // ExecuteActionsByChangeset executes all actions given in the actionConfigs
 // using the mapped configuration strings and returns the new context entity.
 // It takes a []Change that describes the differences between the old and the new context.
-func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uuid.UUID, newContext change.Detector, contextChanges []change.Change, actionConfigs map[string]string) (change.Detector, []change.Change, error) {
-	var actionChanges []change.Change
+func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uuid.UUID, newContext change.Detector, contextChanges []change.Change, actionConfigs map[string]string) (change.Detector, change.Set, error) {
+	var actionChanges change.Set
 	for actionKey := range actionConfigs {
 		var err error
 		actionConfig := actionConfigs[actionKey]
@@ -93,7 +93,7 @@ func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uu
 // executeAction executes the action given. The actionChanges contain the changes made by
 // prior action executions. The execution is expected to add/update their changes on this
 // change set.
-func executeAction(act rules.Action, configuration string, newContext change.Detector, contextChanges []change.Change, actionChanges *[]change.Change) (change.Detector, []change.Change, error) {
+func executeAction(act rules.Action, configuration string, newContext change.Detector, contextChanges change.Set, actionChanges *change.Set) (change.Detector, change.Set, error) {
 	if act == nil {
 		return nil, nil, errs.New("rule can not be nil")
 	}

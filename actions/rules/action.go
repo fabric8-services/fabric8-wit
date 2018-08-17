@@ -24,5 +24,5 @@ type Action interface {
 	// updated attributes. It returns the new context. Note that this
 	// needs the new (after change) context and the old value(s) as
 	// part of the changeset.
-	OnChange(newContext change.Detector, contextChanges []change.Change, configuration string, actionChanges *[]change.Change) (change.Detector, []change.Change, error)
+	OnChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error)
 }

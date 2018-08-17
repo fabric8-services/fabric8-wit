@@ -59,11 +59,11 @@ func (wi WorkItem) GetLastModified() time.Time {
 }
 
 // ChangeSet derives a changeset between this workitem and a given workitem.
-func (wi WorkItem) ChangeSet(older change.Detector) ([]change.Change, error) {
+func (wi WorkItem) ChangeSet(older change.Detector) (change.Set, error) {
 	if older == nil {
 		// this is changeset for a new ChangeDetector, report all observed attributes to
 		// the change set. This needs extension once we support more attributes.
-		changeSet := []change.Change{
+		changeSet := change.Set{
 			{
 				AttributeName: SystemState,
 				NewValue:      wi.Fields[SystemState],

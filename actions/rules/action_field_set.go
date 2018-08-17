@@ -52,7 +52,7 @@ func (act ActionFieldSet) storeWorkItem(wi *workitem.WorkItem) (*workitem.WorkIt
 }
 
 // OnChange executes the action rule.
-func (act ActionFieldSet) OnChange(newContext change.Detector, contextChanges []change.Change, configuration string, actionChanges *[]change.Change) (change.Detector, []change.Change, error) {
+func (act ActionFieldSet) OnChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error) {
 	// check if the newContext is a WorkItem, fail otherwise.
 	wiContext, ok := newContext.(workitem.WorkItem)
 	if !ok {
