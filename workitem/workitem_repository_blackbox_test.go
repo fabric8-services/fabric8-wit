@@ -135,6 +135,125 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWi.Type)
 		assert.Equal(t, "bar", newWi.Fields[workitem.SystemTitle])
 	})
+
+	s.T().Run("type change", func(t *testing.T) {
+
+		type testData struct {
+			name string
+
+			initialValue interface{}
+			targetValue  interface{}
+
+			initialFieldType workitem.FieldType
+			targetFieldType  workitem.FieldType
+
+			wantErr bool
+		}
+
+		k := workitem.KindString
+		td := []testData{
+			{"simple to simple",
+				"foo1",
+				"foo1",
+				workitem.SimpleType{Kind: k},
+				workitem.SimpleType{Kind: k},
+				false},
+			{"simple type -> list",
+				"foo2",
+				[]interface{}{"foo2"},
+				workitem.SimpleType{Kind: k},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				false},
+			{"simple type to enum",
+				"foo3",
+				"foo3",
+				workitem.SimpleType{Kind: k},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"bar", "foo3", "bla"}},
+				false},
+			{"list to list",
+				[]interface{}{"foo4", "foo5"},
+				[]interface{}{"foo4", "foo5"},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				false},
+			{"list to simple type",
+				[]interface{}{"foo6"},
+				"foo6",
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.SimpleType{Kind: k},
+				false},
+			{"list to enum",
+				[]interface{}{"foo7"},
+				"foo7",
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"bar", "foo7", "bla"}},
+				false},
+			{"enum to enum",
+				"foo8",
+				"foo8",
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"ying", "yang", "foo8", "blue"}},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"bar", "foo8", "bla"}},
+				false},
+			{"enum to simple type",
+				"foo9",
+				"foo9",
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"ying", "yang", "foo9", "blue"}},
+				workitem.SimpleType{Kind: k},
+				false},
+			{"enum to list",
+				"foo10",
+				[]interface{}{"foo10"},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"ying", "yang", "foo10", "blue"}},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				false},
+		}
+		for _, d := range td {
+			t.Run(d.name, func(t *testing.T) {
+				fieldName := d.name
+				fxt := tf.NewTestFixture(t, s.DB,
+					tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+						wit := fxt.WorkItemTypes[idx]
+						switch idx {
+						case 0:
+							wit.Fields = workitem.FieldDefinitions{
+								fieldName: workitem.FieldDefinition{
+									Label:    "source field",
+									Required: true,
+									Type:     d.initialFieldType,
+								},
+							}
+						case 1:
+							wit.Fields = workitem.FieldDefinitions{
+								fieldName: workitem.FieldDefinition{
+									Label:    "target field",
+									Required: true,
+									Type:     d.targetFieldType,
+								},
+							}
+						}
+						return nil
+					}),
+					tf.WorkItems(1, tf.SetWorkItemField(fieldName, d.initialValue)),
+				)
+
+				loadedWorkItem, err := s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
+				require.NoError(t, err)
+				require.Equal(t, d.initialValue, loadedWorkItem.Fields[fieldName])
+				// when
+				loadedWorkItem.Type = fxt.WorkItemTypes[1].ID
+				updatedWorkItem, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *loadedWorkItem, fxt.Identities[0].ID)
+				// then
+				if d.wantErr {
+					require.Error(t, err)
+					return
+				}
+				require.NoError(t, err)
+				require.NotNil(t, updatedWorkItem)
+				require.Equal(t, fxt.WorkItemTypes[1].ID, updatedWorkItem.Type)
+				require.Equal(t, d.targetValue, updatedWorkItem.Fields[fieldName])
+			})
+		}
+	})
 }
 
 func (s *workItemRepoBlackBoxTest) TestLoadID() {
