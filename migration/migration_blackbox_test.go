@@ -1235,12 +1235,6 @@ func executeSQLTestFile(filename string, args ...string) fn {
 	}
 }
 
-func testMigration95Boards(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:95], 95)
-	assert.True(t, dialect.HasTable("work_item_boards"))
-	assert.True(t, dialect.HasTable("work_item_board_columns"))
-}
-
 // test that the userspace_data table no longer exists - previously
 // used as a temporary solution to get data from tenant jenkins
 func testDropUserspacedataTable(t *testing.T) {

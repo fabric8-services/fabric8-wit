@@ -124,6 +124,12 @@ ALL_PKGS_EXCLUDE_PATTERN = "vendor\|account\/tenant\|app\'\|tool\/cli\|design\|c
 GOANALYSIS_PKGS_EXCLUDE_PATTERN="vendor|account/tenant|app|client|tool/cli"
 GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS_EXCLUDE_PATTERN))
 
+# temporary directory for fabric8-test
+FABRIC8_E2E_TEST_DIR = $(TMP_PATH)/fabric8-test
+
+# fabric8-test reporsitory
+FABRIC8_E2E_TEST_REPO = "https://github.com/fabric8io/fabric8-test.git"
+
 #-------------------------------------------------------------------------------
 # Normal test targets
 #
@@ -187,13 +193,50 @@ test-remote-no-coverage: prebuild-check $(SOURCES)
 test-migration: prebuild-check migration/sqlbindata.go migration/sqlbindata_test.go
 	F8_RESOURCE_DATABASE=1 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) github.com/fabric8-services/fabric8-wit/migration
 
+# Starts the WIT server and waits until its running
+define start-wit
+	echo "Starting WIT and ensuring that it is running..."; \
+	F8_LOG_LEVEL=ERROR ./wit+pmcd.sh & 
+	while ! nc -z localhost 8080 < /dev/null; do \
+		printf .; \
+		sleep 5 ; \
+	done; \
+	echo "WIT is RUNNING!";
+endef
+
+.PHONY: test-e2e
+## Runs the end-to-end tests WITHOUT producing coverage files for each package.
+test-e2e: $(BINARY_SERVER_BIN)
+	$(call log-info,"Running tests: $@")
+ifeq ($(OS),Windows_NT)
+	$(error End to end tests currently cannot run on Windows based operating systems.)
+endif
+	$(call download-docker-compose)
+ifeq ($(UNAME_S),Darwin)
+	@echo "Running docker-compose with macOS network settings"
+	$(DOCKER_COMPOSE_BIN_ALT) -f docker-compose.macos.yml up -d db auth
+else
+	@echo "Running docker-compose with Linux network settings"
+	$(DOCKER_COMPOSE_BIN_ALT) up -d db auth
+endif
+	# Start the WIT server
+	$(call start-wit)
+	# Clone the fabric8-test repo
+	@if [ "$(FABRIC8_E2E_TEST_DIR)" ]; then \
+		echo "Removing any existing dir $(FABRIC8_E2E_TEST_DIR)"; \
+		rm -rf $(FABRIC8_E2E_TEST_DIR); \
+	fi
+	$(GIT_BIN_NAME) clone --depth=1 $(FABRIC8_E2E_TEST_REPO) $(FABRIC8_E2E_TEST_DIR)
+	# Install e2e test deps and run the tests
+	$(FABRIC8_E2E_TEST_DIR)/EE_API_automation/cico_run_EE_tests_wit.sh
+
 # Downloads docker-compose to tmp/docker-compose if it does not already exist.
 define download-docker-compose
 	@if [ ! -f "$(DOCKER_COMPOSE_BIN_ALT)" ]; then \
 		echo "Downloading docker-compose to $(DOCKER_COMPOSE_BIN_ALT)"; \
 		UNAME_S=$(shell uname -s); \
 		UNAME_M=$(shell uname -m); \
-		URL="https://github.com/docker/compose/releases/download/1.11.2/docker-compose-$${UNAME_S}-$${UNAME_M}"; \
+		URL="https://github.com/docker/compose/releases/download/1.22.0/docker-compose-$${UNAME_S}-$${UNAME_M}"; \
 		curl --silent -L $${URL} > $(DOCKER_COMPOSE_BIN_ALT); \
 		chmod +x $(DOCKER_COMPOSE_BIN_ALT); \
 	fi
@@ -542,3 +585,14 @@ CLEAN_TARGETS += clean-coverage-remote
 ## Removes remote test coverage file
 clean-coverage-remote:
 	-@rm -f $(COV_PATH_REMOTE)
+
+CLEAN_TARGETS += clean-e2e
+.PHONY: clean-e2e
+## Cleans up environment of e2e tests
+clean-e2e:
+	## Kills the WIT process
+	$(shell ps aux | grep 'bin/[w]it' | awk '{print $$2}' | xargs kill)
+	## Removes the end-to-end (e2e) test directory
+	-rm -rf $(FABRIC8_E2E_TEST_DIR)
+
+
