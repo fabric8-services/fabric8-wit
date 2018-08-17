@@ -3,7 +3,7 @@
     "attributes": {
       "bool_field": false,
       "system.created_at": "0001-01-01T00:00:00Z",
-      "system.metastate": null,
+      "system.metastate": "mNew",
       "system.number": 3,
       "system.order": 3000,
       "system.remote_item_id": null,

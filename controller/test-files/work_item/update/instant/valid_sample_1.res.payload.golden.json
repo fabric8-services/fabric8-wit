@@ -3,7 +3,7 @@
     "attributes": {
       "instant_field": "0001-01-01T00:00:00Z",
       "system.created_at": "0001-01-01T00:00:00Z",
-      "system.metastate": null,
+      "system.metastate": "mNew",
       "system.number": 7,
       "system.order": 7000,
       "system.remote_item_id": null,
