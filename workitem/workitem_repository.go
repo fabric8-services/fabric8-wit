@@ -1,11 +1,13 @@
 package workitem
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/label"
@@ -101,6 +103,7 @@ type WorkItemRepository interface {
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error)
 	Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error)
+	ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error
 }
 
 // NewWorkItemRepository creates a GormWorkItemRepository
@@ -1218,8 +1221,22 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	// Append diff (fields along with their values) between the workitem types
 	// to the description
 	if len(fieldDiff) > 0 {
+		// If description doesn't exists, assign it empty value
+		if wiStorage.Fields[SystemDescription] == nil {
+			wiStorage.Fields[SystemDescription] = ""
+		}
 		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
-		textToPrepend := "\n\n======= Missing fields in workitem type: " + newWIType.Name + " =======\n"
+		// TemplateData holds the information to be added to the description
+		templateData := struct {
+			NewTypeName         string
+			FieldNameValues     map[string]string
+			OriginalDescription string
+		}{
+			NewTypeName:         newWIType.Name,
+			FieldNameValues:     make(map[string]string),
+			OriginalDescription: originalDescription.Content,
+		}
+
 		for _, fieldName := range fieldKeys {
 			fieldDef := oldWIType.Fields[fieldName]
 			oldKind := fieldDef.Type.GetKind()
@@ -1243,7 +1260,8 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 				} else {
 					val = fmt.Sprint(oldValue)
 				}
-				textToPrepend += fmt.Sprintf("\n\n %s : %s", oldWIType.Fields[fieldName].Label, val)
+				// Add field information to the description
+				templateData.FieldNameValues[oldWIType.Fields[fieldName].Label] = val
 				continue
 			}
 
@@ -1269,11 +1287,27 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 				}
 				tempList = append(tempList, val)
 			}
-			// Convert []string to comma seperated strings.
-			textToPrepend += fmt.Sprintf("\n\n %s : %s", oldWIType.Fields[fieldName].Label, strings.Join(tempList, ", "))
+			// Convert []string to comma seperated strings and add it to the
+			// description.
+			templateData.FieldNameValues[oldWIType.Fields[fieldName].Label] = strings.Join(tempList, ", ")
 		}
-		textToPrepend += "\n\n================================================\n\n"
-		wiStorage.Fields[SystemDescription] = *(rendering.NewMarkupContentFromValue(textToPrepend + originalDescription.Content))
+		descriptionTemplate := template.Must(template.New("test").Parse("```" +
+			`
+
+======= Missing fields in workitem type: {{ .NewTypeName }} =======
+{{range $index, $element := .FieldNameValues }}
+{{$index}} : {{$element}}
+{{end}}
+
+================================================
+` + "```" + `
+{{.OriginalDescription}}
+`))
+		var newDescription bytes.Buffer
+		if err := descriptionTemplate.Execute(&newDescription, templateData); err != nil {
+			return errs.Wrap(err, "failed to populate description template")
+		}
+		wiStorage.Fields[SystemDescription] = rendering.NewMarkupContent(newDescription.String(), rendering.SystemMarkupMarkdown)
 	}
 	// Set default values for all field in newWIType
 	for fieldName, fieldDef := range newWIType.Fields {
