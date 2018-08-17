@@ -36,8 +36,8 @@ import (
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
-	"github.com/fabric8-services/fabric8-wit/actions/rules"
 	"github.com/fabric8-services/fabric8-wit/actions/change"
+	"github.com/fabric8-services/fabric8-wit/actions/rules"
 	"github.com/fabric8-services/fabric8-wit/application"
 )
 
