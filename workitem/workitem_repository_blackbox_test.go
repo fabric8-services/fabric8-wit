@@ -3,6 +3,7 @@ package workitem_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -147,65 +148,121 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 			initialFieldType workitem.FieldType
 			targetFieldType  workitem.FieldType
 
-			wantErr bool
+			fieldConvertible bool
 		}
 
 		k := workitem.KindString
 
 		td := []testData{
-			{"simple type to simple type",
+			// valid conversions
+			{"ok - simple type to simple type",
 				"foo1",
 				"foo1",
 				workitem.SimpleType{Kind: k},
 				workitem.SimpleType{Kind: k},
-				false},
-			{"simple type to list",
+				true},
+			{"ok - simple type to list",
 				"foo2",
 				[]interface{}{"foo2"},
 				workitem.SimpleType{Kind: k},
 				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
-				false},
-			{"simple type to enum",
+				true},
+			{"ok - simple type to enum",
 				"foo3",
 				"foo3",
 				workitem.SimpleType{Kind: k},
 				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"red", "foo3", "blue"}},
-				false},
-			{"list to list",
+				true},
+			{"ok - list to list",
 				[]interface{}{"foo4", "foo5"},
 				[]interface{}{"foo4", "foo5"},
 				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
 				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
-				false},
-			{"list to simple type",
+				true},
+			{"ok - list to simple type",
 				[]interface{}{"foo6"},
 				"foo6",
 				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
 				workitem.SimpleType{Kind: k},
-				false},
-			{"list to enum",
+				true},
+			{"ok - list to enum",
 				[]interface{}{"foo7"},
 				"foo7",
 				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
 				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"yellow", "foo7", "cyan"}},
-				false},
-			{"enum to enum",
+				true},
+			{"ok - enum to enum",
 				"foo8",
 				"foo8",
 				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Bach", "foo8", "Chapdelaine"}},
 				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Kant", "Hume", "foo8", "Aristoteles"}},
-				false},
-			{"enum to simple type",
+				true},
+			{"ok - enum to simple type",
 				"foo9",
 				"foo9",
 				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Schopenhauer", "foo9", "Duerer"}},
 				workitem.SimpleType{Kind: k},
-				false},
-			{"enum to list",
+				true},
+			{"ok - enum to list",
 				"foo10",
 				[]interface{}{"foo10"},
 				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Sokrates", "foo10", "Fromm"}},
 				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				true},
+			// invalid conversions
+			{"err - simple type (string) to simple type (int)",
+				"foo11",
+				nil,
+				workitem.SimpleType{Kind: workitem.KindString},
+				workitem.SimpleType{Kind: workitem.KindInteger},
+				false},
+			{"err - simple type (string) to list (integer)",
+				"foo2",
+				([]interface{})(nil),
+				workitem.SimpleType{Kind: k},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: workitem.KindInteger}},
+				false},
+			{"err - simple type (string) to enum (float)",
+				"foo3",
+				11.1,
+				workitem.SimpleType{Kind: k},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: workitem.KindFloat}, Values: []interface{}{11.1, 22.2, 33.3}},
+				false},
+			{"err - list (string) to list (float)",
+				[]interface{}{"foo4", "foo5"},
+				([]interface{})(nil),
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: workitem.KindFloat}},
+				false},
+			{"err - list (string) to simple type (int)",
+				[]interface{}{"foo6"},
+				nil,
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.SimpleType{Kind: workitem.KindInteger},
+				false},
+			{"err - list (string) to enum (float)",
+				[]interface{}{"foo7"},
+				11.1,
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: workitem.KindFloat}, Values: []interface{}{11.1, 22.2, 33.3}},
+				false},
+			{"err - enum (string) to enum (float)",
+				"foo8",
+				11.1,
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Bach", "foo8", "Chapdelaine"}},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: workitem.KindFloat}, Values: []interface{}{11.1, 22.2, 33.3}},
+				false},
+			{"err - enum (string) to simple type (float)",
+				"foo9",
+				nil,
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Schopenhauer", "foo9", "Duerer"}},
+				workitem.SimpleType{Kind: workitem.KindFloat},
+				false},
+			{"err - enum (string) to list (float)",
+				"foo10",
+				([]interface{})(nil),
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Sokrates", "foo10", "Fromm"}},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: workitem.KindFloat}},
 				false},
 		}
 		for _, d := range td {
@@ -220,7 +277,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 							wit.Fields = workitem.FieldDefinitions{
 								fieldName: workitem.FieldDefinition{
 									Label:    "source field",
-									Required: true,
+									Required: false,
 									Type:     d.initialFieldType,
 								},
 							}
@@ -228,7 +285,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 							wit.Fields = workitem.FieldDefinitions{
 								fieldName: workitem.FieldDefinition{
 									Label:    "target field",
-									Required: true,
+									Required: false,
 									Type:     d.targetFieldType,
 								},
 							}
@@ -248,22 +305,32 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 				// when we update the work item type
 				loadedWorkItem.Type = fxt.WorkItemTypes[1].ID
 				updatedWorkItem, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *loadedWorkItem, fxt.Identities[0].ID)
+				require.NoError(t, err)
 
 				// then check that the error is as expected or that the
 				// value in the new field type is what we expected.
-				if d.wantErr {
-					require.Error(t, err)
-					return
+				if !d.fieldConvertible {
+					rendered := d.initialValue
+					if d.initialFieldType.GetKind() == workitem.KindList {
+						ifArr := d.initialValue.(interface{}).([]interface{})
+						strArr := make([]string, len(ifArr))
+						for i := range ifArr {
+							strArr[i] = ifArr[i].(string)
+						}
+						rendered = strings.Join(strArr, ", ")
+					}
+					require.Contains(t, updatedWorkItem.Fields[workitem.SystemDescription].(rendering.MarkupContent).Content, fmt.Sprintf("source field : %+v", rendered))
+				} else {
+					require.NotNil(t, updatedWorkItem)
+					require.Equal(t, fxt.WorkItemTypes[1].ID, updatedWorkItem.Type)
+					require.Equal(t, d.targetValue, updatedWorkItem.Fields[fieldName])
 				}
-				require.NoError(t, err)
-				require.NotNil(t, updatedWorkItem)
-				require.Equal(t, fxt.WorkItemTypes[1].ID, updatedWorkItem.Type)
-				require.Equal(t, d.targetValue, updatedWorkItem.Fields[fieldName])
 
 				// also check if the values are the same when work item is
 				// loaded
 				loadedWorkItem, err = s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
 				require.NoError(t, err)
+				require.Equal(t, fxt.WorkItemTypes[1].ID, loadedWorkItem.Type)
 				require.Equal(t, d.targetValue, loadedWorkItem.Fields[fieldName])
 			})
 		}
