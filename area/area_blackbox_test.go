@@ -112,32 +112,6 @@ func (s *TestAreaRepository) TestCreateChildArea() {
 	assert.Equal(s.T(), path.Path{fxt.Areas[0].ID, fxt.Areas[1].ID}, actualPath)
 }
 
-func (s *TestAreaRepository) TestGetAreaBySpaceIDAndNameAndPath() {
-	// given a space and area with the same name.
-	name := "space name " + uuid.NewV4().String()
-	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Spaces[idx].Name = name
-			return nil
-		}),
-		tf.Areas(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Areas[idx].Name = name
-			fxt.Areas[idx].Path = path.Path{}
-			return nil
-		}),
-	)
-	// when
-	repo := area.NewAreaRepository(s.DB)
-	areaList, err := repo.Query(area.FilterBySpaceID(fxt.Spaces[0].ID), area.FilterByPath(fxt.Areas[0].Path), area.FilterByName(name))
-	// then
-	require.NoError(s.T(), err)
-	// there must be ONLY 1 result, because of the space,name,path unique constraint
-	require.Len(s.T(), areaList, 1)
-	rootArea := areaList[0]
-	assert.Equal(s.T(), name, rootArea.Name)
-	assert.Equal(s.T(), fxt.Spaces[0].ID, rootArea.SpaceID)
-}
-
 func (s *TestAreaRepository) TestListAreaBySpace() {
 	// given two spaces and four areas (3 in 1st space and 1 in 2nd space)
 	fxt := tf.NewTestFixture(s.T(), s.DB,

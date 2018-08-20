@@ -14,15 +14,18 @@ ALTER TABLE areas ALTER COLUMN path SET NOT NULL;
 ALTER TABLE iterations DROP CONSTRAINT iterations_name_space_id_path_unique;
 ALTER TABLE areas DROP CONSTRAINT areas_name_space_id_path_unique;
 
+ALTER TABLE iterations ADD CONSTRAINT non_empty_path_check CHECK (trim(path::text) <> '');
+ALTER TABLE areas ADD CONSTRAINT non_empty_path_check CHECK (trim(path::text) <> '');
+
 -- add constraints for subpaths
 CREATE UNIQUE INDEX areas_name_space_id_path_unique ON areas (
     space_id, 
-    (CASE WHEN nlevel(path) > 0 THEN subpath(path, 0, -1) ELSE path END), 
+    coalesce(lca(path, path), ''), 
     name
 ) WHERE deleted_at IS NULL;
 
 CREATE UNIQUE INDEX iterations_name_space_id_path_unique ON iterations (
     space_id, 
-    (CASE WHEN nlevel(path) > 0 THEN subpath(path, 0, -1) ELSE path END), 
+    coalesce(lca(path, path), ''),
     name
 ) WHERE deleted_at IS NULL;

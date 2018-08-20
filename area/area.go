@@ -170,8 +170,10 @@ func (m *GormAreaRepository) Root(ctx context.Context, spaceID uuid.UUID) (*Area
 	defer goa.MeasureSince([]string{"goa", "db", "Area", "root"}, time.Now())
 	var rootArea []Area
 
-	parentPathOfRootArea := path.Path{}
-	rootArea, err := m.Query(FilterBySpaceID(spaceID), FilterByPath(parentPathOfRootArea))
+	rootArea, err := m.Query(FilterBySpaceID(spaceID), func(db *gorm.DB) *gorm.DB {
+		return db.Where("space_id = ? AND nlevel(path)=1", spaceID)
+	})
+
 	if len(rootArea) != 1 {
 		return nil, errors.NewInternalError(ctx, errs.Errorf("single Root area not found for space %s", spaceID))
 	}
@@ -209,12 +211,5 @@ func FilterBySpaceID(spaceID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 func FilterByName(name string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("name = ?", name).Limit(1)
-	}
-}
-
-// FilterByPath is a gorm filter by 'path' of the parent area for any given area.
-func FilterByPath(pathOfParent path.Path) func(db *gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("path = ?", pathOfParent.Convert()).Limit(1)
 	}
 }
