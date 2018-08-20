@@ -970,12 +970,23 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
+	userFullName := []string{"First User", "Second User"}
+	userUserName := []string{"jon_doe", "lorem_ipsum"}
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.CreateWorkItemEnvironment(),
-		tf.Identities(2, tf.SetIdentityUsernames("Jon Doe", "Lorem Ipsum")),
+		tf.Users(2, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Users[idx].FullName = userFullName[idx]
+			return nil
+		}),
+		tf.Identities(2, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Identities[idx].Username = userUserName[idx]
+			fxt.Identities[idx].User = *fxt.Users[idx]
+			return nil
+		}),
 		tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
 			switch idx {
 			case 0:
+				fxt.WorkItemTypes[idx].Name = "First WorkItem Type"
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
 					"fooo": {
 						Label: "Type1 fooo",
@@ -1004,8 +1015,16 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 						Label: "Type1 reporter",
 						Type:  &workitem.SimpleType{Kind: workitem.KindUser},
 					},
+					"integer-or-float-list": {
+						Label: "Type1 integer-or-float-list",
+						Type: workitem.ListType{
+							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindInteger},
+						},
+					},
 				}
 			case 1:
+				fxt.WorkItemTypes[idx].Name = "Second WorkItem Type"
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
 					"fooo": {
 						Label: "Type2 fooo",
@@ -1023,12 +1042,20 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 							Values:     []interface{}{"alpha", "beta", "gamma"},
 						},
 					},
+					"integer-or-float-list": {
+						Label: "Type2 integer-or-float-list",
+						Type: workitem.ListType{
+							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindFloat},
+						},
+					},
 				}
 			}
 			return nil
 		}),
 		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
 			fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+			fxt.WorkItems[idx].Fields["integer-or-float-list"] = []int{101}
 			fxt.WorkItems[idx].Fields["fooo"] = 2.5
 			fxt.WorkItems[idx].Fields["fooBar"] = "open"
 			fxt.WorkItems[idx].Fields["bar"] = "hello"
@@ -1062,6 +1089,8 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 
 	s.T().Run("disallow update of field along with type", func(t *testing.T) {
 		u.Data.Attributes[workitem.SystemTitle] = "xyz"
+		// TODO (ibrahim) - Check type of error once error 422 has been added.
+		//https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r210184092
 		test.UpdateWorkitemConflict(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
 	})
 

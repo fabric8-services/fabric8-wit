@@ -71,29 +71,23 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 		config:       config}
 }
 
-// Change of workitemtype on a workitem is allowed by work item creator or space owner
-func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, db application.DB, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
+// authorizeWorkitemTypeEditor returns true if the modifier is allowed to change
+// workitem type else it returns false.
+// Only space owner and workitem creator are allowed to change workitem type
+func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
 	// check if workitem editor is same as workitem creator
 	if editorID == creatorID {
 		return true, nil
 	}
-	// check if workitem editor is same as space owner
-	var authorized bool
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		space, err := appl.Spaces().Load(ctx, spaceID)
-		if err != nil {
-			return errors.NewNotFoundError("space", spaceID.String())
-		}
-		if editorID == space.OwnerID.String() {
-			authorized = true
-			return nil
-		}
-		return nil
-	})
+	space, err := c.db.Spaces().Load(ctx, spaceID)
 	if err != nil {
-		return false, errors.NewUnauthorizedError(err.Error())
+		return false, errors.NewNotFoundError("space", spaceID.String())
 	}
-	return authorized, nil
+	// check if workitem editor is same as space owner
+	if space != nil && editorID == space.OwnerID.String() {
+		return true, nil
+	}
+	return false, errors.NewUnauthorizedError("user is not allowed to change workitem type")
 }
 
 // Returns true if the user is the work item creator or space collaborator
@@ -140,7 +134,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
 		ctx.Payload.Data.Relationships.BaseType.Data != nil && ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
 
-		authorized, err := c.authorizeWorkitemTypeEditor(ctx, c.db, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+		authorized, err := c.authorizeWorkitemTypeEditor(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -157,6 +151,9 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 		// Ensure we do not have any other change in payload except type change
 		if (app.WorkItemRelationships{}) != *ctx.Payload.Data.Relationships || len(ctx.Payload.Data.Attributes) > 0 {
+			// Todo(ibrahim) - Change this error to 422 Unprocessable entity
+			// error once we have this error in our error package. Please see
+			// https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r208842063
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("cannot update type along with other fields"))
 		}
 
@@ -166,9 +163,9 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		// The Number and Type of a work item are not allowed to be changed
-		// which is why we overwrite those values with their old value after the
-		// work item was converted.
+		// The Number of a work item is not allowed to be changed which is why
+		// we overwrite the values with its old value after the work item was
+		// converted.
 		oldNumber := wi.Number
 		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.Type, wi.SpaceID)
 		if err != nil {
