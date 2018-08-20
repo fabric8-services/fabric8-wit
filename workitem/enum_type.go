@@ -42,7 +42,7 @@ func (t EnumType) Validate() error {
 	if t.DefaultValue != nil {
 		_, err := t.ConvertToModel(t.DefaultValue)
 		if err != nil {
-			return errs.Wrapf(err, `failed to convert default list value to kind "%s": %+v`, t.Kind, t.DefaultValue)
+			return errs.Wrapf(err, `failed to convert default enum value to kind "%s": %+v`, t.Kind, t.DefaultValue)
 		}
 	}
 	// verify that we have a set of permitted values
