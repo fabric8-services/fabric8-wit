@@ -37,7 +37,7 @@ func (t EnumType) Validate() error {
 		return errs.Errorf(`enum has a base type "%s" but needs "%s"`, t.Kind, KindEnum)
 	}
 	if !t.BaseType.Kind.IsSimpleType() {
-		return errs.Errorf(`list type must have a simple component type and not "%s"`, t.Kind)
+		return errs.Errorf(`enum type must have a simple component type and not "%s"`, t.Kind)
 	}
 	if t.DefaultValue != nil {
 		_, err := t.ConvertToModel(t.DefaultValue)
