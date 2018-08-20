@@ -129,7 +129,7 @@ func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {
 	}
 
 	if !contains(t.Values, converted) {
-		return nil, errs.Errorf("not an enum value: %v", value)
+		return nil, fmt.Errorf("value: %+v (%[1]T) is not part of allowed enum values: %+v", value, t.Values)
 	}
 	return converted, nil
 }

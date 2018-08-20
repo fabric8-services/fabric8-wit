@@ -51,13 +51,8 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 	if revisionList == nil {
 		return []Event{}, nil
 	}
-	wi, err := r.workItemRepo.LoadByID(ctx, wiID)
-	if err != nil {
-		return nil, errs.Wrapf(err, "failed to load work item: %s", wiID)
-	}
-	wiType, err := r.workItemTypeRepo.Load(ctx, wi.Type)
-	if err != nil {
-		return nil, errs.Wrapf(err, "failed to load work item type: %s", wiType)
+	if err = r.workItemRepo.CheckExists(ctx, wiID); err != nil {
+		return nil, errs.Wrapf(err, "failed to find work item: %s", wiID)
 	}
 
 	eventList := []Event{}
@@ -66,28 +61,42 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 		oldRev := revisionList[k-1]
 		newRev := revisionList[k]
 
+		// If the new and old work item type are different, we're skipping this
+		// revision because it denotes the change of a work item type.
+		//
+		// TODO(kwk): make sure we have a proper "changed work item type"
+		// revision entry in one way or another.
+		if oldRev.WorkItemTypeID != newRev.WorkItemTypeID {
+			continue
+		}
+
+		wit, err := r.workItemTypeRepo.Load(ctx, oldRev.WorkItemTypeID)
+		if err != nil {
+			return nil, errs.Wrapf(err, "failed to load old work item type: %s", oldRev.WorkItemTypeID)
+		}
+
 		modifierID, err := r.identityRepo.Load(ctx, newRev.ModifierIdentity)
 		if err != nil {
 			return nil, errs.Wrapf(err, "failed to load modifier identity %s", newRev.ModifierIdentity)
 		}
 
-		for fieldName, fieldDef := range wiType.Fields {
+		for fieldName, fieldDef := range wit.Fields {
 
 			oldVal := oldRev.WorkItemFields[fieldName]
 			newVal := newRev.WorkItemFields[fieldName]
 
 			event := Event{
-				ID:        revisionList[k].ID,
-				Name:      fieldName,
-				Timestamp: revisionList[k].Time,
-				Modifier:  modifierID.ID,
-				Old:       oldVal,
-				New:       newVal,
+				ID:             newRev.ID,
+				Name:           fieldName,
+				WorkItemTypeID: newRev.WorkItemTypeID,
+				Timestamp:      newRev.Time,
+				Modifier:       modifierID.ID,
+				Old:            oldVal,
+				New:            newVal,
 			}
 
-			/// The enum type can be handled by the simple type since it's just
-			// an single value after all. Let's overwrite the field type if
-			// doable.
+			// The enum type can be handled by the simple type since it's just a
+			// single value after all.
 			ft := fieldDef.Type
 			enumType, isEnumType := ft.(workitem.EnumType)
 			if isEnumType {
@@ -134,39 +143,27 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					eventList = append(eventList, event)
 				}
 			case workitem.SimpleType:
-				switch fieldType.GetKind() {
-				case workitem.KindString,
-					workitem.KindFloat,
-					workitem.KindInteger,
-					workitem.KindIteration,
-					workitem.KindBoardColumn,
-					workitem.KindArea,
-					workitem.KindLabel,
-					workitem.KindMarkup:
+				// compensate conversion from storage if this really was an enum field
+				converter := fieldType.ConvertFromModel
+				if isEnumType {
+					converter = enumType.ConvertFromModel
+				}
 
-					// compensate conversion from storage if this really was an enum field
-					converter := fieldType.ConvertFromModel
-					if isEnumType {
-						converter = enumType.ConvertFromModel
-					}
-
-					p, err := converter(oldVal)
-					if err != nil {
-						return nil, errs.Wrapf(err, "failed to convert old value for field %s from storage representation: %+v", fieldName, oldVal)
-					}
-					n, err := converter(newVal)
-					if err != nil {
-						return nil, errs.Wrapf(err, "failed to convert new value for field %s from storage representation: %+v", fieldName, newVal)
-					}
-
-					if !reflect.DeepEqual(p, n) {
-						event.Old = p
-						event.New = n
-						eventList = append(eventList, event)
-					}
+				p, err := converter(oldVal)
+				if err != nil {
+					return nil, errs.Wrapf(err, "failed to convert old value for field %s from storage representation: %+v", fieldName, oldVal)
+				}
+				n, err := converter(newVal)
+				if err != nil {
+					return nil, errs.Wrapf(err, "failed to convert new value for field %s from storage representation: %+v", fieldName, newVal)
+				}
+				if !reflect.DeepEqual(p, n) {
+					event.Old = p
+					event.New = n
+					eventList = append(eventList, event)
 				}
 			default:
-				return nil, errors.NewNotFoundError("unknown field type", fieldName)
+				return nil, errors.NewNotFoundError("unknown field type", fieldType.GetKind().String())
 			}
 		}
 	}

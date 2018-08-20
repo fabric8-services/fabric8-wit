@@ -349,6 +349,12 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 				return nil, errs.Errorf("value %v (%[1]T) has no valid markup type %s", value, markupContent.Markup)
 			}
 			return markupContent.ToMap(), nil
+		case map[string]interface{}:
+			markupContent := rendering.NewMarkupContentFromValue(value)
+			if !rendering.IsMarkupSupported(markupContent.Markup) {
+				return nil, errs.Errorf("value %v (%[1]T) has no valid markup type %s", value, markupContent.Markup)
+			}
+			return markupContent.ToMap(), nil
 		default:
 			return nil, errs.Errorf("value %v (%[1]T) should be rendering.MarkupContent, but is %s", value, valueType)
 		}
