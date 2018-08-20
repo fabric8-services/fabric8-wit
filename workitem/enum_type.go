@@ -29,7 +29,7 @@ var _ FieldType = EnumType{}
 var _ FieldType = (*EnumType)(nil)
 
 // Validate checks that the type of the enum is "enum", that the base type
-// iteself a simple type (e.g. not a list or an enum), that the default value
+// itself a simple type (e.g. not a list or an enum), that the default value
 // matches the Kind of the BaseType, that the default value is in the list of
 // allowed values and that the Values are all of the base type.
 func (t EnumType) Validate() error {
