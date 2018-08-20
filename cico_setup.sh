@@ -38,7 +38,8 @@ function install_deps() {
     docker \
     make \
     git \
-    curl
+    curl \
+    nc
 
   service docker start
 

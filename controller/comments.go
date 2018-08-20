@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"html"
 	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -216,7 +215,7 @@ func ConvertComment(request *http.Request, comment comment.Comment, additional .
 		ID:   &comment.ID,
 		Attributes: &app.CommentAttributes{
 			Body:         &comment.Body,
-			BodyRendered: ptr.String(rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)),
+			BodyRendered: ptr.String(rendering.RenderMarkupToHTML(comment.Body, comment.Markup)),
 			Markup:       ptr.String(rendering.NilSafeGetMarkup(&comment.Markup)),
 			CreatedAt:    &comment.CreatedAt,
 			UpdatedAt:    &comment.UpdatedAt,
