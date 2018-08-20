@@ -447,6 +447,9 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("102-add-forward-and-reverse-link-type-descriptions.sql")})
 
 	// Version 103
+	m = append(m, steps{ExecuteSQLFile("103-user-email-notnull-notempty.sql")})
+
+	// Version 103
 	m = append(m, steps{ExecuteSQLFile("103-update-root-area-and-iteration-path-field.sql")})
 
 	// Version N
