@@ -93,7 +93,7 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 				"path":     u.Path,
 				"space_id": u.SpaceID,
 			}, "unable to create child area because an area in the same path already exists")
-			return errors.NewDataConflictError(fmt.Sprintf("area already exists with name = %s , space_id = %s , path = %s ", u.Name, u.SpaceID.String(), u.Path.String()))
+			return errors.NewDataConflictError(fmt.Sprintf("area already exists with name = %s , space_id = %s , path = %s ", u.Name, u.SpaceID.String(), u.Path.ParentPath().String()))
 		}
 		log.Error(ctx, map[string]interface{}{}, "error adding Area: %s", err.Error())
 		return err

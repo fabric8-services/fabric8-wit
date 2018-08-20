@@ -98,8 +98,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			// when
 			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
 			// then
-			assert.Equal(t, *childAreaPayload.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+			require.Equal(t, *childAreaPayload.Data.Attributes.Name, *created.Data.Attributes.Name)
+			require.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 
 			// try creating the same area again
 			resp, errs := test.CreateChildAreaConflict(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)

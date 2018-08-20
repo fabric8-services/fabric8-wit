@@ -152,7 +152,7 @@ func addResolvedPath(db application.DB, req *http.Request, mArea *area.Area, sAr
 }
 
 func getResolvePath(db application.DB, a *area.Area) (*string, error) {
-	parentUuids := a.Path
+	parentUuids := a.Path.ParentPath()
 	var parentAreas []area.Area
 	err := application.Transactional(db, func(appl application.Application) error {
 		var err error
@@ -205,10 +205,6 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 	relatedURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(ar.SpaceID))
-	parentPath := ar.Path
-	if len(parentPath) > 1 {
-		parentPath = parentPath[:len(parentPath)-1]
-	}
 	i := &app.Area{
 		Type: area.APIStringTypeAreas,
 		ID:   &ar.ID,
@@ -217,7 +213,7 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 			CreatedAt:  &ar.CreatedAt,
 			UpdatedAt:  &ar.UpdatedAt,
 			Version:    &ar.Version,
-			ParentPath: ptr.String(parentPath.String()),
+			ParentPath: ptr.String(ar.Path.ParentPath().String()),
 		},
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{
@@ -245,8 +241,8 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 
 	// Now check the path, if the path is empty, then this is the topmost area
 	// in a specific space.
-	if ar.Path.IsEmpty() == false {
-		parent := ar.Path.This().String()
+	if ar.Path.ParentPath().IsEmpty() == false {
+		parent := ar.Path.ParentID().String()
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: ptr.String(area.APIStringTypeAreas),
