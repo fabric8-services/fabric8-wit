@@ -152,7 +152,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration100", testMigration100DropUserspacedataTable)
 	t.Run("TestMigration101", testMigration101TypeGroupHasDescriptionField)
 	t.Run("TestMigration102", testMigration102LinkTypeDescriptionFields)
-	t.Run("TestMirgraion103", testMigration103UpdateRootIterationAreaPathField)
+	t.Run("TestMigration103", testMigration103NotNullNotEmptyonEmail)
+	t.Run("TestMirgraion104", testMigration104UpdateRootIterationAreaPathField)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1182,10 +1183,25 @@ func testMigration99CodebaseCVEScanDefaultFalse(t *testing.T) {
 	require.Nil(t, runSQLscript(sqlDB, "099-codebase-cve-scan-default-false-cleanup.sql"))
 }
 
+func testMigration103NotNullNotEmptyonEmail(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:103], 103)
+
+	// setup
+	require.Nil(t, runSQLscript(sqlDB, "103-user-email-notnull-notempty.sql"))
+
+	// migrate to the current version
+	migrateToVersion(t, sqlDB, migrations[:104], 104)
+
+	// check we do not have any empty/null emails
+	rows, err := sqlDB.Query("SELECT email FROM users where email IS NULL or email = '';")
+	require.Nil(t, err)
+	require.False(t, rows.Next(), "row found with email = '' or NULL when all should have a valid email")
+}
+
 // test that root iterations are no longer empty and containt he converted id
-func testMigration103UpdateRootIterationAreaPathField(t *testing.T) {
+func testMigration104UpdateRootIterationAreaPathField(t *testing.T) {
 	t.Run("migrate to previous version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:103], 103)
+		migrateToVersion(t, sqlDB, migrations[:104], 104)
 	})
 
 	spaceID := uuid.NewV4()
@@ -1256,7 +1272,7 @@ func testMigration103UpdateRootIterationAreaPathField(t *testing.T) {
 	})
 
 	t.Run("migrate to current version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:104], 104)
+		migrateToVersion(t, sqlDB, migrations[:105], 105)
 	})
 
 	t.Run("check iterations after migration", func(t *testing.T) {
@@ -1325,12 +1341,6 @@ func executeSQLTestFile(filename string, args ...string) fn {
 
 		return errs.Wrapf(err, "failed to execute SQL query from file %s", filename)
 	}
-}
-
-func testMigration95Boards(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:95], 95)
-	assert.True(t, dialect.HasTable("work_item_boards"))
-	assert.True(t, dialect.HasTable("work_item_board_columns"))
 }
 
 // test that the userspace_data table no longer exists - previously
