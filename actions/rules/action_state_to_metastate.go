@@ -1,9 +1,9 @@
 package rules
 
 import (
-	"github.com/fabric8-services/fabric8-wit/actions/change"
 	"context"
 	"encoding/json"
+	"github.com/fabric8-services/fabric8-wit/actions/change"
 
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
