@@ -104,10 +104,11 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			return errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil")
 		}
 
-		childPath := append(parent.Path, parent.ID)
+		areaID := uuid.NewV4()
 		a = &area.Area{
+			ID:      areaID,
 			SpaceID: parent.SpaceID,
-			Path:    childPath,
+			Path:    append(parent.Path, areaID),
 			Name:    *reqArea.Attributes.Name,
 		}
 		return appl.Areas().Create(ctx, a)
@@ -204,6 +205,10 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 	relatedURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(ar.SpaceID))
+	parentPath := ar.Path
+	if len(parentPath) > 1 {
+		parentPath = parentPath[:len(parentPath)-1]
+	}
 	i := &app.Area{
 		Type: area.APIStringTypeAreas,
 		ID:   &ar.ID,
@@ -212,7 +217,7 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 			CreatedAt:  &ar.CreatedAt,
 			UpdatedAt:  &ar.UpdatedAt,
 			Version:    &ar.Version,
-			ParentPath: ptr.String(ar.Path.String()), // TODO: (tkurian) /uuid1/uuid2/uuid3s
+			ParentPath: ptr.String(parentPath.String()),
 		},
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{
