@@ -152,6 +152,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration100", testDropUserspacedataTable)
 	t.Run("TestMigration101", testTypeGroupHasDescriptionField)
 	t.Run("TestMigration102", testLinkTypeDescriptionFields)
+	t.Run("TestMigration103", testMigration103NotNullNotEmptyonEmail)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1179,6 +1180,21 @@ func testMigration99CodebaseCVEScanDefaultFalse(t *testing.T) {
 
 	// cleanup
 	require.Nil(t, runSQLscript(sqlDB, "099-codebase-cve-scan-default-false-cleanup.sql"))
+}
+
+func testMigration103NotNullNotEmptyonEmail(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:103], 103)
+
+	// setup
+	require.Nil(t, runSQLscript(sqlDB, "103-user-email-notnull-notempty.sql"))
+
+	// migrate to the current version
+	migrateToVersion(t, sqlDB, migrations[:104], 104)
+
+	// check we do not have any empty/null emails
+	rows, err := sqlDB.Query("SELECT email FROM users where email IS NULL or email = '';")
+	require.Nil(t, err)
+	require.False(t, rows.Next(), "row found with email = '' or NULL when all should have a valid email")
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
