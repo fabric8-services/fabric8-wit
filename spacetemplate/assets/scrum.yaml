@@ -58,6 +58,7 @@ work_item_types:
           - Minor
           - Optional
           - Trivial
+          default_value: Minor
 
 - id: &impedimentID "ec6918d6-f732-4fc0-a902-6571415aa73c"
   extends: *scrumCommonTypeID
@@ -178,6 +179,7 @@ work_item_types:
         - High
         - Medium
         - Low
+        default_value: Medium
     "found_in":
       label: Found in
       description: >

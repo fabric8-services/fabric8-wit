@@ -8,31 +8,75 @@ import (
 	errs "github.com/pkg/errors"
 )
 
+// The EnumType defines the members that make up an enum field type definition.
+// The SimpleType is set to KindEnum and the BaseType is set to whatever type of
+// enum you want to have (e.g. an enum of strings or integers). The Values array
+// specifies what the allowed values in this enum are. If RewritableValues is
+// set to true, this type can be overwritten by a work item type that also
+// defines a field of the same name with the same type, except with different
+// allowed values inside. A classic example for this is the state field that can
+// be overwritten by every work item type to fit its needs.
 type EnumType struct {
 	SimpleType       `json:"simple_type"`
 	BaseType         SimpleType    `json:"base_type"`
 	Values           []interface{} `json:"values"`
 	RewritableValues bool          `json:"rewritable_values"`
+	DefaultValue     interface{}   `json:"default_value,omitempty"`
 }
 
 // Ensure EnumType implements the FieldType interface
 var _ FieldType = EnumType{}
 var _ FieldType = (*EnumType)(nil)
 
-// DefaultValue implements FieldType
-func (t EnumType) DefaultValue(value interface{}) (interface{}, error) {
+// Validate checks that the type of the enum is "enum", that the base type
+// iteself a simple type (e.g. not a list or an enum), that the default value
+// matches the Kind of the BaseType, that the default value is in the list of
+// allowed values and that the Values are all of the base type.
+func (t EnumType) Validate() error {
+	if t.Kind != KindEnum {
+		return errs.Errorf(`list type cannot have a base type "%s" but needs "%s"`, t.Kind, KindList)
+	}
+	if !t.BaseType.Kind.IsSimpleType() {
+		return errs.Errorf(`list type must have a simple component type and not "%s"`, t.Kind)
+	}
+	if t.DefaultValue != nil {
+		_, err := t.ConvertToModel(t.DefaultValue)
+		if err != nil {
+			return errs.Wrapf(err, `failed to convert default list value to kind "%s": %+v`, t.Kind, t.DefaultValue)
+		}
+	}
+	// verify that we have a set of permitted values
+	if t.Values == nil || len(t.Values) <= 0 {
+		return errs.Errorf("enum type has no values: %+v", t)
+	}
+	for i, v := range t.Values {
+		_, err := t.ConvertToModel(v)
+		if err != nil {
+			return errs.Wrapf(err, `failed to convert value at position %d to kind "%s": %+v`, i, t.BaseType, v)
+		}
+	}
+	return nil
+}
+
+// GetDefaultValue implements FieldType
+func (t EnumType) GetDefaultValue(value interface{}) (interface{}, error) {
+	if err := t.Validate(); err != nil {
+		return nil, errs.Wrapf(err, "failed to validate enum type")
+	}
 	if value != nil {
+		if !contains(t.Values, value) {
+			return nil, errs.Errorf(`value "%+v" is not among the set of allowed enum values: %+v`, value, t.Values)
+		}
 		return value, nil
 	}
-	if t.Values == nil || len(t.Values) <= 0 {
-		return nil, errs.Errorf("enum has no values")
+	// manual default value has precedence over first value in list of allowed
+	// values
+	if t.DefaultValue != nil {
+		return t.DefaultValue, nil
 	}
+	// fallback to first permitted element
 	return t.Values[0], nil
 }
-
-// Ensure EnumType implements the FieldType interface
-var _ FieldType = EnumType{}
-var _ FieldType = (*EnumType)(nil)
 
 // Ensure EnumType implements the Equaler interface
 var _ convert.Equaler = EnumType{}
@@ -51,7 +95,12 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if !t.RewritableValues {
-		return reflect.DeepEqual(t.Values, other.Values)
+		if !reflect.DeepEqual(t.Values, other.Values) {
+			return false
+		}
+	}
+	if !reflect.DeepEqual(t.DefaultValue, other.DefaultValue) {
+		return false
 	}
 	return true
 }
@@ -76,7 +125,7 @@ func (t EnumType) EqualEnclosing(other EnumType) bool {
 func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {
 	converted, err := t.BaseType.ConvertToModel(value)
 	if err != nil {
-		return nil, fmt.Errorf("error converting enum value: %s", err.Error())
+		return nil, errs.Errorf("error converting enum value: %s", err.Error())
 	}
 
 	if !contains(t.Values, converted) {

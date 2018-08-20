@@ -14,7 +14,8 @@ import (
 
 // SimpleType is an unstructured FieldType
 type SimpleType struct {
-	Kind Kind `json:"kind"`
+	Kind         Kind        `json:"kind"`
+	DefaultValue interface{} `json:"default_value,omitempty"`
 }
 
 // Ensure SimpleType implements the FieldType interface
@@ -25,8 +26,35 @@ var _ FieldType = (*SimpleType)(nil)
 var _ convert.Equaler = SimpleType{}
 var _ convert.Equaler = (*SimpleType)(nil)
 
-// DefaultValue implements FieldType
-func (t SimpleType) DefaultValue(value interface{}) (interface{}, error) {
+// Validate checks that the default value matches the Kind
+func (t SimpleType) Validate() error {
+	if !t.Kind.IsSimpleType() {
+		return errs.New("a simple type can only have a simple type (e.g. no list or enum)")
+	}
+	if t.DefaultValue != nil {
+		_, err := t.ConvertToModel(t.DefaultValue)
+		if err != nil {
+			return errs.Wrapf(err, "failed to convert value to kind %s: %+v", t.Kind, t.DefaultValue)
+		}
+	}
+	return nil
+}
+
+// GetDefaultValue implements FieldType
+func (t SimpleType) GetDefaultValue(value interface{}) (interface{}, error) {
+	if err := t.Validate(); err != nil {
+		return nil, errs.Wrapf(err, "failed to validate simple type")
+	}
+	if value != nil {
+		v, err := t.ConvertToModel(value)
+		if err != nil {
+			return nil, errs.Wrapf(err, `value "%+v" is not a valid simple value`)
+		}
+		return v, nil
+	}
+	if t.DefaultValue != nil {
+		return t.DefaultValue, nil
+	}
 	return value, nil
 }
 
@@ -34,6 +62,9 @@ func (t SimpleType) DefaultValue(value interface{}) (interface{}, error) {
 func (t SimpleType) Equal(u convert.Equaler) bool {
 	other, ok := u.(SimpleType)
 	if !ok {
+		return false
+	}
+	if t.DefaultValue != other.DefaultValue {
 		return false
 	}
 	return t.Kind == other.Kind
