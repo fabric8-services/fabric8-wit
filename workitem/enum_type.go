@@ -34,7 +34,7 @@ var _ FieldType = (*EnumType)(nil)
 // allowed values and that the Values are all of the base type.
 func (t EnumType) Validate() error {
 	if t.Kind != KindEnum {
-		return errs.Errorf(`list type cannot have a base type "%s" but needs "%s"`, t.Kind, KindList)
+		return errs.Errorf(`enum has a base type "%s" but needs "%s"`, t.Kind, KindEnum)
 	}
 	if !t.BaseType.Kind.IsSimpleType() {
 		return errs.Errorf(`list type must have a simple component type and not "%s"`, t.Kind)
