@@ -3,7 +3,7 @@ Package actions system is a key component for process automation in WIT. It prov
 way of executing user-configurable, dynamic process steps depending on user
 settings, schema settings and events in the WIT.
 
-The idea here is to provide a simple, yet powerful "signal-slot" system that
+The idea here is to provide a simple, yet powerful "publish-subscribe" system that
 can connect any "event" in the system to any "action" with a clear decoupling of
 events and actions with the goal of making the associations later dynamic and
 configurable by the user ("user connects this event to this action"). Think
