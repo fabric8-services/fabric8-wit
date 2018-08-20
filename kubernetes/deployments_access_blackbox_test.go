@@ -120,6 +120,24 @@ func TestCanGetDeployment(t *testing.T) {
 			expectedResult: true,
 		},
 		{
+			testName:       "All Resource",
+			envName:        "run",
+			cassetteName:   "can-i-all-resource",
+			expectedResult: true,
+		},
+		{
+			testName:       "All Groups",
+			envName:        "run",
+			cassetteName:   "can-i-all-groups",
+			expectedResult: true,
+		},
+		{
+			testName:       "All Groups & Resources",
+			envName:        "run",
+			cassetteName:   "can-i-all-groups-resource",
+			expectedResult: true,
+		},
+		{
 			testName:       "No Builds",
 			envName:        "run",
 			cassetteName:   "can-i-no-builds",
