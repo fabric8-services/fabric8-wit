@@ -54,7 +54,10 @@ func (t ListType) GetDefaultValue(value interface{}) (interface{}, error) {
 		}
 		return v, nil
 	}
-	return t.DefaultValue, nil
+	if t.DefaultValue != nil {
+		return t.DefaultValue, nil
+	}
+	return value, nil
 }
 
 // Equal returns true if two ListType objects are equal; otherwise false is returned.
