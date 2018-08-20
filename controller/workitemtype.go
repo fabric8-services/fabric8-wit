@@ -148,7 +148,7 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if t.DefaultValue != nil {
 			defVal, err := listType.ConvertToModel(*t.DefaultValue)
 			if err != nil {
-				return nil, errs.Wrapf(err, "failed to convert default enum value: %+v", *t.DefaultValue)
+				return nil, errs.Wrapf(err, "failed to convert default list value: %+v", *t.DefaultValue)
 			}
 			listType.DefaultValue = defVal
 		}
