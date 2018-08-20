@@ -158,9 +158,10 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 				// verify FieldType with original value
 				if originalType, ok := toBeFoundFields[fieldName]; ok {
 
-					// We always overwrite the default value for the comparison
-					// of field type to ignore the default value during
-					// comparison.
+					// When comparing the new and old field types we don't want
+					// to compare the default value. That is why we always
+					// temporarily overwrite the default value of the old type
+					// with the default value of the new type.
 
 					// determine new default value
 					var newDefVar interface{}
