@@ -37,6 +37,7 @@ const (
 	SystemCodebase            = "system.codebase"
 	SystemLabels              = "system.labels"
 	SystemBoardcolumns        = "system.boardcolumns"
+	SystemMetaState           = "system.metastate"
 
 	SystemBoard = "Board"
 
