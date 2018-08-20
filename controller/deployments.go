@@ -396,17 +396,31 @@ func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironm
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	envs, err := kc.GetEnvironments()
+	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
+	if err != nil || kubeSpaceName == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("osio space", ctx.SpaceID.String()))
+	}
+
+	space, err := kc.GetSpace(ctx.SpaceID.String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve space %s", *kubeSpaceName))
+	}
+	if space == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("openshift space", *kubeSpaceName))
+	}
+
+	spaceUsage, otherUsage, err := kc.GetSpaceAndOtherEnvironmentUsage(space)
+
+	// Model the response
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "error retrieving environments"))
 	}
-	if envs == nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("environments", ctx.SpaceID.String()))
-	}
 
-	res := &app.SimpleEnvironmentList{
-		Data: envs,
-	}
+	res := &app.SimpleSpaceAndOtherEnvironmentUsageSingle{
+		Data: &app.SpaceAndOtherEnvironmentUsage{
+			SpaceUsage: spaceUsage,
+			OtherUsage: otherUsage,
+		}}
 
 	return ctx.OK(res)
 }

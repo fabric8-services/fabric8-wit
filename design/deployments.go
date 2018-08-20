@@ -156,6 +156,35 @@ var simpleDeploymentPodLimitRange = a.Type("SimpleDeploymentPodLimitRange", func
 	a.Attribute("limits", podsQuota)
 })
 
+var spaceAndOtherEnvironmentUsage = a.Type("SpaceAndOtherEnvironmentUsage", func() {
+	a.Description("Environment usage by specific space and all others")
+	a.Attribute("SpaceUsage", a.ArrayOf(spaceEnvironmentUsage))
+	a.Attribute("OtherUsage", a.ArrayOf(simpleEnvironment))
+})
+
+var spaceEnvironmentUsage = a.Type("SpaceEnvironmentUsage", func() {
+	a.Description("Environment usage info for a single space")
+	a.Attribute("attributes", spaceEnvironmentUsageAttributes)
+})
+
+var spaceEnvironmentUsageAttributes = a.Type("SpaceEnvironmentUsageAttributes", func() {
+	a.Description("Attributes for environment usage info for a single space")
+	a.Attribute("Name", d.String)
+	a.Attribute("Quota", spaceEnvironmentUsageQuota)
+})
+
+var spaceEnvironmentUsageQuota = a.Type("SpaceEnvironmentUsageQuota", func() {
+	a.Description("Quota info for a single spaces environment usage")
+	a.Attribute("CPUCores", d.Number)
+	a.Attribute("Memory", d.Number)
+})
+
+var simpleSpaceAndOtherEnvironmentUsage = JSONSingle(
+	"SimpleSpaceAndOtherEnvironmentUsage",
+	"Holds a single response to a space environment usage request",
+	spaceAndOtherEnvironmentUsage,
+	nil)
+
 var simpleSpaceSingle = JSONSingle(
 	"SimpleSpace", "Holds a single response to a space request",
 	simpleSpace,
@@ -297,11 +326,11 @@ var _ = a.Resource("deployments", func() {
 		a.Routing(
 			a.GET("/spaces/:spaceID/environments"),
 		)
-		a.Description("list all environments for a space")
+		a.Description("list all environments for a space and information for all others")
 		a.Params(func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 		})
-		a.Response(d.OK, simpleEnvironmentMultiple)
+		a.Response(d.OK, simpleSpaceAndOtherEnvironmentUsage)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)

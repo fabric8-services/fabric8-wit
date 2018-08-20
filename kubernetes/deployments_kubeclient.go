@@ -81,6 +81,7 @@ type KubeClientInterface interface {
 	GetMetricsClient(envNS string) (Metrics, error)
 	WatchEventsInNamespace(nameSpace string) (*cache.FIFO, chan struct{})
 	GetDeploymentPodQuota(spaceName string, appName string, envName string) (*app.SimpleDeploymentPodLimitRange, error)
+	GetSpaceAndOtherEnvironmentUsage(space *app.SimpleSpace) ([]*app.SpaceEnvironmentUsage, []*app.SimpleEnvironment, error)
 	Close()
 	KubeAccessControl
 }
@@ -2363,4 +2364,69 @@ func (kc *kubeClient) WatchEventsInNamespace(nameSpace string) (*cache.FIFO, cha
 	ref.RunUntil(stopCh)
 
 	return store, stopCh
+}
+
+func (kc *kubeClient) GetSpaceAndOtherEnvironmentUsage(space *app.SimpleSpace) ([]*app.SpaceEnvironmentUsage, []*app.SimpleEnvironment, error) {
+
+	envMap := calculateEnvMap(space)
+	spaceEnvironmentUsage := kc.getSpaceEnvironmentUsage(space, envMap)
+	otherEnvironmentUsage, err := kc.getOtherEnvironmentUsage(space, envMap)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return spaceEnvironmentUsage, otherEnvironmentUsage, nil
+}
+
+func (kc *kubeClient) getSpaceEnvironmentUsage(space *app.SimpleSpace, envMap map[string]*app.SpaceEnvironmentUsageQuota) []*app.SpaceEnvironmentUsage {
+	spaceEnvironmentUsages := make([]*app.SpaceEnvironmentUsage, 0)
+
+	for name, quota := range envMap {
+		attributeName := name
+		spaceUse := app.SpaceEnvironmentUsage{
+			Attributes: &app.SpaceEnvironmentUsageAttributes{
+				Name:  &attributeName,
+				Quota: quota,
+			},
+		}
+		spaceEnvironmentUsages = append(spaceEnvironmentUsages, &spaceUse)
+	}
+
+	return spaceEnvironmentUsages
+}
+
+func (kc *kubeClient) getOtherEnvironmentUsage(space *app.SimpleSpace, envMap map[string]*app.SpaceEnvironmentUsageQuota) ([]*app.SimpleEnvironment, error) {
+	var modifiedEnvs []*app.SimpleEnvironment
+	envs, err := kc.GetEnvironments()
+
+	for _, env := range envs {
+		spaceUsageQuota := envMap[*env.Attributes.Name]
+		modifiedEnv := env
+		*modifiedEnv.Attributes.Quota.Cpucores.Used -= *spaceUsageQuota.CPUCores
+		*modifiedEnv.Attributes.Quota.Memory.Used -= *spaceUsageQuota.Memory
+
+		modifiedEnvs = append(modifiedEnvs, modifiedEnv)
+	}
+
+	return modifiedEnvs, err
+}
+
+func calculateEnvMap(space *app.SimpleSpace) map[string]*app.SpaceEnvironmentUsageQuota {
+	var envMap = make(map[string]*app.SpaceEnvironmentUsageQuota)
+	for _, appl := range space.Attributes.Applications {
+		for _, dep := range appl.Attributes.Deployments {
+			if value, ok := envMap[dep.Attributes.Name]; ok {
+				*envMap[dep.Attributes.Name].CPUCores += *value.CPUCores
+				*envMap[dep.Attributes.Name].Memory += *value.Memory
+			} else {
+				envMap[dep.Attributes.Name] = &app.SpaceEnvironmentUsageQuota{
+					CPUCores: dep.Attributes.PodsQuota.Cpucores,
+					Memory:   dep.Attributes.PodsQuota.Memory,
+				}
+			}
+		}
+	}
+
+	return envMap
 }
