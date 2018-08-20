@@ -26,7 +26,6 @@ const (
 	SystemDescriptionMarkup   = "system.description.markup"
 	SystemDescriptionRendered = "system.description.rendered"
 	SystemState               = "system.state"
-	SystemMetaState           = "system.metastate"
 	SystemAssignees           = "system.assignees"
 	SystemCreator             = "system.creator"
 	SystemCreatedAt           = "system.created_at"
