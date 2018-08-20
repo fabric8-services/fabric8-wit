@@ -1,25 +1,29 @@
 package workitem_test
 
 import (
+	"fmt"
 	"testing"
 
-	"reflect"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/stretchr/testify/require"
 
-	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	. "github.com/fabric8-services/fabric8-wit/workitem"
 )
 
 var (
-	stString    = SimpleType{Kind: KindString}
-	stIteration = SimpleType{Kind: KindIteration}
-	stInt       = SimpleType{Kind: KindInteger}
-	stFloat     = SimpleType{Kind: KindFloat}
-	stDuration  = SimpleType{Kind: KindDuration}
-	stURL       = SimpleType{Kind: KindURL}
-	stList      = SimpleType{Kind: KindList}
-	stMarkup    = SimpleType{Kind: KindMarkup}
-	stArea      = SimpleType{Kind: KindArea}
+	stString      = SimpleType{Kind: KindString}
+	stIteration   = SimpleType{Kind: KindIteration}
+	stInt         = SimpleType{Kind: KindInteger}
+	stFloat       = SimpleType{Kind: KindFloat}
+	stDuration    = SimpleType{Kind: KindDuration}
+	stURL         = SimpleType{Kind: KindURL}
+	stList        = SimpleType{Kind: KindList}
+	stMarkup      = SimpleType{Kind: KindMarkup}
+	stArea        = SimpleType{Kind: KindArea}
+	stBoardColumn = SimpleType{Kind: KindBoardColumn}
+	stInstant     = SimpleType{Kind: KindInstant}
 )
 
 type input struct {
@@ -29,91 +33,81 @@ type input struct {
 	errorExpected bool
 }
 
-func TestSimpleTypeConversion(t *testing.T) {
+func TestConvertToModel(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	markupContent1 := make(map[string]interface{})
-	markupContent1["content"] = "## description"
-	markupContent1["markup"] = rendering.SystemMarkupDefault
-	markupContent2 := make(map[string]interface{})
-	markupContent2["content"] = "## description"
-	markupContent2["markup"] = rendering.SystemMarkupMarkdown
 
-	test_data := []input{
-		{stString, "hello world", "hello world", false},
-		{stString, "", "", false},
-		{stString, 100, nil, true},
-		{stString, 1.90, nil, true},
-
-		{stIteration, "3434", "3434", false},
-		{stIteration, "", "", false},
-		{stIteration, 1, nil, true},
-		{stIteration, 1.9, nil, true},
-		{stIteration, true, nil, true},
-
-		{stArea, "1233-2333", "1233-2333", false},
-		{stArea, "", "", false},
-		{stArea, 1, nil, true},
-		{stArea, 1.9, nil, true},
-		{stArea, true, nil, true},
-
-		{stInt, 100.0, 100, false},
-		{stInt, 100, 100, false},
-		{stInt, "100", nil, true},
-		{stInt, true, nil, true},
-
-		{stFloat, 1.1, 1.1, false},
-		{stFloat, 1, nil, true},
-		{stFloat, "a", nil, true},
-
-		{stDuration, 0, 0, false},
-		{stDuration, 1.1, nil, true},
-		{stDuration, "duration", nil, true},
-
-		{stURL, "http://www.google.com", "http://www.google.com", false},
-		{stURL, "", nil, true},
-		{stURL, "google", nil, true},
-		{stURL, "http://google.com", "http://google.com", false},
-
-		{stList, [4]int{1, 2, 3, 4}, [4]int{1, 2, 3, 4}, false},
-		{stList, [2]string{"1", "2"}, [2]string{"1", "2"}, false},
-		{stList, "", nil, true},
-		// {stList, []int{}, []int{}, false}, need to find out the way for empty array.
-		// because slices do not have equality operator.
-
-		{stMarkup, rendering.NewMarkupContent("## description", rendering.SystemMarkupDefault), markupContent1, false},
-		{stMarkup, rendering.NewMarkupContent("## description", rendering.SystemMarkupMarkdown), markupContent2, false},
-		{stMarkup, nil, nil, false},
-		{stMarkup, 1, nil, true},
+	for kind, validInvalid := range GetFieldTypeTestData(t) {
+		fieldType := SimpleType{Kind: kind}
+		t.Run(kind.String(), func(t *testing.T) {
+			t.Run("legal", func(t *testing.T) {
+				for _, inOut := range validInvalid.Valid {
+					t.Run(fmt.Sprintf("%+v -> %+v", spew.Sdump(inOut.Input), spew.Sdump(inOut.Storage)), func(t *testing.T) {
+						actual, err := fieldType.ConvertToModel(inOut.Input)
+						require.NoError(t, err)
+						require.Equal(t, inOut.Storage, actual)
+					})
+				}
+				// for _, sample := range validInvalid.InvalidWhenRequired {
+				// 	t.Run(fmt.Sprintf("%+v", spew.Sdump(sample)), func(t *testing.T) {
+				// 		_, err := typ.ConvertToModel(sample)
+				// 		require.NoError(t, err)
+				// 	})
+				// }
+			})
+			t.Run("illegal", func(t *testing.T) {
+				for _, sample := range validInvalid.Invalid {
+					t.Run(spew.Sdump(sample), func(t *testing.T) {
+						_, err := fieldType.ConvertToModel(sample)
+						require.Error(t, err)
+					})
+				}
+			})
+		})
 	}
-	for _, inp := range test_data {
-		retVal, err := inp.t.ConvertToModel(inp.value)
-		matchContent := reflect.DeepEqual(retVal, inp.expectedValue)
-		matchError := (err != nil) == inp.errorExpected
-		if matchContent && matchError {
-			t.Log("test pass for input: ", inp)
-		} else if !matchContent {
-			t.Error("Expected ", inp.expectedValue, "but got", retVal)
-			t.Fail()
-		} else {
-			t.Error("Expected error to be ", inp.errorExpected, "but got", (err != nil))
-			t.Fail()
-		}
+}
+
+func TestConvertFromModel(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	for kind, validInvalid := range GetFieldTypeTestData(t) {
+		fieldType := SimpleType{Kind: kind}
+		t.Run(kind.String(), func(t *testing.T) {
+			t.Run("legal", func(t *testing.T) {
+				for _, inOut := range validInvalid.Valid {
+					t.Run(fmt.Sprintf("%+v -> %+v", spew.Sdump(inOut.Storage), spew.Sdump(inOut.Output)), func(t *testing.T) {
+						actual, err := fieldType.ConvertFromModel(inOut.Storage)
+						require.NoError(t, err)
+						require.Equal(t, inOut.Output, actual)
+					})
+				}
+				// for _, sample := range validInvalid.InvalidWhenRequired {
+				// 	t.Run(fmt.Sprintf("%+v", spew.Sdump(sample)), func(t *testing.T) {
+				// 		_, err := typ.ConvertFromModel(sample)
+				// 		require.NoError(t, err)
+				// 	})
+				// }
+			})
+			t.Run("illegal", func(t *testing.T) {
+				for _, sample := range validInvalid.Invalid {
+					t.Run(spew.Sdump(sample), func(t *testing.T) {
+						_, err := fieldType.ConvertFromModel(sample)
+						require.Error(t, err)
+					})
+				}
+			})
+		})
 	}
 }
 
 var (
 	stEnum = SimpleType{Kind: KindEnum}
 	enum   = EnumType{
-		BaseType: stEnum,
+		SimpleType: stEnum,
+		BaseType:   SimpleType{Kind: workitem.KindString},
 		// ENUM with same type values
 		Values: []interface{}{"new", "triaged", "WIP", "QA", "done"},
-	}
-
-	multipleTypeEnum = EnumType{
-		BaseType: stEnum,
-		// ENUM with different type values.
-		Values: []interface{}{100, 1.1, "hello"},
 	}
 )
 
@@ -127,10 +121,6 @@ func TestEnumTypeConversion(t *testing.T) {
 		{enum, "done", "done", false},
 		{enum, "", nil, true},
 		{enum, 100, nil, true},
-
-		{multipleTypeEnum, "abcd", nil, true},
-		{multipleTypeEnum, 100, 100, false},
-		{multipleTypeEnum, "hello", "hello", false},
 	}
 	for _, inp := range data {
 		retVal, err := inp.t.ConvertToModel(inp.value)
@@ -159,23 +149,24 @@ func TestListTypeConversion(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	data := []input{
-		{intList, [2]int{11, 2}, "array/slice", false},
-		{intList, [2]string{"11", "2"}, nil, true},
+		{intList, []int{11, 2}, []interface{}{int32(11), int32(2)}, false},
+		{intList, []string{"11", "2", "33.0"}, []interface{}{int32(11), int32(2), int32(33)}, false},
+		{intList, []string{"11", "2", "3.141"}, ([]interface{})(nil), true},
 
-		{strList, [2]string{"11", "2"}, "array/slice", false},
-		{strList, [2]int{11, 2}, nil, true},
+		{strList, []string{"11", "2"}, []interface{}{"11", "2"}, false},
+		{strList, []int{112, 2}, ([]interface{})(nil), true},
 	}
 
 	for _, inp := range data {
-		// Ignore expectedValue for now.
-		// slices can be compared only with nil.
-		// Because we will need to iterate and match the output.
 		retVal, err := inp.t.ConvertToModel(inp.value)
-		if (err != nil) == inp.errorExpected {
-			t.Log("test pass for input: ", inp)
-		} else {
-			t.Error("failed for input=", inp)
-			t.Error(retVal, err)
+		require.Equal(t, inp.expectedValue, retVal, "with intput: %+v", inp.value)
+		if (err != nil) != inp.errorExpected {
+			t.Errorf(`
+			In: %+v (%[1]T)
+			Out: %+v (%[2]T)
+			Expected: %+v (%[3]T)
+			Err: %s
+		`, inp.value, retVal, inp.expectedValue, err)
 			t.Fail()
 		}
 	}

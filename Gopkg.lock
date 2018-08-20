@@ -24,6 +24,11 @@
   revision = "9d1f282f93af41553ddb53b0116a8cdb75b4837a"
 
 [[projects]]
+  name = "github.com/araddon/dateparse"
+  packages = ["."]
+  revision = "42dbd9f872ebcc2d9bb8a5bf541984c9e1e50f8e"
+
+[[projects]]
   name = "github.com/armon/go-metrics"
   packages = ["."]
   revision = "9a4b6e10bed6220a1665955aa2b75afc91eb10b3"
@@ -815,6 +820,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2cc7ef0be20098d353879618874ca294af4e31fb40a9612f0949ec06419da65f"
+  inputs-digest = "b4477284816cce18848ed1b82d047468296f8ecc2ffd8f2bd62adf99dff92580"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -10,13 +10,15 @@ import (
 	errs "github.com/pkg/errors"
 )
 
+// Fields is a helper map that later gets replaced with the FieldDefinitions
+// type and only exists for parsing in content from JSON.
 type Fields map[string]interface{}
 
 // Ensure Fields implements the Equaler interface
 var _ convert.Equaler = Fields{}
 var _ convert.Equaler = (*Fields)(nil)
 
-// Ensure Fields implements the Scanner and Valuer interfaces
+// Ensure Fields implements the sql.Scanner and driver.Valuer interfaces
 var _ sql.Scanner = (*Fields)(nil)
 var _ driver.Valuer = (*Fields)(nil)
 
@@ -30,6 +32,7 @@ func (f Fields) Equal(u convert.Equaler) bool {
 	return reflect.DeepEqual(f, other)
 }
 
+// Value implements the driver.Valuer interface
 func (f Fields) Value() (driver.Value, error) {
 	return toBytes(f)
 }
@@ -41,6 +44,8 @@ func (f *Fields) Scan(src interface{}) error {
 	return fromBytes(src, f)
 }
 
+// FieldDefinitions define a map of field names pointing to their field
+// definition.
 type FieldDefinitions map[string]FieldDefinition
 
 // Ensure FieldDefinitions implements the Scanner and Valuer interfaces
@@ -57,6 +62,18 @@ func (j FieldDefinitions) Value() (driver.Value, error) {
 // See also https://github.com/jinzhu/gorm/issues/302#issuecomment-80566841
 func (j *FieldDefinitions) Scan(src interface{}) error {
 	return fromBytes(src, j)
+}
+
+func (j *FieldDefinitions) Validate() error {
+	if j == nil {
+		return errs.New("fields not defined")
+	}
+	for name, field := range *j {
+		if err := field.Validate(); err != nil {
+			return errs.Wrapf(err, "failed to validate field %s", name)
+		}
+	}
+	return nil
 }
 
 func toBytes(j interface{}) (driver.Value, error) {

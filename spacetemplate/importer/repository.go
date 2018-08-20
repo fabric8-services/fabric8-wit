@@ -157,6 +157,35 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			for fieldName, fd := range wit.Fields {
 				// verify FieldType with original value
 				if originalType, ok := toBeFoundFields[fieldName]; ok {
+
+					// We always overwrite the default value for the comparison
+					// of field type to ignore the default value during
+					// comparison.
+
+					// determine new default value
+					var newDefVar interface{}
+					switch tmp := fd.Type.(type) {
+					case workitem.EnumType:
+						newDefVar = tmp.DefaultValue
+					case workitem.ListType:
+						newDefVar = tmp.DefaultValue
+					case workitem.SimpleType:
+						newDefVar = tmp.DefaultValue
+					}
+
+					// overwrite default value in old type
+					switch ft := originalType.(type) {
+					case workitem.EnumType:
+						ft.DefaultValue = newDefVar
+						originalType = ft
+					case workitem.ListType:
+						ft.DefaultValue = newDefVar
+						originalType = ft
+					case workitem.SimpleType:
+						ft.DefaultValue = newDefVar
+						originalType = ft
+					}
+
 					if equal := fd.Type.Equal(originalType); !equal {
 						// Special treatment for EnumType
 						origEnum, ok1 := originalType.(workitem.EnumType)

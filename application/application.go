@@ -38,6 +38,7 @@ type Application interface {
 	Events() event.Repository
 	SpaceTemplates() spacetemplate.Repository
 	WorkItemTypeGroups() workitem.WorkItemTypeGroupRepository
+	WorkItemRevisions() workitem.RevisionRepository
 	Boards() workitem.BoardRepository
 }
 

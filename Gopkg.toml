@@ -48,6 +48,7 @@ required = [
   "github.com/wadey/gocovmerge",
   "github.com/pilu/fresh",
   "github.com/gojuno/minimock/cmd/minimock",
+  "github.com/araddon/dateparse",
 ]
     
 ignored = [
@@ -154,3 +155,6 @@ ignored = [
   go-tests = true
   unused-packages = true
 
+[[constraint]]
+  name = "github.com/araddon/dateparse"
+  revision = "42dbd9f872ebcc2d9bb8a5bf541984c9e1e50f8e"

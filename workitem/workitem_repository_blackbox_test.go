@@ -404,8 +404,10 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 
 	s.T().Run("ok - save assignees", func(t *testing.T) {
 		// given
+		a := uuid.NewV4()
+		b := uuid.NewV4()
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemAssignees] = []string{"A", "B"}
+			fxt.WorkItems[idx].Fields[workitem.SystemAssignees] = []interface{}{a, b.String()} // Notice that we can handle arrays of mixed types
 			return nil
 		}))
 		// when
@@ -413,8 +415,8 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		// then
 		require.NoError(t, err)
 		require.Len(t, wi.Fields[workitem.SystemAssignees].([]interface{}), 2)
-		assert.Equal(t, "A", wi.Fields[workitem.SystemAssignees].([]interface{})[0])
-		assert.Equal(t, "B", wi.Fields[workitem.SystemAssignees].([]interface{})[1])
+		assert.Equal(t, a, wi.Fields[workitem.SystemAssignees].([]interface{})[0])
+		assert.Equal(t, b, wi.Fields[workitem.SystemAssignees].([]interface{})[1])
 	})
 
 	s.T().Run("ok - create work item with description no markup", func(t *testing.T) {
@@ -529,18 +531,18 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 			t.Run(kind.String(), func(t *testing.T) {
 				// Handle cases where the conversion is supposed to work
 				t.Run("legal", func(t *testing.T) {
-					for _, expected := range iv.Valid {
-						t.Run(spew.Sdump(expected), func(t *testing.T) {
-							wi, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
-							require.NoError(t, err, "expected no error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+					for _, sample := range iv.Valid {
+						t.Run(fmt.Sprintf("%+v -> %+v", spew.Sdump(sample.Input), spew.Sdump(sample.Output)), func(t *testing.T) {
+							wi, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: sample.Input}, fxt.Identities[0].ID)
+							require.NoError(t, err, "expected no error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(sample.Input))
 							loadedWi, err := s.repo.LoadByID(s.Ctx, wi.ID)
 							require.NoError(t, err)
 							// compensate for errors when interpreting ambigous actual values
 							actual := loadedWi.Fields[fieldName]
-							if iv.Compensate != nil {
-								actual = iv.Compensate(actual)
-							}
-							require.Equal(t, expected, actual, "expected no error when loading and comparing the workitem with a '%s': %#v", kind, spew.Sdump(expected))
+							// if iv.Compensate != nil {
+							// 	actual = iv.Compensate(actual)
+							// }
+							require.Equal(t, sample.Output, actual, "expected no error when loading and comparing the workitem with a '%s': %#v", kind, spew.Sdump(sample.Input))
 						})
 					}
 				})

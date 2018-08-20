@@ -41,7 +41,7 @@ func (s *TestEvent) TestListEvent() {
 	s.T().Run("event list ok - state", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
 		payload := app.UpdateWorkitemPayload{
@@ -58,7 +58,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -69,7 +69,7 @@ func (s *TestEvent) TestListEvent() {
 	s.T().Run("event list ok - title", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
 		payload := app.UpdateWorkitemPayload{
@@ -86,7 +86,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -114,7 +114,7 @@ func (s *TestEvent) TestListEvent() {
 			}),
 		)
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
 		payload := app.UpdateWorkitemPayload{
@@ -132,7 +132,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -160,7 +160,7 @@ func (s *TestEvent) TestListEvent() {
 			}),
 		)
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
 		payload := app.UpdateWorkitemPayload{
@@ -178,7 +178,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -189,7 +189,7 @@ func (s *TestEvent) TestListEvent() {
 	s.T().Run("event list ok - description", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
 
@@ -211,7 +211,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -222,7 +222,7 @@ func (s *TestEvent) TestListEvent() {
 	s.T().Run("event list ok - assigned", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		assignee := []string{fxt.Identities[0].ID.String()}
 		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
@@ -240,7 +240,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -251,7 +251,7 @@ func (s *TestEvent) TestListEvent() {
 	s.T().Run("event list ok - label", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.Labels(2))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		wiCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 
 		u := app.UpdateWorkitemPayload{
@@ -285,7 +285,7 @@ func (s *TestEvent) TestListEvent() {
 		require.NotNil(t, updatedWI.Data.Relationships.Labels.Links)
 		assert.Len(t, updatedWI.Data.Relationships.Labels.Data, 2)
 
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -296,7 +296,7 @@ func (s *TestEvent) TestListEvent() {
 	s.T().Run("event list ok - iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
 		payload := app.UpdateWorkitemPayload{
@@ -304,7 +304,7 @@ func (s *TestEvent) TestListEvent() {
 				Type: APIStringTypeWorkItem,
 				ID:   &fxt.WorkItems[0].ID,
 				Attributes: map[string]interface{}{
-					workitem.SystemIteration: fxt.Iterations[0].ID.String(),
+					workitem.SystemIteration: fxt.Iterations[0].ID,
 					workitem.SystemVersion:   fxt.WorkItems[0].Version,
 				},
 				Relationships: &app.WorkItemRelationships{
@@ -313,7 +313,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -324,7 +324,7 @@ func (s *TestEvent) TestListEvent() {
 	s.T().Run("event list ok - area", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
 		payload := app.UpdateWorkitemPayload{
@@ -341,7 +341,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -352,8 +352,8 @@ func (s *TestEvent) TestListEvent() {
 	s.T().Run("event list - empty", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-no-event.res.errors.payload.golden.json"), eventList)
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-no-event.res.errors.headers.golden.json"), res.Header())
@@ -362,7 +362,7 @@ func (s *TestEvent) TestListEvent() {
 	s.T().Run("many events", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.Iterations(2))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
 		payload1 := app.UpdateWorkitemPayload{
@@ -379,7 +379,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload1) // update iteration
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -399,7 +399,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload2) // update assignee
-		res, eventList = test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList = test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 2)
 
@@ -417,7 +417,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload3) // update iteration
-		res, eventList = test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList = test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 3)

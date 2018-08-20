@@ -105,12 +105,22 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 func ConvertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
 	result := app.FieldType{}
 	result.Kind = string(t.GetKind())
-	switch t2 := t.(type) {
+	switch modelFieldType := t.(type) {
 	case workitem.ListType:
-		result.ComponentType = ptr.String(string(t2.ComponentType.GetKind()))
+		result.ComponentType = ptr.String(string(modelFieldType.ComponentType.GetKind()))
+		if modelFieldType.DefaultValue != nil {
+			result.DefaultValue = &modelFieldType.DefaultValue
+		}
 	case workitem.EnumType:
-		result.BaseType = ptr.String(string(t2.BaseType.GetKind()))
-		result.Values = t2.Values
+		result.BaseType = ptr.String(string(modelFieldType.BaseType.GetKind()))
+		result.Values = modelFieldType.Values
+		if modelFieldType.DefaultValue != nil {
+			result.DefaultValue = &modelFieldType.DefaultValue
+		}
+	case workitem.SimpleType:
+		if modelFieldType.DefaultValue != nil {
+			result.DefaultValue = &modelFieldType.DefaultValue
+		}
 	}
 
 	return result
@@ -130,7 +140,19 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if !componentType.IsSimpleType() {
 			return nil, fmt.Errorf("Component type is not list type: %T", componentType)
 		}
-		return workitem.ListType{workitem.SimpleType{*kind}, workitem.SimpleType{*componentType}}, nil
+		listType := workitem.ListType{
+			SimpleType:    workitem.SimpleType{Kind: *kind},
+			ComponentType: workitem.SimpleType{Kind: *componentType},
+		}
+		// convert list default value from app to model
+		if t.DefaultValue != nil {
+			defVal, err := listType.ConvertToModel(*t.DefaultValue)
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to convert default enum value: %+v", *t.DefaultValue)
+			}
+			listType.DefaultValue = defVal
+		}
+		return listType, nil
 	case workitem.KindEnum:
 		bt, err := workitem.ConvertAnyToKind(*t.BaseType)
 		if err != nil {
@@ -139,8 +161,9 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if !bt.IsSimpleType() {
 			return nil, fmt.Errorf("baseType type is not list type: %T", bt)
 		}
-		baseType := workitem.SimpleType{*bt}
+		baseType := workitem.SimpleType{Kind: *bt}
 
+		// convert enum values from app to model
 		values := t.Values
 		converted, err := workitem.ConvertList(func(ft workitem.FieldType, element interface{}) (interface{}, error) {
 			return ft.ConvertToModel(element)
@@ -148,15 +171,34 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		return workitem.EnumType{ // TODO(kwk): handle RewritableValues here?
+
+		enumType := workitem.EnumType{ // TODO(kwk): handle RewritableValues here?
 			SimpleType: workitem.SimpleType{
 				Kind: *kind,
 			},
 			BaseType: baseType,
 			Values:   converted,
-		}, nil
+		}
+		// convert enum default value from app to model
+		if t.DefaultValue != nil {
+			defVal, err := enumType.ConvertToModel(*t.DefaultValue)
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to convert default enum value: %+v", *t.DefaultValue)
+			}
+			enumType.DefaultValue = defVal
+		}
+		return enumType, nil
 	default:
-		return workitem.SimpleType{*kind}, nil
+		simpleType := workitem.SimpleType{Kind: *kind}
+		// convert simple type default value from app to model
+		if t.DefaultValue != nil {
+			defVal, err := simpleType.ConvertToModel(*t.DefaultValue)
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to convert default simple type value: %+v", *t.DefaultValue)
+			}
+			simpleType.DefaultValue = defVal
+		}
+		return simpleType, nil
 	}
 }
 

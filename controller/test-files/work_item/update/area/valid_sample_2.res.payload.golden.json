@@ -1,8 +1,9 @@
 {
   "data": {
     "attributes": {
-      "area_field": "",
+      "area_field": "00000000-0000-0000-0000-000000000000",
       "system.created_at": "0001-01-01T00:00:00Z",
+      "system.metastate": null,
       "system.number": 1,
       "system.order": 1000,
       "system.remote_item_id": null,
@@ -52,6 +53,11 @@
           "type": "users"
         }
       },
+      "events": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/events"
+        }
+      },
       "iteration": {},
       "labels": {
         "links": {
@@ -68,6 +74,7 @@
           "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
         }
       },
+      "system.boardcolumns": {},
       "workItemLinks": {
         "links": {
           "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/links"

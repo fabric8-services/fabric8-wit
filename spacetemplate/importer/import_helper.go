@@ -34,6 +34,9 @@ func (s *ImportHelper) Validate() error {
 		if wit.SpaceTemplateID != s.Template.ID {
 			return errors.NewBadParameterError("work item types's space template ID", wit.SpaceTemplateID.String()).Expected(s.Template.ID.String())
 		}
+		if err := wit.Validate(); err != nil {
+			return errs.Wrapf(err, `failed to validate work item type "%s" (ID=%s)`, wit.Name, wit.ID)
+		}
 	}
 	for _, wilt := range s.WILTs {
 		if wilt.SpaceTemplateID != s.Template.ID {

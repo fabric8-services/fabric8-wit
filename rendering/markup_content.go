@@ -13,7 +13,7 @@ const (
 	MarkupKey = "markup"
 )
 
-func (markupContent *MarkupContent) ToMap() map[string]interface{} {
+func (markupContent MarkupContent) ToMap() map[string]interface{} {
 	result := make(map[string]interface{})
 	result[ContentKey] = markupContent.Content
 	if markupContent.Markup == "" {

@@ -61,7 +61,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 1)
 		assert.Equal(t, workitem.SystemAssignees, eventList[0].Name)
 		assert.Empty(t, eventList[0].Old)
-		assert.Equal(t, fxt.Identities[0].ID.String(), eventList[0].New.([]interface{})[0])
+		assert.Equal(t, fxt.Identities[0].ID, eventList[0].New.([]interface{})[0])
 
 		assignee = []string{fxt.Identities[1].ID.String()}
 		wiNew.Fields[workitem.SystemAssignees] = assignee
@@ -75,8 +75,8 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assert.Equal(t, workitem.SystemAssignees, eventList[1].Name)
 		assert.NotEmpty(t, eventList[1].Old)
 		assert.NotEmpty(t, eventList[1].New)
-		assert.Equal(t, fxt.Identities[0].ID.String(), eventList[0].New.([]interface{})[0])
-		assert.Equal(t, fxt.Identities[1].ID.String(), eventList[1].New.([]interface{})[0])
+		assert.Equal(t, fxt.Identities[0].ID, eventList[0].New.([]interface{})[0])
+		assert.Equal(t, fxt.Identities[1].ID, eventList[1].New.([]interface{})[0])
 	})
 
 	s.T().Run("event assignee - previous assignee nil", func(t *testing.T) {
@@ -95,7 +95,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 1)
 		assert.Equal(t, workitem.SystemAssignees, eventList[0].Name)
 		assert.Empty(t, eventList[0].Old)
-		assert.Equal(t, fxt.Identities[0].ID.String(), eventList[0].New.([]interface{})[0])
+		assert.Equal(t, fxt.Identities[0].ID, eventList[0].New.([]interface{})[0])
 	})
 
 	s.T().Run("event description", func(t *testing.T) {
@@ -132,7 +132,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 1)
 		assert.Equal(t, workitem.SystemAssignees, eventList[0].Name)
 		assert.Empty(t, eventList[0].Old)
-		assert.Equal(t, fxt.Identities[0].ID.String(), eventList[0].New.([]interface{})[0])
+		assert.Equal(t, fxt.Identities[0].ID, eventList[0].New.([]interface{})[0])
 
 		wiNew.Fields[workitem.SystemAssignees] = []string{}
 		wiNew.Version = fxt.WorkItems[0].Version + 1
@@ -161,7 +161,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 1)
 		assert.Equal(t, workitem.SystemAssignees, eventList[0].Name)
 		assert.Empty(t, eventList[0].Old)
-		assert.Equal(t, fxt.Identities[0].ID.String(), eventList[0].New.([]interface{})[0])
+		assert.Equal(t, fxt.Identities[0].ID, eventList[0].New.([]interface{})[0])
 
 		wiNew.Fields[workitem.SystemAssignees] = []string{fxt.Identities[1].ID.String()}
 		wiNew.Version = fxt.WorkItems[0].Version + 1
