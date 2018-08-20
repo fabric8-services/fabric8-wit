@@ -35,7 +35,7 @@ type KubeAccessControl interface {
 
 // Actions on a resource type that are required by one of our API methods
 type requestedAccess struct {
-	resource qualifiedResource
+	resource *qualifiedResource
 	verbs    []string
 }
 
@@ -51,23 +51,39 @@ type qualifiedResource struct {
 // Only handle rules that aren't qualified by resource name or URL
 type simpleAccessRule map[string]struct{}
 
+// Wildcard which can imply all API groups or all resources
+const rulesReviewWildcard = "*"
+
+// Qualified resource for all API groups and all resources
+var allResAllGroup = &qualifiedResource{rulesReviewWildcard, rulesReviewWildcard}
+
 // Checks the subject rules review for the desired actions on resources
 func (rulesMap accessRules) isAuthorized(reqs []*requestedAccess) bool {
 	for _, req := range reqs {
-		// Look up rules for resource type
-		rules, pres := rulesMap[req.resource]
-		if !pres {
-			return false
-		}
+		// Check rules for resource type and also check wildcard variations
+		// see: https://github.com/openshift/origin-web-common/blob/v3.10.0/src/services/authorizationService.js#L156
+		res := req.resource
+		allRes := &qualifiedResource{res.apiGroup, rulesReviewWildcard}
+		allGroup := &qualifiedResource{rulesReviewWildcard, res.resourceType}
+
 		// Check if all requested actions are permitted
 		for _, verb := range req.verbs {
-			_, pres := rules[verb]
-			if !pres {
+			if !containsVerb(rulesMap, res, verb) &&
+				!containsVerb(rulesMap, allResAllGroup, verb) &&
+				!containsVerb(rulesMap, allRes, verb) &&
+				!containsVerb(rulesMap, allGroup, verb) {
 				return false
 			}
 		}
 	}
 	return true
+}
+
+func containsVerb(rulesMap accessRules, res *qualifiedResource, verb string) bool {
+	// Look up rules for resource type
+	rule := rulesMap[*res]
+	_, pres := rule[verb]
+	return pres
 }
 
 // CanGetSpace returns whether the user is authorized to call KubeClientInterface.GetSpace
@@ -117,11 +133,11 @@ func (kc *kubeClient) CanGetApplication() (bool, error) {
 }
 
 var getDeploymentRules = []*requestedAccess{
-	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet}},
-	{qualifiedResource{"", "replicationcontrollers"}, []string{verbList}},
-	{qualifiedResource{"", "pods"}, []string{verbList}},
-	{qualifiedResource{"", "services"}, []string{verbList}},
-	{qualifiedResource{"", "routes"}, []string{verbList}},
+	{&qualifiedResource{"", "deploymentconfigs"}, []string{verbGet}},
+	{&qualifiedResource{"", "replicationcontrollers"}, []string{verbList}},
+	{&qualifiedResource{"", "pods"}, []string{verbList}},
+	{&qualifiedResource{"", "services"}, []string{verbList}},
+	{&qualifiedResource{"", "routes"}, []string{verbList}},
 }
 
 // CanGetDeployment returns whether the user is authorized to call KubeClientInterface.GetDeployment
@@ -130,9 +146,9 @@ func (kc *kubeClient) CanGetDeployment(envName string) (bool, error) {
 }
 
 var scaleDeploymentRules = []*requestedAccess{
-	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet}},
-	{qualifiedResource{"", "deploymentconfigs/scale"}, []string{verbGet}},
-	{qualifiedResource{"", "deploymentconfigs/scale"}, []string{verbUpdate}},
+	{&qualifiedResource{"", "deploymentconfigs"}, []string{verbGet}},
+	{&qualifiedResource{"", "deploymentconfigs/scale"}, []string{verbGet}},
+	{&qualifiedResource{"", "deploymentconfigs/scale"}, []string{verbUpdate}},
 }
 
 // CanScaleDeployment returns whether the user is authorized to call KubeClientInterface.ScaleDeployment
@@ -141,9 +157,9 @@ func (kc *kubeClient) CanScaleDeployment(envName string) (bool, error) {
 }
 
 var deleteDeploymentRules = []*requestedAccess{
-	{qualifiedResource{"", "services"}, []string{verbList, verbDelete}},
-	{qualifiedResource{"", "routes"}, []string{verbList, verbDelete}},
-	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet, verbDelete}},
+	{&qualifiedResource{"", "services"}, []string{verbList, verbDelete}},
+	{&qualifiedResource{"", "routes"}, []string{verbList, verbDelete}},
+	{&qualifiedResource{"", "deploymentconfigs"}, []string{verbGet, verbDelete}},
 }
 
 // CanDeleteDeployment returns whether the user is authorized to call KubeClientInterface.DeleteDeployment
@@ -152,9 +168,9 @@ func (kc *kubeClient) CanDeleteDeployment(envName string) (bool, error) {
 }
 
 var getDeploymentStatsRules = []*requestedAccess{
-	{qualifiedResource{"", "deploymentconfigs"}, []string{verbGet}},
-	{qualifiedResource{"", "replicationcontrollers"}, []string{verbList}},
-	{qualifiedResource{"", "pods"}, []string{verbList}},
+	{&qualifiedResource{"", "deploymentconfigs"}, []string{verbGet}},
+	{&qualifiedResource{"", "replicationcontrollers"}, []string{verbList}},
+	{&qualifiedResource{"", "pods"}, []string{verbList}},
 }
 
 // CanGetDeploymentStats returns whether the user is authorized to call KubeClientInterface.GetDeploymentStats
@@ -182,12 +198,12 @@ func (kc *kubeClient) checkAuthorizedWithBuilds(envName string, reqs []*requeste
 const environmentTypeUser = "user"
 
 var getBuildConfigsAndBuildsRules = []*requestedAccess{
-	{qualifiedResource{"", "buildconfigs"}, []string{verbList}},
-	{qualifiedResource{"", "builds"}, []string{verbList}},
+	{&qualifiedResource{"", "buildconfigs"}, []string{verbList}},
+	{&qualifiedResource{"", "builds"}, []string{verbList}},
 }
 
 var getBuildsRules = []*requestedAccess{
-	{qualifiedResource{"", "builds"}, []string{verbList}},
+	{&qualifiedResource{"", "builds"}, []string{verbList}},
 }
 
 func (kc *kubeClient) checkAuthorizedInEnv(reqs []*requestedAccess, envName string) (bool, error) {
@@ -200,7 +216,7 @@ func (kc *kubeClient) checkAuthorizedInEnv(reqs []*requestedAccess, envName stri
 }
 
 var getEnvironmentRules = []*requestedAccess{
-	{qualifiedResource{"", "resourcequotas"}, []string{verbList}},
+	{&qualifiedResource{"", "resourcequotas"}, []string{verbList}},
 }
 
 // CanGetEnvironments returns whether the user is authorized to call KubeClientInterface.GetEnvironments
