@@ -81,67 +81,90 @@ func TestEnumType_GetDefaultValue(t *testing.T) {
 	tests := []struct {
 		name           string
 		enum           w.EnumType
-		input          interface{}
 		expectedOutput interface{}
-		wantErr        bool
 	}{
-		{"return first value of enum when input is nil", w.EnumType{
+		{"return first value of enum when default is nil", w.EnumType{
 			SimpleType: w.SimpleType{Kind: w.KindEnum},
 			BaseType:   w.SimpleType{Kind: w.KindString},
 			Values:     []interface{}{"first", "second", "third"},
-		}, nil, "first", false},
-		{"return input value as is in list of allowed values", w.EnumType{
-			SimpleType: w.SimpleType{Kind: w.KindEnum},
-			BaseType:   w.SimpleType{Kind: w.KindString},
-			Values:     []interface{}{"first", "second", "third"},
-		}, "second", "second", false},
-		{"return error when input value is not in list of allowed values", w.EnumType{
-			SimpleType: w.SimpleType{Kind: w.KindEnum},
-			BaseType:   w.SimpleType{Kind: w.KindString},
-			Values:     []interface{}{"first", "second", "third"},
-		}, "fourth", nil, true},
-		{"return error when input value is of wrong type", w.EnumType{
-			SimpleType: w.SimpleType{Kind: w.KindEnum},
-			BaseType:   w.SimpleType{Kind: w.KindString},
-			Values:     []interface{}{"first", "second", "third"},
-		}, 123, nil, true},
-		{"return input value converted to output type if possible", w.EnumType{
-			SimpleType: w.SimpleType{Kind: w.KindEnum},
-			BaseType:   w.SimpleType{Kind: w.KindFloat},
-			Values:     []interface{}{111.3, 123.0, 222.1},
-		}, 123, 123.0, false},
-		{"return error when input value cannot be converted to output type", w.EnumType{
-			SimpleType: w.SimpleType{Kind: w.KindEnum},
-			BaseType:   w.SimpleType{Kind: w.KindInteger},
-			Values:     []interface{}{111, 222, 333},
-		}, 222.0, 222, true},
-		{"return custom default when input value is nil", w.EnumType{
+		}, "first"},
+		{"return custom default when a default is set", w.EnumType{
 			SimpleType:   w.SimpleType{Kind: w.KindEnum},
 			BaseType:     w.SimpleType{Kind: w.KindInteger},
 			Values:       []interface{}{111, 222, 333},
 			DefaultValue: 222,
-		}, nil, 222, false},
-		{"return error when custom default is of wrong type", w.EnumType{
-			SimpleType:   w.SimpleType{Kind: w.KindEnum},
-			BaseType:     w.SimpleType{Kind: w.KindInteger},
-			Values:       []interface{}{111, 222, 333},
-			DefaultValue: 222.0,
-		}, nil, nil, true},
-		{"return error when values are empty", w.EnumType{
-			SimpleType: w.SimpleType{Kind: w.KindEnum},
-			BaseType:   w.SimpleType{Kind: w.KindInteger},
-			Values:     []interface{}{},
-		}, nil, nil, true},
-		{"return error when values are nil", w.EnumType{
-			SimpleType: w.SimpleType{Kind: w.KindEnum},
-			BaseType:   w.SimpleType{Kind: w.KindInteger},
-			Values:     nil,
-		}, nil, nil, true},
+		}, 222},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			output, err := tt.enum.GetDefaultValue(tt.input)
+			require.Equal(t, tt.expectedOutput, tt.enum.GetDefaultValue())
+		})
+	}
+}
+
+func TestEnumType_SetDefaultValue(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	tests := []struct {
+		name           string
+		enum           w.EnumType
+		defVal         interface{}
+		expectedOutput w.FieldType
+		wantErr        bool
+	}{
+		{"set default to allowed value",
+			w.EnumType{
+				SimpleType: w.SimpleType{Kind: w.KindEnum},
+				BaseType:   w.SimpleType{Kind: w.KindString},
+				Values:     []interface{}{"first", "second", "third"},
+			},
+			"second",
+			&w.EnumType{
+				SimpleType:   w.SimpleType{Kind: w.KindEnum},
+				BaseType:     w.SimpleType{Kind: w.KindString},
+				Values:       []interface{}{"first", "second", "third"},
+				DefaultValue: "second",
+			},
+			false},
+		{"set default to nil value",
+			w.EnumType{
+				SimpleType: w.SimpleType{Kind: w.KindEnum},
+				BaseType:   w.SimpleType{Kind: w.KindString},
+				Values:     []interface{}{"first", "second", "third"},
+			},
+			nil,
+			&w.EnumType{
+				SimpleType:   w.SimpleType{Kind: w.KindEnum},
+				BaseType:     w.SimpleType{Kind: w.KindString},
+				Values:       []interface{}{"first", "second", "third"},
+				DefaultValue: nil,
+			},
+			false},
+		{"set default to not-allowed value (wrong base type)",
+			w.EnumType{
+				SimpleType: w.SimpleType{Kind: w.KindEnum},
+				BaseType:   w.SimpleType{Kind: w.KindString},
+				Values:     []interface{}{"first", "second", "third"},
+			},
+			123,
+			nil,
+			true},
+		{"set default to not-allowed value (not in list)",
+			w.EnumType{
+				SimpleType: w.SimpleType{Kind: w.KindEnum},
+				BaseType:   w.SimpleType{Kind: w.KindString},
+				Values:     []interface{}{"first", "second", "third"},
+			},
+			"foobar",
+			nil,
+			true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			output, err := tt.enum.SetDefaultValue(tt.defVal)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -151,6 +174,7 @@ func TestEnumType_GetDefaultValue(t *testing.T) {
 		})
 	}
 }
+
 func TestEnumType_Validate(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

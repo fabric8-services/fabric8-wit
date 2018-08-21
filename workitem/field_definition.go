@@ -72,11 +72,11 @@ type FieldType interface {
 	ConvertFromModel(value interface{}) (interface{}, error)
 	// Implement the Equaler interface
 	Equal(u convert.Equaler) bool
-	// GetDefaultValue is called if a field is not specified. In it's simplest
-	// form the DefaultValue returns the given input value without any
-	// conversion. An implementation of GetDefaultValue() should always call
-	// Validate() as the first action to make sure the type is set up correctly.
-	GetDefaultValue(value interface{}) (interface{}, error)
+	// GetDefaultValue is called if a field's value is nil.
+	GetDefaultValue() interface{}
+	// SetDefaultValue returns a copy of the FieldType object at hand if there
+	// was no error setting the default value of that field type.
+	SetDefaultValue(v interface{}) (FieldType, error)
 	// Validate checks that the type definition of a field is correct. Take a
 	// look at the implementation of this function to find out what's actually
 	// been checked for each individual type.
@@ -132,11 +132,7 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
 	// Overwrite value if default value if none was provided
 	if value == nil {
-		defValue, err := f.Type.GetDefaultValue(value)
-		if err != nil {
-			return nil, errs.Wrapf(err, "failed to get default value for field \"%s\"", name)
-		}
-		value = defValue
+		value = f.Type.GetDefaultValue()
 	}
 
 	if f.Required {

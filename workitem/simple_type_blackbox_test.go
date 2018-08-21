@@ -64,36 +64,59 @@ func TestSimpleType_Validate(t *testing.T) {
 func TestSimpleType_GetDefault(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		obj     SimpleType
-		intput  interface{}
-		output  interface{}
-		wantErr bool
+		name   string
+		obj    SimpleType
+		output interface{}
 	}{
-		{"ok - int field: input nil output 333", SimpleType{Kind: KindInteger, DefaultValue: 333}, nil, 333, false},
-		{"ok - float field: input nil output 33.3", SimpleType{Kind: KindFloat, DefaultValue: 33.3}, nil, 33.3, false},
-		{"ok - string field: input nil output \"foo\"", SimpleType{Kind: KindString, DefaultValue: "foo"}, nil, "foo", false},
-
-		{"ok - int field: input 333 output 444", SimpleType{Kind: KindInteger, DefaultValue: 333}, 444, 444, false},
-		{"ok - float field: input 44.4 output 44.4", SimpleType{Kind: KindFloat, DefaultValue: 33.3}, 44.4, 44.4, false},
-		{"ok - string field: input \"bar\" output \"bar\"", SimpleType{Kind: KindString, DefaultValue: "foo"}, "bar", "bar", false},
-
-		{"error - list field is invalid for a simple type", SimpleType{Kind: KindList, DefaultValue: "foo"}, nil, nil, true},
-		{"error - enum field is invalid for a simple type", SimpleType{Kind: KindEnum, DefaultValue: "foo"}, nil, nil, true},
-
-		{"error - input int on string field", SimpleType{Kind: KindString, DefaultValue: "foo"}, 123, nil, true},
-		{"ok - input int on float field", SimpleType{Kind: KindFloat, DefaultValue: 123.0}, 22, 22.0, false},
-		{"ok - input float on int field", SimpleType{Kind: KindInteger, DefaultValue: 123}, 22.0, 22, false},
+		{"ok - int field: output 333", SimpleType{Kind: KindInteger, DefaultValue: 333}, 333},
+		{"ok - float field: output 33.3", SimpleType{Kind: KindFloat, DefaultValue: 33.3}, 33.3},
+		{"ok - string field: output \"foo\"", SimpleType{Kind: KindString, DefaultValue: "foo"}, "foo"},
+		{"ok - string field nil default", SimpleType{Kind: KindString}, nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			output, err := tt.obj.GetDefaultValue(tt.intput)
+			require.Equal(t, tt.output, tt.obj.GetDefaultValue())
+		})
+	}
+}
+
+func TestSimpleType_SetDefaultValue(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	tests := []struct {
+		name           string
+		enum           SimpleType
+		defVal         interface{}
+		expectedOutput FieldType
+		wantErr        bool
+	}{
+		{"set default to allowed value",
+			SimpleType{Kind: KindString},
+			"foo",
+			&SimpleType{Kind: KindString, DefaultValue: "foo"},
+			false},
+		{"set default to nil",
+			SimpleType{Kind: KindString},
+			nil,
+			&SimpleType{Kind: KindString, DefaultValue: nil},
+			false},
+		{"set default to not-allowed value",
+			SimpleType{Kind: KindString},
+			123,
+			nil,
+			true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			output, err := tt.enum.SetDefaultValue(tt.defVal)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, tt.output, output)
+				require.Equal(t, tt.expectedOutput, output)
 			}
 		})
 	}

@@ -106,40 +106,80 @@ func TestListType_GetDefaultValue(t *testing.T) {
 	tests := []struct {
 		name     string
 		listType ListType
-		input    interface{}
 		output   interface{}
-		wantErr  bool
 	}{
-		{"ok - string list, input nil output default", ListType{
+		{"ok - string list", ListType{
 			SimpleType:    SimpleType{Kind: KindList},
 			ComponentType: SimpleType{Kind: KindString},
 			DefaultValue:  "the",
-		}, nil, "the", false},
-		{"ok - integer list, input nil output default", ListType{
+		}, "the"},
+		{"ok - default is nil", ListType{
 			SimpleType:    SimpleType{Kind: KindList},
-			ComponentType: SimpleType{Kind: KindInteger},
-			DefaultValue:  123,
-		}, nil, 123, false},
-		{"ok - float list, input nil output default", ListType{
-			SimpleType:    SimpleType{Kind: KindList},
-			ComponentType: SimpleType{Kind: KindFloat},
-			DefaultValue:  3.141,
-		}, nil, 3.141, false},
-		{"error - float not allowed in int list", ListType{
-			SimpleType:    SimpleType{Kind: KindList},
-			ComponentType: SimpleType{Kind: KindInteger},
-			DefaultValue:  333,
-		}, 3.141, nil, true},
+			ComponentType: SimpleType{Kind: KindString},
+		}, nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			output, err := tt.listType.GetDefaultValue(tt.input)
+			require.Equal(t, tt.output, tt.listType.GetDefaultValue())
+
+		})
+	}
+}
+
+func TestListType_SetDefaultValue(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	tests := []struct {
+		name           string
+		enum           ListType
+		defVal         interface{}
+		expectedOutput FieldType
+		wantErr        bool
+	}{
+		{"set default to allowed value",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			[]interface{}{"second"},
+			&ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+				DefaultValue:  []interface{}{"second"},
+			},
+			false},
+		{"set default to nil",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			nil,
+			&ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+				DefaultValue:  nil,
+			},
+			false},
+		{"set default to not-allowed (wrong component type)",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			123,
+			nil,
+			true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			output, err := tt.enum.SetDefaultValue(tt.defVal)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, tt.output, output)
+				require.Equal(t, tt.expectedOutput, output)
 			}
 		})
 	}

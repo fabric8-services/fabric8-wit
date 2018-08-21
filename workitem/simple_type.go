@@ -19,7 +19,7 @@ type SimpleType struct {
 }
 
 // Ensure SimpleType implements the FieldType interface
-var _ FieldType = SimpleType{}
+var _ FieldType = &SimpleType{}
 var _ FieldType = (*SimpleType)(nil)
 
 // Ensure SimpleType implements the Equaler interface
@@ -40,22 +40,19 @@ func (t SimpleType) Validate() error {
 	return nil
 }
 
+// SetDefaultValue implements FieldType
+func (t SimpleType) SetDefaultValue(v interface{}) (FieldType, error) {
+	defVal, err := t.ConvertToModel(v)
+	if err != nil {
+		return nil, errs.Wrapf(err, "failed to set default value of simple type to %+v (%[1]T)", v)
+	}
+	t.DefaultValue = defVal
+	return &t, nil
+}
+
 // GetDefaultValue implements FieldType
-func (t SimpleType) GetDefaultValue(value interface{}) (interface{}, error) {
-	if err := t.Validate(); err != nil {
-		return nil, errs.Wrapf(err, "failed to validate simple type")
-	}
-	if value != nil {
-		v, err := t.ConvertToModel(value)
-		if err != nil {
-			return nil, errs.Wrapf(err, `value "%+v" is not a valid simple value`)
-		}
-		return v, nil
-	}
-	if t.DefaultValue != nil {
-		return t.DefaultValue, nil
-	}
-	return value, nil
+func (t SimpleType) GetDefaultValue() interface{} {
+	return t.DefaultValue
 }
 
 // Equal returns true if two SimpleType objects are equal; otherwise false is returned.

@@ -58,24 +58,28 @@ func (t EnumType) Validate() error {
 	return nil
 }
 
+// SetDefaultValue implements FieldType
+func (t EnumType) SetDefaultValue(v interface{}) (FieldType, error) {
+	defVal, err := t.ConvertToModel(v)
+	if err != nil {
+		return nil, errs.Wrapf(err, "failed to set default value of enum type to %+v (%[1]T)", v)
+	}
+	t.DefaultValue = defVal
+	return &t, nil
+}
+
 // GetDefaultValue implements FieldType
-func (t EnumType) GetDefaultValue(value interface{}) (interface{}, error) {
-	if err := t.Validate(); err != nil {
-		return nil, errs.Wrapf(err, "failed to validate enum type")
-	}
-	if value != nil {
-		if !contains(t.Values, value) {
-			return nil, errs.Errorf(`value "%+v" is not among the set of allowed enum values: %+v`, value, t.Values)
-		}
-		return value, nil
-	}
+func (t EnumType) GetDefaultValue() interface{} {
 	// manual default value has precedence over first value in list of allowed
 	// values
 	if t.DefaultValue != nil {
-		return t.DefaultValue, nil
+		return t.DefaultValue
 	}
 	// fallback to first permitted element
-	return t.Values[0], nil
+	if len(t.Values) > 0 {
+		return t.Values[0]
+	}
+	return nil
 }
 
 // Ensure EnumType implements the Equaler interface

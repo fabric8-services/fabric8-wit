@@ -42,22 +42,19 @@ func (t ListType) Validate() error {
 	return nil
 }
 
+// SetDefaultValue implements FieldType
+func (t ListType) SetDefaultValue(v interface{}) (FieldType, error) {
+	defVal, err := t.ConvertToModel(v)
+	if err != nil {
+		return nil, errs.Wrapf(err, "failed to set default value of list type to %+v (%[1]T)", v)
+	}
+	t.DefaultValue = defVal
+	return &t, nil
+}
+
 // GetDefaultValue implements FieldType
-func (t ListType) GetDefaultValue(value interface{}) (interface{}, error) {
-	if err := t.Validate(); err != nil {
-		return nil, errs.Wrapf(err, "failed to validate list type")
-	}
-	if value != nil {
-		v, err := t.ComponentType.ConvertToModel(value)
-		if err != nil {
-			return nil, errs.Wrapf(err, `value "%+v" is not a valid list value`)
-		}
-		return v, nil
-	}
-	if t.DefaultValue != nil {
-		return t.DefaultValue, nil
-	}
-	return value, nil
+func (t ListType) GetDefaultValue() interface{} {
+	return t.DefaultValue
 }
 
 // Equal returns true if two ListType objects are equal; otherwise false is returned.
