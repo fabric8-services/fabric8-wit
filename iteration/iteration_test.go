@@ -175,20 +175,26 @@ func (s *TestIterationRepository) TestLoad() {
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 
+		iterID := uuid.NewV4()
 		i := iteration.Iteration{
+			ID:      iterID,
 			Name:    name,
 			SpaceID: fxt.Spaces[0].ID,
 			StartAt: &start,
 			EndAt:   &end,
+			Path:    path.Path{iterID},
 		}
 		// when
 		repo.Create(context.Background(), &i)
 
+		iter2ID := uuid.NewV4()
 		i2 := iteration.Iteration{
+			ID:      iter2ID,
 			Name:    name2,
 			SpaceID: fxt.Spaces[0].ID,
 			StartAt: &start,
 			EndAt:   &end,
+			Path:    append(i.Path, iter2ID),
 		}
 		repo.Create(context.Background(), &i2)
 		// then
