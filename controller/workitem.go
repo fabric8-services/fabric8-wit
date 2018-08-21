@@ -71,6 +71,25 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 		config:       config}
 }
 
+// authorizeWorkitemTypeEditor returns true if the modifier is allowed to change
+// workitem type else it returns false.
+// Only space owner and workitem creator are allowed to change workitem type
+func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
+	// check if workitem editor is same as workitem creator
+	if editorID == creatorID {
+		return true, nil
+	}
+	space, err := c.db.Spaces().Load(ctx, spaceID)
+	if err != nil {
+		return false, errors.NewNotFoundError("space", spaceID.String())
+	}
+	// check if workitem editor is same as space owner
+	if space != nil && editorID == space.OwnerID.String() {
+		return true, nil
+	}
+	return false, errors.NewUnauthorizedError("user is not allowed to change workitem type")
+}
+
 // Returns true if the user is the work item creator or space collaborator
 func authorizeWorkitemEditor(ctx context.Context, db application.DB, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
 	if editorID == creatorID {
@@ -111,18 +130,48 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
+
+	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
+		ctx.Payload.Data.Relationships.BaseType.Data != nil && ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
+
+		authorized, err := c.authorizeWorkitemTypeEditor(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if !authorized {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to change the workitemtype"))
+		}
+		// Store new values of type and version
+		newType := ctx.Payload.Data.Relationships.BaseType
+		newVersion := ctx.Payload.Data.Attributes[workitem.SystemVersion]
+
+		// Remove version and base type from payload
+		delete(ctx.Payload.Data.Attributes, workitem.SystemVersion)
+		ctx.Payload.Data.Relationships.BaseType = nil
+
+		// Ensure we do not have any other change in payload except type change
+		if (app.WorkItemRelationships{}) != *ctx.Payload.Data.Relationships || len(ctx.Payload.Data.Attributes) > 0 {
+			// Todo(ibrahim) - Change this error to 422 Unprocessable entity
+			// error once we have this error in our error package. Please see
+			// https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r208842063
+			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("cannot update type along with other fields"))
+		}
+
+		// Restore the original values
+		ctx.Payload.Data.Relationships.BaseType = newType
+		ctx.Payload.Data.Attributes[workitem.SystemVersion] = newVersion
+
+	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		// The Number and Type of a work item are not allowed to be changed
-		// which is why we overwrite those values with their old value after the
-		// work item was converted.
+		// The Number of a work item is not allowed to be changed which is why
+		// we overwrite the values with its old value after the work item was
+		// converted.
 		oldNumber := wi.Number
-		oldType := wi.Type
 		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.Type, wi.SpaceID)
 		if err != nil {
 			return err
 		}
 		wi.Number = oldNumber
-		wi.Type = oldType
 		wi, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserIdentityID)
 		if err != nil {
 			return errs.Wrap(err, "Error updating work item")
@@ -587,28 +636,34 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 			if val != nil {
 				columnIDs := val.([]interface{})
 				op.Relationships.SystemBoardcolumns = &app.RelationGenericList{
-					Data: ConvertLabelsSimple(request, columnIDs),
+					Data: ConvertBoardColumnsSimple(request, columnIDs),
 				}
 			}
 		case workitem.SystemCreator:
 			if val != nil {
 				userID := val.(string)
+				data, links := ConvertUserSimple(request, userID)
 				op.Relationships.Creator = &app.RelationGeneric{
-					Data: ConvertUserSimple(request, userID),
+					Data:  data,
+					Links: links,
 				}
 			}
 		case workitem.SystemIteration:
 			if val != nil {
 				valStr := val.(string)
+				data, links := ConvertIterationSimple(request, valStr)
 				op.Relationships.Iteration = &app.RelationGeneric{
-					Data: ConvertIterationSimple(request, valStr),
+					Data:  data,
+					Links: links,
 				}
 			}
 		case workitem.SystemArea:
 			if val != nil {
 				valStr := val.(string)
+				data, links := ConvertAreaSimple(request, valStr)
 				op.Relationships.Area = &app.RelationGeneric{
-					Data: ConvertAreaSimple(request, valStr),
+					Data:  data,
+					Links: links,
 				}
 			}
 

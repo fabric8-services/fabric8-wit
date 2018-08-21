@@ -2,6 +2,7 @@ package workitem
 
 import (
 	"database/sql/driver"
+	"reflect"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
@@ -39,6 +40,7 @@ type WorkItemTypeGroup struct {
 	SpaceTemplateID       uuid.UUID   `sql:"type:uuid" json:"space_template_id"`
 	Bucket                TypeBucket  `json:"bucket,omitempty"`
 	Name                  string      `json:"name,omitempty"` // the name to be displayed to user (is unique)
+	Description           *string     `json:"description,omitempty"`
 	Icon                  string      `json:"icon,omitempty"`
 	Position              int         `json:"-"`
 	TypeList              []uuid.UUID `gorm:"-" json:"type_list,omitempty"`
@@ -69,6 +71,9 @@ func (witg WorkItemTypeGroup) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if witg.Name != other.Name {
+		return false
+	}
+	if !reflect.DeepEqual(witg.Description, other.Description) {
 		return false
 	}
 	if witg.Bucket != other.Bucket {

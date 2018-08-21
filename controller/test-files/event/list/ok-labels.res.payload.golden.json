@@ -3,8 +3,6 @@
     {
       "attributes": {
         "name": "system.labels",
-        "newValue": null,
-        "oldValue": null,
         "timestamp": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000001",
@@ -12,10 +10,11 @@
         "modifier": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000002",
-            "links": {
-              "related": "http:///api/users/00000000-0000-0000-0000-000000000002"
-            },
-            "type": "identities"
+            "type": "users"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000002"
           }
         },
         "newValue": {
@@ -28,14 +27,15 @@
               "id": "00000000-0000-0000-0000-000000000004",
               "type": "labels"
             }
-          ],
-          "links": {
-            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/labels"
-          }
+          ]
         },
-        "oldValue": {
+        "workItemType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000005",
+            "type": "workitemtypes"
+          },
           "links": {
-            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/labels"
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000005"
           }
         }
       },

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
@@ -152,7 +154,7 @@ func ConvertLabels(appl application.Application, request *http.Request, labels [
 	return ls
 }
 
-// ConvertLabelsSimple converts an array of Label IDs into a Generic Reletionship List
+// ConvertLabelsSimple converts an array of Label IDs into a Generic Relationship List
 func ConvertLabelsSimple(request *http.Request, labelIDs []interface{}) []*app.GenericData {
 	ops := make([]*app.GenericData, 0, len(labelIDs))
 	for _, labelID := range labelIDs {
@@ -161,12 +163,11 @@ func ConvertLabelsSimple(request *http.Request, labelIDs []interface{}) []*app.G
 	return ops
 }
 
-// ConvertLabelSimple converts a Label ID into a Generic Reletionship
+// ConvertLabelSimple converts a Label ID into a Generic Relationship
 func ConvertLabelSimple(request *http.Request, labelID interface{}) *app.GenericData {
-	t := label.APIStringTypeLabels
-	i := labelID.(string)
+	i := fmt.Sprint(labelID)
 	return &app.GenericData{
-		Type: &t,
+		Type: ptr.String(label.APIStringTypeLabels),
 		ID:   &i,
 	}
 }

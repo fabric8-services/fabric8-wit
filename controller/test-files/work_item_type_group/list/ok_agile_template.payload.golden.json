@@ -1,0 +1,109 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "bucket": "portfolio",
+        "created-at": "0001-01-01T00:00:00Z",
+        "icon": "fa fa-bullseye",
+        "name": "Work Items",
+        "show-in-sidebar": true,
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "1c21af72-59ab-43d7-a84c-e76ee8ed3342",
+      "links": {
+        "related": "http:///api/workitemtypegroups/1c21af72-59ab-43d7-a84c-e76ee8ed3342"
+      },
+      "relationships": {
+        "spaceTemplate": {
+          "data": {
+            "id": "f405fa41-a8bb-46db-8800-2dbe13da1418",
+            "type": "spacetemplates"
+          }
+        },
+        "typeList": {
+          "data": [
+            {
+              "id": "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "2c169431-a55d-49eb-af74-cc19e895356f",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "6ff83406-caa7-47a9-9200-4ca796be11bb",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "2853459d-60ef-4fbe-aaf4-eccb9f554b34",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "03b9bb64-4f65-4fa7-b165-494cd4f01401",
+              "type": "workitemtypes"
+            }
+          ]
+        }
+      },
+      "type": "workitemtypegroups"
+    },
+    {
+      "attributes": {
+        "bucket": "iteration",
+        "created-at": "0001-01-01T00:00:00Z",
+        "icon": "fa fa-repeat",
+        "name": "Execution",
+        "show-in-sidebar": false,
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "49d1a19f-02b4-4a10-a774-5723299f8944",
+      "links": {
+        "related": "http:///api/workitemtypegroups/49d1a19f-02b4-4a10-a774-5723299f8944"
+      },
+      "relationships": {
+        "spaceTemplate": {
+          "data": {
+            "id": "f405fa41-a8bb-46db-8800-2dbe13da1418",
+            "type": "spacetemplates"
+          }
+        },
+        "typeList": {
+          "data": [
+            {
+              "id": "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "2c169431-a55d-49eb-af74-cc19e895356f",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "6ff83406-caa7-47a9-9200-4ca796be11bb",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "2853459d-60ef-4fbe-aaf4-eccb9f554b34",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "03b9bb64-4f65-4fa7-b165-494cd4f01401",
+              "type": "workitemtypes"
+            }
+          ]
+        }
+      },
+      "type": "workitemtypegroups"
+    }
+  ],
+  "links": {
+    "self": "http:///api/spacetemplates/f405fa41-a8bb-46db-8800-2dbe13da1418/workitemtypegroups"
+  }
+}

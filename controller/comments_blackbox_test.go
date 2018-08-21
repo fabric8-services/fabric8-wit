@@ -3,7 +3,6 @@ package controller_test
 import (
 	"context"
 	"fmt"
-	"html"
 	"strings"
 	"testing"
 	"time"
@@ -155,7 +154,7 @@ func assertComment(t *testing.T, resultData *app.Comment, expectedIdentity accou
 	assert.Equal(t, expectedBody, *resultData.Attributes.Body)
 	require.NotNil(t, resultData.Attributes.Markup)
 	assert.Equal(t, expectedMarkup, *resultData.Attributes.Markup)
-	assert.Equal(t, rendering.RenderMarkupToHTML(html.EscapeString(expectedBody), expectedMarkup), *resultData.Attributes.BodyRendered)
+	assert.Equal(t, rendering.RenderMarkupToHTML(expectedBody, expectedMarkup), *resultData.Attributes.BodyRendered)
 	require.NotNil(t, resultData.Relationships)
 	require.NotNil(t, resultData.Relationships.Creator)
 	require.NotNil(t, resultData.Relationships.Creator.Data)
@@ -300,6 +299,21 @@ func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
 	// then
 	assertComment(s.T(), result.Data, s.testIdentity, "<img src=x onerror=alert('body') />", rendering.SystemMarkupPlainText)
+}
+
+func (s *CommentsSuite) TestShowCommentWithTextAndCodeblock() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	wiID := fxt.WorkItems[0].ID
+	body := "Hello, World \n```\n { \"foo\":\"bar\" } \n``` "
+	expectedBody := "<p>Hello, World</p>\n\n<pre><code class=\"prettyprint\"> <span class=\"pun\">{</span> <span class=\"str\">&#34;foo&#34;</span><span class=\"pun\">:</span><span class=\"str\">&#34;bar&#34;</span> <span class=\"pun\">}</span> \n</code></pre>\n"
+	c := s.createWorkItemComment(s.testIdentity, wiID, body, &markdownMarkup, nil)
+	// when
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
+	// then
+	assert.Equal(s.T(), body, *result.Data.Attributes.Body)
+	assert.Equal(s.T(), expectedBody, *result.Data.Attributes.BodyRendered)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {

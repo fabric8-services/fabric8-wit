@@ -437,6 +437,18 @@ func GetMigrations() Migrations {
 	// Version 99
 	m = append(m, steps{ExecuteSQLFile("099-codebase-cve-scan-default-false.sql")})
 
+	// Version 100
+	m = append(m, steps{ExecuteSQLFile("100-drop-userspace-data.sql")})
+
+	// Version 101
+	m = append(m, steps{ExecuteSQLFile("101-add-description-to-witg.sql")})
+
+	// Version 102
+	m = append(m, steps{ExecuteSQLFile("102-add-forward-and-reverse-link-type-descriptions.sql")})
+
+	// Version 103
+	m = append(m, steps{ExecuteSQLFile("103-user-email-notnull-notempty.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
