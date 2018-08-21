@@ -58,6 +58,10 @@ func (t EnumType) Validate() error {
 
 // SetDefaultValue implements FieldType
 func (t EnumType) SetDefaultValue(v interface{}) (FieldType, error) {
+	if v == nil {
+		t.DefaultValue = nil
+		return &t, nil
+	}
 	defVal, err := t.ConvertToModel(v)
 	if err != nil {
 		return nil, errs.Wrapf(err, "failed to set default value of enum type to %+v (%[1]T)", v)

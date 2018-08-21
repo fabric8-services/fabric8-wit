@@ -40,6 +40,10 @@ func (t SimpleType) Validate() error {
 
 // SetDefaultValue implements FieldType
 func (t SimpleType) SetDefaultValue(v interface{}) (FieldType, error) {
+	if v == nil {
+		t.DefaultValue = nil
+		return &t, nil
+	}
 	defVal, err := t.ConvertToModel(v)
 	if err != nil {
 		return nil, errs.Wrapf(err, "failed to set default value of simple type to %+v (%[1]T)", v)
