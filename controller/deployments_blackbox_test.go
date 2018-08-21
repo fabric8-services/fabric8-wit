@@ -743,7 +743,7 @@ func TestWatchEnvironmentEvents(t *testing.T) {
 			return osioClientMock, nil
 		}
 
-		conn := WatchEnvironmentEventsDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
+		conn := WatchEnvironmentEventsDeploymentsOK(context.Background(), t, svc, ctrl, space.SystemSpace)
 
 		var buf []byte
 		for _, item := range testItems {
@@ -795,7 +795,7 @@ func (r *wsRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return r.server, rw, nil
 }
 
-func WatchEnvironmentEventsDeploymentsOK(t *testing.T, ctx context.Context, service *goa.Service, ctrl app.DeploymentsController, spaceID uuid.UUID) net.Conn {
+func WatchEnvironmentEventsDeploymentsOK(ctx context.Context, t *testing.T, service *goa.Service, ctrl app.DeploymentsController, spaceID uuid.UUID) net.Conn {
 	var (
 		logBuf     bytes.Buffer
 		respSetter goatest.ResponseSetterFunc = func(r interface{}) {}
