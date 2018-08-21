@@ -29,10 +29,14 @@ func (s *ImportHelper) Validate() error {
 		return errs.Wrap(err, "failed to validate space template")
 	}
 
-	// Ensure all artifacts have the correct space template ID set
+	// Ensure all artifacts have the correct space template ID set and are
+	// valid
 	for _, wit := range s.WITs {
 		if wit.SpaceTemplateID != s.Template.ID {
 			return errors.NewBadParameterError("work item types's space template ID", wit.SpaceTemplateID.String()).Expected(s.Template.ID.String())
+		}
+		if err := wit.Validate(); err != nil {
+			return errs.Wrapf(err, `failed to validate work item type "%s" (ID=%s)`, wit.Name, wit.ID)
 		}
 	}
 	for _, wilt := range s.WILTs {

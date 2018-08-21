@@ -416,6 +416,7 @@
             "required": false,
             "type": {
               "baseType": "string",
+              "defaultValue": "P3 - Medium",
               "kind": "enum",
               "values": [
                 "P1 - Critical",
@@ -458,6 +459,7 @@
             "required": false,
             "type": {
               "baseType": "string",
+              "defaultValue": "SEV3 - Medium",
               "kind": "enum",
               "values": [
                 "SEV1 - Urgent",
