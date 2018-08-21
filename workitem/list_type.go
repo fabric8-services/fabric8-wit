@@ -42,7 +42,7 @@ func (t ListType) Validate() error {
 
 // SetDefaultValue implements FieldType
 func (t ListType) SetDefaultValue(v interface{}) (FieldType, error) {
-	defVal, err := t.ConvertToModel(v)
+	defVal, err := t.ComponentType.ConvertToModel(v)
 	if err != nil {
 		return nil, errs.Wrapf(err, "failed to set default value of list type to %+v (%[1]T)", v)
 	}
