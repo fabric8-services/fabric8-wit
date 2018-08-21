@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -178,7 +179,7 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 							equal = newEnum.EqualEnclosing(origEnum)
 						}
 						if !equal {
-							return errs.Errorf("type of the field %s changed from %s to %s", fieldName, oldFieldType, fd.Type)
+							return errs.Errorf("type of the field %s changed from %+v to %+v", fieldName, spew.Sdump(oldFieldType), spew.Sdump(fd.Type))
 						}
 					}
 				}
