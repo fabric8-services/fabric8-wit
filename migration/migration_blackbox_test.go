@@ -1367,29 +1367,6 @@ func executeSQLTestFile(filename string, args ...string) fn {
 	}
 }
 
-// test that the userspace_data table no longer exists - previously
-// used as a temporary solution to get data from tenant jenkins
-func testMigration100DropUserspacedataTable(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:101], 101)
-	require.False(t, dialect.HasTable("userspace_data"))
-}
-
-// testTypeGroupHasDescriptionField checks that the work item type groups table
-// has a description after updating to DB version 101.
-func testMigration101TypeGroupHasDescriptionField(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:102], 102)
-	require.True(t, dialect.HasColumn("work_item_type_groups", "description"))
-}
-
-// testLinkTypeDescriptionFields checks that the work item link types table has
-// a forward_description and a reverse_description after updating to DB version
-// 102.
-func testMigration102LinkTypeDescriptionFields(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:103], 103)
-	require.True(t, dialect.HasColumn("work_item_link_types", "forward_description"))
-	require.True(t, dialect.HasColumn("work_item_link_types", "reverse_description"))
-}
-
 // migrateToVersion runs the migration of all the scripts to a certain version
 func migrateToVersion(t *testing.T, db *sql.DB, m migration.Migrations, version int64) {
 	var err error
