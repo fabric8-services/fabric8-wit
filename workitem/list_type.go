@@ -44,7 +44,7 @@ func (t ListType) Validate() error {
 func (t ListType) SetDefaultValue(v interface{}) (FieldType, error) {
 	if v == nil {
 		t.DefaultValue = nil
-		return &t, nil
+		return t, nil
 	}
 	defVal, err := t.ComponentType.ConvertToModel(v)
 	if err != nil {

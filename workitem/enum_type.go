@@ -60,7 +60,7 @@ func (t EnumType) Validate() error {
 func (t EnumType) SetDefaultValue(v interface{}) (FieldType, error) {
 	if v == nil {
 		t.DefaultValue = nil
-		return &t, nil
+		return t, nil
 	}
 	defVal, err := t.ConvertToModel(v)
 	if err != nil {
