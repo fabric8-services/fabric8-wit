@@ -389,7 +389,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
-		assert.Equal(t, WorkitemTypeChangeEvent, eventList[0].Name)
+		assert.Equal(t, event.WorkitemTypeChangeEvent, eventList[0].Name)
 		assert.Equal(t, fxt.WorkItemTypes[0].ID, eventList[0].Old)
 		assert.Equal(t, fxt.WorkItemTypes[1].ID, eventList[0].New)
 	})
