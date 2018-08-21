@@ -16,6 +16,9 @@ import (
 // APIStringTypeEvents represent the type of event
 const APIStringTypeEvents = "events"
 
+// WorkitemTypeChangeEvent represents the attribute name for type change event
+const WorkitemTypeChangeEvent = "workitemtype"
+
 // Repository encapsulates retrieval of work item events
 type Repository interface {
 	//repository.Exister
@@ -61,15 +64,6 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 		oldRev := revisionList[k-1]
 		newRev := revisionList[k]
 
-		// If the new and old work item type are different, we're skipping this
-		// revision because it denotes the change of a work item type.
-		//
-		// TODO(kwk): make sure we have a proper "changed work item type"
-		// revision entry in one way or another.
-		if oldRev.WorkItemTypeID != newRev.WorkItemTypeID {
-			continue
-		}
-
 		wit, err := r.workItemTypeRepo.Load(ctx, oldRev.WorkItemTypeID)
 		if err != nil {
 			return nil, errs.Wrapf(err, "failed to load old work item type: %s", oldRev.WorkItemTypeID)
@@ -78,6 +72,24 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 		modifierID, err := r.identityRepo.Load(ctx, newRev.ModifierIdentity)
 		if err != nil {
 			return nil, errs.Wrapf(err, "failed to load modifier identity %s", newRev.ModifierIdentity)
+		}
+
+		// TODO(kwk): make sure we have a proper "changed work item type"
+		// revision entry in one way or another.
+		// TODO(ibrahim): type change event should have more information than just the new and old type IDs
+		if oldRev.WorkItemTypeID != newRev.WorkItemTypeID {
+			event := Event{
+				ID:             newRev.ID,
+				Name:           WorkitemTypeChangeEvent,
+				WorkItemTypeID: newRev.WorkItemTypeID,
+				Timestamp:      newRev.Time,
+				Modifier:       modifierID.ID,
+				Old:            oldRev.WorkItemTypeID,
+				New:            newRev.WorkItemTypeID,
+			}
+			eventList = append(eventList, event)
+			// We do not compare any of the fields since this is a type change event.
+			continue
 		}
 
 		for fieldName, fieldDef := range wit.Fields {
