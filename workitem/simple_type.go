@@ -49,7 +49,7 @@ func (t SimpleType) SetDefaultValue(v interface{}) (FieldType, error) {
 		return nil, errs.Wrapf(err, "failed to set default value of simple type to %+v (%[1]T)", v)
 	}
 	t.DefaultValue = defVal
-	return &t, nil
+	return t, nil
 }
 
 // GetDefaultValue implements FieldType
