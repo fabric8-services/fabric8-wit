@@ -19,7 +19,7 @@ type SimpleType struct {
 }
 
 // Ensure SimpleType implements the FieldType interface
-var _ FieldType = &SimpleType{}
+var _ FieldType = SimpleType{}
 var _ FieldType = (*SimpleType)(nil)
 
 // Ensure SimpleType implements the Equaler interface
