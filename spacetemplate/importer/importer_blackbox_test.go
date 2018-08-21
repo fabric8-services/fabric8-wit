@@ -305,8 +305,8 @@ work_item_types:
         simple_type:
           kind: list
         component_type:
-          kind: integer
-        default_value: 42
+          kind: float
+        default_value: 42.0
 work_item_link_types:
 - id: "` + wiltID.String() + `"
   name: Blocker
@@ -403,7 +403,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 						Required:    false,
 						Type: workitem.ListType{
 							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-							ComponentType: workitem.SimpleType{Kind: workitem.KindInteger},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindFloat},
 							DefaultValue:  42.0,
 						},
 					},
