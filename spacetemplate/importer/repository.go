@@ -145,10 +145,10 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			loadedWIT.Icon = wit.Icon
 			loadedWIT.CanConstruct = wit.CanConstruct
 
-			//-----------------------------------------------------------------
-			// Double check all existing fields are still present in new fields
-			// with same type
-			//-----------------------------------------------------------------
+			//------------------------------------------------------------------
+			// Double check all fields from the old work item type are still
+			// present in new work item type and still have the same field type.
+			//------------------------------------------------------------------
 			// verify that FieldTypes are same as loadedWIT
 			toBeFoundFields := map[string]workitem.FieldType{}
 			for k, fd := range loadedWIT.Fields {

@@ -146,11 +146,10 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		}
 		// convert list default value from app to model
 		if t.DefaultValue != nil {
-			defVal, err := listType.ConvertToModel(*t.DefaultValue)
+			listType, err = listType.SetDefaultValue(*t.DefaultValue)
 			if err != nil {
 				return nil, errs.Wrapf(err, "failed to convert default list value: %+v", *t.DefaultValue)
 			}
-			listType.DefaultValue = defVal
 		}
 		return listType, nil
 	case workitem.KindEnum:
@@ -181,22 +180,20 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		}
 		// convert enum default value from app to model
 		if t.DefaultValue != nil {
-			defVal, err := enumType.ConvertToModel(*t.DefaultValue)
+			enumType, err = enumType.SetDefaultValue(*t.DefaultValue)
 			if err != nil {
 				return nil, errs.Wrapf(err, "failed to convert default enum value: %+v", *t.DefaultValue)
 			}
-			enumType.DefaultValue = defVal
 		}
 		return enumType, nil
 	default:
 		simpleType := workitem.SimpleType{Kind: *kind}
 		// convert simple type default value from app to model
 		if t.DefaultValue != nil {
-			defVal, err := simpleType.ConvertToModel(*t.DefaultValue)
+			simpleType, err = simpleType.SetDefaultValue(*t.DefaultValue)
 			if err != nil {
 				return nil, errs.Wrapf(err, "failed to convert default simple type value: %+v", *t.DefaultValue)
 			}
-			simpleType.DefaultValue = defVal
 		}
 		return simpleType, nil
 	}
