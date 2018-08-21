@@ -744,7 +744,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+			return nil, errors.NewBadParameterError(fieldName, fieldValue) // TODO(kwk): Change errors pkg to consume the original error as well
 		}
 		if (fieldName == SystemAssignees || fieldName == SystemLabels || fieldName == SystemBoardcolumns) && fieldValue == nil {
 			delete(wi.Fields, fieldName)
