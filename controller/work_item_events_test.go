@@ -600,4 +600,35 @@ func (s *TestEvent) TestListEvent() {
 			// })
 		}
 	})
+
+	s.T().Run("event list ok - workitem type change", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.WorkItemTypes(2))
+		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
+		payload := app.UpdateWorkitemPayload{
+			Data: &app.WorkItem{
+				Type: APIStringTypeWorkItem,
+				ID:   &fxt.WorkItems[0].ID,
+				Attributes: map[string]interface{}{
+					workitem.SystemVersion: fxt.WorkItems[0].Version,
+				},
+				Relationships: &app.WorkItemRelationships{
+					BaseType: &app.RelationBaseType{
+						Data: &app.BaseTypeData{
+							ID:   fxt.WorkItemTypes[1].ID,
+							Type: APIStringTypeWorkItemType,
+						},
+					},
+				},
+			},
+		}
+		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList.Data, 1)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-witype-change.res.payload.golden.json"), eventList)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-witype-change.res.headers.golden.json"), res.Header())
+	})
 }
