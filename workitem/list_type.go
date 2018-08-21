@@ -33,11 +33,9 @@ func (t ListType) Validate() error {
 	if !t.ComponentType.Kind.IsSimpleType() {
 		return errs.Errorf(`list type must have a simple component type and not "%s"`, t.Kind)
 	}
-	if t.DefaultValue != nil {
-		_, err := t.ComponentType.ConvertToModel(t.DefaultValue)
-		if err != nil {
-			return errs.Wrapf(err, `failed to convert default list value to kind "%s": %+v`, t.Kind, t.DefaultValue)
-		}
+	_, err := t.SetDefaultValue(t.DefaultValue)
+	if err != nil {
+		return errs.Wrapf(err, "failed to validate default value for kind %s: %+v (%[1]T)", t.Kind, t.DefaultValue)
 	}
 	return nil
 }

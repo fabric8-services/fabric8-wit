@@ -31,11 +31,9 @@ func (t SimpleType) Validate() error {
 	if !t.Kind.IsSimpleType() {
 		return errs.New("a simple type can only have a simple type (e.g. no list or enum)")
 	}
-	if t.DefaultValue != nil {
-		_, err := t.ConvertToModel(t.DefaultValue)
-		if err != nil {
-			return errs.Wrapf(err, "failed to convert value to kind %s: %+v", t.Kind, t.DefaultValue)
-		}
+	_, err := t.SetDefaultValue(t.DefaultValue)
+	if err != nil {
+		return errs.Wrapf(err, "failed to validate default value for kind %s: %+v (%[1]T)", t.Kind, t.DefaultValue)
 	}
 	return nil
 }

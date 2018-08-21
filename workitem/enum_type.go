@@ -39,11 +39,9 @@ func (t EnumType) Validate() error {
 	if !t.BaseType.Kind.IsSimpleType() {
 		return errs.Errorf(`enum type must have a simple component type and not "%s"`, t.Kind)
 	}
-	if t.DefaultValue != nil {
-		_, err := t.ConvertToModel(t.DefaultValue)
-		if err != nil {
-			return errs.Wrapf(err, `failed to convert default enum value to kind "%s": %+v`, t.Kind, t.DefaultValue)
-		}
+	_, err := t.SetDefaultValue(t.DefaultValue)
+	if err != nil {
+		return errs.Wrapf(err, "failed to validate default value for kind %s: %+v (%[1]T)", t.Kind, t.DefaultValue)
 	}
 	// verify that we have a set of permitted values
 	if t.Values == nil || len(t.Values) <= 0 {
