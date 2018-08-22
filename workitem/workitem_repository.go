@@ -1170,9 +1170,7 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 
 // ChangeWorkItemType changes the workitem in wiStorage to newWIType.
 // If the updated workitem (from payload data) contains value for fields in
-// newWIType, that value will be set for the field. Field Values in payload
-// (updatedWorkitem) have precedence over the values in the old workitem (the
-// one loaded from the database).
+// newWIType, that value will be set for the field.
 // Returns error if the operation fails
 func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, updatedWorkitem WorkItem, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error {
 	allowedWIT, err := r.CheckTypeAndSpaceShareTemplate(ctx, newWIType, spaceID)
@@ -1203,8 +1201,6 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 				valueToAssign := wiStorage.Fields[oldFieldName]
 				// If the updatedWorkitem contains the new field with a value,
 				// we use that value for all the operations.
-				// Field values sent in the payload have precedence over field
-				// values in the existing workitem
 				if updatedValue, ok := updatedWorkitem.Fields[oldFieldName]; ok {
 					valueToAssign = updatedValue
 				}
