@@ -1,0 +1,21 @@
+name: tenant
+
+deployments:
+  - containers:
+    - image: "[[ TENANT_IMAGE_URL ]]"
+      env:
+      - name: F8_AUTH_URL
+        value: "[[ F8_AUTH_URL ]]"
+      - name: F8_DEVELOPER_MODE_ENABLED
+        value: "true"
+      - name: F8_POSTGRES_HOST
+        value: "db-auth"
+      - name: F8_POSTGRES_PORT
+        value: "5432"
+
+services:
+- name: tenant
+  type: NodePort
+  ports:
+    - port: 8250
+      nodePort: 30000

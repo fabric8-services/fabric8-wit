@@ -1,0 +1,16 @@
+auth.url : https://auth.openshift.io
+
+# enable tenant service
+xxxtenant.serviceurl : http://localhost:8080
+
+
+# Openshift Proxy URL
+osoproxy.url : https://f8osoproxy-test-dsaas-production.09b5.dsaas.openshiftapps.com
+## prod-preview osproxy.url : https://f8osoproxy-test-dsaas-preview.b6ff.rh-idev.openshiftapps.com
+
+#diagnose.http.address : 127.0.0.1:9088
+
+#metrics.http.address : localhost:9090
+
+
+log.level: info
