@@ -141,7 +141,15 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 					entry = entry.WithField("req_headers", headers)
 				}
 				if len(req.Params) > 0 {
-					entry = entry.WithField("req_params", req.Params)
+					params := make(map[string]interface{}, len(req.Params))
+					for k, v := range req.Params {
+						if k == "access_token" {
+							params[string(k)] = "*****"
+						} else {
+							params[string(k)] = v
+						}
+					}
+					entry = entry.WithField("req_params", params)
 				}
 				if req.ContentLength > 0 {
 					if mp, ok := req.Payload.(map[string]interface{}); ok && mp != nil {

@@ -1,14 +1,26 @@
 package controller_test
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gojuno/minimock"
+	"golang.org/x/net/websocket"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
@@ -538,7 +550,6 @@ func TestShowSpaceEnvironments(t *testing.T) {
 		test.ShowSpaceEnvironmentsDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
 		// then verify that the Close method was called
 		assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
-
 	})
 
 	t.Run("failure", func(t *testing.T) {
@@ -572,7 +583,6 @@ func TestShowSpaceEnvironments(t *testing.T) {
 			assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
 		})
 	})
-
 }
 
 func TestShowAllEnvironments(t *testing.T) {
@@ -665,4 +675,181 @@ func createOSIOClientMock(t minimock.Tester, spaceName string) *testcontroller.O
 		}, nil
 	}
 	return osioClientMock
+}
+
+func TestWatchEnvironmentEvents(t *testing.T) {
+	clientGetterMock := testcontroller.NewClientGetterMock(t)
+	svc, ctrl, err := createDeploymentsController()
+	require.NoError(t, err)
+	ctrl.ClientGetter = clientGetterMock
+
+	t.Run("ok", func(t *testing.T) {
+		testItems := []*v1.Event{
+			{
+				ObjectMeta: metaV1.ObjectMeta{},
+				InvolvedObject: v1.ObjectReference{
+					Kind:            "ReplicationController",
+					Namespace:       "jkang-stage",
+					Name:            "alpha",
+					UID:             "0187287e-6f2d-11e8-bc5d-0233cba325d9",
+					APIVersion:      "v1",
+					ResourceVersion: "1146930893",
+				},
+				Reason:  "FailedCreate",
+				Message: "Error creating: pods \"abc-123-1-fn79z\" is forbidden: exceeded quota: compute-resources, requested: limits.cpu=1,limits.memory=512Mi, used: limits.cpu=2,limits.memory=1Gi, limited: limits.cpu=2,limits.memory=1Gi",
+				Count:   1,
+				Type:    "Warning",
+			},
+			{
+				ObjectMeta: metaV1.ObjectMeta{},
+				InvolvedObject: v1.ObjectReference{
+					Kind:            "Pod",
+					Namespace:       "jkang-stage",
+					Name:            "beta",
+					UID:             "0648a9cb-6fd0-11e8-aef8-0233cba325d9",
+					APIVersion:      "v1",
+					ResourceVersion: "1146929646",
+					FieldPath:       "spec.containers{vertx}",
+				},
+				Reason:  "Pulling",
+				Message: "pulling image \"docker-registry.default.svc:5000/jkang-stage/abc-123@sha256:4c1bb4adcdd3d462b1f3953ce947afc0c3afcd0dd810c007f4d3ed56220ac323\"",
+				Count:   1,
+				Type:    "Normal",
+			},
+		}
+
+		mockKeyFunc := func(obj interface{}) (string, error) {
+			if v, ok := obj.(*v1.Event); ok {
+				return v.InvolvedObject.Name, nil
+			}
+			return "default", nil
+		}
+
+		kubeClientMock := testk8s.NewKubeClientMock(t)
+		kubeClientMock.WatchEventsInNamespaceFunc = func(p string) (r *cache.FIFO, r1 chan struct{}) {
+			store := cache.NewFIFO(mockKeyFunc)
+			for _, item := range testItems {
+				store.Add(item)
+			}
+
+			return store, make(chan struct{})
+		}
+		kubeClientMock.CloseFunc = func() {}
+		clientGetterMock.GetKubeClientFunc = func(p context.Context) (kubernetes.KubeClientInterface, error) {
+			return kubeClientMock, nil
+		}
+		osioClientMock := testcontroller.NewOSIOClientMock(t)
+		clientGetterMock.GetAndCheckOSIOClientFunc = func(p context.Context) (controller.OpenshiftIOClient, error) {
+			return osioClientMock, nil
+		}
+
+		conn := WatchEnvironmentEventsDeploymentsOK(context.Background(), t, svc, ctrl, space.SystemSpace)
+
+		var buf []byte
+		for _, item := range testItems {
+			// buffer 1024 is an arbitrary choice that fits the test items
+			// Manually unmarshal ws frame; Object is marshaled as JSON
+			// For more info on websocket frames see:
+			// https://tools.ietf.org/html/rfc6455#section-5.2
+			buf = make([]byte, 1024)
+			conn.Read(buf)
+			var startPos int
+			frameLength := int(buf[1])
+			if frameLength == 126 {
+				frameLength = int(buf[2])*256 + int(buf[3])
+				startPos = 4
+			} else {
+				startPos = 2
+			}
+			endPos := startPos + frameLength
+			var actual controller.DeploymentsEvent
+			err = websocket.JSON.Unmarshal(buf[startPos:endPos], 1, &actual)
+
+			expected := transformItem(item)
+			assert.Equal(t, *expected, actual)
+		}
+
+		conn.Close()
+	})
+}
+
+func transformItem(event *v1.Event) *controller.DeploymentsEvent {
+	transformedItem := &controller.DeploymentsEvent{
+		InvolvedObject:    event.InvolvedObject,
+		Reason:            event.Reason,
+		Message:           event.Message,
+		Count:             event.Count,
+		Type:              event.Type,
+		CreationTimestamp: event.ObjectMeta.CreationTimestamp,
+	}
+	return transformedItem
+}
+
+type wsRecorder struct {
+	*httptest.ResponseRecorder
+	server net.Conn
+}
+
+func (r *wsRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	rw := bufio.NewReadWriter(bufio.NewReader(r.server), bufio.NewWriter(r.server))
+	return r.server, rw, nil
+}
+
+func WatchEnvironmentEventsDeploymentsOK(ctx context.Context, t *testing.T, service *goa.Service, ctrl app.DeploymentsController, spaceID uuid.UUID) net.Conn {
+	var (
+		logBuf     bytes.Buffer
+		respSetter goatest.ResponseSetterFunc = func(r interface{}) {}
+	)
+	if service == nil {
+		service = goatest.Service(&logBuf, respSetter)
+	} else {
+		logger := log.New(&logBuf, "", log.Ltime)
+		service.WithLogger(goa.NewLogger(logger))
+		newEncoder := func(io.Writer) goa.Encoder { return respSetter }
+		service.Encoder = goa.NewHTTPEncoder()
+		service.Encoder.Register(newEncoder, "*/*")
+	}
+
+	conn, server := net.Pipe()
+	rw := &wsRecorder{
+		httptest.NewRecorder(),
+		server,
+	}
+	u := &url.URL{
+		Scheme: "ws",
+		Path:   fmt.Sprintf("/api/deployments/spaces/%v/environments", spaceID),
+	}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		panic("invalid test " + err.Error())
+	}
+	req.Header.Add("Sec-Websocket-Version", "13")
+	req.Header.Add("Sec-Websocket-Key", "G7YfpwECvn2g+GPiIT9K6A==")
+	req.Header.Add("Upgrade", "websocket")
+	req.Header.Add("Connection", "Upgrade")
+	req.Header.Add("Origin", "https://localhost:8080")
+
+	prms := url.Values{}
+	prms["spaceID"] = []string{fmt.Sprintf("%v", spaceID)}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "DeploymentsTest"), rw, req, prms)
+	watchEnvironmentEventsCtx, _err := app.NewWatchEnvironmentEventsDeploymentsContext(goaCtx, req, service)
+	if _err != nil {
+		panic("invalid test data " + _err.Error())
+	}
+
+	go func() {
+		ctrl.WatchEnvironmentEvents(watchEnvironmentEventsCtx)
+	}()
+
+	var expected = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 0v75TdGGa4rJ+EXs1fpIBirdeG8=\r\n\r\n"
+	buf := make([]byte, 256)
+	conn.Read(buf)
+	actual := strings.Trim(string(buf), "\x00")
+
+	assert.Equal(t, expected, actual)
+
+	return conn
 }
