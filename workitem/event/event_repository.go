@@ -79,7 +79,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 		// TODO(ibrahim): type change event should have more information than just the new and old type IDs
 		if oldRev.WorkItemTypeID != newRev.WorkItemTypeID {
 			event := Event{
-				ID:             newRev.ID,
+				RevisionID:     newRev.ID,
 				Name:           WorkitemTypeChangeEvent,
 				WorkItemTypeID: newRev.WorkItemTypeID,
 				Timestamp:      newRev.Time,
@@ -98,7 +98,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 			newVal := newRev.WorkItemFields[fieldName]
 
 			event := Event{
-				ID:             newRev.ID,
+				RevisionID:     newRev.ID,
 				Name:           fieldName,
 				WorkItemTypeID: newRev.WorkItemTypeID,
 				Timestamp:      newRev.Time,

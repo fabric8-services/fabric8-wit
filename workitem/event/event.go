@@ -8,7 +8,7 @@ import (
 
 // Event represents work item event
 type Event struct {
-	ID             uuid.UUID
+	RevisionID     uuid.UUID
 	Name           string
 	WorkItemTypeID uuid.UUID
 	Timestamp      time.Time
@@ -19,7 +19,7 @@ type Event struct {
 
 // GetETagData returns the field values to use to generate the ETag
 func (e Event) GetETagData() []interface{} {
-	return []interface{}{e.ID, e.Name}
+	return []interface{}{e.RevisionID, e.Name}
 }
 
 // GetLastModified returns the last modification time

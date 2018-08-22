@@ -84,10 +84,11 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 	modifierData, modifierLinks := ConvertUserSimple(req, wiEvent.Modifier)
 	e := app.Event{
 		Type: event.APIStringTypeEvents,
-		ID:   wiEvent.ID,
+		ID:   uuid.NewV4(),
 		Attributes: &app.EventAttributes{
-			Name:      wiEvent.Name,
-			Timestamp: wiEvent.Timestamp,
+			Name:       wiEvent.Name,
+			Timestamp:  wiEvent.Timestamp,
+			RevisionID: wiEvent.RevisionID,
 		},
 		Relationships: &app.EventRelations{
 			Modifier: &app.RelationGeneric{

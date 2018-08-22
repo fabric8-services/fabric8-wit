@@ -10,7 +10,7 @@ var event = a.Type("Event", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("events")
 	})
-	a.Attribute("id", d.UUID, "ID of event", func() {
+	a.Attribute("id", d.UUID, "ID of event. NOTE: this is not the ID of the work item revision but a random ID.", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", eventAttributes)
@@ -20,6 +20,9 @@ var event = a.Type("Event", func() {
 })
 
 var eventAttributes = a.Type("EventAttributes", func() {
+	a.Attribute("revisionId", d.UUID, "ID of the revision", func() {
+		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
+	})
 	a.Description(`JSONAPI store for all the "attributes" of a event. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
 	a.Attribute("timestamp", d.DateTime, "When the event occurred", func() {
 		a.Example("2016-11-29T23:18:14Z")
@@ -33,7 +36,7 @@ var eventAttributes = a.Type("EventAttributes", func() {
 	a.Attribute("newValue", d.Any, "The user who performed the assignment (or unassignment). Only for 'assigned' and 'unassigned' events..", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
-	a.Required("timestamp", "name")
+	a.Required("timestamp", "name", "revisionId")
 })
 
 var eventRelationships = a.Type("EventRelations", func() {
