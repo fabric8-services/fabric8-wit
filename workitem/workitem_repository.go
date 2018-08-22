@@ -103,7 +103,7 @@ type WorkItemRepository interface {
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error)
 	Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error)
-	ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error
+	ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, updatedWorkitem WorkItem, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error
 }
 
 // NewWorkItemRepository creates a GormWorkItemRepository
@@ -588,13 +588,14 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	}
 	wiStorage.Version = wiStorage.Version + 1
 	wiStorage.Fields = Fields{}
+
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldDef.ReadOnly {
 			continue
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
 		var err error
-		if fieldName == SystemAssignees || fieldName == SystemLabels || fieldName == SystemBoardcolumns {
+		if fieldDef.Type.GetKind() == KindList {
 			switch fieldValue.(type) {
 			case []string:
 				if len(fieldValue.([]string)) == 0 {
@@ -619,7 +620,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		if err != nil {
 			return nil, errs.Wrapf(err, "failed to load workitemtype: %s ", updatedWorkItem.Type)
 		}
-		if err := r.ChangeWorkItemType(ctx, wiStorage, wiType, newWiType, spaceID); err != nil {
+		if err := r.ChangeWorkItemType(ctx, wiStorage, updatedWorkItem, wiType, newWiType, spaceID); err != nil {
 			return nil, errs.Wrapf(err, "unable to change workitem type from %s (ID: %s) to %s (ID: %s)", wiType.Name, wiType.ID, newWiType.Name, newWiType.ID)
 		}
 		// This will be used by the ConvertWorkItemStorageToModel function
@@ -1167,9 +1168,13 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 	return workitems, nil
 }
 
-// ChangeWorkItemType changes the workitem in wiStorage to newWIType. Returns
-// error if the operation fails
-func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error {
+// ChangeWorkItemType changes the workitem in wiStorage to newWIType.
+// If the updated workitem (from payload data) contains value for fields in
+// newWIType, that value will be set for the field. Field Values in payload
+// (updatedWorkitem) have precedence over the values in the old workitem (the
+// one loaded from the database).
+// Returns error if the operation fails
+func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, updatedWorkitem WorkItem, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error {
 	allowedWIT, err := r.CheckTypeAndSpaceShareTemplate(ctx, newWIType, spaceID)
 	if err != nil {
 		return errs.Wrap(err, "failed to check workitem type")
@@ -1195,11 +1200,19 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 			// Try to assign the old value to the new field
 			_, err := newField.Type.ConvertToModel(wiStorage.Fields[oldFieldName])
 			if err != nil {
+				valueToAssign := wiStorage.Fields[oldFieldName]
+				// If the updatedWorkitem contains the new field with a value,
+				// we use that value for all the operations.
+				// Field values sent in the payload have precedence over field
+				// values in the existing workitem
+				if updatedValue, ok := updatedWorkitem.Fields[oldFieldName]; ok {
+					valueToAssign = updatedValue
+				}
 				// if the new type is a list, stuff the old value in a list and
 				// try to assign it
 				if newField.Type.GetKind() == KindList {
 					var convertedValue interface{}
-					convertedValue, err = newField.Type.ConvertToModel([]interface{}{wiStorage.Fields[oldFieldName]})
+					convertedValue, err = newField.Type.ConvertToModel([]interface{}{valueToAssign})
 					if err == nil {
 						wiStorage.Fields[oldFieldName] = convertedValue
 					}
@@ -1207,9 +1220,9 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 				// if the old type is a list but the new one isn't check that
 				// the list contains only one element and assign that
 				if oldWIType.Fields[oldFieldName].Type.GetKind() == KindList && newField.Type.GetKind() != KindList {
-					ifArr, ok := wiStorage.Fields[oldFieldName].([]interface{})
+					ifArr, ok := valueToAssign.([]interface{})
 					if !ok {
-						return errs.Errorf("failed to convert field \"%s\" to interface array: %+v", oldFieldName, wiStorage.Fields[oldFieldName])
+						return errs.Errorf("failed to convert field \"%s\" to interface array: %+v", oldFieldName, valueToAssign)
 					}
 					if len(ifArr) == 1 {
 						var convertedValue interface{}

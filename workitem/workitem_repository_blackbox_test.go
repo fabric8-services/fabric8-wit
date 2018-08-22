@@ -138,7 +138,6 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 	})
 
 	s.T().Run("type change", func(t *testing.T) {
-
 		type testData struct {
 			name string
 

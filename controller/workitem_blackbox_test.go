@@ -1087,11 +1087,23 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
 	})
 
-	s.T().Run("disallow update of field along with type", func(t *testing.T) {
+	s.T().Run("allow update of field along with type", func(t *testing.T) {
 		u.Data.Attributes[workitem.SystemTitle] = "xyz"
-		// TODO (ibrahim) - Check type of error once error 422 has been added.
-		//https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r210184092
-		test.UpdateWorkitemConflict(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+		u.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[0].Version + 1
+		u.Data.Attributes["bar"] = 299
+		u.Data.Attributes["fooo"] = 9.5
+		_, newWI := test.UpdateWorkitemOK(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
+		newDescription := newWI.Data.Attributes[workitem.SystemDescription]
+		assert.NotNil(t, newDescription)
+		// Type of old and new field is same
+		assert.NotContains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooo"].Label)
+		// This value was explicitly changed in the update payload
+		assert.Equal(t, 9.5, newWI.Data.Attributes["fooo"])
+		assert.Equal(t, 299, newWI.Data.Attributes["bar"])
+		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["bar"].Label)
+		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooBar"].Label)
 	})
 
 	s.T().Run("unauthorized", func(t *testing.T) {

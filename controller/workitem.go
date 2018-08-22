@@ -141,26 +141,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if !authorized {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to change the workitemtype"))
 		}
-		// Store new values of type and version
-		newType := ctx.Payload.Data.Relationships.BaseType
-		newVersion := ctx.Payload.Data.Attributes[workitem.SystemVersion]
-
-		// Remove version and base type from payload
-		delete(ctx.Payload.Data.Attributes, workitem.SystemVersion)
-		ctx.Payload.Data.Relationships.BaseType = nil
-
-		// Ensure we do not have any other change in payload except type change
-		if (app.WorkItemRelationships{}) != *ctx.Payload.Data.Relationships || len(ctx.Payload.Data.Attributes) > 0 {
-			// Todo(ibrahim) - Change this error to 422 Unprocessable entity
-			// error once we have this error in our error package. Please see
-			// https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r208842063
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("cannot update type along with other fields"))
-		}
-
-		// Restore the original values
-		ctx.Payload.Data.Relationships.BaseType = newType
-		ctx.Payload.Data.Attributes[workitem.SystemVersion] = newVersion
-
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		// The Number of a work item is not allowed to be changed which is why
