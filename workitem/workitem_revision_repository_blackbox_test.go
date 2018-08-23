@@ -31,7 +31,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) SetupTest() {
 	s.revisionRepository = workitem.NewRevisionRepository(s.DB)
 }
 
-func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
+func (s *workItemRevisionRepositoryBlackBoxTest) TestList() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, tf.SetWorkItemTitles("Title")), tf.Identities(3))
@@ -39,16 +39,19 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 		// modify the workitem
 		wi.Fields[workitem.SystemTitle] = "Updated Title"
 		wi.Fields[workitem.SystemState] = workitem.SystemStateOpen
-		wi, err := s.repository.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[1].ID)
+		wi, rev, err := s.repository.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[1].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		// modify again the workitem
 		wi.Fields[workitem.SystemTitle] = "Updated Title2"
 		wi.Fields[workitem.SystemState] = workitem.SystemStateInProgress
-		wi, err = s.repository.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[1].ID)
+		wi, rev, err = s.repository.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[1].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		// delete the workitem
-		err = s.repository.Delete(s.Ctx, wi.ID, fxt.Identities[2].ID)
+		rev, err = s.repository.Delete(s.Ctx, wi.ID, fxt.Identities[2].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		// when
 		revisions, err := s.revisionRepository.List(s.Ctx, wi.ID)
 		// then
