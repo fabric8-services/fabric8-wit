@@ -58,7 +58,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -86,7 +86,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -132,7 +132,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -178,7 +178,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -211,7 +211,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -240,7 +240,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -285,7 +285,7 @@ func (s *TestEvent) TestListEvent() {
 		require.NotNil(t, updatedWI.Data.Relationships.Labels.Links)
 		assert.Len(t, updatedWI.Data.Relationships.Labels.Data, 2)
 
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -313,7 +313,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -341,7 +341,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -353,7 +353,7 @@ func (s *TestEvent) TestListEvent() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-no-event.res.errors.payload.golden.json"), eventList)
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-no-event.res.errors.headers.golden.json"), res.Header())
@@ -379,7 +379,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload1) // update iteration
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
@@ -399,7 +399,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload2) // update assignee
-		res, eventList = test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList = test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 2)
 
@@ -417,7 +417,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload3) // update iteration
-		res, eventList = test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList = test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 3)
@@ -450,7 +450,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 2)
 
@@ -553,7 +553,7 @@ func (s *TestEvent) TestListEvent() {
 				payload.Data.Attributes[fieldNameSingle] = testData[kind].Valid[1]
 				test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
 
-				res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+				res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 				safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 				require.NotEmpty(t, eventList)
 				require.Len(t, eventList.Data, 2)
@@ -586,7 +586,7 @@ func (s *TestEvent) TestListEvent() {
 				payload.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[1].Version + 1
 				payload.Data.Attributes[fieldNameList] = []interface{}{testData[kind].Valid[1], testData[kind].Valid[0]}
 				test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[1].ID, &payload)
-				res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[1].ID, nil, nil)
+				res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[1].ID, nil, nil, nil)
 				safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 				require.NotEmpty(t, eventList)
 				require.Len(t, eventList.Data, 2)
@@ -659,7 +659,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
