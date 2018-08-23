@@ -454,10 +454,8 @@ func (s *TestEvent) TestListEvent() {
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 2)
 
-		t.Run("events for the same revision share the revision ID but have unique event IDs", func(t *testing.T) {
-			assert.Equal(t, eventList.Data[0].Attributes.RevisionID, eventList.Data[1].Attributes.RevisionID)
-			assert.NotEqual(t, eventList.Data[0].ID, eventList.Data[1].ID)
-		})
+		assert.Equal(t, eventList.Data[0].Attributes.RevisionID, eventList.Data[1].Attributes.RevisionID, "revision IDs must be the same across the two events")
+		assert.NotEqual(t, eventList.Data[0].ID, eventList.Data[1].ID, "event IDs must be unique")
 	})
 
 	s.T().Run("non-relational field kinds", func(t *testing.T) {
