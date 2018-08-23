@@ -476,7 +476,7 @@ func makeWorkItems(fxt *TestFixture) error {
 			return errs.Wrapf(err, "failed to convert \"%s\" field to uuid.UUID: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 
-		wi, _, err := wiRepo.Create(fxt.ctx, fxt.WorkItems[i].SpaceID, fxt.WorkItems[i].Type, fxt.WorkItems[i].Fields, creatorID)
+		wi, err := wiRepo.Create(fxt.ctx, fxt.WorkItems[i].SpaceID, fxt.WorkItems[i].Type, fxt.WorkItems[i].Fields, creatorID)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item: %+v", fxt.WorkItems[i])
 		}

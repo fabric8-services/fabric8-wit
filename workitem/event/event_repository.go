@@ -21,8 +21,8 @@ const WorkitemTypeChangeEvent = "workitemtype"
 
 // Repository encapsulates retrieval of work item events
 type Repository interface {
-	// List returns all events for a work item.
-	List(ctx context.Context, wiID uuid.UUID) (List, error)
+	//repository.Exister
+	List(ctx context.Context, wiID uuid.UUID) ([]Event, error)
 }
 
 // NewEventRepository creates a work item event repository based on gorm
@@ -45,20 +45,20 @@ type GormEventRepository struct {
 	identityRepo     *account.GormIdentityRepository
 }
 
-// List implements Repository interface
-func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) (List, error) {
+// List return the events
+func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event, error) {
 	revisionList, err := r.wiRevisionRepo.List(ctx, wiID)
 	if err != nil {
-		return nil, errs.Wrapf(err, "failed to list revisions for work item %s", wiID)
+		return nil, errs.Wrapf(err, "failed to list revisions for work item: %s", wiID)
 	}
 	if revisionList == nil {
-		return List{}, nil
+		return []Event{}, nil
 	}
 	if err = r.workItemRepo.CheckExists(ctx, wiID); err != nil {
 		return nil, errs.Wrapf(err, "failed to find work item: %s", wiID)
 	}
 
-	eventList := List{}
+	eventList := []Event{}
 	for k := 1; k < len(revisionList); k++ {
 
 		oldRev := revisionList[k-1]
@@ -179,6 +179,5 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) (List, e
 			}
 		}
 	}
-
 	return eventList, nil
 }

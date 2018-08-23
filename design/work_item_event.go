@@ -67,9 +67,6 @@ var _ = a.Resource("work_item_events", func() {
 		a.Routing(
 			a.GET("events"),
 		)
-		a.Params(func() {
-			a.Param("revisionID", d.UUID, "an optional revision ID to filter events by")
-		})
 		a.Description("List events associated with the given work item")
 		a.UseTrait("conditional") // Refer: goasupport/conditional_request/generator.go
 		a.Response(d.OK, eventList)

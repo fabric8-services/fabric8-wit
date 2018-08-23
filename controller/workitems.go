@@ -109,7 +109,6 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	wi := &workitem.WorkItem{
 		Fields: make(map[string]interface{}),
 	}
-	var rev *workitem.Revision
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
@@ -124,7 +123,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 			return errs.Wrap(err, fmt.Sprintf("Error creating work item"))
 		}
 
-		wi, rev, err = appl.WorkItems().Create(ctx, ctx.SpaceID, *wit, wi.Fields, *currentUserIdentityID)
+		wi, err = appl.WorkItems().Create(ctx, ctx.SpaceID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return errs.Wrap(err, fmt.Sprintf("Error creating work item"))
 		}
@@ -150,7 +149,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	}
 	ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
 	ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.ID))
-	c.notification.Send(ctx, notification.NewWorkItemCreated(wi.ID.String(), rev.ID))
+	c.notification.Send(ctx, notification.NewWorkItemCreated(wi.ID.String()))
 	return ctx.Created(resp)
 }
 
@@ -302,7 +301,7 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 			if err != nil {
 				return errs.Wrap(err, "failed to reorder work item")
 			}
-			wi, _, err = appl.WorkItems().Reorder(ctx, ctx.SpaceID, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
+			wi, err = appl.WorkItems().Reorder(ctx, ctx.SpaceID, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
 			if err != nil {
 				return err
 			}

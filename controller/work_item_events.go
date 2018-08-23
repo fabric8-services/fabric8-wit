@@ -38,17 +38,11 @@ func NewEventsController(service *goa.Service, db application.DB, config EventsC
 
 // List runs the list action.
 func (c *EventsController) List(ctx *app.ListWorkItemEventsContext) error {
-	var eventList event.List
+	var eventList []event.Event
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		eventList, err = appl.Events().List(ctx, ctx.WiID)
-		if err != nil {
-			return errs.Wrap(err, "list events model failed")
-		}
-		if ctx.RevisionID != nil {
-			eventList = eventList.FilterByRevisionID(*ctx.RevisionID)
-		}
-		return nil
+		return errs.Wrap(err, "list events model failed")
 	})
 
 	if err != nil {

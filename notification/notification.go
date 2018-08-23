@@ -7,7 +7,6 @@ import (
 
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
@@ -30,31 +29,20 @@ type Message struct {
 	UserID      *string
 	TargetID    string
 	MessageType string
-	Custom      map[string]interface{}
 }
 
 func (m Message) String() string {
-	return fmt.Sprintf("id:%v type:%v by:%v for:%v custom:%+v", m.MessageID, m.MessageType, m.UserID, m.TargetID, spew.Sdump(m.Custom))
+	return fmt.Sprintf("id:%v type:%v by:%v for:%v", m.MessageID, m.MessageType, m.UserID, m.TargetID)
 }
 
 // NewWorkItemCreated creates a new message instance for the newly created WorkItemID
-func NewWorkItemCreated(workitemID string, revisionID uuid.UUID) Message {
-	return Message{
-		MessageID:   uuid.NewV4(),
-		MessageType: "workitem.create",
-		TargetID:    workitemID,
-		Custom:      map[string]interface{}{"revision_id": revisionID},
-	}
+func NewWorkItemCreated(workitemID string) Message {
+	return Message{MessageID: uuid.NewV4(), MessageType: "workitem.create", TargetID: workitemID}
 }
 
 // NewWorkItemUpdated creates a new message instance for the updated WorkItemID
-func NewWorkItemUpdated(workitemID string, revisionID uuid.UUID) Message {
-	return Message{
-		MessageID:   uuid.NewV4(),
-		MessageType: "workitem.update",
-		TargetID:    workitemID,
-		Custom:      map[string]interface{}{"revision_id": revisionID},
-	}
+func NewWorkItemUpdated(workitemID string) Message {
+	return Message{MessageID: uuid.NewV4(), MessageType: "workitem.update", TargetID: workitemID}
 }
 
 // NewCommentCreated creates a new message instance for the newly created CommentID
@@ -136,9 +124,8 @@ func (s *Service) Send(ctx context.Context, msg Message) {
 					Type: "notifications",
 					ID:   &msgID,
 					Attributes: &client.NotificationAttributes{
-						Type:   msg.MessageType,
-						ID:     msg.TargetID,
-						Custom: msg.Custom,
+						Type: msg.MessageType,
+						ID:   msg.TargetID,
 					},
 				},
 			},
