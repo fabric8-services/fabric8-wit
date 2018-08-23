@@ -10,7 +10,7 @@ var event = a.Type("Event", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("events")
 	})
-	a.Attribute("id", d.UUID, "ID of event. NOTE: this is not the ID of the work item revision but a random ID.", func() {
+	a.Attribute("id", d.UUID, "ID of event. NOTE: this is not the ID of the work item revision but a random ID that is unique for this event.", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", eventAttributes)
