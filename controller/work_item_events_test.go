@@ -441,7 +441,7 @@ func (s *TestEvent) TestListEvent() {
 				ID:   &fxt.WorkItems[0].ID,
 				Attributes: map[string]interface{}{
 					workitem.SystemIteration: newIteration,
-					workitem.SystemAssignees: newAsssignees,
+					workitem.SystemAssignees: newAssignees,
 					workitem.SystemVersion:   fxt.WorkItems[0].Version,
 				},
 				Relationships: &app.WorkItemRelationships{
@@ -455,7 +455,7 @@ func (s *TestEvent) TestListEvent() {
 		require.Len(t, eventList.Data, 2)
 
 		t.Run("events for the same revision share the revision ID but have unique event IDs", func(t *testing.T) {
-			assert.Equal(t, eventList.Data[0].RevisionID, eventList.Data[1].RevisionID)
+			assert.Equal(t, eventList.Data[0].Attributes.RevisionID, eventList.Data[1].Attributes.RevisionID)
 			assert.NotEqual(t, eventList.Data[0].ID, eventList.Data[1].ID)
 		})
 	})
