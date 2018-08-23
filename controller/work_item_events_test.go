@@ -423,6 +423,41 @@ func (s *TestEvent) TestListEvent() {
 		require.Len(t, eventList.Data, 3)
 	})
 
+	s.T().Run("one revision results in two events", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.Iterations(2))
+
+		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		eventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
+		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
+		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
+
+		// given two fields that we want to update
+		newAssignees := []string{fxt.Identities[0].ID.String()}
+		newIteration := fxt.Iterations[0].ID.String()
+
+		payload := app.UpdateWorkitemPayload{
+			Data: &app.WorkItem{
+				Type: APIStringTypeWorkItem,
+				ID:   &fxt.WorkItems[0].ID,
+				Attributes: map[string]interface{}{
+					workitem.SystemIteration: newIteration,
+					workitem.SystemAssignees: newAssignees,
+					workitem.SystemVersion:   fxt.WorkItems[0].Version,
+				},
+				Relationships: &app.WorkItemRelationships{
+					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+				},
+			},
+		}
+		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
+		_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, eventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList.Data, 2)
+
+		assert.Equal(t, eventList.Data[0].Attributes.RevisionID, eventList.Data[1].Attributes.RevisionID, "revision IDs must be the same across the two events")
+		assert.NotEqual(t, eventList.Data[0].ID, eventList.Data[1].ID, "event IDs must be unique")
+	})
+
 	s.T().Run("non-relational field kinds", func(t *testing.T) {
 		testData := workitem.GetFieldTypeTestData(t)
 		for _, kind := range testData.GetKinds() {

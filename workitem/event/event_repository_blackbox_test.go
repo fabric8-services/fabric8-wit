@@ -377,6 +377,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 			}
 		}
 		assert.Equal(t, 2, c)
+		require.Equal(t, eventList[0].RevisionID, eventList[1].RevisionID, "events for same revision must have the same revision ID")
 	})
 
 	s.T().Run("Type change event", func(t *testing.T) {
