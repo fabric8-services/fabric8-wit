@@ -89,7 +89,7 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 	s.T().Run(string(workitem.DirectionAbove), func(t *testing.T) {
 		fxt := setup(t)
 		// when moving child1 above child2
-		_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionAbove, &fxt.WorkItemByTitle("child2").ID, *fxt.WorkItemByTitle("child1"), fxt.Identities[0].ID)
+		_, _, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionAbove, &fxt.WorkItemByTitle("child2").ID, *fxt.WorkItemByTitle("child1"), fxt.Identities[0].ID)
 		require.NoError(t, err)
 		// then
 		afterReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItemByTitle("parent").ID, nil, nil)
@@ -102,7 +102,7 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 	s.T().Run(string(workitem.DirectionBelow), func(t *testing.T) {
 		fxt := setup(t)
 		// when moving child3 below child2
-		_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionBelow, &fxt.WorkItemByTitle("child2").ID, *fxt.WorkItemByTitle("child3"), fxt.Identities[0].ID)
+		_, _, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionBelow, &fxt.WorkItemByTitle("child2").ID, *fxt.WorkItemByTitle("child3"), fxt.Identities[0].ID)
 		require.NoError(t, err)
 		// then
 		afterReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItemByTitle("parent").ID, nil, nil)
@@ -115,7 +115,7 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 	s.T().Run(string(workitem.DirectionTop), func(t *testing.T) {
 		fxt := setup(t)
 		// when moving child1 to top
-		_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionTop, nil, *fxt.WorkItemByTitle("child1"), fxt.Identities[0].ID)
+		_, _, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionTop, nil, *fxt.WorkItemByTitle("child1"), fxt.Identities[0].ID)
 		require.NoError(t, err)
 		// then
 		afterReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItemByTitle("parent").ID, nil, nil)
@@ -128,7 +128,7 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 	s.T().Run(string(workitem.DirectionBottom), func(t *testing.T) {
 		fxt := setup(t)
 		// when moving child3 to bottom
-		_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionBottom, nil, *fxt.WorkItemByTitle("child3"), fxt.Identities[0].ID)
+		_, _, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionBottom, nil, *fxt.WorkItemByTitle("child3"), fxt.Identities[0].ID)
 		require.NoError(t, err)
 		// then
 		afterReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItemByTitle("parent").ID, nil, nil)
@@ -144,31 +144,31 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 		for _, direction := range directions {
 			t.Run(string(direction), func(t *testing.T) {
 				t.Run("empty workitem", func(t *testing.T) {
-					_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, &fxt.WorkItemByTitle("child2").ID, workitem.WorkItem{}, fxt.Identities[0].ID)
+					_, _, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, &fxt.WorkItemByTitle("child2").ID, workitem.WorkItem{}, fxt.Identities[0].ID)
 					require.Error(t, err)
 				})
 				t.Run("targetID", func(t *testing.T) {
 					switch direction {
 					case workitem.DirectionAbove, workitem.DirectionBelow:
 						t.Run("unknown", func(t *testing.T) {
-							_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, ptr.UUID(uuid.NewV4()), *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+							_, _, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, ptr.UUID(uuid.NewV4()), *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
 							require.Error(t, err)
 						})
 						t.Run("nil", func(t *testing.T) {
-							_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, nil, *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+							_, _, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, nil, *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
 							require.Error(t, err)
 						})
 					case workitem.DirectionTop, workitem.DirectionBottom:
-						_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, ptr.UUID(uuid.NewV4()), *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+						_, _, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, ptr.UUID(uuid.NewV4()), *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
 						require.Error(t, err)
 					}
 				})
 				t.Run("invalid space ID", func(t *testing.T) {
-					_, err := s.workitemRepo.Reorder(s.Ctx, uuid.NewV4(), direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+					_, _, err := s.workitemRepo.Reorder(s.Ctx, uuid.NewV4(), direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
 					require.Error(t, err)
 				})
 				t.Run("unknown modifier", func(t *testing.T) {
-					_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), uuid.NewV4())
+					_, _, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), uuid.NewV4())
 					require.Error(t, err)
 				})
 			})
