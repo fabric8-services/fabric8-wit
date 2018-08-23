@@ -369,7 +369,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				workitem.SystemState: workitem.SystemStateNew,
 			}, fxt.Identities[0].ID)
 		require.Error(t, err)
-		require.NotNil(t, rev)
+		require.Nil(t, rev)
 		require.IsType(t, errors.ForbiddenError{}, err)
 		require.Nil(t, wi)
 	})
@@ -393,7 +393,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		require.EqualError(t, err, fmt.Sprintf(
 			"Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wiType.Name, wiType.ID),
 		)
-		require.NotNil(t, rev)
+		require.Nil(t, rev)
 		require.IsType(t, errors.BadParameterError{}, err)
 		require.Nil(t, wi)
 	})
@@ -508,7 +508,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				workitem.SystemCodebase: cbase,
 			}, fxt.Identities[0].ID)
 		require.Error(t, err)
-		require.NotNil(t, rev)
+		require.Nil(t, rev)
 	})
 
 	s.T().Run("field types", func(t *testing.T) {
