@@ -9,46 +9,45 @@ import (
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/configuration"
-
 	"github.com/goadesign/goa"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const defaultPackageName = "github.com/fabric8-services/fabric8-wit/"
 
 var (
-	logger = &log.Logger{
+	logger = &logrus.Logger{
 		Out:       os.Stderr,
-		Formatter: new(log.TextFormatter),
-		Hooks:     make(log.LevelHooks),
+		Formatter: new(logrus.TextFormatter),
+		Hooks:     make(logrus.LevelHooks),
 		Level:     getDefaultLogLevel(),
 	}
 )
 
 // InitializeLogger creates a default logger with the given ouput format and log level
 func InitializeLogger(logJSON bool, lvl string) {
-	logger = log.New()
+	logger = logrus.New()
 
-	logLevel, err := log.ParseLevel(lvl)
+	logLevel, err := logrus.ParseLevel(lvl)
 	if err != nil {
-		log.Warnf("unable to parse log level configuration error: %q", err)
-		logLevel = log.ErrorLevel // reset to ERROR
+		logrus.Warnf("unable to parse log level configuration error: %q", err)
+		logLevel = logrus.ErrorLevel // reset to ERROR
 	}
-	log.SetLevel(logLevel)
+	logrus.SetLevel(logLevel)
 	logger.Level = logLevel
 
 	if logJSON {
-		customFormatter := new(log.JSONFormatter)
+		customFormatter := new(logrus.JSONFormatter)
 		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
 
-		log.SetFormatter(customFormatter)
+		logrus.SetFormatter(customFormatter)
 		customFormatter.DisableTimestamp = false
 		logger.Formatter = customFormatter
 	} else {
-		customFormatter := new(log.TextFormatter)
+		customFormatter := new(logrus.TextFormatter)
 		customFormatter.FullTimestamp = true
 		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
-		log.SetFormatter(customFormatter)
+		logrus.SetFormatter(customFormatter)
 		logger.Formatter = customFormatter
 	}
 
@@ -56,7 +55,7 @@ func InitializeLogger(logJSON bool, lvl string) {
 }
 
 // Logger returns the current logger object.
-func Logger() *log.Logger {
+func Logger() *logrus.Logger {
 	return logger
 }
 
@@ -64,7 +63,7 @@ func Logger() *log.Logger {
 // Useful if you need to do extra work that takes time to build the log statement
 // that is not required as part of normal execution flow
 func IsDebug() bool {
-	return logger.Level >= log.DebugLevel
+	return logger.Level >= logrus.DebugLevel
 }
 
 // Error logs an error message that might contain the following attributes: pid,
@@ -72,10 +71,10 @@ func IsDebug() bool {
 // called the log Error function and the function name. Moreover, we can use the
 // parameter fields to add additional attributes to the output message. Likewise
 // format and args are used to print a detailed message with the reasons of the
-// error log.
+// error logrus.
 func Error(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
-	if logger.Level >= log.ErrorLevel {
-		entry := log.WithField("pid", os.Getpid())
+	if logger.Level >= logrus.ErrorLevel {
+		entry := logrus.WithField("pid", os.Getpid())
 
 		file, line, pName, fName, err := extractCallerDetails()
 		if err == nil {
@@ -141,10 +140,10 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 // function name that invoked the Warn() function. In this function, we can use
 // the parameter fields to add additional attributes to the output of this
 // message. Likewise format and args are used to print a detailed message with
-// the reasons of the warning log.
+// the reasons of the warning logrus.
 func Warn(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
-	if logger.Level >= log.WarnLevel {
-		entry := log.NewEntry(logger)
+	if logger.Level >= logrus.WarnLevel {
+		entry := logrus.NewEntry(logger)
 
 		file, _, pName, fName, err := extractCallerDetails()
 		if err == nil {
@@ -170,10 +169,10 @@ func Warn(ctx context.Context, fields map[string]interface{}, format string, arg
 // Info logs an info message that might contain the request id if provided by
 // the context. In this function, the parameter fields enables to additional
 // attributes to the message. The format and args input arguments are used to
-// print a detailed information about the reasons of this log.
+// print a detailed information about the reasons of this logrus.
 func Info(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
-	if logger.Level >= log.InfoLevel {
-		entry := log.NewEntry(logger)
+	if logger.Level >= logrus.InfoLevel {
+		entry := logrus.NewEntry(logger)
 
 		_, _, pName, _, err := extractCallerDetails()
 		if err == nil {
@@ -200,10 +199,10 @@ func Info(ctx context.Context, fields map[string]interface{}, format string, arg
 // the request id if provided by the context and the pid. In this function, the
 // parameter fields enables to additional attributes to the message. The format
 // and args input arguments are used to print a detailed information about the
-// reasons of this log.
+// reasons of this logrus.
 func Panic(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
-	if logger.Level >= log.ErrorLevel {
-		entry := log.WithField("pid", os.Getpid())
+	if logger.Level >= logrus.ErrorLevel {
+		entry := logrus.WithField("pid", os.Getpid())
 
 		if ctx != nil {
 			entry = entry.WithField("req_id", ExtractRequestID(ctx))
@@ -224,10 +223,10 @@ func Panic(ctx context.Context, fields map[string]interface{}, format string, ar
 // Debug logs a debug message that might specifies the request id if provided by
 // the context. In this function, the parameter fields enables to additional
 // attributes to the message. The format and args input arguments are used to
-// print a detailed information about the reasons of this log.
+// print a detailed information about the reasons of this logrus.
 func Debug(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
-	if logger.Level >= log.DebugLevel {
-		entry := log.NewEntry(logger)
+	if logger.Level >= logrus.DebugLevel {
+		entry := logrus.NewEntry(logger)
 
 		_, _, pName, _, err := extractCallerDetails()
 		if err == nil {
@@ -275,18 +274,18 @@ func extractCallerDetails() (file string, line int, pkg string, function string,
 }
 
 // getDefaultLogLevel extracts the log level out of the ENV variable. It is used
-// in tests and as default static initialization of the log. If the ENV variable
+// in tests and as default static initialization of the logrus. If the ENV variable
 // is not set then the log level is Info.
-func getDefaultLogLevel() log.Level {
+func getDefaultLogLevel() logrus.Level {
 	config, err := configuration.New("")
 	if err != nil {
-		log.Errorf("error getting configuration data")
+		logrus.Errorf("error getting configuration data")
 	}
 
-	logLevel, err := log.ParseLevel(config.GetLogLevel())
+	logLevel, err := logrus.ParseLevel(config.GetLogLevel())
 	if err != nil {
-		log.Warnf("unable to parse log level configuration error: %q", err)
-		return log.InfoLevel // reset to INFO
+		logrus.Warnf("unable to parse log level configuration error: %q", err)
+		return logrus.InfoLevel // reset to INFO
 	}
 	return logLevel
 }
