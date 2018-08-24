@@ -2,11 +2,7 @@
   "data": [
     {
       "attributes": {
-        "name": "system.description",
-        "newValue": {
-          "content": "# Description is modified1",
-          "markup": "Markdown"
-        },
+        "name": "workitemtype",
         "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },
@@ -21,6 +17,22 @@
             "related": "http:///api/users/00000000-0000-0000-0000-000000000003",
             "self": "http:///api/users/00000000-0000-0000-0000-000000000003"
           }
+        },
+        "newValue": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000004",
+              "type": "workitemtypes"
+            }
+          ]
+        },
+        "oldValue": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000005",
+              "type": "workitemtypes"
+            }
+          ]
         },
         "workItemType": {
           "data": {
