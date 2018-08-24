@@ -49,7 +49,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotNil(t, rev)
 		// delete the workitem
-		rev, err = s.repository.Delete(s.Ctx, wi.ID, fxt.Identities[2].ID)
+		err = s.repository.Delete(s.Ctx, wi.ID, fxt.Identities[2].ID)
 		require.NoError(t, err)
 		require.NotNil(t, rev)
 		// when
