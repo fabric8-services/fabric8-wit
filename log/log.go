@@ -274,7 +274,7 @@ func extractCallerDetails() (file string, line int, pkg string, function string,
 }
 
 // getDefaultLogLevel extracts the log level out of the ENV variable. It is used
-// in tests and as default static initialization of the logrus. If the ENV variable
+// in tests and as default static initialization of the log. If the ENV variable
 // is not set then the log level is Info.
 func getDefaultLogLevel() logrus.Level {
 	config, err := configuration.New("")
