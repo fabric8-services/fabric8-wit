@@ -388,11 +388,10 @@ func (s *TestEvent) TestListEvent() {
 		})
 
 		var secondUpdateRevID uuid.UUID
-		newAssignee := []string{fxt.Identities[0].ID.String()}
-		newTitle := "The Bare Necessities"
 
 		t.Run("2nd update", func(t *testing.T) {
-
+			newAssignee := []string{fxt.Identities[0].ID.String()}
+			newTitle := "The Bare Necessities"
 			payload := app.UpdateWorkitemPayload{
 				Data: &app.WorkItem{
 					Type: APIStringTypeWorkItem,
