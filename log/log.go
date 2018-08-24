@@ -71,7 +71,7 @@ func IsDebug() bool {
 // called the log Error function and the function name. Moreover, we can use the
 // parameter fields to add additional attributes to the output message. Likewise
 // format and args are used to print a detailed message with the reasons of the
-// error logrus.
+// error log.
 func Error(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= logrus.ErrorLevel {
 		entry := logrus.WithField("pid", os.Getpid())
@@ -140,7 +140,7 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 // function name that invoked the Warn() function. In this function, we can use
 // the parameter fields to add additional attributes to the output of this
 // message. Likewise format and args are used to print a detailed message with
-// the reasons of the warning logrus.
+// the reasons of the warning log.
 func Warn(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= logrus.WarnLevel {
 		entry := logrus.NewEntry(logger)
@@ -169,7 +169,7 @@ func Warn(ctx context.Context, fields map[string]interface{}, format string, arg
 // Info logs an info message that might contain the request id if provided by
 // the context. In this function, the parameter fields enables to additional
 // attributes to the message. The format and args input arguments are used to
-// print a detailed information about the reasons of this logrus.
+// print a detailed information about the reasons of this log.
 func Info(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= logrus.InfoLevel {
 		entry := logrus.NewEntry(logger)
@@ -199,7 +199,7 @@ func Info(ctx context.Context, fields map[string]interface{}, format string, arg
 // the request id if provided by the context and the pid. In this function, the
 // parameter fields enables to additional attributes to the message. The format
 // and args input arguments are used to print a detailed information about the
-// reasons of this logrus.
+// reasons of this log.
 func Panic(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= logrus.ErrorLevel {
 		entry := logrus.WithField("pid", os.Getpid())
@@ -223,7 +223,7 @@ func Panic(ctx context.Context, fields map[string]interface{}, format string, ar
 // Debug logs a debug message that might specifies the request id if provided by
 // the context. In this function, the parameter fields enables to additional
 // attributes to the message. The format and args input arguments are used to
-// print a detailed information about the reasons of this logrus.
+// print a detailed information about the reasons of this log.
 func Debug(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= logrus.DebugLevel {
 		entry := logrus.NewEntry(logger)
