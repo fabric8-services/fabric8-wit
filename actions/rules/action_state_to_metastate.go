@@ -71,12 +71,6 @@ func (act ActionStateToMetaState) difference(old []interface{}, new []interface{
 }
 
 func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID) ([]*workitem.Board, error) {
-	if act.Ctx == nil {
-		return nil, errs.New("context is nil")
-	}
-	if act.Db == nil {
-		return nil, errs.New("database is nil")
-	}
 	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
 	if err != nil {
 		return nil, errs.Wrap(err, "error loading space: "+err.Error())
@@ -88,45 +82,7 @@ func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID)
 	return boards, nil
 }
 
-func (act ActionStateToMetaState) loadWorkItemTypeGroupsBySpaceID(spaceID uuid.UUID) ([]*workitem.WorkItemTypeGroup, error) {
-	if act.Ctx == nil {
-		return nil, errs.New("context is nil")
-	}
-	if act.Db == nil {
-		return nil, errs.New("database is nil")
-	}
-	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
-	if err != nil {
-		return nil, errs.Wrap(err, "error loading space: "+err.Error())
-	}
-	groups, err := act.Db.WorkItemTypeGroups().List(act.Ctx, space.SpaceTemplateID)
-	if err != nil {
-		return nil, errs.Wrap(err, "error loading work item type: "+err.Error())
-	}
-	return groups, nil
-}
-
-func (act ActionStateToMetaState) loadWorkItemTypeByID(id uuid.UUID) (*workitem.WorkItemType, error) {
-	if act.Ctx == nil {
-		return nil, errs.New("context is nil")
-	}
-	if act.Db == nil {
-		return nil, errs.New("database is nil")
-	}
-	wit, err := act.Db.WorkItemTypes().Load(act.Ctx, id)
-	if err != nil {
-		return nil, errs.Wrap(err, "error loading work item type: "+err.Error())
-	}
-	return wit, nil
-}
-
 func (act ActionStateToMetaState) loadWorkItemByID(id uuid.UUID) (*workitem.WorkItem, error) {
-	if act.Ctx == nil {
-		return nil, errs.New("context is nil")
-	}
-	if act.Db == nil {
-		return nil, errs.New("database is nil")
-	}
 	wi, err := act.Db.WorkItems().LoadByID(act.Ctx, id)
 	if err != nil {
 		return nil, errs.Wrap(err, "error loading work item: "+err.Error())
@@ -135,15 +91,6 @@ func (act ActionStateToMetaState) loadWorkItemByID(id uuid.UUID) (*workitem.Work
 }
 
 func (act ActionStateToMetaState) storeWorkItem(workitem *workitem.WorkItem) (*workitem.WorkItem, error) {
-	if act.Ctx == nil {
-		return nil, errs.New("context is nil")
-	}
-	if act.Db == nil {
-		return nil, errs.New("database is nil")
-	}
-	if act.UserID == nil {
-		return nil, errs.New("userID is nil")
-	}
 	err := application.Transactional(act.Db, func(appl application.Application) error {
 		var err error
 		workitem, err = appl.WorkItems().Save(act.Ctx, workitem.SpaceID, *workitem, *act.UserID)
@@ -158,30 +105,31 @@ func (act ActionStateToMetaState) storeWorkItem(workitem *workitem.WorkItem) (*w
 	return workitem, nil
 }
 
-func (act ActionStateToMetaState) getValueListFromFieldType(wit *workitem.WorkItemType, fieldName string) ([]interface{}, error) {
-	fieldType := wit.Fields[fieldName].Type
-	switch t := fieldType.(type) {
+func (act ActionStateToMetaState) getValueListFromEnumField(wit *workitem.WorkItemType, fieldName string) ([]interface{}, error) {
+	enumFieldType := wit.Fields[fieldName].Type
+	switch t := enumFieldType.(type) {
 	case workitem.EnumType:
 		return t.Values, nil
 	}
 	return nil, errs.New("given field on workitemtype " + wit.ID.String() + " is not an enum field: " + fieldName)
 }
 
+// getStateToMetastateMap returns the mapping from state to metastate values read from the template.
 func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUID) (map[string]string, error) {
-	wit, err := act.loadWorkItemTypeByID(workitemTypeID)
+	wit, err := act.Db.WorkItemTypes().Load(act.Ctx, workitemTypeID)
 	if err != nil {
 		return nil, err
 	}
-	stateList, err := act.getValueListFromFieldType(wit, workitem.SystemState)
+	stateList, err := act.getValueListFromEnumField(wit, workitem.SystemState)
 	if err != nil {
 		return nil, err
 	}
-	metastateList, err := act.getValueListFromFieldType(wit, workitem.SystemMetaState)
+	metastateList, err := act.getValueListFromEnumField(wit, workitem.SystemMetaState)
 	if err != nil {
 		return nil, err
 	}
 	if len(stateList) != len(metastateList) {
-		return nil, errs.New("inconsistent number of states and metatstates in the current work item type (must be equal)")
+		return nil, errs.Errorf("inconsistent number of states and metatstates in the current work item type (must be equal): %d states != %d metastates", len(stateList), len(metastateList))
 	}
 	stateToMetastateMap := make(map[string]string)
 	for idx := range stateList {
@@ -193,13 +141,9 @@ func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUI
 		if !ok {
 			return nil, errs.New("metastate value in value list is not of type string")
 		}
-		// this is important: we only add a new entry if there
-		// is not an entry already existing. Therefore, we're only
-		// using the first mapping, satisfying the req for getting the
-		// first matching metastate for a state.
-		// this is done here even if the usecase where we have
-		// multiple states with the same value (duplicate states)
-		// might be not that common.
+		// only the first state<->metatstate mapping needs to be taken as
+		// per definition. So we're only adding a new entry here if there
+		// is not an entry already existing.
 		if _, ok := stateToMetastateMap[thisState]; !ok {
 			stateToMetastateMap[thisState] = thisMetastate
 		}
@@ -207,6 +151,7 @@ func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUI
 	return stateToMetastateMap, nil
 }
 
+// getMetastateToStateMap returns the mapping from metastate to state values read from the template.
 func (act ActionStateToMetaState) getMetastateToStateMap(workitemTypeID uuid.UUID) (map[string]string, error) {
 	stateToMetastate, err := act.getStateToMetastateMap(workitemTypeID)
 	if err != nil {
@@ -247,8 +192,17 @@ func (act ActionStateToMetaState) fuseChanges(c1 change.Set, c2 change.Set) *cha
 	return &c1
 }
 
-// OnChange executes the action rule.
+// OnChange executes the action rule. It implements rules.Action.
 func (act ActionStateToMetaState) OnChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error) {
+	if act.Ctx == nil {
+		return nil, nil, errs.New("context is nil")
+	}
+	if act.Db == nil {
+		return nil, nil, errs.New("database is nil")
+	}
+	if act.UserID == nil {
+		return nil, nil, errs.New("userID is nil")
+	}
 	if actionChanges == nil {
 		return nil, nil, errs.New("given actionChanges is nil")
 	}
@@ -261,10 +215,10 @@ func (act ActionStateToMetaState) OnChange(newContext change.Detector, contextCh
 	var executionChanges change.Set
 	for _, change := range contextChanges {
 		if change.AttributeName == workitem.SystemState {
-			newContext, executionChanges, err = act.OnStateChange(newContext, contextChanges, configuration, actionChanges)
+			newContext, executionChanges, err = act.onStateChange(newContext, contextChanges, configuration, actionChanges)
 		}
 		if change.AttributeName == workitem.SystemBoardcolumns {
-			newContext, executionChanges, err = act.OnBoardColumnsChange(newContext, contextChanges, configuration, actionChanges)
+			newContext, executionChanges, err = act.onBoardColumnsChange(newContext, contextChanges, configuration, actionChanges)
 		}
 		if err != nil {
 			return nil, nil, err
@@ -275,8 +229,8 @@ func (act ActionStateToMetaState) OnChange(newContext change.Detector, contextCh
 	return newContext, *actionChanges, nil
 }
 
-// OnBoardColumnsChange is executed when the columns change. It eventually updates the metastate and the state.
-func (act ActionStateToMetaState) OnBoardColumnsChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error) {
+// onBoardColumnsChange is executed when the columns change. It eventually updates the metastate and the state.
+func (act ActionStateToMetaState) onBoardColumnsChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error) {
 	// we already assume that the rule applies, this needs to be checked in the controller.
 	// there is no additional check on the rule key.
 	wi, ok := newContext.(workitem.WorkItem)
@@ -377,8 +331,8 @@ func (act ActionStateToMetaState) OnBoardColumnsChange(newContext change.Detecto
 	return resultingWorkItem, changes, nil
 }
 
-// OnStateChange is executed when the state changes. It eventually updates the metastate and the boardcolumns.
-func (act ActionStateToMetaState) OnStateChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error) {
+// onStateChange is executed when the state changes. It eventually updates the metastate and the boardcolumns.
+func (act ActionStateToMetaState) onStateChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error) {
 	wi, ok := newContext.(workitem.WorkItem)
 	if !ok {
 		return nil, nil, errs.New("given context is not a WorkItem instance")
@@ -407,7 +361,7 @@ func (act ActionStateToMetaState) OnStateChange(newContext change.Detector, cont
 		return nil, nil, err
 	}
 	// next, check which boards are relevant for this WI.
-	groups, err := act.loadWorkItemTypeGroupsBySpaceID(wi.SpaceID)
+	groups, err := act.Db.WorkItemTypeGroups().List(act.Ctx, wi.SpaceID)
 	if err != nil {
 		return nil, nil, err
 	}

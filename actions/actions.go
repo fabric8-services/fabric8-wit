@@ -1,35 +1,5 @@
 package actions
 
-/*
-	 The actions system is a key component for process automation in WIT. It provides
-	 a way of executing user-configurable, dynamic process steps depending on user
-	 settings, schema settings and events in the WIT.
-
-	 The idea here is to provide a simple, yet powerful "publish-subscribe" system that
-	 can connect any "event" in the system to any "action" with a clear decoupling
-	 of events and actions with the goal of making the associations later dynamic and
-	 configurable by the user ("user connects this event to this action"). Think
-	 of a "IFTTT for WIT" (https://en.wikipedia.org/wiki/IFTTT).
-
-	 Actions are generic and atomic execution steps that do exactly one task and
-	 are configurable. The actions system around the actions provide a key-based
-	 execution of the actions.
-
-	 Some examples for an application of this system would be:
-		- closing all children of a parent WI that is being closed (the user connects the
-		"close" attribute change event of a WI to an action that closes all WIs of
-		a matching query).
-		- sending out notifications for mentions on markdown (the system executes an
-		action "send notification" for every mention found in markdown values).
-		- moving all WIs from one iteration to the next in the time sequence when
-		the original iteration is closed.
-
-		For all these automations, the actions system provides a re-usable, flexible
-		and later user configurable way of doing that without creating lots of
-		custom code and/or custom process implementations that are hardcoded in the
-		WIT.
-*/
-
 import (
 	"context"
 
