@@ -449,6 +449,9 @@ func GetMigrations() Migrations {
 	// Version 103
 	m = append(m, steps{ExecuteSQLFile("103-user-email-notnull-notempty.sql")})
 
+	// Version 104
+	m = append(m, steps{ExecuteSQLFile("104-add-index-wi-revision.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
