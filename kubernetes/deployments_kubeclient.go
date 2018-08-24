@@ -15,10 +15,13 @@ import (
 	kubeErrors "k8s.io/apimachinery/pkg/api/errors"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	rest "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -76,6 +79,7 @@ type KubeClientInterface interface {
 	GetEnvironments() ([]*app.SimpleEnvironment, error)
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
 	GetMetricsClient(envNS string) (Metrics, error)
+	WatchEventsInNamespace(nameSpace string) (*cache.FIFO, chan struct{})
 	Close()
 }
 
@@ -2133,4 +2137,23 @@ func convertError(err error, format string, args ...interface{}) error {
 		}
 	}
 	return errors.NewInternalError(nil /* unused */, errs.Wrap(err, message))
+}
+
+func (kc *kubeClient) WatchEventsInNamespace(nameSpace string) (*cache.FIFO, chan struct{}) {
+	eventsLW := &cache.ListWatch{
+		ListFunc: func(options metaV1.ListOptions) (runtime.Object, error) {
+			return kc.Events(nameSpace).List(options)
+		},
+		WatchFunc: func(options metaV1.ListOptions) (watch.Interface, error) {
+			return kc.Events(nameSpace).Watch(options)
+		},
+	}
+
+	store := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	ref := cache.NewReflector(eventsLW, &v1.Event{}, store, 0)
+	stopCh := make(chan struct{})
+
+	ref.RunUntil(stopCh)
+
+	return store, stopCh
 }

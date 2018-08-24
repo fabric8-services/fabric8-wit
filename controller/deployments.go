@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/url"
 	"os"
 	"time"
@@ -17,6 +18,10 @@ import (
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	"golang.org/x/net/websocket"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 // DeploymentsController implements the deployments resource.
@@ -402,6 +407,142 @@ func (c *DeploymentsController) ShowAllEnvironments(ctx *app.ShowAllEnvironments
 	}
 
 	return ctx.OK(res)
+}
+
+// WatchEnvironmentEvents runs the watchEnvironmentEvents action.
+func (c *DeploymentsController) WatchEnvironmentEvents(ctx *app.WatchEnvironmentEventsDeploymentsContext) error {
+	c.WatchEnvironmentEventsWSHandler(ctx).ServeHTTP(ctx.ResponseWriter, ctx.Request)
+	return nil
+}
+
+// WatchEnvironmentEventsWSHandler establishes a websocket connection to run the watchEnvironmentEvents action.
+func (c *DeploymentsController) WatchEnvironmentEventsWSHandler(ctx *app.WatchEnvironmentEventsDeploymentsContext) websocket.Handler {
+	return func(ws *websocket.Conn) {
+		defer ws.Close()
+
+		kc, err := c.GetKubeClient(ctx)
+		defer cleanup(kc)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "error accessing Auth server")
+
+			sendWebsocketJSON(ctx, ws, map[string]interface{}{"error": "unable to access auth server"})
+			return
+		}
+
+		store, stopWs := kc.WatchEventsInNamespace(ctx.EnvName)
+		defer close(stopWs)
+
+		go func() {
+			for {
+				var m string
+				err := websocket.Message.Receive(ws, &m)
+				if err != nil {
+					if err != io.EOF {
+						log.Error(ctx, map[string]interface{}{
+							"err": err,
+						}, "error reading from websocket")
+					}
+					store.Close()
+					return
+				}
+			}
+		}()
+
+		for {
+			item, err := store.Pop(cache.PopProcessFunc(func(item interface{}) error {
+				return nil
+			}))
+
+			event, ok := item.(*v1.Event)
+			if !ok {
+				sendWebsocketJSON(ctx, ws, map[string]interface{}{"error": "Kubernetes event was an unexpected type"})
+				return
+			}
+
+			if err != nil {
+				if err != cache.FIFOClosedError {
+					log.Error(ctx, map[string]interface{}{
+						"err": err,
+					}, "error receiving events")
+
+					sendWebsocketJSON(ctx, ws, map[string]interface{}{"error": "unable to access Kubernetes events"})
+				}
+				return
+			}
+
+			eventItem := transformItem(event)
+			if err != nil {
+				sendWebsocketJSON(ctx, ws, map[string]interface{}{"error": "unable to parse Kubernetes event"})
+			} else {
+				err = websocket.JSON.Send(ws, eventItem)
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"err": err,
+					}, "error sending events")
+					return
+				}
+			}
+		}
+	}
+}
+
+//DeploymentsEvent is the transformed Kubernetes v1.Event item
+type DeploymentsEvent struct {
+	// The object that this event is about.
+	InvolvedObject v1.ObjectReference `json:"involvedObject" protobuf:"bytes,2,opt,name=involvedObject"`
+
+	// This should be a short, machine understandable string that gives the reason
+	// for the transition into the object's current status.
+	// TODO: provide exact specification for format.
+	// +optional
+	Reason string `json:"reason,omitempty" protobuf:"bytes,3,opt,name=reason"`
+
+	// A human-readable description of the status of this operation.
+	// TODO: decide on maximum length.
+	// +optional
+	Message string `json:"message,omitempty" protobuf:"bytes,4,opt,name=message"`
+
+	// The number of times this event has occurred.
+	// +optional
+	Count int32 `json:"count,omitempty" protobuf:"varint,8,opt,name=count"`
+
+	// Type of this event (Normal, Warning), new types could be added in the future
+	// +optional
+	Type string `json:"type,omitempty" protobuf:"bytes,9,opt,name=type"`
+
+	// CreationTimestamp is a timestamp representing the server time when this object was
+	// created. It is not guaranteed to be set in happens-before order across separate operations.
+	// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+	//
+	// Populated by the system.
+	// Read-only.
+	// Null for lists.
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
+	// +optional
+	CreationTimestamp metaV1.Time `json:"creationTimestamp,omitempty" protobuf:"bytes,8,opt,name=creationTimestamp"`
+}
+
+func transformItem(event *v1.Event) *DeploymentsEvent {
+	transformedItem := &DeploymentsEvent{
+		InvolvedObject:    event.InvolvedObject,
+		Reason:            event.Reason,
+		Message:           event.Message,
+		Count:             event.Count,
+		Type:              event.Type,
+		CreationTimestamp: event.ObjectMeta.CreationTimestamp,
+	}
+	return transformedItem
+}
+
+func sendWebsocketJSON(ctx *app.WatchEnvironmentEventsDeploymentsContext, ws *websocket.Conn, item interface{}) {
+	err := websocket.JSON.Send(ws, item)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "error sending websocket message")
+	}
 }
 
 func cleanup(kc kubernetes.KubeClientInterface) {

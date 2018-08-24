@@ -55,43 +55,6 @@ func InitializeLogger(logJSON bool, lvl string) {
 	logger.Out = os.Stdout
 }
 
-// NewCustomizedLogger creates a custom logger specifying the desired log level
-// and the log format flag. Returns the logger object and the error.
-func NewCustomizedLogger(level string, logJSON bool) (*log.Logger, error) {
-	logger := log.New()
-
-	lv, err := log.ParseLevel(level)
-	if err != nil {
-		return nil, err
-	}
-	logger.Level = lv
-
-	if logJSON {
-		customFormatter := new(log.JSONFormatter)
-		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
-
-		log.SetFormatter(customFormatter)
-		customFormatter.DisableTimestamp = false
-
-		log.SetLevel(log.InfoLevel)
-		logger.Level = lv
-		logger.Formatter = customFormatter
-	} else {
-		customFormatter := new(log.TextFormatter)
-		customFormatter.FullTimestamp = true
-		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
-		log.SetFormatter(customFormatter)
-
-		log.SetLevel(log.DebugLevel)
-		logger.Level = lv
-		logger.Formatter = customFormatter
-	}
-
-	logger.Out = os.Stdout
-
-	return logger, nil
-}
-
 // Logger returns the current logger object.
 func Logger() *log.Logger {
 	return logger
@@ -141,7 +104,15 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 					entry = entry.WithField("req_headers", headers)
 				}
 				if len(req.Params) > 0 {
-					entry = entry.WithField("req_params", req.Params)
+					params := make(map[string]interface{}, len(req.Params))
+					for k, v := range req.Params {
+						if k == "access_token" {
+							params[string(k)] = "*****"
+						} else {
+							params[string(k)] = v
+						}
+					}
+					entry = entry.WithField("req_params", params)
 				}
 				if req.ContentLength > 0 {
 					if mp, ok := req.Payload.(map[string]interface{}); ok && mp != nil {

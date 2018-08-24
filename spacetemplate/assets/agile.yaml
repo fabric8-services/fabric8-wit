@@ -123,6 +123,7 @@ work_item_types:
         - SEV2 - High
         - SEV3 - Medium
         - SEV4 - Low
+        default_value: SEV3 - Medium
     "priority":
       label: Priority
       description: The order in which the developer should resolve a defect.
@@ -137,6 +138,7 @@ work_item_types:
         - P2 - High
         - P3 - Medium
         - P4 - Low
+        default_value: P3 - Medium
     "resolution":
       label: Resolution
       description: >
