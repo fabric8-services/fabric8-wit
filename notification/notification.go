@@ -7,7 +7,6 @@ import (
 
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
@@ -34,7 +33,7 @@ type Message struct {
 }
 
 func (m Message) String() string {
-	return fmt.Sprintf("id:%v type:%v by:%v for:%v custom:%+v", m.MessageID, m.MessageType, m.UserID, m.TargetID, spew.Sdump(m.Custom))
+	return fmt.Sprintf("id:%v type:%v by:%v for:%v custom:%+v", m.MessageID, m.MessageType, m.UserID, m.TargetID, m.Custom)
 }
 
 // NewWorkItemCreated creates a new message instance for the newly created WorkItemID
