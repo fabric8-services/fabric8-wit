@@ -16,6 +16,7 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -365,62 +366,90 @@ func (s *TestEvent) TestListEvent() {
 		EventCtrl := NewEventsController(svc, s.GormDB, s.Configuration)
 		workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
-		payload1 := app.UpdateWorkitemPayload{
-			Data: &app.WorkItem{
-				Type: APIStringTypeWorkItem,
-				ID:   &fxt.WorkItems[0].ID,
-				Attributes: map[string]interface{}{
-					workitem.SystemIteration: fxt.Iterations[0].ID.String(),
-					workitem.SystemVersion:   fxt.WorkItems[0].Version,
-				},
-				Relationships: &app.WorkItemRelationships{
-					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
-				},
-			},
-		}
-		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload1) // update iteration
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
-		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
-		require.NotEmpty(t, eventList)
-		require.Len(t, eventList.Data, 1)
 
-		assignee := []string{fxt.Identities[0].ID.String()}
-		payload2 := app.UpdateWorkitemPayload{
-			Data: &app.WorkItem{
-				Type: APIStringTypeWorkItem,
-				ID:   &fxt.WorkItems[0].ID,
-				Attributes: map[string]interface{}{
-					workitem.SystemAssignees: assignee,
-					workitem.SystemVersion:   fxt.WorkItems[0].Version + 1,
+		t.Run("1st update", func(t *testing.T) {
+			payload := app.UpdateWorkitemPayload{
+				Data: &app.WorkItem{
+					Type: APIStringTypeWorkItem,
+					ID:   &fxt.WorkItems[0].ID,
+					Attributes: map[string]interface{}{
+						workitem.SystemIteration: fxt.Iterations[0].ID.String(),
+						workitem.SystemVersion:   fxt.WorkItems[0].Version,
+					},
+					Relationships: &app.WorkItemRelationships{
+						Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+					},
 				},
-				Relationships: &app.WorkItemRelationships{
-					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
-				},
-			},
-		}
-		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload2) // update assignee
-		res, eventList = test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
-		require.NotEmpty(t, eventList)
-		require.Len(t, eventList.Data, 2)
+			}
+			test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload) // update iteration
+			_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
+			require.NotEmpty(t, eventList)
+			require.Len(t, eventList.Data, 1)
+		})
 
-		payload3 := app.UpdateWorkitemPayload{
-			Data: &app.WorkItem{
-				Type: APIStringTypeWorkItem,
-				ID:   &fxt.WorkItems[0].ID,
-				Attributes: map[string]interface{}{
-					workitem.SystemIteration: fxt.Iterations[1].ID.String(),
-					workitem.SystemVersion:   fxt.WorkItems[0].Version + 2,
+		var secondUpdateRevID uuid.UUID
+		newAssignee := []string{fxt.Identities[0].ID.String()}
+		newTitle := "The Bare Necessities"
+
+		t.Run("2nd update", func(t *testing.T) {
+
+			payload := app.UpdateWorkitemPayload{
+				Data: &app.WorkItem{
+					Type: APIStringTypeWorkItem,
+					ID:   &fxt.WorkItems[0].ID,
+					Attributes: map[string]interface{}{
+						workitem.SystemAssignees: newAssignee,
+						workitem.SystemTitle:     newTitle,
+						workitem.SystemVersion:   fxt.WorkItems[0].Version + 1,
+					},
+					Relationships: &app.WorkItemRelationships{
+						Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+					},
 				},
-				Relationships: &app.WorkItemRelationships{
-					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+			}
+			test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload) // update assignee
+			_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
+			require.NotEmpty(t, eventList)
+			require.Len(t, eventList.Data, 3)
+			secondUpdateRevID = eventList.Data[2].Attributes.RevisionID
+		})
+
+		t.Run("3rd update", func(t *testing.T) {
+			payload := app.UpdateWorkitemPayload{
+				Data: &app.WorkItem{
+					Type: APIStringTypeWorkItem,
+					ID:   &fxt.WorkItems[0].ID,
+					Attributes: map[string]interface{}{
+						workitem.SystemIteration: fxt.Iterations[1].ID.String(),
+						workitem.SystemVersion:   fxt.WorkItems[0].Version + 2,
+					},
+					Relationships: &app.WorkItemRelationships{
+						Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+					},
 				},
-			},
-		}
-		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload3) // update iteration
-		res, eventList = test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
-		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
-		require.NotEmpty(t, eventList)
-		require.Len(t, eventList.Data, 3)
+			}
+			test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload) // update iteration
+			_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
+			require.NotEmpty(t, eventList)
+			require.Len(t, eventList.Data, 4)
+		})
+
+		t.Run("ensure we can list events produced just by the 2nd revision", func(t *testing.T) {
+			_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, &secondUpdateRevID, nil, nil)
+			require.NotEmpty(t, eventList)
+			require.Len(t, eventList.Data, 2)
+			toBeFound := map[string]struct{}{
+				workitem.SystemAssignees: {},
+				workitem.SystemTitle:     {},
+			}
+			for _, e := range eventList.Data {
+				require.Equal(t, secondUpdateRevID, e.Attributes.RevisionID, "wrong revision ID")
+				_, ok := toBeFound[e.Attributes.Name]
+				require.True(t, ok, "found unexpected event name: %s", e.Attributes.Name)
+				delete(toBeFound, e.Attributes.Name)
+			}
+			require.Empty(t, toBeFound, "failed to find event for these fields: %+v", toBeFound)
+		})
 	})
 
 	s.T().Run("one revision results in two events", func(t *testing.T) {
