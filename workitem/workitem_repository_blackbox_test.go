@@ -836,9 +836,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 		t.Run("by updated descending", func(t *testing.T) {
 			// when
 			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
-				_, rev, err := s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
-				require.NoError(t, err)
-				require.NotNil(t, rev)
+				_, _, err := s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
 			}
 			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-updated"))
@@ -868,9 +866,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 		t.Run("by updated ascending", func(t *testing.T) {
 			// when
 			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
-				_, rev, err := s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
-				require.NoError(t, err)
-				require.NotNil(t, rev)
+				_, _, err := s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
 			}
 			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("updated"))
