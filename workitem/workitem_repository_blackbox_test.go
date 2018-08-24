@@ -836,7 +836,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 		t.Run("by updated descending", func(t *testing.T) {
 			// when
 			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
-				_, _, err := s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
 			}
 			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-updated"))
@@ -866,7 +866,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 		t.Run("by updated ascending", func(t *testing.T) {
 			// when
 			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
-				_, _, err := s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
 			}
 			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("updated"))
