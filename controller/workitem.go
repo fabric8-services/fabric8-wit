@@ -263,7 +263,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		if _, err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
+		if err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
 			return errs.Wrapf(err, "error deleting work item %s", ctx.WiID)
 		}
 		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.WiID, *currentUserIdentityID); err != nil {

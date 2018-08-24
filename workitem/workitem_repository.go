@@ -95,8 +95,8 @@ type WorkItemRepository interface {
 	LoadByIteration(ctx context.Context, id uuid.UUID) ([]*WorkItem, error)
 	LookupIDByNamedSpaceAndNumber(ctx context.Context, ownerName, spaceName string, wiNumber int) (*uuid.UUID, *uuid.UUID, error)
 	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, *Revision, error)
-	Reorder(ctx context.Context, spaceID uuid.UUID, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, *Revision, error)
-	Delete(ctx context.Context, id uuid.UUID, suppressorID uuid.UUID) (*Revision, error)
+	Reorder(ctx context.Context, spaceID uuid.UUID, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
+	Delete(ctx context.Context, id uuid.UUID, suppressorID uuid.UUID) error
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, *Revision, error)
 	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, length *int, sort SortWorkItemsBy) ([]WorkItem, int, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
@@ -358,7 +358,7 @@ func (r *GormWorkItemRepository) LoadHighestOrder(ctx context.Context, spaceID u
 
 // Delete deletes the work item with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID uuid.UUID, suppressorID uuid.UUID) (*Revision, error) {
+func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID uuid.UUID, suppressorID uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "delete"}, time.Now())
 	var workItem = WorkItemStorage{}
 	workItem.ID = workitemID
@@ -367,18 +367,18 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID uuid.UUI
 	// delete the work item
 	tx := r.db.Delete(workItem)
 	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(ctx, err)
+		return errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
-		return nil, errors.NewNotFoundError("work item", workitemID.String())
+		return errors.NewNotFoundError("work item", workitemID.String())
 	}
 	// store a revision of the deleted work item
-	rev, err := r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem)
+	_, err := r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem)
 	if err != nil {
-		return nil, errs.Wrapf(err, "error while deleting work item")
+		return errs.Wrapf(err, "error while deleting work item")
 	}
 	log.Debug(ctx, map[string]interface{}{"wi_id": workitemID}, "Work item deleted successfully!")
-	return &rev, nil
+	return nil
 }
 
 // CalculateOrder calculates the order of the reorder workitem
@@ -438,16 +438,16 @@ func (r *GormWorkItemRepository) FindFirstItem(ctx context.Context, spaceID uuid
 // The order of workitems are spaced by a factor of 1000.
 // The new order of workitem := (order of previousitem + order of nextitem)/2
 // Version must be the same as the one int the stored version
-func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, *Revision, error) {
+func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "reorder"}, time.Now())
 	var order float64
 	res := WorkItemStorage{}
 	tx := r.db.Model(WorkItemStorage{}).Where("id = ?", wi.ID).First(&res)
 	if tx.RecordNotFound() {
-		return nil, nil, errors.NewNotFoundError("work item", wi.ID.String())
+		return nil, errors.NewNotFoundError("work item", wi.ID.String())
 	}
 	if err := tx.Error; err != nil {
-		return nil, nil, errors.NewInternalError(ctx, err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	if res.Version != wi.Version {
 		log.Info(ctx, map[string]interface{}{
@@ -455,27 +455,27 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 			"current_version": res.Version,
 			"input_version":   wi.Version},
 			"version_conflict while reordering items")
-		return nil, nil, errors.NewVersionConflictError("version conflict")
+		return nil, errors.NewVersionConflictError("version conflict")
 	}
 
 	wiType, err := r.witr.Load(ctx, wi.Type)
 	if err != nil {
-		return nil, nil, errors.NewBadParameterError("Type", wi.Type)
+		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
 
 	switch direction {
 	case DirectionBelow:
 		if targetID == nil {
-			return nil, nil, errors.NewBadParameterError("target ID", targetID).Expected("not nil")
+			return nil, errors.NewBadParameterError("target ID", targetID).Expected("not nil")
 		}
 		// if direction == "below", place the reorder item **below** the workitem having id equal to targetID
 		aboveItemOrder, err := r.FindFirstItem(ctx, spaceID, *targetID)
 		if aboveItemOrder == nil || err != nil {
-			return nil, nil, errors.NewNotFoundError("work item", targetID.String())
+			return nil, errors.NewNotFoundError("work item", targetID.String())
 		}
 		belowItemID, belowItemOrder, err := r.FindSecondItem(ctx, aboveItemOrder, spaceID, DirectionAbove)
 		if err != nil {
-			return nil, nil, errors.NewNotFoundError("work item", targetID.String())
+			return nil, errors.NewNotFoundError("work item", targetID.String())
 		}
 		if belowItemOrder == nil {
 			// Item is placed at last position
@@ -489,16 +489,16 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		}
 	case DirectionAbove:
 		if targetID == nil {
-			return nil, nil, errors.NewBadParameterError("target ID", targetID).Expected("not nil")
+			return nil, errors.NewBadParameterError("target ID", targetID).Expected("not nil")
 		}
 		// if direction == "above", place the reorder item **above** the workitem having id equal to targetID
 		belowItemOrder, err := r.FindFirstItem(ctx, spaceID, *targetID)
 		if belowItemOrder == nil || err != nil {
-			return nil, nil, errors.NewNotFoundError("work item", targetID.String())
+			return nil, errors.NewNotFoundError("work item", targetID.String())
 		}
 		aboveItemID, aboveItemOrder, err := r.FindSecondItem(ctx, belowItemOrder, spaceID, DirectionBelow)
 		if err != nil {
-			return nil, nil, errors.NewNotFoundError("work item", targetID.String())
+			return nil, errors.NewNotFoundError("work item", targetID.String())
 		}
 		if aboveItemOrder == nil {
 			// Item is placed at first position
@@ -511,12 +511,12 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		}
 	case DirectionTop:
 		if targetID != nil {
-			return nil, nil, errors.NewBadParameterError("target ID", targetID).Expected("nil")
+			return nil, errors.NewBadParameterError("target ID", targetID).Expected("nil")
 		}
 		// if direction == "top", place the reorder item at the topmost position. Now, the reorder item has the highest order in the whole list.
 		res, err := r.LoadTopWorkitem(ctx, spaceID)
 		if err != nil {
-			return nil, nil, errs.Wrapf(err, "Failed to reorder")
+			return nil, errs.Wrapf(err, "Failed to reorder")
 		}
 		if wi.ID == res.ID {
 			// When same reorder request is made again
@@ -527,12 +527,12 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		}
 	case DirectionBottom:
 		if targetID != nil {
-			return nil, nil, errors.NewBadParameterError("target ID", targetID).Expected("nil")
+			return nil, errors.NewBadParameterError("target ID", targetID).Expected("nil")
 		}
 		// if direction == "bottom", place the reorder item at the bottom most position. Now, the reorder item has the lowest order in the whole list
 		res, err := r.LoadBottomWorkitem(ctx, spaceID)
 		if err != nil {
-			return nil, nil, errs.Wrapf(err, "Failed to reorder")
+			return nil, errs.Wrapf(err, "Failed to reorder")
 		}
 		if wi.ID == res.ID {
 			// When same reorder request is made again
@@ -542,7 +542,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 			order = bottomItemOrder / 2
 		}
 	default:
-		return &wi, nil, nil
+		return &wi, nil
 	}
 	res.Version = res.Version + 1
 	res.Type = wi.Type
@@ -558,26 +558,22 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		var err error
 		res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, nil, errors.NewBadParameterError(fieldName, fieldValue)
+			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 	}
 	tx = tx.Where("Version = ?", wi.Version).Save(&res)
 	if err := tx.Error; err != nil {
-		return nil, nil, errors.NewInternalError(ctx, err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
-		return nil, nil, errors.NewVersionConflictError("version conflict")
+		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	rev, err := r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
+	_, err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	w, err := ConvertWorkItemStorageToModel(wiType, &res)
-	if err != nil {
-		return nil, nil, errs.WithStack(err)
-	}
-	return w, &rev, nil
+	return ConvertWorkItemStorageToModel(wiType, &res)
 }
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version

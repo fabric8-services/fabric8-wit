@@ -302,7 +302,7 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 			if err != nil {
 				return errs.Wrap(err, "failed to reorder work item")
 			}
-			wi, _, err = appl.WorkItems().Reorder(ctx, ctx.SpaceID, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
+			wi, err = appl.WorkItems().Reorder(ctx, ctx.SpaceID, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
 			if err != nil {
 				return err
 			}
