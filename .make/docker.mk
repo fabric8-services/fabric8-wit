@@ -21,7 +21,7 @@ DOCKER_BUILD_DIR := $(WORKSPACE)/$(PROJECT_NAME)-build
 # The BUILD_TAG environment variable will be set by jenkins
 # to reflect jenkins-${JOB_NAME}-${BUILD_NUMBER}
 BUILD_TAG ?= $(PROJECT_NAME)-local-build
-DOCKER_CONTAINER_NAME := $(BUILD_TAG)
+DOCKER_CONTAINER_NAME := $(BUILD_TAG)-$(shell uuidgen)
 
 # Where is the GOPATH inside the build container?
 GOPATH_IN_CONTAINER=/tmp/go
