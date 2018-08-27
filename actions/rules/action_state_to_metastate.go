@@ -23,17 +23,6 @@ type ActionStateToMetaState struct {
 // make sure the rule is implementing the interface.
 var _ Action = ActionStateToMetaState{}
 
-/*
-func (act ActionStateToMetaState) containsUUID(s []uuid.UUID, e uuid.UUID) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-*/
-
 func (act ActionStateToMetaState) contains(s []interface{}, e interface{}) bool {
 	for _, a := range s {
 		if a == e {
@@ -53,16 +42,6 @@ func (act ActionStateToMetaState) removeElement(s []interface{}, e interface{}) 
 		}
 	}
 	return s
-
-	/*
-		for idx, a := range s {
-			if a == e {
-				s = append(s[:idx], s[idx+1:]...)
-				// we don't return here as there may be multiple copies of e in s.
-			}
-		}
-		return s
-	*/
 }
 
 // difference returns the differences between two slices. It returns two slices containing
