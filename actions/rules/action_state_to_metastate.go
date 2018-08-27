@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/fabric8-services/fabric8-wit/actions/change"
+	"github.com/fabric8-services/fabric8-wit/id"
 
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -22,6 +23,7 @@ type ActionStateToMetaState struct {
 // make sure the rule is implementing the interface.
 var _ Action = ActionStateToMetaState{}
 
+/*
 func (act ActionStateToMetaState) containsUUID(s []uuid.UUID, e uuid.UUID) bool {
 	for _, a := range s {
 		if a == e {
@@ -30,6 +32,7 @@ func (act ActionStateToMetaState) containsUUID(s []uuid.UUID, e uuid.UUID) bool 
 	}
 	return false
 }
+*/
 
 func (act ActionStateToMetaState) contains(s []interface{}, e interface{}) bool {
 	for _, a := range s {
@@ -380,7 +383,8 @@ func (act ActionStateToMetaState) onStateChange(newContext change.Detector, cont
 				return nil, nil, err
 			}
 			for _, group := range groups {
-				if group.ID == thisBoardContext && act.containsUUID(group.TypeList, wi.Type) {
+				var typeListSlice id.Slice = group.TypeList
+				if group.ID == thisBoardContext && typeListSlice.Contains(wi.Type) {
 					// this board is relevant.
 					relevantBoards = append(relevantBoards, board)
 				}
