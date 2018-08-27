@@ -366,11 +366,11 @@ func (act ActionStateToMetaState) onStateChange(newContext change.Detector, cont
 	// next, check which boards are relevant for this WI.
 	space, err := act.Db.Spaces().Load(act.Ctx, wi.SpaceID)
 	if err != nil {
-		return nil, nil, errs.Wrap(err, "error loading space: "+err.Error())
+		return nil, nil, errs.Wrap(err, "error loading space")
 	}
 	groups, err := act.Db.WorkItemTypeGroups().List(act.Ctx, space.SpaceTemplateID)
 	if err != nil {
-		return nil, nil, errs.Wrap(err, "error loading type groups: "+err.Error())
+		return nil, nil, errs.Wrap(err, "error loading type groups")
 	}
 	var relevantBoards []*workitem.Board
 	for _, board := range boards {
