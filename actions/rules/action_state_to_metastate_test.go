@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/actions/change"
@@ -22,18 +21,6 @@ func TestSuiteActionStateToMetastate(t *testing.T) {
 
 type ActionStateToMetastateSuite struct {
 	gormtestsupport.DBTestSuite
-}
-
-func ArrayEquals(a []interface{}, b []interface{}) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func (s *ActionStateToMetastateSuite) TestContainsElement() {
@@ -75,11 +62,11 @@ func (s *ActionStateToMetastateSuite) TestRemoveElement() {
 		a = action.removeElement(a, 1)
 		expected := []interface{}{0, 2, 3, 2}
 		require.Len(t, a, 4)
-		require.True(t, ArrayEquals(expected, a))
+		require.Equal(t, expected, a)
 		a = action.removeElement(a, 3)
 		expected = []interface{}{0, 2, 2}
 		require.Len(t, a, 3)
-		require.True(t, ArrayEquals(expected, a))
+		require.Equal(t, expected, a)
 	})
 	s.T().Run("removing a non-existing element", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
@@ -92,7 +79,7 @@ func (s *ActionStateToMetastateSuite) TestRemoveElement() {
 		a = action.removeElement(a, 4)
 		require.Len(t, a, 5)
 		expected := []interface{}{0, 1, 2, 3, 2}
-		require.True(t, ArrayEquals(expected, a))
+		require.Equal(t, expected, a)
 	})
 	s.T().Run("removing a duplicate element", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
@@ -105,7 +92,7 @@ func (s *ActionStateToMetastateSuite) TestRemoveElement() {
 		a = action.removeElement(a, 2)
 		expected := []interface{}{0, 1, 3}
 		require.Len(t, a, 3)
-		require.True(t, ArrayEquals(expected, a))
+		require.Equal(t, expected, a)
 	})
 }
 
@@ -128,8 +115,8 @@ func (s *ActionStateToMetastateSuite) TestDifference() {
 		var expectedRemoved []interface{}
 		expectedRemoved = append(expectedRemoved, 0)
 		expectedRemoved = append(expectedRemoved, 1)
-		require.True(t, ArrayEquals(added, expectedAdded))
-		require.True(t, ArrayEquals(removed, expectedRemoved))
+		require.Equal(t, added, expectedAdded)
+		require.Equal(t, removed, expectedRemoved)
 	})
 }
 
