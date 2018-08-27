@@ -556,14 +556,14 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		fieldValue := wi.Fields[fieldName]
 		// Remove Assignee/Labels/Boardcolumns (fields with kind list) if they do not have a value
 		if fieldDef.Type.GetKind() == KindList {
-			switch fieldValue.(type) {
+			switch t := fieldValue.(type) {
 			case []string:
-				if len(fieldValue.([]string)) == 0 {
+				if len(t) == 0 {
 					delete(res.Fields, fieldName)
 					continue
 				}
 			case []interface{}:
-				if len(fieldValue.([]interface{})) == 0 {
+				if len(t) == 0 {
 					delete(res.Fields, fieldName)
 					continue
 				}
