@@ -44,14 +44,7 @@ func (s *ActionStateToMetastateSuite) TestContainsElement() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		// there is no other way of creating an []interface{}.
-		// but we have plenty of memory, so be it.
-		var a []interface{}
-		a = append(a, 0)
-		a = append(a, 1)
-		a = append(a, 2)
-		a = append(a, 3)
-		a = append(a, 2)
+		a := []interface{}{0, 1, 2, 3, 2}
 		require.True(t, action.contains(a, 2))
 		require.True(t, action.contains(a, 3))
 		require.True(t, action.contains(a, 0))
@@ -63,14 +56,7 @@ func (s *ActionStateToMetastateSuite) TestContainsElement() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		// there is no other way of creating an []interface{}.
-		// but we have plenty of memory, so be it.
-		var a []interface{}
-		a = append(a, 0)
-		a = append(a, 1)
-		a = append(a, 2)
-		a = append(a, 3)
-		a = append(a, 2)
+		a := []interface{}{0, 1, 2, 3, 2}
 		require.False(t, action.contains(a, 4))
 		require.False(t, action.contains(a, nil))
 		require.False(t, action.contains(a, "foo"))
@@ -85,27 +71,13 @@ func (s *ActionStateToMetastateSuite) TestRemoveElement() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		// there is no other way of creating an []interface{}.
-		// but we have plenty of memory, so be it.
-		var a []interface{}
-		a = append(a, 0)
-		a = append(a, 1)
-		a = append(a, 2)
-		a = append(a, 3)
-		a = append(a, 2)
+		a := []interface{}{0, 1, 2, 3, 2}
 		a = action.removeElement(a, 1)
-		var expected []interface{}
-		expected = append(expected, 0)
-		expected = append(expected, 2)
-		expected = append(expected, 3)
-		expected = append(expected, 2)
+		expected := []interface{}{0, 2, 3, 2}
 		require.Len(t, a, 4)
 		require.True(t, ArrayEquals(expected, a))
 		a = action.removeElement(a, 3)
-		expected = []interface{}{}
-		expected = append(expected, 0)
-		expected = append(expected, 2)
-		expected = append(expected, 2)
+		expected = []interface{}{0, 2, 2}
 		require.Len(t, a, 3)
 		fmt.Println(expected)
 		fmt.Println(a)
@@ -118,22 +90,10 @@ func (s *ActionStateToMetastateSuite) TestRemoveElement() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		// there is no other way of creating an []interface{}.
-		// but we have plenty of memory, so be it.
-		var a []interface{}
-		a = append(a, 0)
-		a = append(a, 1)
-		a = append(a, 2)
-		a = append(a, 3)
-		a = append(a, 2)
+		a := []interface{}{0, 1, 2, 3, 2}
 		a = action.removeElement(a, 4)
 		require.Len(t, a, 5)
-		var expected []interface{}
-		expected = append(expected, 0)
-		expected = append(expected, 1)
-		expected = append(expected, 2)
-		expected = append(expected, 3)
-		expected = append(expected, 2)
+		expected := []interface{}{0, 1, 2, 3, 2}
 		require.True(t, ArrayEquals(expected, a))
 	})
 	s.T().Run("removing a duplicate element", func(t *testing.T) {
@@ -143,19 +103,9 @@ func (s *ActionStateToMetastateSuite) TestRemoveElement() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		// there is no other way of creating an []interface{}.
-		// but we have plenty of memory, so be it.
-		var a []interface{}
-		a = append(a, 0)
-		a = append(a, 1)
-		a = append(a, 2)
-		a = append(a, 3)
-		a = append(a, 2)
+		a := []interface{}{0, 1, 2, 3, 2}
 		a = action.removeElement(a, 2)
-		var expected []interface{}
-		expected = append(expected, 0)
-		expected = append(expected, 1)
-		expected = append(expected, 3)
+		expected := []interface{}{0, 1, 3}
 		require.Len(t, a, 3)
 		require.True(t, ArrayEquals(expected, a))
 	})
@@ -169,18 +119,8 @@ func (s *ActionStateToMetastateSuite) TestDifference() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		// there is no other way of creating an []interface{}.
-		// but we have plenty of memory, so be it.
-		var a []interface{}
-		a = append(a, 0)
-		a = append(a, 1)
-		a = append(a, 2)
-		a = append(a, 3)
-		a = append(a, 2)
-		var b []interface{}
-		b = append(b, 2)
-		b = append(b, 3)
-		b = append(b, 5)
+		a := []interface{}{0, 1, 2, 3, 2}
+		b := []interface{}{2, 3, 5}
 		added, removed := action.difference(a, b)
 		require.Len(t, added, 1)
 		require.Len(t, removed, 2)
