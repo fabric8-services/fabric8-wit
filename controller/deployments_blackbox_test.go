@@ -516,7 +516,74 @@ func TestShowDeploymentStatSeries(t *testing.T) {
 func convertToTime(unixMillis int64) time.Time {
 	return time.Unix(0, unixMillis*int64(time.Millisecond))
 }
+
 func TestShowSpaceEnvironments(t *testing.T) {
+
+	fakeEnvName := "fakeEnvName"
+	fakeCpuCores := 6.0
+	fakeMemUsage := 5.0
+
+	fakeQuota := &app.SpaceEnvironmentUsageQuota{
+		CPUCores: &fakeCpuCores,
+		Memory:   &fakeMemUsage,
+	}
+
+	testSpace := &app.SimpleSpace{
+		Type: "space",
+		Attributes: &app.SimpleSpaceAttributes{
+			Name:         "testSpace",
+			Applications: []*app.SimpleApp{},
+		},
+	}
+
+	fakeSpaceUse := []*app.SpaceEnvironmentUsage{
+		{
+			Attributes: &app.SpaceEnvironmentUsageAttributes{
+				Name:  &fakeEnvName,
+				Quota: fakeQuota,
+			},
+		},
+	}
+
+	genericQuota := 5.0
+	genericUsage := 1.0
+	fakeSimpleEnvs := []*app.SimpleEnvironment{
+		{
+			ID:   "foo",
+			Type: "environment",
+			Attributes: &app.SimpleEnvironmentAttributes{
+				Name: &fakeEnvName,
+				Quota: &app.EnvStats{
+					Cpucores: &app.EnvStatQuota{
+						Quota: &genericQuota,
+						Used:  &genericUsage,
+					},
+					Memory: &app.EnvStatQuota{
+						Quota: &genericQuota,
+						Used:  &genericUsage,
+					},
+				},
+			},
+		},
+		{
+			ID:   "bar",
+			Type: "environment",
+			Attributes: &app.SimpleEnvironmentAttributes{
+				Name: &fakeEnvName,
+				Quota: &app.EnvStats{
+					Cpucores: &app.EnvStatQuota{
+						Quota: &genericQuota,
+						Used:  &genericUsage,
+					},
+					Memory: &app.EnvStatQuota{
+						Quota: &genericQuota,
+						Used:  &genericUsage,
+					},
+				},
+			},
+		},
+	}
+
 	// given
 	clientGetterMock := testcontroller.NewClientGetterMock(t)
 	svc, ctrl, err := createDeploymentsController()
@@ -524,30 +591,36 @@ func TestShowSpaceEnvironments(t *testing.T) {
 	ctrl.ClientGetter = clientGetterMock
 
 	t.Run("ok", func(t *testing.T) {
-		// given
-		envName := "foo"
 		kubeClientMock := testk8s.NewKubeClientMock(t)
-		kubeClientMock.GetEnvironmentsFunc = func() ([]*app.SimpleEnvironment, error) {
-			return []*app.SimpleEnvironment{
-				{
-					ID:   "foo",
-					Type: "environment",
-					Attributes: &app.SimpleEnvironmentAttributes{
-						Name: &envName,
-					},
-				},
-			}, nil
+		kubeClientMock.GetSpaceFunc = func(p string) (r *app.SimpleSpace, r1 error) {
+			return testSpace, nil
 		}
+
+		kubeClientMock.GetSpaceAndOtherEnvironmentUsageFunc = func(p *app.SimpleSpace) (r []*app.SpaceEnvironmentUsage, r1 []*app.SimpleEnvironment, r2 error) {
+			return fakeSpaceUse, fakeSimpleEnvs, nil
+		}
+
 		kubeClientMock.CloseFunc = func() {}
+
 		clientGetterMock.GetKubeClientFunc = func(p context.Context) (kubernetes.KubeClientInterface, error) {
 			return kubeClientMock, nil
 		}
-		osioClientMock := testcontroller.NewOSIOClientMock(t)
+		osioClientMock := createOSIOClientMock(t, testSpace.Attributes.Name)
+
 		clientGetterMock.GetAndCheckOSIOClientFunc = func(p context.Context) (controller.OpenshiftIOClient, error) {
 			return osioClientMock, nil
 		}
+
 		// when
-		test.ShowSpaceEnvironmentsDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
+		_, result := test.ShowSpaceEnvironmentsDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
+
+		spaceEnvs := &app.SpaceAndOtherEnvironmentUsage{
+			OtherUsage: fakeSimpleEnvs,
+			SpaceUsage: fakeSpaceUse,
+		}
+
+		assert.Equal(t, spaceEnvs, result.Data, "deployment space environment information does match")
+
 		// then verify that the Close method was called
 		assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
 	})
@@ -563,17 +636,20 @@ func TestShowSpaceEnvironments(t *testing.T) {
 			test.ShowSpaceEnvironmentsDeploymentsInternalServerError(t, context.Background(), svc, ctrl, space.SystemSpace)
 		})
 
-		t.Run("get environments bad request", func(t *testing.T) {
+		t.Run("get all space environments bad request", func(t *testing.T) {
 			// given
 			kubeClientMock := testk8s.NewKubeClientMock(t)
-			kubeClientMock.GetEnvironmentsFunc = func() ([]*app.SimpleEnvironment, error) {
+			kubeClientMock.GetSpaceFunc = func(p string) (r *app.SimpleSpace, r1 error) {
 				return nil, witerrors.NewBadParameterErrorFromString("TEST")
+			}
+			kubeClientMock.GetSpaceAndOtherEnvironmentUsageFunc = func(p *app.SimpleSpace) (r []*app.SpaceEnvironmentUsage, r1 []*app.SimpleEnvironment, r2 error) {
+				return nil, nil, nil
 			}
 			kubeClientMock.CloseFunc = func() {}
 			clientGetterMock.GetKubeClientFunc = func(p context.Context) (kubernetes.KubeClientInterface, error) {
 				return kubeClientMock, nil
 			}
-			osioClientMock := testcontroller.NewOSIOClientMock(t)
+			osioClientMock := createOSIOClientMock(t, testSpace.Attributes.Name)
 			clientGetterMock.GetAndCheckOSIOClientFunc = func(p context.Context) (controller.OpenshiftIOClient, error) {
 				return osioClientMock, nil
 			}
