@@ -52,8 +52,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assignee := []string{fxt.Identities[0].ID.String()}
 
 		fxt.WorkItems[0].Fields[workitem.SystemAssignees] = assignee
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 1)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
@@ -66,8 +67,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assignee = []string{fxt.Identities[1].ID.String()}
 		wiNew.Fields[workitem.SystemAssignees] = assignee
 		wiNew.Version = fxt.WorkItems[0].Version + 1
-		wiNew, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
+		wiNew, rev, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 1)
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
@@ -86,8 +88,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assignee := []string{fxt.Identities[0].ID.String()}
 
 		fxt.WorkItems[0].Fields[workitem.SystemAssignees] = assignee
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 1)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
@@ -106,8 +109,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		}))
 		newDescription := rendering.NewMarkupContentFromLegacy("description2")
 		fxt.WorkItems[0].Fields[workitem.SystemDescription] = newDescription
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
@@ -123,8 +127,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assignee := []string{fxt.Identities[0].ID.String()}
 
 		fxt.WorkItems[0].Fields[workitem.SystemAssignees] = assignee
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 1)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
@@ -136,8 +141,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 
 		wiNew.Fields[workitem.SystemAssignees] = []string{}
 		wiNew.Version = fxt.WorkItems[0].Version + 1
-		wiNew, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
+		wiNew, rev, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 0)
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
@@ -152,8 +158,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assignee := []string{fxt.Identities[0].ID.String()}
 
 		fxt.WorkItems[0].Fields[workitem.SystemAssignees] = assignee
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 1)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
@@ -165,8 +172,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 
 		wiNew.Fields[workitem.SystemAssignees] = []string{fxt.Identities[1].ID.String()}
 		wiNew.Version = fxt.WorkItems[0].Version + 1
-		wiNew, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
+		wiNew, rev, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 1)
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
@@ -178,8 +186,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 	s.T().Run("state change from new to open", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
 		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateResolved
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Equal(t, workitem.SystemStateResolved, wiNew.Fields[workitem.SystemState])
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
@@ -197,8 +206,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		labels := []string{labelID1.String()}
 
 		fxt.WorkItems[0].Fields[workitem.SystemLabels] = labels
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 1)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
@@ -212,8 +222,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		labels = []string{labelID2.String()}
 		wiNew.Fields[workitem.SystemLabels] = labels
 		wiNew.Version = fxt.WorkItems[0].Version + 1
-		wiNew, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
+		wiNew, rev, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 1)
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
@@ -233,8 +244,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		labels := []string{labelID1.String()}
 
 		fxt.WorkItems[0].Fields[workitem.SystemLabels] = labels
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 1)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
@@ -252,8 +264,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		labels := []string{labelID1.String()}
 
 		fxt.WorkItems[0].Fields[workitem.SystemLabels] = labels
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 1)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
@@ -264,8 +277,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 
 		wiNew.Fields[workitem.SystemLabels] = []string{}
 		wiNew.Version = fxt.WorkItems[0].Version + 1
-		wiNew, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
+		wiNew, rev, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 0)
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
@@ -278,8 +292,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.Iterations(2))
 		fxt.WorkItems[0].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
@@ -289,8 +304,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 
 		wiNew.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
 		wiNew.Version = fxt.WorkItems[0].Version + 1
-		wiNew, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
+		wiNew, rev, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.Len(t, eventList, 2)
 		assert.Equal(t, workitem.SystemIteration, eventList[1].Name)
@@ -317,8 +333,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 				}),
 			)
 			fxt.WorkItems[0].Fields[fieldName] = updatedValue
-			_, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+			_, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 			require.NoError(t, err)
+			require.NotNil(t, rev)
 			eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 			require.Len(t, eventList, 1)
 			assert.Equal(t, fieldName, eventList[0].Name)
@@ -346,8 +363,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 				}),
 			)
 			fxt.WorkItems[0].Fields[fieldName] = updatedValue
-			_, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+			_, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 			require.NoError(t, err)
+			require.NotNil(t, rev)
 			eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 			require.Len(t, eventList, 1)
 			assert.Equal(t, fieldName, eventList[0].Name)
@@ -361,8 +379,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
 		fxt.WorkItems[0].Fields[workitem.SystemLabels] = []string{uuid.NewV4().String()}
 		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateResolved
-		_, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		_, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
@@ -377,6 +396,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 			}
 		}
 		assert.Equal(t, 2, c)
+		require.Equal(t, eventList[0].RevisionID, eventList[1].RevisionID, "events for same revision must have the same revision ID")
 	})
 
 	s.T().Run("reorder event shouldn't be logged", func(t *testing.T) {
@@ -391,8 +411,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 	s.T().Run("Type change event", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
 		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
-		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Equal(t, fxt.WorkItemTypes[1].ID, wiNew.Type)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
