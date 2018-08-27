@@ -380,8 +380,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 	})
 
 	s.T().Run("reorder event shouldn't be logged", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(2))
-		s.wiRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionBelow, &fxt.WorkItems[0].ID, *fxt.WorkItems[1], fxt.Identities[0].ID)
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(3))
+		_, err := s.wiRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionAbove, &fxt.WorkItems[0].ID, *fxt.WorkItems[2], fxt.Identities[0].ID)
+		require.Nil(t, err)
 		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[1].ID)
 		require.Nil(t, err)
 		require.Len(t, eventList, 0)
