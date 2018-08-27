@@ -94,6 +94,35 @@ var userDataAttributes = a.Type("UserDataAttributes", func() {
 	})
 })
 
+// userSpaces a list of spaces in which the user has a role
+var userSpaces = JSONList(
+	"userSpaces", "Holds the paginated response to a user spaces request",
+	userSpacesData,
+	pagingLinks,
+	userSpacesListMeta)
+
+// userSpacesData represents a resource for which a user has a role
+var userSpacesData = a.Type("UserSpacesData", func() {
+	a.Attribute("id", d.String, "id of the resource that in which the user has a role")
+	a.Attribute("type", d.String, "type of the resource")
+	a.Attribute("attributes", userSpacesDataAttributes, "Info about the role and scopes that the user has in the resource")
+	a.Attribute("links", genericLinks)
+	a.Required("id", "type", "attributes")
+})
+
+var userSpacesListMeta = a.Type("UserSpacesListMeta", func() {
+	a.Attribute("totalCount", d.Integer)
+	a.Required("totalCount")
+})
+
+// userSpacesDataAttributes contains info about the role and scopes that the user has in the resource
+var userSpacesDataAttributes = a.Type("UserSpacesDataAttributes", func() {
+	a.Attribute("name", d.String, "The name of the space")
+	a.Attribute("role", d.String, "The role of the user in the corresponding space")
+	a.Attribute("scopes", a.ArrayOf(d.String), "The scopes associated with the role of the user in the corresponding space")
+	a.Required("name", "role", "scopes")
+})
+
 var _ = a.Resource("user", func() {
 	a.BasePath("/user")
 
@@ -110,6 +139,18 @@ var _ = a.Resource("user", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Metadata("swagger:extension:x-tag", "current_user")
+	})
+
+	a.Action("listSpaces", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.GET("/spaces"),
+		)
+		a.Description("List the spaces in which the current user has a role")
+		// a.UseTrait("conditional")
+		a.Response(d.OK, userSpaces)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })
 

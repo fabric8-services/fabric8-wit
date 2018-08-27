@@ -1,0 +1,38 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "name": "space1",
+        "role": "contributor",
+        "scopes": [
+          "contribute",
+          "view"
+        ]
+      },
+      "id": "00000000-0000-0000-0000-000000000001",
+      "links": {
+        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000001"
+      },
+      "type": "spaces"
+    },
+    {
+      "attributes": {
+        "name": "space2",
+        "role": "admin",
+        "scopes": [
+          "contribute",
+          "manage",
+          "view"
+        ]
+      },
+      "id": "00000000-0000-0000-0000-000000000002",
+      "links": {
+        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
+      },
+      "type": "spaces"
+    }
+  ],
+  "meta": {
+    "totalCount": 2
+  }
+}
