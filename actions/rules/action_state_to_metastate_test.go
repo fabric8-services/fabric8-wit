@@ -79,8 +79,6 @@ func (s *ActionStateToMetastateSuite) TestRemoveElement() {
 		a = action.removeElement(a, 3)
 		expected = []interface{}{0, 2, 2}
 		require.Len(t, a, 3)
-		fmt.Println(expected)
-		fmt.Println(a)
 		require.True(t, ArrayEquals(expected, a))
 	})
 	s.T().Run("removing a non-existing element", func(t *testing.T) {
