@@ -93,7 +93,7 @@ func (act ActionStateToMetaState) loadWorkItemByID(id uuid.UUID) (*workitem.Work
 func (act ActionStateToMetaState) storeWorkItem(workitem *workitem.WorkItem) (*workitem.WorkItem, error) {
 	err := application.Transactional(act.Db, func(appl application.Application) error {
 		var err error
-		workitem, err = appl.WorkItems().Save(act.Ctx, workitem.SpaceID, *workitem, *act.UserID)
+		workitem, _, err = appl.WorkItems().Save(act.Ctx, workitem.SpaceID, *workitem, *act.UserID)
 		if err != nil {
 			return errs.Wrap(err, "error updating work item")
 		}
@@ -361,9 +361,13 @@ func (act ActionStateToMetaState) onStateChange(newContext change.Detector, cont
 		return nil, nil, err
 	}
 	// next, check which boards are relevant for this WI.
-	groups, err := act.Db.WorkItemTypeGroups().List(act.Ctx, wi.SpaceID)
+	space, err := act.Db.Spaces().Load(act.Ctx, wi.SpaceID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errs.Wrap(err, "error loading space: "+err.Error())
+	}
+	groups, err := act.Db.WorkItemTypeGroups().List(act.Ctx, space.SpaceTemplateID)
+	if err != nil {
+		return nil, nil, errs.Wrap(err, "error loading type groups: "+err.Error())
 	}
 	var relevantBoards []*workitem.Board
 	for _, board := range boards {
