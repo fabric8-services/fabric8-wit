@@ -26,3 +26,19 @@ func (e Event) GetETagData() []interface{} {
 func (e Event) GetLastModified() time.Time {
 	return e.Timestamp.Truncate(time.Second)
 }
+
+// A List is an array of events with the possibility to filter events for
+// a given revision through the FilterByRevision function.
+type List []Event
+
+// FilterByRevisionID returns a new list with just the events inside that match
+// the given revision ID.
+func (l List) FilterByRevisionID(revisionID uuid.UUID) List {
+	res := List{}
+	for _, x := range l {
+		if x.RevisionID == revisionID {
+			res = append(res, x)
+		}
+	}
+	return res
+}
