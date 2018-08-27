@@ -23,6 +23,47 @@ type ActionStateToMetastateSuite struct {
 	gormtestsupport.DBTestSuite
 }
 
+func (s *ActionStateToMetastateSuite) TestContainsElement() {
+	s.T().Run("contains an element", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
+		action := ActionStateToMetaState{
+			Db:     s.GormDB,
+			Ctx:    s.Ctx,
+			UserID: &fxt.Identities[0].ID,
+		}
+		// there is no other way of creating an []interface{}.
+		// but we have plenty of memory, so be it.
+		var a []interface{}
+		a = append(a, 0)
+		a = append(a, 1)
+		a = append(a, 2)
+		a = append(a, 3)
+		a = append(a, 2)
+		require.True(t, action.contains(a, 2))
+		require.True(t, action.contains(a, 3))
+		require.True(t, action.contains(a, 0))
+	})
+	s.T().Run("not contains an element", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
+		action := ActionStateToMetaState{
+			Db:     s.GormDB,
+			Ctx:    s.Ctx,
+			UserID: &fxt.Identities[0].ID,
+		}
+		// there is no other way of creating an []interface{}.
+		// but we have plenty of memory, so be it.
+		var a []interface{}
+		a = append(a, 0)
+		a = append(a, 1)
+		a = append(a, 2)
+		a = append(a, 3)
+		a = append(a, 2)
+		require.False(t, action.contains(a, 4))
+		require.False(t, action.contains(a, nil))
+		require.False(t, action.contains(a, "foo"))
+	})
+}
+
 func (s *ActionStateToMetastateSuite) TestActionExecution() {
 	// Note on the fixture: by default, the created board is attached to the type group
 	// with the same index. The columns on each board are as follows:

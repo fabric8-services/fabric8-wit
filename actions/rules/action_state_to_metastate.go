@@ -46,11 +46,23 @@ func (act ActionStateToMetaState) contains(s []interface{}, e interface{}) bool 
 func (act ActionStateToMetaState) removeElement(s []interface{}, e interface{}) []interface{} {
 	for idx, a := range s {
 		if a == e {
-			s = append(s[:idx], s[idx+1:]...)
+			copy(s[idx:], s[idx+1:])
+			s[len(s)-1] = nil
+			s = s[:len(s)-1]
 			// we don't return here as there may be multiple copies of e in s.
 		}
 	}
 	return s
+
+	/*
+		for idx, a := range s {
+			if a == e {
+				s = append(s[:idx], s[idx+1:]...)
+				// we don't return here as there may be multiple copies of e in s.
+			}
+		}
+		return s
+	*/
 }
 
 // difference returns the differences between two slices. It returns two slices containing
