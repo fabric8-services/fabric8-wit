@@ -11,7 +11,6 @@ import (
 	"time"
 
 	token "github.com/dgrijalva/jwt-go"
-	"github.com/fabric8-services/fabric8-auth/auth"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -37,7 +36,6 @@ import (
 type TestIterationREST struct {
 	gormtestsupport.DBTestSuite
 	testDir string
-	policy  *auth.KeycloakPolicy
 }
 
 func TestRunIterationREST(t *testing.T) {
@@ -48,12 +46,6 @@ func TestRunIterationREST(t *testing.T) {
 func (rest *TestIterationREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.testDir = filepath.Join("test-files", "iteration")
-	rest.policy = &auth.KeycloakPolicy{
-		Name:             "TestCollaborators-" + uuid.NewV4().String(),
-		Type:             auth.PolicyTypeUser,
-		Logic:            auth.PolicyLogicPossitive,
-		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
-	}
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
@@ -72,7 +64,14 @@ func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationCo
 }
 
 type DummySpaceAuthzService struct {
-	rest *TestIterationREST
+	userIDs []string
+}
+
+func (s *DummySpaceAuthzService) AddUser(userID string) {
+	if s.userIDs == nil {
+		s.userIDs = make([]string, 0)
+	}
+	s.userIDs = append(s.userIDs, userID)
 }
 
 func (s *DummySpaceAuthzService) Authorize(ctx context.Context, spaceID string) (bool, error) {
@@ -81,7 +80,12 @@ func (s *DummySpaceAuthzService) Authorize(ctx context.Context, spaceID string) 
 		return false, errors.NewUnauthorizedError("Missing token")
 	}
 	id := jwtToken.Claims.(token.MapClaims)["sub"].(string)
-	return strings.Contains(s.rest.policy.Config.UserIDs, id), nil
+	for _, userID := range s.userIDs {
+		if id == userID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (s *DummySpaceAuthzService) Configuration() witauth.ServiceConfiguration {
@@ -121,9 +125,10 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			otherUser := fxt.IdentityByUsername("other user")
 			_, ctrl := rest.SecuredControllerWithIdentity(otherUser)
 			// add user as collaborator
-			rest.policy.AddUserToPolicy(otherUser.ID.String())
+			authzSvc := &DummySpaceAuthzService{}
+			authzSvc.AddUser(otherUser.ID.String())
 			// overwrite service to use Dummy Auth
-			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, &DummySpaceAuthzService{rest})
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, authzSvc)
 			test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 		})
 		t.Run("with ID in request payload", func(t *testing.T) {
@@ -164,7 +169,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			notSpaceOwner := fxt.IdentityByUsername("not space owner")
 			_, ctrl := rest.SecuredControllerWithIdentity(notSpaceOwner)
 			// overwrite service with Dummy Auth to treat user as non-collaborator
-			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *notSpaceOwner, &DummySpaceAuthzService{rest})
+			authzSvc := &DummySpaceAuthzService{}
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *notSpaceOwner, authzSvc)
 			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.req.payload.golden.json"), ci)
@@ -177,7 +183,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			nonCollaborator := fxt.IdentityByUsername("non collaborator")
 			_, ctrl := rest.SecuredControllerWithIdentity(nonCollaborator)
 			// overwrite service with Dummy Auth to treat user as non-collaborator
-			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *nonCollaborator, &DummySpaceAuthzService{rest})
+			authzSvc := &DummySpaceAuthzService{}
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *nonCollaborator, authzSvc)
 			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
 		})
@@ -522,9 +529,10 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 			otherIdentity := fxt.Identities[1]
 			_, ctrl := rest.SecuredControllerWithIdentity(otherIdentity)
 			// add user as collaborator
-			rest.policy.AddUserToPolicy(otherIdentity.ID.String())
+			authzSvc := &DummySpaceAuthzService{}
+			authzSvc.AddUser(otherIdentity.ID.String())
 			// overwrite service to use Dummy Auth
-			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherIdentity, &DummySpaceAuthzService{rest})
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherIdentity, authzSvc)
 			// when
 			_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
 			// then
