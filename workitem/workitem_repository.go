@@ -1,16 +1,22 @@
 package workitem
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/closeable"
+	"github.com/fabric8-services/fabric8-wit/label"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/area"
+	"github.com/fabric8-services/fabric8-wit/closeable"
+	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -88,34 +94,37 @@ type WorkItemRepository interface {
 	LoadBatchByID(ctx context.Context, ids []uuid.UUID) ([]*WorkItem, error)
 	LoadByIteration(ctx context.Context, id uuid.UUID) ([]*WorkItem, error)
 	LookupIDByNamedSpaceAndNumber(ctx context.Context, ownerName, spaceName string, wiNumber int) (*uuid.UUID, *uuid.UUID, error)
-	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
+	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, *Revision, error)
 	Reorder(ctx context.Context, spaceID uuid.UUID, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Delete(ctx context.Context, id uuid.UUID, suppressorID uuid.UUID) error
-	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error)
+	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, *Revision, error)
 	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, length *int, sort SortWorkItemsBy) ([]WorkItem, int, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error)
 	Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error)
+	ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error
 }
 
 // NewWorkItemRepository creates a GormWorkItemRepository
 func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
 	repository := &GormWorkItemRepository{
-		db:   db,
-		winr: numbersequence.NewWorkItemNumberSequenceRepository(db),
-		witr: &GormWorkItemTypeRepository{db},
-		wirr: &GormRevisionRepository{db},
+		db:    db,
+		winr:  numbersequence.NewWorkItemNumberSequenceRepository(db),
+		witr:  &GormWorkItemTypeRepository{db},
+		wirr:  &GormRevisionRepository{db},
+		space: space.NewRepository(db),
 	}
 	return repository
 }
 
 // GormWorkItemRepository implements WorkItemRepository using gorm
 type GormWorkItemRepository struct {
-	db   *gorm.DB
-	winr *numbersequence.GormWorkItemNumberSequenceRepository
-	witr *GormWorkItemTypeRepository
-	wirr *GormRevisionRepository
+	db    *gorm.DB
+	winr  *numbersequence.GormWorkItemNumberSequenceRepository
+	witr  *GormWorkItemTypeRepository
+	wirr  *GormRevisionRepository
+	space *space.GormRepository
 }
 
 // ************************************************
@@ -364,7 +373,8 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID uuid.UUI
 		return errors.NewNotFoundError("work item", workitemID.String())
 	}
 	// store a revision of the deleted work item
-	if err := r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem); err != nil {
+	_, err := r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem)
+	if err != nil {
 		return errs.Wrapf(err, "error while deleting work item")
 	}
 	log.Debug(ctx, map[string]interface{}{"wi_id": workitemID}, "Work item deleted successfully!")
@@ -559,7 +569,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
+	_, err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
 	if err != nil {
 		return nil, err
 	}
@@ -568,19 +578,17 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, updatedWorkItem WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
+func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, updatedWorkItem WorkItem, modifierID uuid.UUID) (*WorkItem, *Revision, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "save"}, time.Now())
 	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.Number, true)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if wiStorage.Version != updatedWorkItem.Version {
-		return nil, errors.NewVersionConflictError("version conflict")
+		return nil, nil, errors.NewVersionConflictError("version conflict")
 	}
 	wiStorage.Version = wiStorage.Version + 1
-	wiStorage.Type = updatedWorkItem.Type
 	wiStorage.Fields = Fields{}
-
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldDef.ReadOnly {
 			continue
@@ -603,8 +611,20 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		}
 		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+			return nil, nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
+	}
+	// Change of Work Item Type
+	if wiStorage.Type != updatedWorkItem.Type {
+		newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
+		if err != nil {
+			return nil, nil, errs.Wrapf(err, "failed to load workitemtype: %s ", updatedWorkItem.Type)
+		}
+		if err := r.ChangeWorkItemType(ctx, wiStorage, wiType, newWiType, spaceID); err != nil {
+			return nil, nil, errs.Wrapf(err, "unable to change workitem type from %s (ID: %s) to %s (ID: %s)", wiType.Name, wiType.ID, newWiType.Name, newWiType.ID)
+		}
+		// This will be used by the ConvertWorkItemStorageToModel function
+		wiType = newWiType
 	}
 	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)
 	if err := tx.Error; err != nil {
@@ -614,68 +634,88 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 			"version":  updatedWorkItem.Version,
 			"err":      err,
 		}, "unable to save new version of the work item")
-		return nil, errors.NewInternalError(ctx, err)
+		return nil, nil, errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
-		return nil, errors.NewVersionConflictError("version conflict")
+		return nil, nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, *wiStorage)
+	rev, err := r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, *wiStorage)
 	if err != nil {
-		return nil, errs.Wrapf(err, "error while saving work item")
+		return nil, nil, errs.Wrapf(err, "error while saving work item")
 	}
 	log.Info(ctx, map[string]interface{}{
 		"wi_id":    updatedWorkItem.ID,
 		"space_id": spaceID,
 	}, "Updated work item repository")
-	return ConvertWorkItemStorageToModel(wiType, wiStorage)
+	w, err := ConvertWorkItemStorageToModel(wiType, wiStorage)
+	if err != nil {
+		return nil, nil, errs.WithStack(err)
+	}
+	return w, &rev, nil
 }
 
-// Create creates a new work item in the repository
-// returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitem", "create"}, time.Now())
-
-	wiType, err := r.witr.Load(ctx, typeID)
-	if err != nil {
-		return nil, errors.NewBadParameterError("typeID", typeID)
-	}
-
+// CheckTypeAndSpaceShareTemplate returns true if the given workitem type (wit)
+// belongs to the same space template as the space (spaceID); otherwise false is
+// returned
+func (r *GormWorkItemRepository) CheckTypeAndSpaceShareTemplate(ctx context.Context, wit *WorkItemType, spaceID uuid.UUID) (bool, error) {
 	// Prohibit creation of work items from a base type.
-	if !wiType.CanConstruct {
-		return nil, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from \"%s\" (%s)", wiType.Name, wiType.ID))
+	if !wit.CanConstruct {
+		return false, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from \"%s\" (%s)", wit.Name, wit.ID))
 	}
 	var exists bool
 	// Prohibit creation of work items from a type that doesn't belong to current space template
 	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 from %[1]s WHERE id=$1 AND space_template_id = (
-				SELECT space_template_id FROM %[2]s WHERE id=$2
-			)
-		)`, wiType.TableName(), space.Space{}.TableName())
-	err = r.db.Raw(query, wiType.ID, spaceID).Row().Scan(&exists)
+			SELECT EXISTS (
+				SELECT 1 from %[1]s WHERE id=$1 AND space_template_id = (
+					SELECT space_template_id FROM %[2]s WHERE id=$2
+				)
+			)`, wit.TableName(), space.Space{}.TableName())
+	err := r.db.Raw(query, wit.ID, spaceID).Row().Scan(&exists)
 	if err == nil && !exists {
-		return nil, errors.NewBadParameterErrorFromString(
-			fmt.Sprintf("Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wiType.Name, wiType.ID),
+		return false, errors.NewBadParameterErrorFromString(
+			fmt.Sprintf("Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wit.Name, wit.ID),
 		)
 	}
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id":         spaceID,
-			"workitem_type_id": wiType.ID,
+			"workitem_type_id": wit.ID,
 			"err":              err,
 		}, "unable to fetch workitem types related to current space")
-		return nil, errors.NewInternalError(ctx, errs.Wrapf(err, "unable to verify if %s exists", wiType.ID))
+		return false, errors.NewInternalError(ctx, errs.Wrapf(err, "unable to verify if %s exists", wit.ID))
 	}
+	return true, nil
+}
+
+// Create creates a new work item in the repository
+// returns BadParameterError, ConversionError or InternalError
+func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, *Revision, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "create"}, time.Now())
+
+	wiType, err := r.witr.Load(ctx, typeID)
+	if err != nil {
+		return nil, nil, errors.NewBadParameterError("typeID", typeID)
+	}
+
+	allowedWIT, err := r.CheckTypeAndSpaceShareTemplate(ctx, wiType, spaceID)
+	if err != nil {
+		return nil, nil, err
+
+	}
+	if !allowedWIT {
+		return nil, nil, err
+	}
+
 	// The order of workitems are spaced by a factor of 1000.
 	pos, err := r.LoadHighestOrder(ctx, spaceID)
 	if err != nil {
-		return nil, errors.NewInternalError(ctx, err)
+		return nil, nil, errors.NewInternalError(ctx, err)
 	}
 	pos = pos + orderValue
 	number, err := r.winr.NextVal(ctx, spaceID)
 	if err != nil {
-		return nil, errors.NewInternalError(ctx, err)
+		return nil, nil, errors.NewInternalError(ctx, err)
 	}
 	wi := WorkItemStorage{
 		Type:           typeID,
@@ -693,7 +733,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+			return nil, nil, errors.NewBadParameterError(fieldName, fieldValue) // TODO(kwk): Change errors pkg to consume the original error as well
 		}
 		if (fieldName == SystemAssignees || fieldName == SystemLabels || fieldName == SystemBoardcolumns) && fieldValue == nil {
 			delete(wi.Fields, fieldName)
@@ -701,25 +741,25 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {
 			description := rendering.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
 			if !rendering.IsMarkupSupported(description.Markup) {
-				return nil, errors.NewBadParameterError(fieldName, fieldValue)
+				return nil, nil, errors.NewBadParameterError(fieldName, fieldValue)
 			}
 		}
 	}
-	if err = r.db.Create(&wi).Error; err != nil {
-		return nil, errs.Wrapf(err, "failed to create work item")
+	if err := r.db.Create(&wi).Error; err != nil {
+		return nil, nil, errs.Wrapf(err, "failed to create work item")
 	}
 
 	witem, err := ConvertWorkItemStorageToModel(wiType, &wi)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// store a revision of the created work item
-	err = r.wirr.Create(context.Background(), creatorID, RevisionTypeCreate, wi)
+	rev, err := r.wirr.Create(context.Background(), creatorID, RevisionTypeCreate, wi)
 	if err != nil {
-		return nil, errs.Wrapf(err, "error while creating work item")
+		return nil, nil, errs.Wrapf(err, "error while creating work item")
 	}
 	log.Debug(ctx, map[string]interface{}{"pkg": "workitem", "wi_id": wi.ID, "number": wi.Number}, "Work item created successfully!")
-	return witem, nil
+	return witem, &rev, nil
 }
 
 // ConvertWorkItemStorageToModel convert work item model to app WI
@@ -1130,4 +1170,245 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 		workitems = append(workitems, convertedWI)
 	}
 	return workitems, nil
+}
+
+// ChangeWorkItemType changes the workitem in wiStorage to newWIType. Returns
+// error if the operation fails
+func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error {
+	allowedWIT, err := r.CheckTypeAndSpaceShareTemplate(ctx, newWIType, spaceID)
+	if err != nil {
+		return errs.Wrap(err, "failed to check workitem type")
+	}
+	if !allowedWIT {
+		return errors.NewBadParameterError("typeID", oldWIType.ID)
+	}
+	var fieldDiff = Fields{}
+	// Loop through old workitem type
+	for oldFieldName := range oldWIType.Fields {
+		// Temporary workaround to not add metastates to the field diff. We need
+		// to have a special handling for fields that shouldn't be set by user
+		// (or affected by type change) MetaState is a system level detail and
+		// that shouldn't be affected by type change, even if it is affected, it
+		// shouldn't show up in the field diff. The purpose of
+		// fieldDiff is to get the list of fields that should be added to the
+		// description. Metastate shouldn't show up in the description
+		if oldFieldName == SystemMetaState {
+			continue
+		}
+		// The field exists in old type and new type
+		if newField, ok := newWIType.Fields[oldFieldName]; ok {
+			// Try to assign the old value to the new field
+			_, err := newField.Type.ConvertToModel(wiStorage.Fields[oldFieldName])
+			if err != nil {
+				// if the new type is a list, stuff the old value in a list and
+				// try to assign it
+				if newField.Type.GetKind() == KindList {
+					var convertedValue interface{}
+					convertedValue, err = newField.Type.ConvertToModel([]interface{}{wiStorage.Fields[oldFieldName]})
+					if err == nil {
+						wiStorage.Fields[oldFieldName] = convertedValue
+					}
+				}
+				// if the old type is a list but the new one isn't check that
+				// the list contains only one element and assign that
+				if oldWIType.Fields[oldFieldName].Type.GetKind() == KindList && newField.Type.GetKind() != KindList {
+					ifArr, ok := wiStorage.Fields[oldFieldName].([]interface{})
+					if !ok {
+						return errs.Errorf("failed to convert field \"%s\" to interface array: %+v", oldFieldName, wiStorage.Fields[oldFieldName])
+					}
+					if len(ifArr) == 1 {
+						var convertedValue interface{}
+						convertedValue, err = newField.Type.ConvertToModel(ifArr[0])
+						if err == nil {
+							wiStorage.Fields[oldFieldName] = convertedValue
+						}
+					}
+				}
+			}
+			// Failed to assign the old value to the new field. Add the field to
+			// the diff and remove it from the old workitem.
+			if err != nil {
+				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
+				delete(wiStorage.Fields, oldFieldName)
+			}
+		} else { // field doesn't exist in new type
+			if wiStorage.Fields[oldFieldName] != nil {
+				fieldDiff[oldFieldName] = wiStorage.Fields[oldFieldName]
+				delete(wiStorage.Fields, oldFieldName)
+			}
+		}
+	}
+	// We need fieldKeys to show field diff in a defined order. Golang maps
+	// aren't ordered by default.
+	var fieldKeys []string
+	for fieldName := range fieldDiff {
+		fieldKeys = append(fieldKeys, fieldName)
+	}
+	// Sort the field keys to prevent random order of fields
+	sort.Strings(fieldKeys)
+	// Append diff (fields along with their values) between the workitem types
+	// to the description
+	if len(fieldDiff) > 0 {
+		// If description doesn't exists, assign it empty value
+		if wiStorage.Fields[SystemDescription] == nil {
+			wiStorage.Fields[SystemDescription] = ""
+		}
+		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
+		// TemplateData holds the information to be added to the description
+		templateData := struct {
+			NewTypeName         string
+			FieldNameValues     map[string]string
+			OriginalDescription string
+		}{
+			NewTypeName:         newWIType.Name,
+			FieldNameValues:     make(map[string]string),
+			OriginalDescription: originalDescription.Content,
+		}
+
+		for _, fieldName := range fieldKeys {
+			fieldDef := oldWIType.Fields[fieldName]
+			oldKind := fieldDef.Type.GetKind()
+			oldValue := fieldDiff[fieldName]
+
+			if oldKind == KindEnum {
+				enumType, ok := fieldDef.Type.(EnumType)
+				if !ok {
+					return errs.Errorf("failed to convert field \"%s\" to enum type: %+v", fieldName, fieldDef)
+				}
+				oldKind = enumType.BaseType.GetKind()
+			}
+			// handle all single value fields (including Enums)
+			if oldKind != KindList {
+				var val string
+				if oldKind.IsRelational() {
+					val, err = getValueOfRelationalKind(r.db, oldValue, oldKind)
+					if err != nil {
+						return errs.Wrapf(err, "failed to get relational value for field %s", fieldName)
+					}
+				} else {
+					val = fmt.Sprint(oldValue)
+				}
+				// Add field information to the description
+				templateData.FieldNameValues[oldWIType.Fields[fieldName].Label] = val
+				continue
+			}
+
+			// Deal with multi value field (KindList)
+			listType, ok := fieldDef.Type.(ListType)
+			if !ok {
+				return errs.Errorf("failed to convert field \"%s\" to list type: %+v", fieldName, fieldDef)
+			}
+			oldKind = listType.ComponentType.GetKind()
+			valList, ok := fieldDiff[fieldName].([]interface{})
+			if !ok {
+				return errs.Errorf("failed to convert list value of field \"%s\" to []interface{}: %+v", fieldName, fieldDiff[fieldName])
+			}
+
+			var tempList []string
+			for _, v := range valList {
+				val := fmt.Sprint(v)
+				if oldKind.IsRelational() {
+					val, err = getValueOfRelationalKind(r.db, v, oldKind)
+					if err != nil {
+						return errs.Wrapf(err, "failed to get relational value for field %s", fieldName)
+					}
+				}
+				tempList = append(tempList, val)
+			}
+			// Convert []string to comma seperated strings and add it to the
+			// description.
+			templateData.FieldNameValues[oldWIType.Fields[fieldName].Label] = strings.Join(tempList, ", ")
+		}
+		descriptionTemplate := template.Must(template.New("test").Parse("```" +
+			`
+Missing fields in workitem type: {{ .NewTypeName }}
+{{range $index, $element := .FieldNameValues }}
+{{$index}} : {{$element}}{{end}}
+` + "```" + `
+{{.OriginalDescription}}
+`))
+		var newDescription bytes.Buffer
+		if err := descriptionTemplate.Execute(&newDescription, templateData); err != nil {
+			return errs.Wrap(err, "failed to populate description template")
+		}
+		wiStorage.Fields[SystemDescription] = rendering.NewMarkupContent(newDescription.String(), rendering.SystemMarkupMarkdown)
+	}
+	// Set default values for all field in newWIType
+	for fieldName, fieldDef := range newWIType.Fields {
+		fieldValue := wiStorage.Fields[fieldName]
+		// Do not assign default value to metastate
+		if fieldName == SystemMetaState {
+			continue
+		}
+		// Assign default only if fieldValue is nil
+		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+		if err != nil {
+			return errs.Wrapf(err, "failed to convert field \"%s\"", fieldName)
+		}
+	}
+	wiStorage.Type = newWIType.ID
+	return nil
+}
+
+// getValueOfRelationKind resolves the relational value stored in val to it's
+// verbose value. Eg: UUID of kind User to username.
+func getValueOfRelationalKind(db *gorm.DB, val interface{}, kind Kind) (string, error) {
+	var result string
+	switch kind {
+	case KindList, KindEnum:
+		return result, errors.NewInternalErrorFromString("cannot resolve relational value for KindList or KindEnum")
+	case KindUser:
+		var identity account.Identity
+		tx := db.Model(&account.Identity{}).Where("id = ?", val).Find(&identity)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find identity")
+		}
+		var user account.User
+		tx = db.Model(&account.User{}).Where("id = ?", identity.UserID).Find(&user)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find user")
+		}
+		result = fmt.Sprintf("%s (%s)", user.FullName, identity.Username)
+	case KindArea:
+		var area area.Area
+		tx := db.Model(area.TableName()).Where("id = ?", val).First(&area)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find area")
+		}
+		result = fmt.Sprintf("%s (%s)", area.Name, area.Path)
+	case KindBoardColumn:
+		var column BoardColumn
+		tx := db.Model(column.TableName()).Where("id = ?", val).First(&column)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find boardcolumn")
+		}
+		result = column.Name
+
+	case KindIteration:
+		var iteration iteration.Iteration
+		tx := db.Model(iteration.TableName()).Where("id = ?", val).First(&iteration)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find iteration")
+		}
+		result = fmt.Sprintf("%s (%s)", iteration.Name, iteration.Path)
+
+	case KindCodebase:
+		var codebase codebase.Codebase
+		tx := db.Model(codebase.TableName()).Where("id = ?", val).First(&codebase)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find codebase")
+		}
+		result = codebase.URL // TODO(ibrahim): Figure out what we should be here. Codebase does not have a name.
+
+	case KindLabel:
+		var label label.Label
+		tx := db.Model(label.TableName()).Where("id = ?", val).First(&label)
+		if tx.Error != nil {
+			return result, errs.Wrap(tx.Error, "failed to find area")
+		}
+		result = label.Name
+	default:
+		return result, errors.NewInternalErrorFromString("unknown field Kind")
+	}
+	return result, nil
 }

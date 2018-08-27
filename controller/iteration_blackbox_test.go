@@ -341,7 +341,7 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space, wiTypeID 
 			workitem.SystemTitle: "Test Item",
 			workitem.SystemState: "new",
 		}
-		w, err := app.WorkItems().Create(context.Background(), parentSpace.ID, wiTypeID, fields, parentSpace.OwnerID)
+		w, _, err := app.WorkItems().Create(context.Background(), parentSpace.ID, wiTypeID, fields, parentSpace.OwnerID)
 		wi = w
 		return err
 	})
@@ -362,7 +362,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
 	err := application.Transactional(rest.GormDB, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		_, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.NoError(rest.T(), err)
@@ -383,7 +383,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	time.Sleep(1 * time.Second)
 	var updatedWI *workitem.WorkItem
 	err := application.Transactional(rest.GormDB, func(app application.Application) error {
-		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		w, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		updatedWI = w
 		return err
 	})
@@ -403,7 +403,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	delete(testWI.Fields, workitem.SystemIteration)
 	time.Sleep(1 * time.Second)
 	err = application.Transactional(rest.GormDB, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		_, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.NoError(rest.T(), err)
@@ -422,7 +422,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	testWI := rest.createWorkItem(parentSpace, fxt.WorkItemTypes[0].ID)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	err := application.Transactional(rest.GormDB, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		_, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.NoError(rest.T(), err)
@@ -443,7 +443,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	time.Sleep(1 * time.Second)
 	var updatedWI *workitem.WorkItem
 	err := application.Transactional(rest.GormDB, func(app application.Application) error {
-		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		w, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		updatedWI = w
 		return err
 	})
@@ -463,7 +463,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	delete(testWI.Fields, workitem.SystemIteration)
 	time.Sleep(1 * time.Second)
 	err = application.Transactional(rest.GormDB, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		_, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.NoError(rest.T(), err)
@@ -601,7 +601,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 
 	for i := 0; i < 4; i++ {
-		wi, err := wirepo.Create(
+		wi, _, err := wirepo.Create(
 			ctx, itr.SpaceID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
@@ -613,7 +613,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 		require.NotNil(rest.T(), wi)
 	}
 	for i := 0; i < 5; i++ {
-		wi, err := wirepo.Create(
+		wi, _, err := wirepo.Create(
 			ctx, itr.SpaceID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),

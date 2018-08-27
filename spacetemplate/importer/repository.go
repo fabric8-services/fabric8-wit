@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -145,9 +146,10 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			loadedWIT.Icon = wit.Icon
 			loadedWIT.CanConstruct = wit.CanConstruct
 
-			//--------------------------------------------------------------------------------
-			// Double check all existing fields are still present in new fields with same type
-			//--------------------------------------------------------------------------------
+			//------------------------------------------------------------------
+			// Double check all fields from the old work item type are still
+			// present in new work item type and still have the same field type.
+			//------------------------------------------------------------------
 			// verify that FieldTypes are same as loadedWIT
 			toBeFoundFields := map[string]workitem.FieldType{}
 			for k, fd := range loadedWIT.Fields {
@@ -156,16 +158,28 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			// Remove fields directly defined in WIT
 			for fieldName, fd := range wit.Fields {
 				// verify FieldType with original value
-				if originalType, ok := toBeFoundFields[fieldName]; ok {
-					if equal := fd.Type.Equal(originalType); !equal {
+				if oldFieldType, ok := toBeFoundFields[fieldName]; ok {
+
+					// When comparing the new and old field types we don't want
+					// to compare the default value. That is why we always
+					// overwrite the default value of the old type with the
+					// default value of the new type.
+
+					defVal := fd.Type.GetDefaultValue()
+					oldFieldType, err = oldFieldType.SetDefaultValue(defVal)
+					if err != nil {
+						return errs.Wrapf(err, "failed to overwrite default of old field type with %+v (%[1]T)", defVal)
+					}
+
+					if equal := fd.Type.Equal(oldFieldType); !equal {
 						// Special treatment for EnumType
-						origEnum, ok1 := originalType.(workitem.EnumType)
+						origEnum, ok1 := oldFieldType.(workitem.EnumType)
 						newEnum, ok2 := fd.Type.(workitem.EnumType)
 						if ok1 && ok2 {
 							equal = newEnum.EqualEnclosing(origEnum)
 						}
 						if !equal {
-							return errs.Errorf("type of the field %s changed from %s to %s", fieldName, originalType, fd.Type)
+							return errs.Errorf("type of the field %s changed from %+v to %+v", fieldName, spew.Sdump(oldFieldType), spew.Sdump(fd.Type))
 						}
 					}
 				}

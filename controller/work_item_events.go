@@ -38,11 +38,17 @@ func NewEventsController(service *goa.Service, db application.DB, config EventsC
 
 // List runs the list action.
 func (c *EventsController) List(ctx *app.ListWorkItemEventsContext) error {
-	var eventList []event.Event
+	var eventList event.List
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		eventList, err = appl.Events().List(ctx, ctx.WiID)
-		return errs.Wrap(err, "list events model failed")
+		if err != nil {
+			return errs.Wrap(err, "list events model failed")
+		}
+		if ctx.RevisionID != nil {
+			eventList = eventList.FilterByRevisionID(*ctx.RevisionID)
+		}
+		return nil
 	})
 
 	if err != nil {
@@ -81,18 +87,14 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 	if err != nil {
 		return nil, errs.Wrapf(err, "failed to load work item type: %s", wiEvent.WorkItemTypeID)
 	}
-	fieldName := wiEvent.Name
-	fieldDef, ok := wit.Fields[fieldName]
-	if !ok {
-		return nil, errs.Errorf("failed to find field \"%s\" in work item type: %s (%s)", fieldName, wit.Name, wit.ID)
-	}
 	modifierData, modifierLinks := ConvertUserSimple(req, wiEvent.Modifier)
 	e := app.Event{
 		Type: event.APIStringTypeEvents,
-		ID:   wiEvent.ID,
+		ID:   uuid.NewV4(),
 		Attributes: &app.EventAttributes{
-			Name:      wiEvent.Name,
-			Timestamp: wiEvent.Timestamp,
+			Name:       wiEvent.Name,
+			Timestamp:  wiEvent.Timestamp,
+			RevisionID: wiEvent.RevisionID,
 		},
 		Relationships: &app.EventRelations{
 			Modifier: &app.RelationGeneric{
@@ -109,6 +111,40 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 				},
 			},
 		},
+	}
+
+	if wiEvent.Name == event.WorkitemTypeChangeEvent {
+		oldTypeUUID, ok := wiEvent.Old.(uuid.UUID)
+		if !ok {
+			return nil, errs.Errorf("failed to convert old workitem type ID to UUID: %s", wiEvent.Old)
+		}
+		newTypeUUID, ok := wiEvent.New.(uuid.UUID)
+		if !ok {
+			return nil, errs.Errorf("failed to convert new workitem type ID to UUID: %s", wiEvent.New)
+		}
+		e.Relationships.OldValue = &app.RelationGenericList{
+			Data: []*app.GenericData{
+				{
+					ID:   ptr.String(oldTypeUUID.String()),
+					Type: ptr.String(APIStringTypeWorkItemType),
+				},
+			},
+		}
+		e.Relationships.NewValue = &app.RelationGenericList{
+			Data: []*app.GenericData{
+				{
+					ID:   ptr.String(newTypeUUID.String()),
+					Type: ptr.String(APIStringTypeWorkItemType),
+				},
+			},
+		}
+		return &e, nil
+	}
+
+	fieldName := wiEvent.Name
+	fieldDef, ok := wit.Fields[fieldName]
+	if !ok {
+		return nil, errs.Errorf("failed to find field \"%s\" in work item type: %s (%s)", fieldName, wit.Name, wit.ID)
 	}
 
 	// convertVal returns the given value converted from storage space to

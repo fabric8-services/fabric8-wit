@@ -3,6 +3,7 @@ package workitem_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -48,8 +49,9 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
 			return nil
 		}))
-		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 0)
 		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 0)
 	})
@@ -59,9 +61,10 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
 		// when
 		fxt.WorkItems[0].Number = 0
-		_, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		_, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		// then
 		assert.IsType(t, errors.NotFoundError{}, errs.Cause(err))
+		require.Nil(t, rev)
 	})
 
 	s.T().Run("ok - save for unchanged created date", func(t *testing.T) {
@@ -69,7 +72,9 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
 		oldDate, ok := fxt.WorkItems[0].Fields[workitem.SystemCreatedAt].(time.Time)
 		require.True(t, ok, "failed to convert interface{} to time.Time")
-		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.NotNil(t, rev)
 		newTime, ok := wiNew.Fields[workitem.SystemCreatedAt].(time.Time)
 		require.True(t, ok, "failed to convert interface{} to time.Time")
 		// then
@@ -94,9 +99,10 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		updatedWI.Fields[workitem.SystemOrder] = float64(6543)  // this is a read-only field, changes should be ignored
 		updatedWI.Fields[workitem.SystemNumber] = 1234          // this is a read-only field, changes should be ignored
 		// when
-		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, updatedWI, fxt.Identities[0].ID)
+		wiNew, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, updatedWI, fxt.Identities[0].ID)
 		// then
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.NotPanics(t, func() {
 			require.Equal(t, origCreatedAt.UTC(), wiNew.Fields[workitem.SystemCreatedAt].(time.Time).UTC(), "created-at should not have changed")
 			require.Equal(t, origOrder, wiNew.Fields[workitem.SystemOrder].(float64), "order should not have changed")
@@ -108,16 +114,234 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 	})
 
 	s.T().Run("change is not prohibited", func(t *testing.T) {
-		// tests that you can change the type of a work item. NOTE: This
-		// functionality only works on the DB layer and is not exposed to REST.
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
 		// when
 		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
-		newWi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		newWi, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		// then
-		require.NoError(s.T(), err)
-		assert.Equal(s.T(), fxt.WorkItemTypes[1].ID, newWi.Type)
+		require.NoError(t, err)
+		require.NotNil(t, rev)
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWi.Type)
+	})
+
+	s.T().Run("change of type along with field is not prohibited", func(t *testing.T) {
+		// tests that you can change the type of a work item and its fields at the same time.
+		// NOTE: This functionality only works on the DB layer and is not exposed to REST.
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "foo"
+			return nil
+		}), tf.WorkItemTypes(2))
+		// when
+		fxt.WorkItems[0].Fields[workitem.SystemTitle] = "bar"
+		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
+		newWi, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		// then
+		require.NoError(t, err)
+		require.NotNil(t, rev)
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWi.Type)
+		assert.Equal(t, "bar", newWi.Fields[workitem.SystemTitle])
+	})
+
+	s.T().Run("type change", func(t *testing.T) {
+
+		type testData struct {
+			name string
+
+			initialValue interface{}
+			targetValue  interface{}
+
+			initialFieldType workitem.FieldType
+			targetFieldType  workitem.FieldType
+
+			fieldConvertible bool
+		}
+
+		k := workitem.KindString
+
+		td := []testData{
+			// valid conversions
+			{"ok - simple type to simple type",
+				"foo1",
+				"foo1",
+				workitem.SimpleType{Kind: k},
+				workitem.SimpleType{Kind: k},
+				true},
+			{"ok - simple type to list",
+				"foo2",
+				[]interface{}{"foo2"},
+				workitem.SimpleType{Kind: k},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				true},
+			{"ok - simple type to enum",
+				"foo3",
+				"foo3",
+				workitem.SimpleType{Kind: k},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"red", "foo3", "blue"}},
+				true},
+			{"ok - list to list",
+				[]interface{}{"foo4", "foo5"},
+				[]interface{}{"foo4", "foo5"},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				true},
+			{"ok - list to simple type",
+				[]interface{}{"foo6"},
+				"foo6",
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.SimpleType{Kind: k},
+				true},
+			{"ok - list to enum",
+				[]interface{}{"foo7"},
+				"foo7",
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"yellow", "foo7", "cyan"}},
+				true},
+			{"ok - enum to enum",
+				"foo8",
+				"foo8",
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Bach", "foo8", "Chapdelaine"}},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Kant", "Hume", "foo8", "Aristoteles"}},
+				true},
+			{"ok - enum to simple type",
+				"foo9",
+				"foo9",
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Schopenhauer", "foo9", "Duerer"}},
+				workitem.SimpleType{Kind: k},
+				true},
+			{"ok - enum to list",
+				"foo10",
+				[]interface{}{"foo10"},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Sokrates", "foo10", "Fromm"}},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				true},
+			// invalid conversions
+			{"err - simple type (string) to simple type (int)",
+				"foo11",
+				nil,
+				workitem.SimpleType{Kind: workitem.KindString},
+				workitem.SimpleType{Kind: workitem.KindInteger},
+				false},
+			{"err - simple type (string) to list (integer)",
+				"foo2",
+				([]interface{})(nil),
+				workitem.SimpleType{Kind: k},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: workitem.KindInteger}},
+				false},
+			{"err - simple type (string) to enum (float)",
+				"foo3",
+				11.1,
+				workitem.SimpleType{Kind: k},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: workitem.KindFloat}, Values: []interface{}{11.1, 22.2, 33.3}},
+				false},
+			{"err - list (string) to list (float)",
+				[]interface{}{"foo4", "foo5"},
+				([]interface{})(nil),
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: workitem.KindFloat}},
+				false},
+			{"err - list (string) to simple type (int)",
+				[]interface{}{"foo6"},
+				nil,
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.SimpleType{Kind: workitem.KindInteger},
+				false},
+			{"err - list (string) to enum (float)",
+				[]interface{}{"foo7"},
+				11.1,
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: k}},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: workitem.KindFloat}, Values: []interface{}{11.1, 22.2, 33.3}},
+				false},
+			{"err - enum (string) to enum (float)",
+				"foo8",
+				11.1,
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Bach", "foo8", "Chapdelaine"}},
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: workitem.KindFloat}, Values: []interface{}{11.1, 22.2, 33.3}},
+				false},
+			{"err - enum (string) to simple type (float)",
+				"foo9",
+				nil,
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Schopenhauer", "foo9", "Duerer"}},
+				workitem.SimpleType{Kind: workitem.KindFloat},
+				false},
+			{"err - enum (string) to list (float)",
+				"foo10",
+				([]interface{})(nil),
+				workitem.EnumType{SimpleType: workitem.SimpleType{Kind: workitem.KindEnum}, BaseType: workitem.SimpleType{Kind: k}, Values: []interface{}{"Sokrates", "foo10", "Fromm"}},
+				workitem.ListType{SimpleType: workitem.SimpleType{Kind: workitem.KindList}, ComponentType: workitem.SimpleType{Kind: workitem.KindFloat}},
+				false},
+		}
+		for _, d := range td {
+			t.Run(d.name, func(t *testing.T) {
+				fieldName := d.name
+
+				fxt := tf.NewTestFixture(t, s.DB,
+					tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+						wit := fxt.WorkItemTypes[idx]
+						switch idx {
+						case 0:
+							wit.Fields = workitem.FieldDefinitions{
+								fieldName: workitem.FieldDefinition{
+									Label:    "source field",
+									Required: false,
+									Type:     d.initialFieldType,
+								},
+							}
+						case 1:
+							wit.Fields = workitem.FieldDefinitions{
+								fieldName: workitem.FieldDefinition{
+									Label:    "target field",
+									Required: false,
+									Type:     d.targetFieldType,
+								},
+							}
+						}
+						return nil
+					}),
+					tf.WorkItems(1, tf.SetWorkItemField(fieldName, d.initialValue)),
+				)
+
+				// Load the work item from the DB and check that the
+				// initial value was set correctly. We have some special
+				// treatment for lists here.
+				loadedWorkItem, err := s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
+				require.NoError(t, err)
+				require.Equal(t, d.initialValue, loadedWorkItem.Fields[fieldName])
+
+				// when we update the work item type
+				loadedWorkItem.Type = fxt.WorkItemTypes[1].ID
+				updatedWorkItem, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *loadedWorkItem, fxt.Identities[0].ID)
+				require.NoError(t, err)
+				require.NotNil(t, rev)
+
+				// then check that the error is as expected or that the
+				// value in the new field type is what we expected.
+				if !d.fieldConvertible {
+					rendered := d.initialValue
+					if d.initialFieldType.GetKind() == workitem.KindList {
+						ifArr := d.initialValue.(interface{}).([]interface{})
+						strArr := make([]string, len(ifArr))
+						for i := range ifArr {
+							strArr[i] = ifArr[i].(string)
+						}
+						rendered = strings.Join(strArr, ", ")
+					}
+					require.Contains(t, updatedWorkItem.Fields[workitem.SystemDescription].(rendering.MarkupContent).Content, fmt.Sprintf("source field : %+v", rendered))
+				} else {
+					require.NotNil(t, updatedWorkItem)
+					require.Equal(t, fxt.WorkItemTypes[1].ID, updatedWorkItem.Type)
+					require.Equal(t, d.targetValue, updatedWorkItem.Fields[fieldName])
+				}
+
+				// also check if the values are the same when work item is
+				// loaded
+				loadedWorkItem, err = s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
+				require.NoError(t, err)
+				require.Equal(t, fxt.WorkItemTypes[1].ID, loadedWorkItem.Type)
+				require.Equal(t, d.targetValue, loadedWorkItem.Fields[fieldName])
+			})
+		}
 	})
 }
 
@@ -138,13 +362,14 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				return nil
 			}),
 		)
-		wi, err := s.repo.Create(
+		wi, rev, err := s.repo.Create(
 			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle: "some title",
 				workitem.SystemState: workitem.SystemStateNew,
 			}, fxt.Identities[0].ID)
 		require.Error(t, err)
+		require.Nil(t, rev)
 		require.IsType(t, errors.ForbiddenError{}, err)
 		require.Nil(t, wi)
 	})
@@ -160,7 +385,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		)
 		wiType := fxt.WorkItemTypes[0]
 		// Space belongs to spaceTemplate1 and workitem type belongs to spaceTemplate2
-		wi, err := s.repo.Create(
+		wi, rev, err := s.repo.Create(
 			s.Ctx, fxt.Spaces[0].ID, wiType.ID,
 			map[string]interface{}{
 				workitem.SystemTitle: "Some title",
@@ -168,19 +393,21 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		require.EqualError(t, err, fmt.Sprintf(
 			"Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wiType.Name, wiType.ID),
 		)
+		require.Nil(t, rev)
 		require.IsType(t, errors.BadParameterError{}, err)
 		require.Nil(t, wi)
 	})
 
 	s.T().Run("create work item without assignees & labels", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1), tf.Spaces(1))
-		wi, err := s.repo.Create(
+		wi, rev, err := s.repo.Create(
 			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle: "some title",
 				workitem.SystemState: workitem.SystemStateNew,
 			}, fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wi.Fields[workitem.SystemAssignees].([]interface{}), 0)
 		require.Len(t, wi.Fields[workitem.SystemLabels].([]interface{}), 0)
 
@@ -273,7 +500,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 			LineNumber: line,
 		}
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1), tf.Spaces(1))
-		_, err := s.repo.Create(
+		_, rev, err := s.repo.Create(
 			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle:    title,
@@ -281,6 +508,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				workitem.SystemCodebase: cbase,
 			}, fxt.Identities[0].ID)
 		require.Error(t, err)
+		require.Nil(t, rev)
 	})
 
 	s.T().Run("field types", func(t *testing.T) {
@@ -315,7 +543,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				t.Run("legal", func(t *testing.T) {
 					for _, expected := range iv.Valid {
 						t.Run(spew.Sdump(expected), func(t *testing.T) {
-							wi, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
+							wi, _, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
 							require.NoError(t, err, "expected no error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
 							loadedWi, err := s.repo.LoadByID(s.Ctx, wi.ID)
 							require.NoError(t, err)
@@ -332,8 +560,8 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 					// Handle cases where the conversion is supposed to NOT work
 					for _, expected := range iv.Invalid {
 						t.Run(spew.Sdump(expected), func(t *testing.T) {
-							_, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
-							assert.NotNil(t, err, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+							_, _, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
+							require.Error(t, err, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
 						})
 					}
 				})
@@ -518,7 +746,7 @@ func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 					workitem.SystemTitle: uuid.NewV4().String(),
 					workitem.SystemState: workitem.SystemStateNew,
 				}
-				if _, err := s.repo.Create(context.Background(), fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID, fields, fxt.Identities[0].ID); err != nil {
+				if _, _, err := s.repo.Create(context.Background(), fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID, fields, fxt.Identities[0].ID); err != nil {
 					s.T().Logf("Creation failed: %s", err.Error())
 					report.failures++
 				}

@@ -330,7 +330,7 @@ func (s *SpaceIterationControllerTestSuite) TestWICountsWithIterationListBySpace
 			}, s.testIdentity.ID)
 	}
 	for i := 0; i < 2; i++ {
-		_, err := wirepo.Create(
+		_, _, err := wirepo.Create(
 			s.Ctx, iteration1.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
@@ -341,7 +341,7 @@ func (s *SpaceIterationControllerTestSuite) TestWICountsWithIterationListBySpace
 	}
 	// add items to nested iteration level 1
 	for i := 0; i < 4; i++ {
-		_, err := wirepo.Create(
+		_, _, err := wirepo.Create(
 			s.Ctx, iteration1.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
@@ -352,7 +352,7 @@ func (s *SpaceIterationControllerTestSuite) TestWICountsWithIterationListBySpace
 	}
 	// add items to nested iteration level 2
 	for i := 0; i < 5; i++ {
-		_, err := wirepo.Create(
+		_, _, err := wirepo.Create(
 			s.Ctx, iteration1.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
@@ -393,7 +393,7 @@ func (s *SpaceIterationControllerTestSuite) TestWICountsWithIterationListBySpace
 	}
 	// seed 5 New WI to iteration2
 	for i := 0; i < 5; i++ {
-		_, err := wirepo.Create(
+		_, _, err := wirepo.Create(
 			s.Ctx, iteration1.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
@@ -404,7 +404,7 @@ func (s *SpaceIterationControllerTestSuite) TestWICountsWithIterationListBySpace
 	}
 	// seed 2 Closed WI to iteration2
 	for i := 0; i < 3; i++ {
-		_, err := wirepo.Create(
+		_, _, err := wirepo.Create(
 			s.Ctx, iteration1.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
