@@ -559,6 +559,37 @@ func (s *WorkItemSuite) TestUpdateWorkitemWithoutReorder() {
 	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemOrder], updated.Data.Attributes[workitem.SystemOrder])
 }
 
+// TestReorderDoesNotUpdateAnyOtherWIFields tests that no other workitem fields are updated while reorder
+func (s *WorkItemSuite) TestReorderDoesNotUpdateOtherWIFields() {
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+
+	// create workitems
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
+	originalTitle := "Original Title"
+	payload.Data.Attributes[workitem.SystemTitle] = originalTitle
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+	_, workitem1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, workitem2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+
+	titleNotUpdated := "This Title Should Not Be Updated"
+	workitem1.Data.Attributes[workitem.SystemTitle] = titleNotUpdated
+
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
+	dataArray = append(dataArray, workitem1.Data)
+	payload2.Data = dataArray
+	payload2.Position.ID = workitem2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = string(workitem.DirectionAbove)
+	_, reorderedList := test.ReorderWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload2) // Returns the workitems which are reordered
+
+	require.Len(s.T(), reorderedList.Data, 1)
+	assert.Equal(s.T(), workitem1.Data.Attributes["version"].(int)+1, reorderedList.Data[0].Attributes["version"])
+	assert.Equal(s.T(), *workitem1.Data.ID, *reorderedList.Data[0].ID)
+	assert.NotEqual(s.T(), titleNotUpdated, reorderedList.Data[0].Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), originalTitle, reorderedList.Data[0].Attributes[workitem.SystemTitle])
+}
+
 func (s *WorkItemSuite) TestCreateWorkItemWithoutContext() {
 	// given
 	s.svc = goa.New("TestCreateWorkItemWithoutContext-Service")
