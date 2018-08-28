@@ -186,7 +186,7 @@ func (act ActionStateToMetaState) fuseChanges(c1 change.Set, c2 change.Set) *cha
 	return &c1
 }
 
-// OnChange executes the action rule. It implements rules.Action.
+// OnChange executes the action rule. It implements rules.Action. Returns the Work Item with eventual changes applied.
 func (act ActionStateToMetaState) OnChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error) {
 	if act.Ctx == nil {
 		return nil, nil, errs.New("context is nil")
@@ -223,7 +223,7 @@ func (act ActionStateToMetaState) OnChange(newContext change.Detector, contextCh
 	return newContext, *actionChanges, nil
 }
 
-// onBoardColumnsChange is executed when the columns change. It eventually updates the metastate and the state.
+// onBoardColumnsChange is executed when the columns change. It eventually updates the metastate and the state. Returns the Work Item with eventual changes applied.
 func (act ActionStateToMetaState) onBoardColumnsChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error) {
 	// we already assume that the rule applies, this needs to be checked in the controller.
 	// there is no additional check on the rule key.
@@ -325,7 +325,7 @@ func (act ActionStateToMetaState) onBoardColumnsChange(newContext change.Detecto
 	return resultingWorkItem, changes, nil
 }
 
-// onStateChange is executed when the state changes. It eventually updates the metastate and the boardcolumns.
+// onStateChange is executed when the state changes. It eventually updates the metastate and the boardcolumns. Returns the Work Item with eventual changes applied.
 func (act ActionStateToMetaState) onStateChange(newContext change.Detector, contextChanges change.Set, configuration string, actionChanges *change.Set) (change.Detector, change.Set, error) {
 	wi, ok := newContext.(workitem.WorkItem)
 	if !ok {
@@ -336,9 +336,6 @@ func (act ActionStateToMetaState) onStateChange(newContext change.Detector, cont
 	if err != nil {
 		return nil, nil, err
 	}
-	// create a dirty flag. Note that we can not use len(actionChanges) as this
-	// may contain previous changes from the action chain.
-	wiDirty := false
 	// update the workitem accordingly.
 	wiState := wi.Fields[workitem.SystemState].(string)
 	if wi.Fields[workitem.SystemMetaState] == mapping[wiState] {
@@ -348,7 +345,6 @@ func (act ActionStateToMetaState) onStateChange(newContext change.Detector, cont
 	// otherwise, update the metastate from the state.
 	changes := act.addOrUpdateChange(*actionChanges, workitem.SystemMetaState, wi.Fields[workitem.SystemMetaState], mapping[wiState])
 	wi.Fields[workitem.SystemMetaState] = mapping[wiState]
-	wiDirty = true
 	// next, get the columns of the workitem and see if these needs to be updated.
 	boards, err := act.loadWorkItemBoardsBySpaceID(wi.SpaceID)
 	if err != nil {
@@ -455,12 +451,10 @@ func (act ActionStateToMetaState) onStateChange(newContext change.Detector, cont
 	}
 	// finally, store the new work item state if something changed.
 	var resultingWorkItem workitem.WorkItem
-	if wiDirty {
-		result, err := act.storeWorkItem(&wi)
-		resultingWorkItem = *result
-		if err != nil {
-			return nil, nil, err
-		}
+	result, err := act.storeWorkItem(&wi)
+	resultingWorkItem = *result
+	if err != nil {
+		return nil, nil, err
 	}
 	// and return to sender.
 	return resultingWorkItem, changes, nil
