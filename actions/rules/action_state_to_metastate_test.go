@@ -25,24 +25,14 @@ type ActionStateToMetastateSuite struct {
 
 func (s *ActionStateToMetastateSuite) TestContainsElement() {
 	s.T().Run("contains an element", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
-		action := ActionStateToMetaState{
-			Db:     s.GormDB,
-			Ctx:    s.Ctx,
-			UserID: &fxt.Identities[0].ID,
-		}
+		action := ActionStateToMetaState{}
 		a := []interface{}{0, 1, 2, 3, 2}
 		require.True(t, action.contains(a, 2))
 		require.True(t, action.contains(a, 3))
 		require.True(t, action.contains(a, 0))
 	})
 	s.T().Run("not contains an element", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
-		action := ActionStateToMetaState{
-			Db:     s.GormDB,
-			Ctx:    s.Ctx,
-			UserID: &fxt.Identities[0].ID,
-		}
+		action := ActionStateToMetaState{}
 		a := []interface{}{0, 1, 2, 3, 2}
 		require.False(t, action.contains(a, 4))
 		require.False(t, action.contains(a, nil))
@@ -52,44 +42,26 @@ func (s *ActionStateToMetastateSuite) TestContainsElement() {
 
 func (s *ActionStateToMetastateSuite) TestRemoveElement() {
 	s.T().Run("removing an existing element", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
-		action := ActionStateToMetaState{
-			Db:     s.GormDB,
-			Ctx:    s.Ctx,
-			UserID: &fxt.Identities[0].ID,
-		}
 		a := []interface{}{0, 1, 2, 3, 2}
-		a = action.removeElement(a, 1)
+		a = ActionStateToMetaState{}.removeElement(a, 1)
 		expected := []interface{}{0, 2, 3, 2}
 		require.Len(t, a, 4)
 		require.Equal(t, expected, a)
-		a = action.removeElement(a, 3)
+		a = ActionStateToMetaState{}.removeElement(a, 3)
 		expected = []interface{}{0, 2, 2}
 		require.Len(t, a, 3)
 		require.Equal(t, expected, a)
 	})
 	s.T().Run("removing a non-existing element", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
-		action := ActionStateToMetaState{
-			Db:     s.GormDB,
-			Ctx:    s.Ctx,
-			UserID: &fxt.Identities[0].ID,
-		}
 		a := []interface{}{0, 1, 2, 3, 2}
-		a = action.removeElement(a, 4)
+		a = ActionStateToMetaState{}.removeElement(a, 4)
 		require.Len(t, a, 5)
 		expected := []interface{}{0, 1, 2, 3, 2}
 		require.Equal(t, expected, a)
 	})
 	s.T().Run("removing a duplicate element", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
-		action := ActionStateToMetaState{
-			Db:     s.GormDB,
-			Ctx:    s.Ctx,
-			UserID: &fxt.Identities[0].ID,
-		}
 		a := []interface{}{0, 1, 2, 3, 2}
-		a = action.removeElement(a, 2)
+		a = ActionStateToMetaState{}.removeElement(a, 2)
 		expected := []interface{}{0, 1, 3}
 		require.Len(t, a, 3)
 		require.Equal(t, expected, a)
@@ -98,15 +70,9 @@ func (s *ActionStateToMetastateSuite) TestRemoveElement() {
 
 func (s *ActionStateToMetastateSuite) TestDifference() {
 	s.T().Run("finding differences", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
-		action := ActionStateToMetaState{
-			Db:     s.GormDB,
-			Ctx:    s.Ctx,
-			UserID: &fxt.Identities[0].ID,
-		}
 		a := []interface{}{0, 1, 2, 3, 2}
 		b := []interface{}{2, 3, 5}
-		added, removed := action.difference(a, b)
+		added, removed := ActionStateToMetaState{}.difference(a, b)
 		require.Len(t, added, 1)
 		require.Len(t, removed, 2)
 		// wasting plenty more memory here
