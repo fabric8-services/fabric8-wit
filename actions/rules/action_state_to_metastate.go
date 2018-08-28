@@ -217,7 +217,7 @@ func (act ActionStateToMetaState) OnChange(newContext change.Detector, contextCh
 		if err != nil {
 			return nil, nil, err
 		}
-		actionChanges = act.fuseChanges(*actionChanges, executionChanges)
+		actionChanges = &act.fuseChanges(*actionChanges, executionChanges)
 	}
 	// return the result
 	return newContext, *actionChanges, nil
@@ -450,12 +450,10 @@ func (act ActionStateToMetaState) onStateChange(newContext change.Detector, cont
 		changes = act.addOrUpdateChange(changes, workitem.SystemBoardcolumns, oldColumnsConfig, wi.Fields[workitem.SystemBoardcolumns])
 	}
 	// finally, store the new work item state if something changed.
-	var resultingWorkItem workitem.WorkItem
 	result, err := act.storeWorkItem(&wi)
-	resultingWorkItem = *result
 	if err != nil {
 		return nil, nil, err
 	}
 	// and return to sender.
-	return resultingWorkItem, changes, nil
+	return *result, changes, nil
 }
