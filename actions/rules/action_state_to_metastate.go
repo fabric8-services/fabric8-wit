@@ -217,7 +217,7 @@ func (act ActionStateToMetaState) OnChange(newContext change.Detector, contextCh
 		if err != nil {
 			return nil, nil, err
 		}
-		actionChanges = &act.fuseChanges(*actionChanges, executionChanges)
+		actionChanges = act.fuseChanges(*actionChanges, executionChanges)
 	}
 	// return the result
 	return newContext, *actionChanges, nil
