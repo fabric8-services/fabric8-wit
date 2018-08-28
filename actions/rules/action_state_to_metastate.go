@@ -179,11 +179,11 @@ func (act ActionStateToMetaState) addOrUpdateChange(changes change.Set, attribut
 	return newChanges
 }
 
-func (act ActionStateToMetaState) fuseChanges(c1 change.Set, c2 change.Set) *change.Set {
+func (act ActionStateToMetaState) fuseChanges(c1 change.Set, c2 change.Set) change.Set {
 	for _, change := range c2 {
 		c1 = act.addOrUpdateChange(c1, change.AttributeName, change.OldValue, change.NewValue)
 	}
-	return &c1
+	return c1
 }
 
 // OnChange executes the action rule. It implements rules.Action. Returns the Work Item with eventual changes applied.
@@ -217,7 +217,7 @@ func (act ActionStateToMetaState) OnChange(newContext change.Detector, contextCh
 		if err != nil {
 			return nil, nil, err
 		}
-		actionChanges = act.fuseChanges(*actionChanges, executionChanges)
+		*actionChanges = act.fuseChanges(*actionChanges, executionChanges)
 	}
 	// return the result
 	return newContext, *actionChanges, nil
