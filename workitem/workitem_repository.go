@@ -545,23 +545,9 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		return &wi, nil
 	}
 	res.Version = res.Version + 1
-	res.Type = wi.Type
-	res.Fields = Fields{}
-
 	res.ExecutionOrder = order
 
-	for fieldName, fieldDef := range wiType.Fields {
-		if fieldDef.ReadOnly {
-			continue
-		}
-		fieldValue := wi.Fields[fieldName]
-		var err error
-		res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
-		if err != nil {
-			return nil, errors.NewBadParameterError(fieldName, fieldValue)
-		}
-	}
-	tx = tx.Where("Version = ?", wi.Version).Save(&res)
+	tx = tx.Model(&res).Where("Version = ?", wi.Version).UpdateColumns(WorkItemStorage{ExecutionOrder: order, Version: res.Version})
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
