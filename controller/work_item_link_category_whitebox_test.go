@@ -19,7 +19,6 @@ func TestWorkItemLinkCategory_ConvertLinkCategoryFromModel(t *testing.T) {
 		ID:          uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		Name:        "Example work item link category",
 		Description: &description,
-		Version:     0,
 	}
 
 	expected := app.WorkItemLinkCategorySingle{
