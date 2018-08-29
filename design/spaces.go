@@ -20,6 +20,7 @@ var space = a.Type("Space", func() {
 
 var genericLinksForSpace = a.Type("GenericLinksForSpace", func() {
 	a.Attribute("self", d.String)
+	a.Attribute("deployments", linkWithAccess)
 	a.Attribute("related", d.String)
 	a.Attribute("backlog", backlogGenericLinkType, `URL to the backlog work items`)
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
@@ -123,6 +124,7 @@ var _ = a.Resource("space", func() {
 		a.Description("Retrieve space (as JSONAPI) for the given ID.")
 		a.Params(func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
+			a.Param("qp", d.Boolean, "if true, query and return permissions for this space")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, spaceSingle)

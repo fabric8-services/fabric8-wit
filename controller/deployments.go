@@ -3,23 +3,19 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/url"
 	"os"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
-	witclient "github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/rest"
 
 	"github.com/goadesign/goa"
-	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/websocket"
@@ -336,12 +332,46 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 // ShowSpace runs the showSpace action.
 func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) error {
 
+	// TODO - get from ctx
+	//checkPerms := true
+
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
+	/****
+		guid := goauuid.UUID(ctx.SpaceID)
+		spaceURLStr := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(witclient.ShowSpacePath(guid)))
+
+		if checkPerms {
+			canRead, err := kc.CanGetSpace()
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			if !canRead {
+				// return a non-space with empty permissions
+				emptySpace := &app.SimpleSpace{
+					ID:   ctx.SpaceID,
+					Type: "space",
+					Links: &app.SimpleSpaceLinks{
+						Space: &app.LinkWithAccess{
+							Href: &spaceURLStr,
+							Meta: &app.EndpointAccess{
+								Methods: []string{},
+							},
+						},
+					},
+				}
+				res := &app.SimpleSpaceSingle{
+					Data: emptySpace,
+				}
+
+				return ctx.OK(res)
+			}
+		}
+	**/
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
 	if err != nil || kubeSpaceName == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("osio space", ctx.SpaceID.String()))
@@ -358,17 +388,22 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 
 	// Kubernetes doesn't know about space ID, so add it here
 	space.ID = ctx.SpaceID
-	guid := goauuid.UUID(ctx.SpaceID)
-	spaceURLStr := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(witclient.ShowSpacePath(guid)))
-	space.Links = &app.SimpleSpaceLinks{
-		Space: &app.LinkWithAccess{
-			Href: &spaceURLStr,
-			Meta: &app.EndpointAccess{
-				Methods: []string{"GET", "POST", "DELETE", "PATCH"},
-			},
-		},
-	}
+	/**
+		// next, try to get permissions
+		allowedMethods := []string{"GET"}
 
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve space %s", *kubeSpaceName))
+		}
+		space.Links = &app.SimpleSpaceLinks{
+			Space: &app.LinkWithAccess{
+				Href: &spaceURLStr,
+				Meta: &app.EndpointAccess{
+					Methods: []string{"GET", "POST", "DELETE", "PATCH"},
+				},
+			},
+		}
+	***/
 	res := &app.SimpleSpaceSingle{
 		Data: space,
 	}

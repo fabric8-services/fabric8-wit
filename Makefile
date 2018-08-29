@@ -317,6 +317,16 @@ regenerate: clean-generated generate
 dev: prebuild-check deps generate $(FRESH_BIN) docker-compose-up
 	F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
 
+
+.PHONY: dev-pp
+dev-pp: prebuild-check deps generate $(FRESH_BIN) docker-compose-up
+	FABRIC8_WIT_API_URL=https://api.prod-preview.openshift.io F8_CONFIG_FILE_PATH=jstconfig-pp.yaml F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
+
+.PHONY: dev-prod
+dev-prod: prebuild-check deps generate $(FRESH_BIN) docker-compose-up
+	FABRIC8_WIT_API_URL=https://api.openshift.io F8_CONFIG_FILE_PATH=jstconfig-prod.yaml F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
+
+
 .PHONY: docker-compose-up
 docker-compose-up:
 ifeq ($(UNAME_S),Darwin)

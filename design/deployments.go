@@ -16,7 +16,6 @@ var simpleSpace = a.Type("SimpleSpace", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", simpleSpaceAttributes)
-	a.Attribute("links", simpleSpaceLinks)
 	a.Required("type", "id", "attributes")
 })
 
@@ -68,7 +67,6 @@ var genericLinksForDeployment = a.Type("GenericLinksForDeployment", func() {
 	a.Attribute("logs", d.String)
 	a.Attribute("application", d.String)
 	a.Attribute("self", linkWithAccess)
-	//a.Required("self")
 })
 
 var simpleDeploymentAttributes = a.Type("SimpleDeploymentAttributes", func() {
