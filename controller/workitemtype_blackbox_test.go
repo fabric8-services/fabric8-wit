@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -113,8 +115,8 @@ func (s *workItemTypeSuite) TestShow() {
 // used for testing purpose only
 func ConvertWorkItemTypeToModel(data app.WorkItemTypeData) workitem.WorkItemType {
 	return workitem.WorkItemType{
-		ID:      *data.ID,
-		Version: *data.Attributes.Version,
+		ID:         *data.ID,
+		Versioning: gormsupport.Versioning{Version: *data.Attributes.Version},
 	}
 }
 

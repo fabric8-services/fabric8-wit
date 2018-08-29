@@ -39,7 +39,7 @@ func TestConvertTypeFromModel(t *testing.T) {
 		},
 		Name:        "foo",
 		Description: &descFoo,
-		Version:     42,
+		Versioning:  gormsupport.Versioning{Version: 42},
 		Path:        "something",
 		Fields: map[string]workitem.FieldDefinition{
 			"aListType": {

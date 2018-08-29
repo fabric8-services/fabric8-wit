@@ -212,7 +212,7 @@ func convertSpaceTemplateToModel(t *testing.T, appSpaceTemplate app.SpaceTemplat
 		Description:  &desc,
 		CanConstruct: *appSpaceTemplate.Attributes.CanConstruct,
 		// Template:    string(bs),
-		Version: *appSpaceTemplate.Attributes.Version,
+		Versioning: gormsupport.Versioning{Version: *appSpaceTemplate.Attributes.Version},
 		Lifecycle: gormsupport.Lifecycle{
 			UpdatedAt: *appSpaceTemplate.Attributes.UpdatedAt,
 			CreatedAt: *appSpaceTemplate.Attributes.CreatedAt,
