@@ -1,10 +1,11 @@
 package controller
 
 import (
+	"testing"
+
 	"github.com/fabric8-services/fabric8-wit/codebase/che"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestWorkspaceLinks(t *testing.T) {
