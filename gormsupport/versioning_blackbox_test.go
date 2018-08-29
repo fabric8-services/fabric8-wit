@@ -42,10 +42,9 @@ type VersioningSuite struct {
 	gormtestsupport.DBTestSuite
 }
 
-func TestVersioning(t *testing.T) {
+func TestVersioningSuite(t *testing.T) {
 	suite.Run(t, &VersioningSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
-
 func (s *VersioningSuite) TestCallbacks() {
 	// given a work item link category that embeds the Versioning struct is a
 	// good way to demonstrate the way the callbacks work.
@@ -56,6 +55,8 @@ func (s *VersioningSuite) TestCallbacks() {
 	// automatically set this to 0 before entering it in the DB.
 	cat.Version = 123
 
+	newName := "new name"
+
 	s.T().Run("before create", func(t *testing.T) {
 		// when
 		err := s.DB.Create(&cat).Error
@@ -64,14 +65,27 @@ func (s *VersioningSuite) TestCallbacks() {
 		require.Equal(t, 0, cat.Version, "initial version of entity must be 0 nomatter what the given version was")
 	})
 	s.T().Run("before update", func(t *testing.T) {
-		// given
-		newName := "new name"
-		cat.Name = newName
-		// when
-		err := s.DB.Save(&cat).Error
-		// then
-		require.NoError(t, err)
-		require.Equal(t, 1, cat.Version, "followup version of entity must be 1")
-		require.Equal(t, newName, cat.Name)
+		t.Run("allowed because versions match", func(t *testing.T) {
+			// given
+			cat.Name = newName
+			// when
+			db := s.DB.Save(&cat)
+			// then
+			require.NoError(t, db.Error)
+			require.Equal(t, int64(1), db.RowsAffected)
+			require.Equal(t, 1, cat.Version, "followup version of entity must be 1")
+			require.Equal(t, newName, cat.Name)
+		})
+		t.Run("disallowed because versions mismatch", func(t *testing.T) {
+			// given
+			cat.Name = "not used"
+			cat.Version = 42
+			// when
+			db := s.DB.Save(&cat)
+			// then
+			require.NoError(t, db.Error)
+			require.Equal(t, int64(0), db.RowsAffected)
+			require.Equal(t, newName, cat.Name, "name should not have been updated")
+		})
 	})
 }

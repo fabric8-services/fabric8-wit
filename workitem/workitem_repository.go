@@ -624,7 +624,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		// This will be used by the ConvertWorkItemStorageToModel function
 		wiType = newWiType
 	}
-	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)
+	tx := r.db.Save(&wiStorage)
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"wi_id":    updatedWorkItem.ID,
