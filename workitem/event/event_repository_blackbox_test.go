@@ -399,6 +399,15 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Equal(t, eventList[0].RevisionID, eventList[1].RevisionID, "events for same revision must have the same revision ID")
 	})
 
+	s.T().Run("reorder event shouldn't be logged", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(3))
+		_, err := s.wiRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionAbove, &fxt.WorkItems[0].ID, *fxt.WorkItems[2], fxt.Identities[0].ID)
+		require.Nil(t, err)
+		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[1].ID)
+		require.Nil(t, err)
+		require.Len(t, eventList, 0)
+	})
+
 	s.T().Run("Type change event", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
 		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
