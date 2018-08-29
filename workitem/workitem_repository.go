@@ -544,7 +544,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 	default:
 		return &wi, nil
 	}
-	res.Version = res.Version + 1
 	res.Type = wi.Type
 	res.Fields = Fields{}
 
@@ -587,7 +586,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	if wiStorage.Version != updatedWorkItem.Version {
 		return nil, nil, errors.NewVersionConflictError("version conflict")
 	}
-	wiStorage.Version = wiStorage.Version + 1
 	wiStorage.Fields = Fields{}
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldDef.ReadOnly {
