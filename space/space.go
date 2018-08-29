@@ -29,8 +29,8 @@ var (
 // Space represents a Space on the domain and db layer
 type Space struct {
 	gormsupport.Lifecycle
+	gormsupport.Versioning
 	ID              uuid.UUID
-	Version         int
 	Name            string
 	Description     string
 	OwnerID         uuid.UUID `sql:"type:uuid"` // Belongs To Identity
@@ -51,7 +51,7 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if !lfEqual {
 		return false
 	}
-	if p.Version != other.Version {
+	if !p.Versioning.Equal(other.Versioning) {
 		return false
 	}
 	if p.Name != other.Name {

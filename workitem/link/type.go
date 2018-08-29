@@ -23,10 +23,10 @@ var (
 // the db
 type WorkItemLinkType struct {
 	gormsupport.Lifecycle `json:"lifecycle,inline"`
+	gormsupport.Versioning
 	ID                    uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id"`
 	Name                  string    `json:"name"`                  // Name is the unique name of this work item link type.
 	Description           *string   `json:"description,omitempty"` // Description is an optional description of the work item link type
-	Version               int       `json:"version"`               // Version for optimistic concurrency control
 	Topology              Topology  `json:"topology"`              // Valid values: network, directed_network, dependency, tree
 	ForwardName           string    `json:"forward_name"`
 	ForwardDescription    *string   `json:"forward_description,omitempty"`
@@ -52,7 +52,7 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.Name != other.Name {
 		return false
 	}
-	if t.Version != other.Version {
+	if !t.Versioning.Equal(other.Versioning {
 		return false
 	}
 	if !reflect.DeepEqual(t.Description, other.Description) {

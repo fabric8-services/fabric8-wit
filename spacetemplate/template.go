@@ -23,11 +23,11 @@ var (
 // ImportHelper to learn more about how we import space templates using YAML.
 type SpaceTemplate struct {
 	gormsupport.Lifecycle `json:"lifecycle"`
-	ID                    uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id"`
-	Version               int       `json:"version"`
-	Name                  string    `json:"name"`
-	Description           *string   `json:"description,omitempty"`
-	CanConstruct          bool      `gorm:"can_construct" json:"can_construct"`
+	gormsupport.Versioning
+	ID           uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id"`
+	Name         string    `json:"name"`
+	Description  *string   `json:"description,omitempty"`
+	CanConstruct bool      `gorm:"can_construct" json:"can_construct"`
 }
 
 // Validate ensures that all inner-document references of the given space
@@ -76,7 +76,7 @@ func (s SpaceTemplate) Equal(u convert.Equaler) bool {
 	if s.Name != other.Name {
 		return false
 	}
-	if s.Version != other.Version {
+	if !s.Versioning.Equal(other.Versioning) {
 		return false
 	}
 	if s.CanConstruct != other.CanConstruct {

@@ -172,7 +172,6 @@ func (s *SpaceRepositoryTestSuite) TestSave() {
 		// given a space with a not existing ID
 		p := space.Space{
 			ID:              uuid.NewV4(),
-			Version:         0,
 			Name:            testsupport.CreateRandomValidTestName("some space"),
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
