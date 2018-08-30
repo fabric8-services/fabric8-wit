@@ -4,6 +4,7 @@
       "attributes": {
         "bucket": "portfolio",
         "created-at": "0001-01-01T00:00:00Z",
+        "description": "Work items describe and keep track of work that needs to be completed. They can be assigned to collaborators within a space. It comprises the agile work item types such as themes, epics, stories, tasks, defects and impediments.",
         "icon": "fa fa-bullseye",
         "name": "Work Items",
         "show-in-sidebar": true,
