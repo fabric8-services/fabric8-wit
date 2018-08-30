@@ -356,6 +356,171 @@ func TestGetEnvironments(t *testing.T) {
 	}
 }
 
+func TestGetSpaceAndOtherEnvironmentUsage(t *testing.T) {
+	type environmentUsage struct {
+		CPUUsage float64
+		Memory   float64
+	}
+
+	const MIB = 1024 * 1024
+
+	fakeStage := "stage"
+	fakeRun := "run"
+	fakeTest := "test"
+
+	fakeTestCpuCores := 0.2
+	fakeRunCpuCores := 0.0
+	fakeStageCpuCores := 0.3
+
+	fakeTestMem := 10.0 * MIB
+	fakeRunMem := 20.0 * MIB
+	fakeStageMem := 25.0 * MIB
+
+	testSpace := &app.SimpleSpace{
+		Type: "space",
+		Attributes: &app.SimpleSpaceAttributes{
+			Name: "testSpace",
+			Applications: []*app.SimpleApp{
+				{
+					Attributes: &app.SimpleAppAttributes{
+						Deployments: []*app.SimpleDeployment{
+							{
+								Attributes: &app.SimpleDeploymentAttributes{
+									PodsQuota: &app.PodsQuota{
+										Cpucores: &fakeTestCpuCores,
+										Memory:   &fakeTestMem,
+									},
+									Name: "test",
+								},
+								Links: nil,
+								Type:  "deployment",
+							},
+							{
+								Attributes: &app.SimpleDeploymentAttributes{
+									PodsQuota: &app.PodsQuota{
+										Cpucores: &fakeRunCpuCores,
+										Memory:   &fakeRunMem,
+									},
+									Name: "run",
+								},
+								Links: nil,
+								Type:  "deployment",
+							},
+							{
+								Attributes: &app.SimpleDeploymentAttributes{
+									PodsQuota: &app.PodsQuota{
+										Cpucores: &fakeStageCpuCores,
+										Memory:   &fakeStageMem,
+									},
+									Name: "stage",
+								},
+								Links: nil,
+								Type:  "deployment",
+							},
+						},
+						Name: "fakeName",
+					},
+					ID:   "fakeId",
+					Type: "space",
+				},
+			},
+		},
+	}
+
+	testCases := []struct {
+		testName                  string
+		cassetteName              string
+		shouldFail                bool
+		errorChecker              func(error) (bool, error)
+		spaceEnvironmentUsageData []*app.SpaceEnvironmentUsage
+		environmentData           map[string]environmentUsage
+	}{
+		{
+			testName:     "Basic",
+			cassetteName: "getspaceandotherenvironmentusage",
+			spaceEnvironmentUsageData: []*app.SpaceEnvironmentUsage{
+				&app.SpaceEnvironmentUsage{
+					Attributes: &app.SpaceEnvironmentUsageAttributes{
+						Name: &fakeTest,
+						Quota: &app.SpaceEnvironmentUsageQuota{
+							CPUCores: &fakeTestCpuCores,
+							Memory:   &fakeTestMem,
+						},
+					},
+				},
+				&app.SpaceEnvironmentUsage{
+					Attributes: &app.SpaceEnvironmentUsageAttributes{
+						Name: &fakeRun,
+						Quota: &app.SpaceEnvironmentUsageQuota{
+							CPUCores: &fakeRunCpuCores,
+							Memory:   &fakeRunMem,
+						},
+					},
+				},
+				&app.SpaceEnvironmentUsage{
+					Attributes: &app.SpaceEnvironmentUsageAttributes{
+						Name: &fakeStage,
+						Quota: &app.SpaceEnvironmentUsageQuota{
+							CPUCores: &fakeStageCpuCores,
+							Memory:   &fakeStageMem,
+						},
+					},
+				},
+			},
+			environmentData: map[string]environmentUsage{
+				"test": environmentUsage{
+					CPUUsage: 0.0,
+					Memory:   (250 * MIB) - fakeTestMem,
+				},
+				"run": environmentUsage{
+					CPUUsage: 0.488,
+					Memory:   (250 * MIB) - fakeRunMem,
+				},
+				"stage": environmentUsage{
+					CPUUsage: 0.188,
+					Memory:   (250 * MIB) - fakeStageMem,
+				},
+			},
+		},
+		{
+			testName:     "Kubernetes Error",
+			cassetteName: "getenvironments-rq-error",
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
+			spaceEnvironmentUsages, simpleEnvironments, err := kc.GetSpaceAndOtherEnvironmentUsage(testSpace)
+			if testCase.shouldFail {
+				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
+			} else {
+				require.NoError(t, err, "Unexpected error occurred")
+
+				require.Equal(t, len(testCase.spaceEnvironmentUsageData), len(spaceEnvironmentUsages), "Wrong number of space usage objects returned")
+				require.Equal(t, len(testCase.environmentData), len(simpleEnvironments), "Wrong number of environments returned")
+				require.ElementsMatch(t, testCase.spaceEnvironmentUsageData, spaceEnvironmentUsages, "Space environment usages do not match")
+
+				for _, env := range simpleEnvironments {
+					require.Equal(t, testCase.environmentData[*env.Attributes.Name].CPUUsage, *env.Attributes.Quota.Cpucores.Used, fmt.Sprintf("environment %+v usage does not match computed usage", *env.Attributes.Name))
+					require.Equal(t, testCase.environmentData[*env.Attributes.Name].Memory, *env.Attributes.Quota.Memory.Used, fmt.Sprintf("environment %+v usage does not match computed usage", *env.Attributes.Name))
+				}
+			}
+		})
+	}
+}
+
 func TestGetEnvironment(t *testing.T) {
 	testCases := []struct {
 		testName     string

@@ -1,0 +1,124 @@
+---
+version: 1
+interactions:
+  # Resource Quotas
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/api/v1/namespaces/my-run/resourcequotas/compute-resources
+    method: GET
+  response:
+    body: |
+        {
+            "kind": "Status",
+            "apiVersion": "v1",
+            "metadata": {},
+            "status": "Failure",
+            "message": "resourcequotas \"compute-resources\" not found",
+            "reason": "NotFound",
+            "details": {
+                "name": "compute-resources",
+                "kind": "resourcequotas"
+            },
+            "code": 404
+        }
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 404 Not Found
+    code: 404
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/api/v1/namespaces/my-stage/resourcequotas/compute-resources
+    method: GET
+  response:
+    body: |
+        {
+            "apiVersion": "v1",
+            "kind": "ResourceQuota",
+            "metadata": {
+                "creationTimestamp": "2017-05-10T20:06:15Z",
+                "name": "compute-resources",
+                "namespace": "my-stage",
+                "resourceVersion": "1066766807",
+                "selfLink": "/api/v1/namespaces/my-stage/resourcequotas/compute-resources",
+                "uid": "b72ae154-730d-470d-b610-d34a6a7d271c"
+            },
+            "spec": {
+                "hard": {
+                    "limits.cpu": "2",
+                    "limits.memory": "1Gi"
+                },
+                "scopes": [
+                    "NotTerminating"
+                ]
+            },
+            "status": {
+                "hard": {
+                    "limits.cpu": "2",
+                    "limits.memory": "1Gi"
+                },
+                "used": {
+                    "limits.cpu": "1488m",
+                    "limits.memory": "762Mi"
+                }
+            }
+        }
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/api/v1/namespaces/myNamespace/resourcequotas/compute-resources
+    method: GET
+  response:
+    body: |
+        {
+            "apiVersion": "v1",
+            "kind": "ResourceQuota",
+            "metadata": {
+                "creationTimestamp": "2017-05-10T20:06:06Z",
+                "name": "compute-resources",
+                "namespace": "myNamespace",
+                "resourceVersion": "682306837",
+                "selfLink": "/api/v1/namespaces/myNamespace/resourcequotas/compute-resources",
+                "uid": "4a83f394-7081-4a54-ac01-7c9ea16e4ac5"
+            },
+            "spec": {
+                "hard": {
+                    "limits.cpu": "2",
+                    "limits.memory": "1Gi"
+                },
+                "scopes": [
+                    "NotTerminating"
+                ]
+            },
+            "status": {
+                "hard": {
+                    "limits.cpu": "2",
+                    "limits.memory": "1Gi"
+                },
+                "used": {
+                    "limits.cpu": "0",
+                    "limits.memory": "0"
+                }
+            }
+        }
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200
