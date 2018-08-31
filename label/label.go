@@ -101,7 +101,6 @@ func (m *GormLabelRepository) Save(ctx context.Context, l Label) (*Label, error)
 	}
 	lbl := Label{}
 	tx := m.db.Where("id = ?", l.ID).First(&lbl)
-	l.Version = lbl.Version + 1
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"label_id": l.ID,
