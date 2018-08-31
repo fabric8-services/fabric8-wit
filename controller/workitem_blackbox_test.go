@@ -1102,6 +1102,85 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 	})
 }
 
+func (s *WorkItem2Suite) TestWI2ChangeType() {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 0:
+				fxt.WorkItemTypes[idx].Name = "First WorkItem Type"
+				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+					"fooo": {
+						Label: "Type1 fooo",
+						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+					},
+					"fooBar": {
+						Label: "Type1 fooBar",
+						Type: workitem.EnumType{
+							BaseType:   workitem.SimpleType{Kind: workitem.KindString},
+							SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+							Values:     []interface{}{"open", "done", "closed"},
+						},
+					},
+					"bar": {
+						Label: "Type1 bar",
+						Type:  &workitem.SimpleType{Kind: workitem.KindString},
+					},
+				}
+			case 1:
+				fxt.WorkItemTypes[idx].Name = "Second WorkItem Type"
+				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+					"fooo": {
+						Label: "Type2 fooo",
+						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+					},
+					"bar": {
+						Label: "Type2 bar",
+						Type:  &workitem.SimpleType{Kind: workitem.KindInteger},
+					},
+					"fooBar": {
+						Label: "Type2 fooBar",
+						Type: workitem.EnumType{
+							BaseType:   workitem.SimpleType{Kind: workitem.KindString},
+							SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+							Values:     []interface{}{"alpha", "beta", "gamma"},
+						},
+					},
+				}
+			}
+			return nil
+		}),
+		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+			fxt.WorkItems[idx].Fields["fooo"] = 2.5
+			fxt.WorkItems[idx].Fields["fooBar"] = "open"
+			fxt.WorkItems[idx].Fields["bar"] = "hello"
+			return nil
+		}),
+	)
+	u := app.BaseTypeChange{
+		Data: &app.BaseTypeChangeData{
+			Attributes: &app.BaseTypeChangeAttributes{
+				Version: fxt.WorkItems[0].Version,
+				TypeID:  fxt.WorkItemTypes[1].ID,
+			},
+			ID:   fxt.WorkItems[0].ID,
+			Type: APIStringTypeWorkItem,
+		},
+	}
+	svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
+	s.T().Run("ok", func(t *testing.T) {
+		_, newWI := test.TypeChangeWorkitemOK(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+		require.NotNil(t, newWI)
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
+		assert.Equal(t, 2.5, newWI.Data.Attributes["fooo"])
+		assert.Equal(t, "alpha", newWI.Data.Attributes["fooBar"])
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "changeType", "workitem_type.res.payload.golden.json"), newWI)
+
+	})
+
+}
+
 func (s *WorkItem2Suite) TestWI2UpdateFieldOfDifferentSimpleTypes() {
 	s.T().Run("field types", func(t *testing.T) {
 		vals := workitem.GetFieldTypeTestData(t)

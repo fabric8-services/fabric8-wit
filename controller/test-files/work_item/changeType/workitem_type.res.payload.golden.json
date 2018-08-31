@@ -1,0 +1,94 @@
+{
+  "data": {
+    "attributes": {
+      "bar": null,
+      "fooBar": "alpha",
+      "fooo": 2.5,
+      "system.created_at": "0001-01-01T00:00:00Z",
+      "system.description": "```\nMissing fields in workitem type: Second WorkItem Type\n\nType1 bar : hello\nType1 fooBar : open\n```\n\n",
+      "system.description.markup": "Markdown",
+      "system.description.rendered": "\u003cpre\u003e\u003ccode class=\"prettyprint\"\u003e\u003cspan class=\"typ\"\u003eMissing\u003c/span\u003e \u003cspan class=\"pln\"\u003efields\u003c/span\u003e \u003cspan class=\"kwd\"\u003ein\u003c/span\u003e \u003cspan class=\"pln\"\u003eworkitem\u003c/span\u003e \u003cspan class=\"kwd\"\u003etype\u003c/span\u003e\u003cspan class=\"pun\"\u003e:\u003c/span\u003e \u003cspan class=\"typ\"\u003eSecond\u003c/span\u003e \u003cspan class=\"typ\"\u003eWorkItem\u003c/span\u003e \u003cspan class=\"typ\"\u003eType\u003c/span\u003e\n\n\u003cspan class=\"typ\"\u003eType1\u003c/span\u003e \u003cspan class=\"pln\"\u003ebar\u003c/span\u003e \u003cspan class=\"pun\"\u003e:\u003c/span\u003e \u003cspan class=\"pln\"\u003ehello\u003c/span\u003e\n\u003cspan class=\"typ\"\u003eType1\u003c/span\u003e \u003cspan class=\"pln\"\u003efooBar\u003c/span\u003e \u003cspan class=\"pun\"\u003e:\u003c/span\u003e \u003cspan class=\"pln\"\u003eopen\u003c/span\u003e\n\u003c/code\u003e\u003c/pre\u003e\n",
+      "system.metastate": null,
+      "system.number": 1,
+      "system.order": 1000,
+      "system.remote_item_id": null,
+      "system.state": "new",
+      "system.title": "work item 00000000-0000-0000-0000-000000000001",
+      "system.updated_at": "0001-01-01T00:00:00Z",
+      "version": 1
+    },
+    "id": "00000000-0000-0000-0000-000000000002",
+    "links": {
+      "related": "http:///api/workitems/00000000-0000-0000-0000-000000000002",
+      "self": "http:///api/workitems/00000000-0000-0000-0000-000000000002"
+    },
+    "relationships": {
+      "area": {},
+      "assignees": {},
+      "baseType": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000003",
+          "type": "workitemtypes"
+        },
+        "links": {
+          "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000003"
+        }
+      },
+      "children": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000002/children"
+        },
+        "meta": {
+          "hasChildren": false
+        }
+      },
+      "comments": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000002/comments",
+          "self": "http:///api/workitems/00000000-0000-0000-0000-000000000002/relationships/comments"
+        }
+      },
+      "creator": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000004",
+          "type": "users"
+        },
+        "links": {
+          "related": "http:///api/users/00000000-0000-0000-0000-000000000004",
+          "self": "http:///api/users/00000000-0000-0000-0000-000000000004"
+        }
+      },
+      "events": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000002/events"
+        }
+      },
+      "iteration": {},
+      "labels": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000002/labels"
+        }
+      },
+      "space": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000005",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000005",
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000005"
+        }
+      },
+      "system.boardcolumns": {},
+      "workItemLinks": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000002/links"
+        }
+      }
+    },
+    "type": "workitems"
+  },
+  "links": {
+    "self": "http:///api/workitems/00000000-0000-0000-0000-000000000002/relationships/basetype"
+  }
+}

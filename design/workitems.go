@@ -85,6 +85,25 @@ var workItemSingle = JSONSingle(
 	workItem,
 	workItemLinks)
 
+var baseTypeChange = a.Type("baseTypeChange", func() {
+	a.Attribute("data", baseTypeChangeData)
+	a.Required("data")
+})
+
+var baseTypeChangeData = a.Type("baseTypeChangeData", func() {
+	a.Attribute("attributes", func() {
+		a.Attribute("typeID", d.UUID, "ID of the new workitem type")
+		a.Attribute("version", d.Integer, "Version of the workitem")
+	})
+	a.Attribute("type", d.String, func() {
+		a.Enum("workitems")
+	})
+	a.Attribute("id", d.UUID, "ID of the work item which is being updated", func() {
+		a.Example("abcd1234-1234-5678-cafe-0123456789ab")
+	})
+	a.Required("attributes", "type")
+})
+
 // Reorder creates a UserTypeDefinition for Reorder action
 func Reorder(name, description string, data *d.UserTypeDefinition, position *d.UserTypeDefinition) *d.MediaTypeDefinition {
 	return a.MediaType("application/vnd."+strings.ToLower(name)+"json", func() {
@@ -180,6 +199,23 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
+	})
+
+	a.Action("type-change", func() {
+		a.Routing(
+			a.PATCH("/:wiID/relationships/basetype"),
+		)
+		a.Description("Change workitem type (basetype)")
+		a.Params(func() {
+			a.Param("wiID", d.UUID, "ID of the work item to change type")
+		})
+		a.Payload(baseTypeChange)
+		a.Response(d.OK, func() {
+			a.Media(workItemSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 })
 

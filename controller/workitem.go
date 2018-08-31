@@ -277,6 +277,56 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	return ctx.OK([]byte{})
 }
 
+// TypeChange does PATCH action on workitem/:id/relationships/basetype
+func (c *WorkitemController) TypeChange(ctx *app.TypeChangeWorkitemContext) error {
+	wi, err := c.db.WorkItems().LoadByID(ctx, ctx.WiID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	var updatedWI *workitem.WorkItem
+	var rev *workitem.Revision
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		// The Number of a work item is not allowed to be changed which is why
+		// we overwrite the values with its old value after the work item was
+		// converted.
+		oldNumber := wi.Number
+		newWI := workitem.WorkItem{
+			Fields:  wi.Fields,
+			Number:  oldNumber,
+			Version: *ctx.Payload.Data.Attributes.Version,
+			Type:    *ctx.Payload.Data.Attributes.TypeID,
+		}
+		updatedWI, rev, err = appl.WorkItems().Save(ctx, wi.SpaceID, newWI, *currentUserIdentityID)
+		if err != nil {
+			return errs.Wrap(err, "Error updating work item")
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	wit, err := c.db.WorkItemTypes().Load(ctx, updatedWI.Type)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	converted, err := ConvertWorkItem(ctx.Request, *wit, *updatedWI, workItemIncludeHasChildren(ctx, c.db))
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	resp := &app.WorkItemSingle{
+		Data: converted,
+		Links: &app.WorkItemLinks{
+			Self: buildAbsoluteURL(ctx.Request),
+		},
+	}
+	ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
+	return ctx.OK(resp)
+}
+
 // Time is default value if no UpdatedAt field is found
 func updatedAt(wi workitem.WorkItem) time.Time {
 	var t time.Time
