@@ -35,19 +35,19 @@ func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uu
 		actionConfig := actionConfigs[actionKey]
 		switch actionKey {
 		case rules.ActionKeyNil:
-			newContext, actionChanges, err = executeAction(rules.ActionNil{}, actionConfig, newContext, contextChanges, &actionChanges)
+			newContext, actionChanges, err = executeAction(rules.ActionNil{}, actionConfig, newContext, contextChanges, actionChanges)
 		case rules.ActionKeyFieldSet:
 			newContext, actionChanges, err = executeAction(rules.ActionFieldSet{
 				Db:     db,
 				Ctx:    ctx,
 				UserID: &userID,
-			}, actionConfig, newContext, contextChanges, &actionChanges)
+			}, actionConfig, newContext, contextChanges, actionChanges)
 		case rules.ActionKeyStateToMetastate:
 			newContext, actionChanges, err = executeAction(rules.ActionStateToMetaState{
 				Db:     db,
 				Ctx:    ctx,
 				UserID: &userID,
-			}, actionConfig, newContext, contextChanges, &actionChanges)
+			}, actionConfig, newContext, contextChanges, actionChanges)
 		default:
 			return nil, nil, errs.New("action key " + actionKey + " is unknown")
 		}
@@ -61,7 +61,7 @@ func ExecuteActionsByChangeset(ctx context.Context, db application.DB, userID uu
 // executeAction executes the action given. The actionChanges contain the changes made by
 // prior action executions. The execution is expected to add/update their changes on this
 // change set.
-func executeAction(act rules.Action, configuration string, newContext change.Detector, contextChanges change.Set, actionChanges *change.Set) (change.Detector, change.Set, error) {
+func executeAction(act rules.Action, configuration string, newContext change.Detector, contextChanges change.Set, actionChanges change.Set) (change.Detector, change.Set, error) {
 	if act == nil {
 		return nil, nil, errs.New("rule can not be nil")
 	}

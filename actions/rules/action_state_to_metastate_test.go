@@ -137,9 +137,9 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges change.Set
+		convertChanges := change.Set{}
 		// note: the rule does not use the explicit configuration, but reads from the template.
-		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
+		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
@@ -177,9 +177,9 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges change.Set
+		convertChanges := change.Set{}
 		// note: the rule does not use the explicit configuration, but reads from the template.
-		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
+		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
@@ -222,9 +222,9 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges change.Set
+		convertChanges := change.Set{}
 		// note: the rule does not use the explicit configuration, but reads from the template.
-		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
+		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
@@ -261,9 +261,9 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges change.Set
+		convertChanges := change.Set{}
 		// note: the rule does not use the explicit configuration, but reads from the template.
-		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
+		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
@@ -298,9 +298,9 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges change.Set
+		convertChanges := change.Set{}
 		// note: the rule does not use the explicit configuration, but reads from the template.
-		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
+		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
@@ -339,9 +339,9 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges change.Set
+		convertChanges := change.Set{}
 		// note: the rule does not use the explicit configuration, but reads from the template.
-		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
+		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
@@ -379,9 +379,9 @@ func (s *ActionStateToMetastateSuite) TestActionExecution() {
 			Ctx:    s.Ctx,
 			UserID: &fxt.Identities[0].ID,
 		}
-		var convertChanges change.Set
+		convertChanges := change.Set{}
 		// note: the rule does not use the explicit configuration, but reads from the template.
-		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", &convertChanges)
+		afterActionWI, convertChanges, err := action.OnChange(*fxt.WorkItems[0], contextChanges, "", convertChanges)
 		require.NoError(t, err)
 		require.Len(t, convertChanges, 2)
 		// check metastate validity.
