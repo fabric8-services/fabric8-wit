@@ -76,7 +76,7 @@ func (s *VersioningSuite) TestCallbacks() {
 			require.Equal(t, 1, cat.Version, "followup version of entity must be 1")
 			require.Equal(t, newName, cat.Name)
 		})
-		t.Run("disallowed because versions mismatch", func(t *testing.T) {
+		t.Run("no update because versions mismatch", func(t *testing.T) {
 			// given
 			cat.Name = "not used"
 			cat.Version = 42
