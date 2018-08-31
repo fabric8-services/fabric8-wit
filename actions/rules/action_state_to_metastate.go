@@ -99,7 +99,7 @@ func (act ActionStateToMetaState) storeWorkItem(workitem *workitem.WorkItem) (*w
 	return workitem, nil
 }
 
-func (act ActionStateToMetaState) getValueListFromEnumField(wit *workitem.WorkItemType, fieldName string) ([]interface{}, error) {
+func (act ActionStateToMetaState) getValueListFromEnumField(wit workitem.WorkItemType, fieldName string) ([]interface{}, error) {
 	enumFieldType := wit.Fields[fieldName].Type
 	switch t := enumFieldType.(type) {
 	case workitem.EnumType:
@@ -114,11 +114,11 @@ func (act ActionStateToMetaState) getStateToMetastateMap(workitemTypeID uuid.UUI
 	if err != nil {
 		return nil, err
 	}
-	stateList, err := act.getValueListFromEnumField(wit, workitem.SystemState)
+	stateList, err := act.getValueListFromEnumField(*wit, workitem.SystemState)
 	if err != nil {
 		return nil, err
 	}
-	metastateList, err := act.getValueListFromEnumField(wit, workitem.SystemMetaState)
+	metastateList, err := act.getValueListFromEnumField(*wit, workitem.SystemMetaState)
 	if err != nil {
 		return nil, err
 	}
