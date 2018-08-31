@@ -313,15 +313,13 @@ func (act ActionStateToMetaState) onBoardColumnsChange(newContext change.Detecto
 		}
 	}
 	// finally, store the new work item state if something changed.
-	var resultingWorkItem workitem.WorkItem
 	if wiDirty {
 		result, err := act.storeWorkItem(&wi)
-		resultingWorkItem = *result
 		if err != nil {
 			return nil, nil, err
 		}
 		// return to sender
-		return resultingWorkItem, changes, nil
+		return *result, changes, nil
 	}
 	// return to sender
 	return wi, changes, nil
