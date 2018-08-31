@@ -320,9 +320,11 @@ func (act ActionStateToMetaState) onBoardColumnsChange(newContext change.Detecto
 		if err != nil {
 			return nil, nil, err
 		}
+		// return to sender
+		return resultingWorkItem, changes, nil
 	}
 	// return to sender
-	return resultingWorkItem, changes, nil
+	return wi, changes, nil
 }
 
 // onStateChange is executed when the state changes. It eventually updates the metastate and the boardcolumns. Returns the Work Item with eventual changes applied.
