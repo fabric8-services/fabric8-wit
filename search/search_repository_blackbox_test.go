@@ -16,6 +16,8 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
+	"github.com/lib/pq"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -225,6 +227,45 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {
 				delete(mustHave, workItem.ID.String())
 			}
 			require.Empty(t, mustHave)
+		})
+		// regression test for https://github.com/fabric8-services/fabric8-wit/issues/2267
+		t.Run("work item created without board column set to null", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.WorkItemBoards(1),
+				tf.WorkItems(1),
+			)
+			// Set the work board columns field to null
+			db := s.DB.Debug().Exec(
+				fmt.Sprintf(
+					`UPDATE %[1]s SET fields = fields || '{"%[2]s": null}'::jsonb WHERE id=?`,
+					workitem.WorkItemStorage{}.TableName(),
+					workitem.SystemBoardcolumns,
+				),
+				fxt.WorkItems[0].ID,
+			)
+			require.NoError(t, db.Error)
+			require.Equal(t, int64(1), db.RowsAffected)
+			// when
+			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}, {"board.id":{"$EQ":"%s"}}]}`, fxt.Spaces[0].ID, fxt.WorkItemBoards[0].ID)
+			s.DB.LogMode(true)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			s.DB.LogMode(true)
+
+			// then
+
+			// NOTE: Once
+			// https://github.com/fabric8-services/fabric8-wit/issues/2267 is
+			// fixed this should not throw an error.
+			require.Error(t, err)
+			cause := errs.Cause(err)
+			require.Error(t, cause)
+			pqError, ok := cause.(*pq.Error)
+			require.True(t, ok, "error should be a postgres error: %+v", cause)
+			require.Equal(t, "cannot extract elements from a scalar", pqError.Message)
+			require.Equal(t, 0, count)
+			require.Empty(t, res)
 		})
 	})
 }
