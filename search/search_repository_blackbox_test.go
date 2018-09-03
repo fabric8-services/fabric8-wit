@@ -226,6 +226,33 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {
 			}
 			require.Empty(t, mustHave)
 		})
+		// regression test for https://github.com/fabric8-services/fabric8-wit/issues/2267
+		t.Run("work item created without board column set to null", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.WorkItemBoards(1),
+				tf.WorkItems(1),
+			)
+			// Set the work board columns field to null
+			db := s.DB.Exec(
+				fmt.Sprintf(
+					`UPDATE %[1]s SET fields = fields || '{"%[2]s": null}'::jsonb WHERE id=?`,
+					workitem.WorkItemStorage{}.TableName(),
+					workitem.SystemBoardcolumns,
+				),
+				fxt.WorkItems[0].ID,
+			)
+			require.NoError(t, db.Error)
+			require.Equal(t, int64(1), db.RowsAffected)
+			// when
+			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}, {"board.id":{"$EQ":"%s"}}]}`, fxt.Spaces[0].ID, fxt.WorkItemBoards[0].ID)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// then
+			require.NoError(t, err)
+			require.Equal(t, 0, count)
+			require.Empty(t, res)
+		})
 	})
 }
 
