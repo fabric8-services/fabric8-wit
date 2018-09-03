@@ -165,7 +165,7 @@ var DefaultTableJoins = func() TableJoinMap {
 			AllowedColumns:   []string{"name"},
 		},
 		"boardcolumns": {
-			TableName:  `(SELECT id colid, board_id id, jsonb_agg(id::text) AS colids FROM work_item_board_columns GROUP BY 1,2)`,
+			TableName:  `(SELECT id colid, board_id id, jsonb_agg(id::text) AS colids FROM ` + BoardColumn{}.TableName() + ` GROUP BY 1,2)`,
 			TableAlias: "boardcolumns",
 			On: fmt.Sprintf(Column("boardcolumns", "colid")+`::text IN (
 				SELECT jsonb_array_elements_text(jsonb_strip_nulls(`+Column(WorkItemStorage{}.TableName(), "fields")+`)->'%s')
