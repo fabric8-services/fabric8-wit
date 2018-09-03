@@ -289,6 +289,19 @@ func (c *WorkitemController) TypeChange(ctx *app.TypeChangeWorkitemContext) erro
 	}
 	var updatedWI *workitem.WorkItem
 	var rev *workitem.Revision
+	// Ensure we do not have any other field values apart from workitem version
+	if len(ctx.Payload.Included.Data.Attributes) > 1 {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("include.data.attributes should contain only version"))
+	}
+	if ctx.Payload.Included == nil || ctx.Payload.Included.Data == nil ||
+		ctx.Payload.Included.Data.Attributes == nil || ctx.Payload.Included.Data.Attributes[workitem.SystemVersion] == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("version field should not be nil"))
+	}
+	version, ok := ctx.Payload.Included.Data.Attributes[workitem.SystemVersion].(int)
+	if !ok {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(
+			workitem.SystemVersion, ctx.Payload.Included.Data.Attributes[workitem.SystemVersion]))
+	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		// The Number of a work item is not allowed to be changed which is why
 		// we overwrite the values with its old value after the work item was
@@ -297,12 +310,12 @@ func (c *WorkitemController) TypeChange(ctx *app.TypeChangeWorkitemContext) erro
 		newWI := workitem.WorkItem{
 			Fields:  wi.Fields,
 			Number:  oldNumber,
-			Version: *ctx.Payload.Data.Attributes.Version,
-			Type:    *ctx.Payload.Data.Attributes.TypeID,
+			Version: version,
+			Type:    ctx.Payload.Data.ID,
 		}
 		updatedWI, rev, err = appl.WorkItems().Save(ctx, wi.SpaceID, newWI, *currentUserIdentityID)
 		if err != nil {
-			return errs.Wrap(err, "Error updating work item")
+			return errs.Wrap(err, "error updating work item")
 		}
 		return nil
 	})

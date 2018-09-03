@@ -87,21 +87,44 @@ var workItemSingle = JSONSingle(
 
 var baseTypeChange = a.Type("baseTypeChange", func() {
 	a.Attribute("data", baseTypeChangeData)
-	a.Required("data")
+	a.Attribute("included", baseTypeChangeWorkitem)
+	a.Required("data", "included")
 })
 
 var baseTypeChangeData = a.Type("baseTypeChangeData", func() {
-	a.Attribute("attributes", func() {
-		a.Attribute("typeID", d.UUID, "ID of the new workitem type")
-		a.Attribute("version", d.Integer, "Version of the workitem")
+	a.Attribute("id", d.UUID, "ID of the new work item type")
+	a.Attribute("type", d.String, func() {
+		a.Enum("workitemtypes")
 	})
+	a.Attribute("relationships", baseTypeChangeRelationships)
+	a.Required("id", "type", "relationships")
+})
+
+var baseTypeChangeRelationships = a.Type("baseTypeChangeRelationships", func() {
+	a.Attribute("workitem", baseTypeChangeRelationshipWorkitem)
+	a.Required("workitem")
+})
+
+var baseTypeChangeRelationshipWorkitem = a.Type("baseTypeChangeRelationshipWorkitem", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitems")
 	})
-	a.Attribute("id", d.UUID, "ID of the work item which is being updated", func() {
-		a.Example("abcd1234-1234-5678-cafe-0123456789ab")
+	a.Attribute("id", d.UUID, "ID of the workitem")
+	a.Required("id", "type")
+})
+
+var baseTypeChangeWorkitem = a.Type("baseTypeChangeWorkitem", func() {
+	a.Attribute("data", baseTypeChangeWorkitemData)
+	a.Attribute("type", d.String, func() {
+		a.Enum("workitems")
 	})
-	a.Required("attributes", "type")
+	a.Attribute("id", d.UUID, "ID of the workitem")
+	a.Required("data", "id", "type")
+})
+
+var baseTypeChangeWorkitemData = a.Type("baseTypeChangeWorkitemData", func() {
+	a.Attribute("attributes", a.HashOf(d.String, d.Any))
+	a.Required("attributes")
 })
 
 // Reorder creates a UserTypeDefinition for Reorder action

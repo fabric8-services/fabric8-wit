@@ -1160,14 +1160,23 @@ func (s *WorkItem2Suite) TestWI2ChangeType() {
 	)
 	u := app.BaseTypeChange{
 		Data: &app.BaseTypeChangeData{
-			Attributes: &app.BaseTypeChangeAttributes{
-				Version: fxt.WorkItems[0].Version,
-				TypeID:  fxt.WorkItemTypes[1].ID,
+			ID:   fxt.WorkItemTypes[1].ID,
+			Type: APIStringTypeWorkItemType,
+			Relationships: &app.BaseTypeChangeRelationships{
+				Workitem: &app.BaseTypeChangeRelationshipWorkitem{
+					ID:   fxt.WorkItems[0].ID,
+					Type: APIStringTypeWorkItem,
+				},
+			},
+		},
+		Included: &app.BaseTypeChangeWorkitem{
+			Data: &app.BaseTypeChangeWorkitemData{
+				Attributes: map[string]interface{}{},
 			},
 			ID:   fxt.WorkItems[0].ID,
-			Type: APIStringTypeWorkItem,
-		},
+			Type: APIStringTypeWorkItem},
 	}
+	u.Included.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[0].Version
 	svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
 	s.T().Run("ok", func(t *testing.T) {
 		_, newWI := test.TypeChangeWorkitemOK(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
