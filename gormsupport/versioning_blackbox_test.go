@@ -88,4 +88,29 @@ func (s *VersioningSuite) TestCallbacks() {
 			require.Equal(t, newName, cat.Name, "name should not have been updated")
 		})
 	})
+	s.T().Run("before delete", func(t *testing.T) {
+		t.Run("no delete because versions mismatch", func(t *testing.T) {
+			// given
+			cat.Version = 42
+			// when
+			db := s.DB.Delete(&cat)
+			// then
+			require.NoError(t, db.Error)
+			require.Equal(t, int64(0), db.RowsAffected, "the delete should have failed because of wrong version")
+			require.Equal(t, newName, cat.Name, "name should not have been updated")
+		})
+		t.Run("allowed because versions match", func(t *testing.T) {
+			// given
+			cat.Version = 1
+			// when
+			db := s.DB.Delete(&cat)
+			// then
+			require.NoError(t, db.Error)
+			require.Equal(t, int64(1), db.RowsAffected, "the delete should have worked")
+			loadedCat := link.WorkItemLinkCategory{}
+			db = s.DB.Where("id = ?", cat.ID).First(&loadedCat)
+			require.Error(t, db.Error)
+			require.Equal(t, "record not found", db.Error.Error())
+		})
+	})
 }

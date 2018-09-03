@@ -43,6 +43,16 @@ func (v *Versioning) BeforeCreate(scope *gorm.Scope) error {
 	return scope.SetColumn("version", 0)
 }
 
+// BeforeDelete is a GORM callback (see http://doc.gorm.io/callbacks.html) that
+// will be called before soft-deleting the model. We use it to check for version
+// compatibility by adding this condition to the WHERE clause of the deletion:
+//
+//    AND version=<VERSION-OF-THE-MODEL>
+func (v *Versioning) BeforeDelete(scope *gorm.Scope) error {
+	scope.Search.Where(fmt.Sprintf(`"%s"."version"=?`, scope.TableName()), v.Version)
+	return nil
+}
+
 // Ensure Versioning implements the Equaler interface
 var _ convert.Equaler = Versioning{}
 var _ convert.Equaler = (*Versioning)(nil)
