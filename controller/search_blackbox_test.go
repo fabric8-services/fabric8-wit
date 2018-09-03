@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 
 	"github.com/fabric8-services/fabric8-wit/account"
@@ -350,69 +349,21 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithoutSpaceContext() {
 }
 
 func (s *searchControllerTestSuite) TestSearchFilter() {
-	// // given
-	// fxt := tf.NewTestFixture(s.T(), s.DB,
-	// 	tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-	// 		fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "specialwordforsearch"
-	// 		return nil
-	// 	}),
-	// )
-	// // when
-	// filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.WorkItems[0].SpaceID)
-	// spaceIDStr := fxt.WorkItems[0].SpaceID.String()
-	// _, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	// // then
-	// require.NotEmpty(s.T(), sr.Data)
-	// r := sr.Data[0]
-	// assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
-
-	// regression test for https://github.com/fabric8-services/fabric8-wit/issues/2267
-	s.T().Run("work item created without board column assigned and then search for a board id", func(t *testing.T) {
-		s.DB.LogMode(true)
-		fxt := tf.NewTestFixture(t, s.DB,
-			tf.CreateWorkItemEnvironment(),
-			tf.WorkItemBoards(1),
-			tf.WorkItems(1),
-		)
-
-		spaceID := fxt.Spaces[0].ID
-
-		// // Create a work item
-		// //
-		// // NOTE: We explicitly DO NOT want to use the test fixutre here to find
-		// // out if the default for the board columns is handled differently when
-		// // the work item is created through the controller level.
-		// c := minimumRequiredCreatePayload(fxt.Spaces[0].ID)
-		// c.Data.Attributes[workitem.SystemTitle] = "Regression for #2267"
-		// c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
-		// // c.Data.Relationships.SystemBoardcolumns = &app.RelationGenericList{
-		// // 	Data: []*app.GenericData{},
-		// // }
-		// cfg, err := config.Get()
-		// workItemsCtrl := NewWorkitemsController(s.svc, s.GormDB, cfg)
-		// require.NoError(s.T(), err)
-		// test.CreateWorkitemsCreated(t, s.svc.Context, s.svc, workItemsCtrl, fxt.Spaces[0].ID, &c)
-		// search must not fail
-
-		db := s.DB.Exec(
-			fmt.Sprintf(
-				`UPDATE %[1]s SET fields = fields || '{"%[2]s": null}'::jsonb WHERE id=?`,
-				workitem.WorkItemStorage{}.TableName(),
-				workitem.SystemBoardcolumns,
-			),
-			fxt.WorkItems[0].ID,
-		)
-		require.NoError(t, db.Error)
-		require.Equal(t, int64(1), db.RowsAffected)
-
-		filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}, {"board.id":{"$EQ":"%s"}}]}`, spaceID, fxt.WorkItemBoards[0].ID)
-		_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, ptr.String(spaceID.String()))
-		require.NotNil(t, sr)
-		// no entries should be found
-		// require.Empty(t, sr.Data)
-		compareWithGolden(t, filepath.Join(s.testDir, "filter", "empty-boardcolumns.golden.json"), sr)
-		spew.Dump(sr)
-	})
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "specialwordforsearch"
+			return nil
+		}),
+	)
+	// when
+	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.WorkItems[0].SpaceID)
+	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+	// then
+	require.NotEmpty(s.T(), sr.Data)
+	r := sr.Data[0]
+	assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
 }
 
 func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
