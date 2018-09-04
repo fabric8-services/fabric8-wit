@@ -143,6 +143,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		}
 		witID = ctx.Payload.Data.Relationships.BaseType.Data.ID
 	}
+	var rev *workitem.Revision
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		// The Number of a work item is not allowed to be changed which is why
 		// we overwrite the values with its old value after the work item was
@@ -153,7 +154,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			return err
 		}
 		wi.Number = oldNumber
-		wi, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserIdentityID)
+		wi, rev, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserIdentityID)
 		if err != nil {
 			return errs.Wrap(err, "Error updating work item")
 		}
@@ -166,7 +167,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load work item type: %s", wi.Type))
 	}
-	c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String()))
+	c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String(), rev.ID))
 	converted, err := ConvertWorkItem(ctx.Request, *wit, *wi, workItemIncludeHasChildren(ctx, c.db))
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
