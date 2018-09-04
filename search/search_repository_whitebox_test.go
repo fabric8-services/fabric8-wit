@@ -208,6 +208,9 @@ func TestGetSearchQueryFromURLString(t *testing.T) {
 
 	searchQuery = getSearchQueryFromURLString("google.me.io/everything/100")
 	assert.Equal(t, "(100:*A | google.me.io/everything/100:*)", searchQuery)
+
+	searchQuery = getSearchQueryFromURLString("abcd.something.com?q='(foo):bar")
+	assert.Equal(t, "abcd.something.com?q=''\\(foo\\)\\:bar:*", searchQuery)
 }
 
 func TestIsOperator(t *testing.T) {
