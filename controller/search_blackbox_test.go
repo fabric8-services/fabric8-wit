@@ -311,6 +311,45 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {
 	assert.Len(s.T(), sr.Data, 8)
 }
 
+func (s *searchControllerTestSuite) TestFullTextSearch() {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			switch idx {
+			case 0:
+				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Philosopher Noam Chomsky")
+			case 1:
+				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Philosopher Schopenhauer")
+			}
+			return nil
+		}),
+	)
+	s.T().Run("search by full text", func(t *testing.T) {
+		// when
+		q := "Philosopher"
+		spaceIDStr := fxt.Spaces[0].ID.String()
+		_, sr := test.ShowSearchOK(t, nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
+		// then
+		require.NotNil(t, sr)
+		require.Len(t, sr.Data, 2)
+		toBeFound := id.Slice{fxt.WorkItems[0].ID, fxt.WorkItems[1].ID}.ToMap()
+		for _, ele := range sr.Data {
+			delete(toBeFound, *ele.ID)
+		}
+		require.Empty(t, toBeFound, "failed to find these work items: %+v", toBeFound)
+	})
+	s.T().Run("regression test for https://github.com/fabric8-services/fabric8-wit/issues/2273", func(t *testing.T) {
+		// when single quote is in the query we MUST NOT fail
+		q := "'kaudawelsch"
+		spaceIDStr := fxt.Spaces[0].ID.String()
+		_, sr := test.ShowSearchOK(t, nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
+		// then
+		require.NotNil(t, sr)
+		require.Empty(t, sr.Data)
+	})
+}
+
 func (s *searchControllerTestSuite) TestSearchWorkItemsWithoutSpaceContext() {
 	// given 2 spaces with 10 workitems in the first and 5 in the second space
 	// random title used in work items

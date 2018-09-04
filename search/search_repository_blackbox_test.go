@@ -395,6 +395,18 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			assert.Equal(t, 2, count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})
+
+		t.Run("regression test for https://github.com/fabric8-services/fabric8-wit/issues/2273", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "'leadingsinglequoteisnotallowed"
+			// when
+			_, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			// then
+			require.NoError(t, err)
+			require.Equal(t, 0, count)
+		})
 	})
 
 	s.T().Run("Filter with limits", func(t *testing.T) {
