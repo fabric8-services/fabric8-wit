@@ -1181,7 +1181,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
 		assert.NotNil(t, newWI.Data.Attributes[workitem.SystemDescription])
 		// This value was explicitly changed in the update payload
-		assert.Equal(t, 9.5, newWI.Data.Attributes["fooo"])
+		assert.Equal(t, 9.5, newWI.Data.Attributes["foo"])
 		assert.Equal(t, 299, newWI.Data.Attributes["bar"])
 		assert.Contains(t, newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["bar"].Label)
 	})

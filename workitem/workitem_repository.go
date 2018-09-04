@@ -587,33 +587,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	wiStorage.Version = wiStorage.Version + 1
-	wiStorage.Fields = Fields{}
-
-	for fieldName, fieldDef := range wiType.Fields {
-		if fieldDef.ReadOnly {
-			continue
-		}
-		fieldValue := updatedWorkItem.Fields[fieldName]
-		var err error
-		if fieldDef.Type.GetKind() == KindList {
-			switch fieldValue.(type) {
-			case []string:
-				if len(fieldValue.([]string)) == 0 {
-					delete(wiStorage.Fields, fieldName)
-					continue
-				}
-			case []interface{}:
-				if len(fieldValue.([]interface{})) == 0 {
-					delete(wiStorage.Fields, fieldName)
-					continue
-				}
-			}
-		}
-		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
-		if err != nil {
-			return nil, errors.NewBadParameterError(fieldName, fieldValue)
-		}
-	}
 	// Change of Work Item Type
 	if wiStorage.Type != updatedWorkItem.Type {
 		newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
@@ -626,6 +599,33 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		// This will be used by the ConvertWorkItemStorageToModel function
 		wiType = newWiType
 	}
+	// wiStorage.Fields = Fields{}
+
+	// for fieldName, fieldDef := range wiType.Fields {
+	// 	if fieldDef.ReadOnly {
+	// 		continue
+	// 	}
+	// 	fieldValue := updatedWorkItem.Fields[fieldName]
+	// 	var err error
+	// 	if fieldDef.Type.GetKind() == KindList {
+	// 		switch fieldValue.(type) {
+	// 		case []string:
+	// 			if len(fieldValue.([]string)) == 0 {
+	// 				delete(wiStorage.Fields, fieldName)
+	// 				continue
+	// 			}
+	// 		case []interface{}:
+	// 			if len(fieldValue.([]interface{})) == 0 {
+	// 				delete(wiStorage.Fields, fieldName)
+	// 				continue
+	// 			}
+	// 		}
+	// 	}
+	// 	wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+	// 	if err != nil {
+	// 		return nil, errors.NewBadParameterError(fieldName, fieldValue)
+	// 	}
+	// }
 	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -1198,17 +1198,11 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 			// Try to assign the old value to the new field
 			_, err := newField.Type.ConvertToModel(wiStorage.Fields[oldFieldName])
 			if err != nil {
-				valueToAssign := wiStorage.Fields[oldFieldName]
-				// If the updatedWorkitem contains the new field with a value,
-				// we use that value for all the operations.
-				if updatedValue, ok := updatedWorkitem.Fields[oldFieldName]; ok {
-					valueToAssign = updatedValue
-				}
 				// if the new type is a list, stuff the old value in a list and
 				// try to assign it
 				if newField.Type.GetKind() == KindList {
 					var convertedValue interface{}
-					convertedValue, err = newField.Type.ConvertToModel([]interface{}{valueToAssign})
+					convertedValue, err = newField.Type.ConvertToModel([]interface{}{wiStorage.Fields[oldFieldName]})
 					if err == nil {
 						wiStorage.Fields[oldFieldName] = convertedValue
 					}
@@ -1216,9 +1210,9 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 				// if the old type is a list but the new one isn't check that
 				// the list contains only one element and assign that
 				if oldWIType.Fields[oldFieldName].Type.GetKind() == KindList && newField.Type.GetKind() != KindList {
-					ifArr, ok := valueToAssign.([]interface{})
+					ifArr, ok := wiStorage.Fields[oldFieldName].([]interface{})
 					if !ok {
-						return errs.Errorf("failed to convert field \"%s\" to interface array: %+v", oldFieldName, valueToAssign)
+						return errs.Errorf("failed to convert field \"%s\" to interface array: %+v", oldFieldName, wiStorage.Fields[oldFieldName])
 					}
 					if len(ifArr) == 1 {
 						var convertedValue interface{}
@@ -1253,11 +1247,16 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	// Append diff (fields along with their values) between the workitem types
 	// to the description
 	if len(fieldDiff) > 0 {
-		// If description doesn't exists, assign it empty value
-		if wiStorage.Fields[SystemDescription] == nil {
-			wiStorage.Fields[SystemDescription] = ""
+		// If updated workitem doesn't have a description, use either the existing
+		// description of old workitem (if it exists) or set empty description
+		if updatedWorkitem.Fields[SystemDescription] == nil {
+			if desc := wiStorage.Fields[SystemDescription]; desc != nil {
+				updatedWorkitem.Fields[SystemDescription] = desc
+			} else {
+				updatedWorkitem.Fields[SystemDescription] = ""
+			}
 		}
-		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
+		originalDescription := rendering.NewMarkupContentFromValue(updatedWorkitem.Fields[SystemDescription])
 		// TemplateData holds the information to be added to the description
 		templateData := struct {
 			NewTypeName         string
@@ -1335,11 +1334,11 @@ Missing fields in workitem type: {{ .NewTypeName }}
 		if err := descriptionTemplate.Execute(&newDescription, templateData); err != nil {
 			return errs.Wrap(err, "failed to populate description template")
 		}
-		wiStorage.Fields[SystemDescription] = rendering.NewMarkupContent(newDescription.String(), rendering.SystemMarkupMarkdown)
+		updatedWorkitem.Fields[SystemDescription] = rendering.NewMarkupContent(newDescription.String(), rendering.SystemMarkupMarkdown)
 	}
 	// Set default values for all field in newWIType
 	for fieldName, fieldDef := range newWIType.Fields {
-		fieldValue := wiStorage.Fields[fieldName]
+		fieldValue := updatedWorkitem.Fields[fieldName]
 		// Do not assign default value to metastate
 		if fieldName == SystemMetaState {
 			continue
@@ -1348,6 +1347,17 @@ Missing fields in workitem type: {{ .NewTypeName }}
 		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return errs.Wrapf(err, "failed to convert field \"%s\"", fieldName)
+		}
+	}
+
+	for fieldName, fieldValue := range updatedWorkitem.Fields {
+		fieldDef, ok := newWIType.Fields[fieldName]
+		if ok {
+			var err error
+			wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+			if err != nil {
+				return errs.Wrapf(err, "failed to convert field \"%s\"", fieldName)
+			}
 		}
 	}
 	wiStorage.Type = newWIType.ID
