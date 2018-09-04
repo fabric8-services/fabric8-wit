@@ -99,8 +99,6 @@ func (s *UserControllerTestSuite) TestListSpaces() {
 			// then
 			require.Len(t, result.Data, 1)
 			assert.Equal(t, "space1", result.Data[0].Attributes.Name)
-			assert.Equal(t, "contributor", result.Data[0].Attributes.Role)
-			assert.ElementsMatch(t, []string{"contribute", "view"}, result.Data[0].Attributes.Scopes)
 			assert.NotNil(t, result.Data[0].Links.Self)
 		})
 

@@ -117,7 +117,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-auth"
-  revision = "ec4d00bc1f17c37c11165e50c507802c1cf5968e"
+  revision = "9344288a2c4f9c1d4c070b4f9af46e415e0bf970"
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-notification"

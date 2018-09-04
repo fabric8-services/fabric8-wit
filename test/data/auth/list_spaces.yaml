@@ -30,24 +30,19 @@ interactions:
     status: 200 OK
     code: 200
     body: '{
-      "data":[
-        {
-          "id": "6bfa9182-dc81-4bc1-a694-c2e96ec23d3e",
-          "type": "spaces",
-          "attributes": {
-            "role": "contributor",
-            "scopes": ["contribute","view"]
-          }
-        },
-        {
-          "id": "2423d75d-ae5d-4bc5-818b-8e3fa4e2167c",
-          "type": "spaces",
-          "attributes": {
-            "role": "admin",
-            "scopes": ["contribute","manage","view"]
-          }
-        }
-      ]
+        "data": [{
+            "id": "6bfa9182-dc81-4bc1-a694-c2e96ec23d3e",
+            "links": {
+                "related": "http:///api/resource/6bfa9182-dc81-4bc1-a694-c2e96ec23d3e"
+            },
+            "type": "resources"
+        }, {
+            "id": "2423d75d-ae5d-4bc5-818b-8e3fa4e2167c",
+            "links": {
+                "related": "2423d75d-ae5d-4bc5-818b-8e3fa4e2167c"
+            },
+            "type": "resources"
+        }]
     }'
 - request:
     url: https://auth/api/user/resources?type=spaces

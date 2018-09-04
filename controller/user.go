@@ -172,9 +172,7 @@ func convertToUserSpaces(ctx context.Context, request *http.Request, db applicat
 				Self: &selfLink,
 			},
 			Attributes: &app.UserSpacesDataAttributes{
-				Name:   space.Name,
-				Role:   s.Attributes.Role,
-				Scopes: s.Attributes.Scopes,
+				Name: space.Name,
 			},
 		}
 	}
