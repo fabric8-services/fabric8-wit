@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/fabric8-services/fabric8-wit/errors"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	errs "github.com/pkg/errors"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -129,7 +131,6 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	log.Info(ctx, map[string]interface{}{
 		"tracker_id": id,
 	}, "looking tracker query")
-
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
@@ -142,17 +143,19 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	if tx.Error != nil {
 		return nil, InternalError{simpleError{fmt.Sprintf("could not load tracker query: %s", tx.Error.Error())}}
 	}
-
-	tx = r.db.First(&Tracker{}, tq.TrackerID)
-	if tx.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"err":        err,
-			"tracker_id": id,
-		}, "tracker ID not found")
-		return nil, NotFoundError{entity: "tracker", ID: tq.TrackerID.String()}
-	}
-	if tx.Error != nil {
-		return nil, InternalError{simpleError{fmt.Sprintf("could not load tracker: %s", tx.Error.Error())}}
+	trackerRepo := NewTrackerRepository(r.db)
+	err = trackerRepo.CheckExists(ctx, tq.TrackerID)
+	if err != nil {
+		switch err.(type) {
+		case errors.NotFoundError:
+			log.Error(ctx, map[string]interface{}{
+				"err":        err,
+				"tracker_id": id,
+			}, "tracker not found by its ID")
+			return nil, NotFoundError{entity: "tracker", ID: tq.TrackerID.String()}
+		default:
+			return nil, InternalError{simpleError{fmt.Sprintf("could not load tracker: %s", tx.Error.Error())}}
+		}
 	}
 
 	newTq := TrackerQuery{
@@ -215,7 +218,7 @@ func (r *GormTrackerQueryRepository) Delete(ctx context.Context, ID string) erro
 func (r *GormTrackerQueryRepository) List(ctx context.Context) ([]*app.TrackerQuery, error) {
 	var rows []TrackerQuery
 	if err := r.db.Find(&rows).Error; err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 	result := make([]*app.TrackerQuery, len(rows))
 
