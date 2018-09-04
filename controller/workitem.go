@@ -287,6 +287,17 @@ func (c *WorkitemController) TypeChange(ctx *app.TypeChangeWorkitemContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
+	creator := wi.Fields[workitem.SystemCreator]
+	if creator == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
+	}
+	authorized, err := c.authorizeWorkitemTypeEditor(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to change the workitemtype"))
+	}
 	var updatedWI *workitem.WorkItem
 	var rev *workitem.Revision
 	// Ensure we do not have any other field values apart from workitem version
