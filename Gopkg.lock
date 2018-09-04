@@ -98,23 +98,13 @@
 [[projects]]
   name = "github.com/fabric8-services/fabric8-auth"
   packages = [
-    "account",
-    "application/repository",
-    "auth",
-    "authorization/resource/repository",
-    "authorization/resourcetype/repository",
-    "convert",
     "design",
     "errors",
-    "goasupport",
-    "gormsupport",
     "log",
     "rest",
-    "token",
-    "token/jwk",
-    "token/tokencontext"
+    "token/jwk"
   ]
-  revision = "f717b4f4244a9d6fd31a54e7231a11eff14fa695"
+  revision = "9d855d80053b54776839a5316c6c609500dc072d"
 
 [[projects]]
   name = "github.com/fabric8-services/fabric8-notification"
@@ -316,7 +306,8 @@
 [[projects]]
   name = "github.com/jinzhu/gorm"
   packages = ["."]
-  revision = "9c9de896864248929269a7cb2d64ed73b5fdf834"
+  revision = "6ed508ec6a4ecb3531899a69cbc746ccf65a4166"
+  version = "v1.9.1"
 
 [[projects]]
   name = "github.com/jinzhu/inflection"
@@ -820,6 +811,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a23e61b6cebab22dcc9d73e246fe372dea2e9d1559e558bef42c0badebf4c731"
+  inputs-digest = "f80bc108fd9afc9fc9d238cf49b96bc6473111be28e02db2d8b5e6c049960788"
   solver-name = "gps-cdcl"
   solver-version = 1

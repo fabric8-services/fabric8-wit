@@ -497,7 +497,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 	var methods []string
 	if ctx.Qp != nil && *ctx.Qp {
 		// 'qp' (QueryPerms query parameter) is true:
-		// ask Kubernetes if tis user can access this space
+		// ask Kubernetes if this user can access this space
 		// (this is different from the WIT Space database access)
 		kc, err := c.GetKubeClient(ctx)
 		defer cleanup(kc)
@@ -516,10 +516,11 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			}, "unable retrieve permissions from CanGetSpace()")
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		if !canRead {
+		if canRead {
+			methods = []string{"GET"}
+		} else {
 			methods = []string{}
 		}
-		methods = []string{"GET", "POST", "DELETE", "PATCH"}
 	} else {
 		methods = []string{}
 	}

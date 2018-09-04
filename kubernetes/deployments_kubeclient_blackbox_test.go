@@ -1619,6 +1619,7 @@ func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
 	return newURL, nil
 }
 
+<<<<<<< HEAD
 // Types of namespaces where the user does not deploy applications
 var internalNamespaceTypes = map[string]struct{}{"user": {}, "che": {}, "jenkins": {}}
 
@@ -1628,6 +1629,8 @@ func (up *testURLProvider) CanDeploy(envType string) bool {
 	return !pres
 }
 
+=======
+>>>>>>> upstream/master
 type testKube struct {
 	kubernetes.KubeRESTAPI // Allows us to only implement methods we'll use
 	getter                 *testKubeGetter

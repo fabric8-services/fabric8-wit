@@ -11,7 +11,6 @@ import (
 	"time"
 
 	token "github.com/dgrijalva/jwt-go"
-	"github.com/fabric8-services/fabric8-auth/auth"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -37,7 +36,6 @@ import (
 type TestIterationREST struct {
 	gormtestsupport.DBTestSuite
 	testDir string
-	policy  *auth.KeycloakPolicy
 }
 
 func TestRunIterationREST(t *testing.T) {
@@ -48,12 +46,6 @@ func TestRunIterationREST(t *testing.T) {
 func (rest *TestIterationREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.testDir = filepath.Join("test-files", "iteration")
-	rest.policy = &auth.KeycloakPolicy{
-		Name:             "TestCollaborators-" + uuid.NewV4().String(),
-		Type:             auth.PolicyTypeUser,
-		Logic:            auth.PolicyLogicPossitive,
-		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
-	}
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
@@ -72,7 +64,14 @@ func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationCo
 }
 
 type DummySpaceAuthzService struct {
-	rest *TestIterationREST
+	userIDs []string
+}
+
+func (s *DummySpaceAuthzService) AddUser(userID string) {
+	if s.userIDs == nil {
+		s.userIDs = make([]string, 0)
+	}
+	s.userIDs = append(s.userIDs, userID)
 }
 
 func (s *DummySpaceAuthzService) Authorize(ctx context.Context, spaceID string) (bool, error) {
@@ -81,7 +80,12 @@ func (s *DummySpaceAuthzService) Authorize(ctx context.Context, spaceID string) 
 		return false, errors.NewUnauthorizedError("Missing token")
 	}
 	id := jwtToken.Claims.(token.MapClaims)["sub"].(string)
-	return strings.Contains(s.rest.policy.Config.UserIDs, id), nil
+	for _, userID := range s.userIDs {
+		if id == userID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (s *DummySpaceAuthzService) Configuration() witauth.ServiceConfiguration {
@@ -121,9 +125,10 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			otherUser := fxt.IdentityByUsername("other user")
 			_, ctrl := rest.SecuredControllerWithIdentity(otherUser)
 			// add user as collaborator
-			rest.policy.AddUserToPolicy(otherUser.ID.String())
+			authzSvc := &DummySpaceAuthzService{}
+			authzSvc.AddUser(otherUser.ID.String())
 			// overwrite service to use Dummy Auth
-			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, &DummySpaceAuthzService{rest})
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, authzSvc)
 			test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 		})
 		t.Run("with ID in request payload", func(t *testing.T) {
@@ -164,7 +169,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			notSpaceOwner := fxt.IdentityByUsername("not space owner")
 			_, ctrl := rest.SecuredControllerWithIdentity(notSpaceOwner)
 			// overwrite service with Dummy Auth to treat user as non-collaborator
-			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *notSpaceOwner, &DummySpaceAuthzService{rest})
+			authzSvc := &DummySpaceAuthzService{}
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *notSpaceOwner, authzSvc)
 			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.req.payload.golden.json"), ci)
@@ -177,7 +183,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			nonCollaborator := fxt.IdentityByUsername("non collaborator")
 			_, ctrl := rest.SecuredControllerWithIdentity(nonCollaborator)
 			// overwrite service with Dummy Auth to treat user as non-collaborator
-			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *nonCollaborator, &DummySpaceAuthzService{rest})
+			authzSvc := &DummySpaceAuthzService{}
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *nonCollaborator, authzSvc)
 			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
 		})
@@ -334,7 +341,7 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space, wiTypeID 
 			workitem.SystemTitle: "Test Item",
 			workitem.SystemState: "new",
 		}
-		w, err := app.WorkItems().Create(context.Background(), parentSpace.ID, wiTypeID, fields, parentSpace.OwnerID)
+		w, _, err := app.WorkItems().Create(context.Background(), parentSpace.ID, wiTypeID, fields, parentSpace.OwnerID)
 		wi = w
 		return err
 	})
@@ -355,7 +362,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
 	err := application.Transactional(rest.GormDB, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		_, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.NoError(rest.T(), err)
@@ -376,7 +383,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	time.Sleep(1 * time.Second)
 	var updatedWI *workitem.WorkItem
 	err := application.Transactional(rest.GormDB, func(app application.Application) error {
-		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		w, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		updatedWI = w
 		return err
 	})
@@ -396,7 +403,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	delete(testWI.Fields, workitem.SystemIteration)
 	time.Sleep(1 * time.Second)
 	err = application.Transactional(rest.GormDB, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		_, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.NoError(rest.T(), err)
@@ -415,7 +422,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	testWI := rest.createWorkItem(parentSpace, fxt.WorkItemTypes[0].ID)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	err := application.Transactional(rest.GormDB, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		_, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.NoError(rest.T(), err)
@@ -436,7 +443,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	time.Sleep(1 * time.Second)
 	var updatedWI *workitem.WorkItem
 	err := application.Transactional(rest.GormDB, func(app application.Application) error {
-		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		w, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		updatedWI = w
 		return err
 	})
@@ -456,7 +463,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	delete(testWI.Fields, workitem.SystemIteration)
 	time.Sleep(1 * time.Second)
 	err = application.Transactional(rest.GormDB, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
+		_, _, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.NoError(rest.T(), err)
@@ -522,9 +529,10 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 			otherIdentity := fxt.Identities[1]
 			_, ctrl := rest.SecuredControllerWithIdentity(otherIdentity)
 			// add user as collaborator
-			rest.policy.AddUserToPolicy(otherIdentity.ID.String())
+			authzSvc := &DummySpaceAuthzService{}
+			authzSvc.AddUser(otherIdentity.ID.String())
 			// overwrite service to use Dummy Auth
-			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherIdentity, &DummySpaceAuthzService{rest})
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherIdentity, authzSvc)
 			// when
 			_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
 			// then
@@ -593,7 +601,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 
 	for i := 0; i < 4; i++ {
-		wi, err := wirepo.Create(
+		wi, _, err := wirepo.Create(
 			ctx, itr.SpaceID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
@@ -605,7 +613,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 		require.NotNil(rest.T(), wi)
 	}
 	for i := 0; i < 5; i++ {
-		wi, err := wirepo.Create(
+		wi, _, err := wirepo.Create(
 			ctx, itr.SpaceID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),

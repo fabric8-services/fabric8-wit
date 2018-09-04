@@ -1221,6 +1221,12 @@ func testMigration103NotNullNotEmptyonEmail(t *testing.T) {
 	require.False(t, rows.Next(), "row found with email = '' or NULL when all should have a valid email")
 }
 
+func testMigration104IndexOnWIRevisionTable(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:105], 105)
+
+	assert.True(t, dialect.HasIndex("work_item_revisions", "ix_workitem_id"))
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
