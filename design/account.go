@@ -103,7 +103,7 @@ var userSpaces = JSONList(
 
 // userSpacesData represents a resource for which a user has a role
 var userSpacesData = a.Type("UserSpacesData", func() {
-	a.Attribute("id", d.String, "id of the resource that in which the user has a role")
+	a.Attribute("id", d.String, "id of the space that in which the user has a role")
 	a.Attribute("type", d.String, "type of the resource")
 	a.Attribute("attributes", userSpacesDataAttributes, "Info about the role and scopes that the user has in the resource")
 	a.Attribute("links", genericLinks)
