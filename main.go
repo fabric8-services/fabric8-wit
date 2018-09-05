@@ -199,7 +199,9 @@ func main() {
 
 	service.Use(login.InjectTokenManager(tokenManager))
 	service.Use(log.LogRequest(config.IsPostgresDeveloperModeEnabled()))
+
 	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
+	app.UseJWTQueryParamMiddleware(service, witmiddleware.New(tokenManager.PublicKeys(), nil, app.NewJWTQueryParamSecurity()))
 
 	spaceAuthzService := authz.NewAuthzService(config)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))

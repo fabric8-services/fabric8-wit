@@ -94,10 +94,10 @@ type WorkItemRepository interface {
 	LoadBatchByID(ctx context.Context, ids []uuid.UUID) ([]*WorkItem, error)
 	LoadByIteration(ctx context.Context, id uuid.UUID) ([]*WorkItem, error)
 	LookupIDByNamedSpaceAndNumber(ctx context.Context, ownerName, spaceName string, wiNumber int) (*uuid.UUID, *uuid.UUID, error)
-	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
+	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, *Revision, error)
 	Reorder(ctx context.Context, spaceID uuid.UUID, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Delete(ctx context.Context, id uuid.UUID, suppressorID uuid.UUID) error
-	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error)
+	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, *Revision, error)
 	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, length *int, sort SortWorkItemsBy) ([]WorkItem, int, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
@@ -373,7 +373,8 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID uuid.UUI
 		return errors.NewNotFoundError("work item", workitemID.String())
 	}
 	// store a revision of the deleted work item
-	if err := r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem); err != nil {
+	_, err := r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem)
+	if err != nil {
 		return errs.Wrapf(err, "error while deleting work item")
 	}
 	log.Debug(ctx, map[string]interface{}{"wi_id": workitemID}, "Work item deleted successfully!")
@@ -568,7 +569,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
+	_, err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
 	if err != nil {
 		return nil, err
 	}
@@ -577,14 +578,14 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, updatedWorkItem WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
+func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, updatedWorkItem WorkItem, modifierID uuid.UUID) (*WorkItem, *Revision, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "save"}, time.Now())
 	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.Number, true)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if wiStorage.Version != updatedWorkItem.Version {
-		return nil, errors.NewVersionConflictError("version conflict")
+		return nil, nil, errors.NewVersionConflictError("version conflict")
 	}
 	wiStorage.Version = wiStorage.Version + 1
 	wiStorage.Fields = Fields{}
@@ -610,17 +611,17 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		}
 		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+			return nil, nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 	}
 	// Change of Work Item Type
 	if wiStorage.Type != updatedWorkItem.Type {
 		newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
 		if err != nil {
-			return nil, errs.Wrapf(err, "failed to load workitemtype: %s ", updatedWorkItem.Type)
+			return nil, nil, errs.Wrapf(err, "failed to load workitemtype: %s ", updatedWorkItem.Type)
 		}
 		if err := r.ChangeWorkItemType(ctx, wiStorage, wiType, newWiType, spaceID); err != nil {
-			return nil, errs.Wrapf(err, "unable to change workitem type from %s (ID: %s) to %s (ID: %s)", wiType.Name, wiType.ID, newWiType.Name, newWiType.ID)
+			return nil, nil, errs.Wrapf(err, "unable to change workitem type from %s (ID: %s) to %s (ID: %s)", wiType.Name, wiType.ID, newWiType.Name, newWiType.ID)
 		}
 		// This will be used by the ConvertWorkItemStorageToModel function
 		wiType = newWiType
@@ -633,21 +634,25 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 			"version":  updatedWorkItem.Version,
 			"err":      err,
 		}, "unable to save new version of the work item")
-		return nil, errors.NewInternalError(ctx, err)
+		return nil, nil, errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
-		return nil, errors.NewVersionConflictError("version conflict")
+		return nil, nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, *wiStorage)
+	rev, err := r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, *wiStorage)
 	if err != nil {
-		return nil, errs.Wrapf(err, "error while saving work item")
+		return nil, nil, errs.Wrapf(err, "error while saving work item")
 	}
 	log.Info(ctx, map[string]interface{}{
 		"wi_id":    updatedWorkItem.ID,
 		"space_id": spaceID,
 	}, "Updated work item repository")
-	return ConvertWorkItemStorageToModel(wiType, wiStorage)
+	w, err := ConvertWorkItemStorageToModel(wiType, wiStorage)
+	if err != nil {
+		return nil, nil, errs.WithStack(err)
+	}
+	return w, &rev, nil
 }
 
 // CheckTypeAndSpaceShareTemplate returns true if the given workitem type (wit)
@@ -685,32 +690,32 @@ func (r *GormWorkItemRepository) CheckTypeAndSpaceShareTemplate(ctx context.Cont
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error) {
+func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, *Revision, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "create"}, time.Now())
 
 	wiType, err := r.witr.Load(ctx, typeID)
 	if err != nil {
-		return nil, errors.NewBadParameterError("typeID", typeID)
+		return nil, nil, errors.NewBadParameterError("typeID", typeID)
 	}
 
 	allowedWIT, err := r.CheckTypeAndSpaceShareTemplate(ctx, wiType, spaceID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 
 	}
 	if !allowedWIT {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// The order of workitems are spaced by a factor of 1000.
 	pos, err := r.LoadHighestOrder(ctx, spaceID)
 	if err != nil {
-		return nil, errors.NewInternalError(ctx, err)
+		return nil, nil, errors.NewInternalError(ctx, err)
 	}
 	pos = pos + orderValue
 	number, err := r.winr.NextVal(ctx, spaceID)
 	if err != nil {
-		return nil, errors.NewInternalError(ctx, err)
+		return nil, nil, errors.NewInternalError(ctx, err)
 	}
 	wi := WorkItemStorage{
 		Type:           typeID,
@@ -728,7 +733,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, errors.NewBadParameterError(fieldName, fieldValue) // TODO(kwk): Change errors pkg to consume the original error as well
+			return nil, nil, errors.NewBadParameterError(fieldName, fieldValue) // TODO(kwk): Change errors pkg to consume the original error as well
 		}
 		if (fieldName == SystemAssignees || fieldName == SystemLabels || fieldName == SystemBoardcolumns) && fieldValue == nil {
 			delete(wi.Fields, fieldName)
@@ -736,25 +741,25 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {
 			description := rendering.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
 			if !rendering.IsMarkupSupported(description.Markup) {
-				return nil, errors.NewBadParameterError(fieldName, fieldValue)
+				return nil, nil, errors.NewBadParameterError(fieldName, fieldValue)
 			}
 		}
 	}
-	if err = r.db.Create(&wi).Error; err != nil {
-		return nil, errs.Wrapf(err, "failed to create work item")
+	if err := r.db.Create(&wi).Error; err != nil {
+		return nil, nil, errs.Wrapf(err, "failed to create work item")
 	}
 
 	witem, err := ConvertWorkItemStorageToModel(wiType, &wi)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// store a revision of the created work item
-	err = r.wirr.Create(context.Background(), creatorID, RevisionTypeCreate, wi)
+	rev, err := r.wirr.Create(context.Background(), creatorID, RevisionTypeCreate, wi)
 	if err != nil {
-		return nil, errs.Wrapf(err, "error while creating work item")
+		return nil, nil, errs.Wrapf(err, "error while creating work item")
 	}
 	log.Debug(ctx, map[string]interface{}{"pkg": "workitem", "wi_id": wi.ID, "number": wi.Number}, "Work item created successfully!")
-	return witem, nil
+	return witem, &rev, nil
 }
 
 // ConvertWorkItemStorageToModel convert work item model to app WI
@@ -1179,7 +1184,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	}
 	var fieldDiff = Fields{}
 	// Loop through old workitem type
-	for oldFieldName := range oldWIType.Fields {
+	for oldFieldName, oldFieldDef := range oldWIType.Fields {
 		// Temporary workaround to not add metastates to the field diff. We need
 		// to have a special handling for fields that shouldn't be set by user
 		// (or affected by type change) MetaState is a system level detail and
@@ -1192,33 +1197,9 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 		}
 		// The field exists in old type and new type
 		if newField, ok := newWIType.Fields[oldFieldName]; ok {
-			// Try to assign the old value to the new field
-			_, err := newField.Type.ConvertToModel(wiStorage.Fields[oldFieldName])
-			if err != nil {
-				// if the new type is a list, stuff the old value in a list and
-				// try to assign it
-				if newField.Type.GetKind() == KindList {
-					var convertedValue interface{}
-					convertedValue, err = newField.Type.ConvertToModel([]interface{}{wiStorage.Fields[oldFieldName]})
-					if err == nil {
-						wiStorage.Fields[oldFieldName] = convertedValue
-					}
-				}
-				// if the old type is a list but the new one isn't check that
-				// the list contains only one element and assign that
-				if oldWIType.Fields[oldFieldName].Type.GetKind() == KindList && newField.Type.GetKind() != KindList {
-					ifArr, ok := wiStorage.Fields[oldFieldName].([]interface{})
-					if !ok {
-						return errs.Errorf("failed to convert field \"%s\" to interface array: %+v", oldFieldName, wiStorage.Fields[oldFieldName])
-					}
-					if len(ifArr) == 1 {
-						var convertedValue interface{}
-						convertedValue, err = newField.Type.ConvertToModel(ifArr[0])
-						if err == nil {
-							wiStorage.Fields[oldFieldName] = convertedValue
-						}
-					}
-				}
+			newVal, err := oldFieldDef.Type.ConvertToModelWithType(newField.Type, wiStorage.Fields[oldFieldName])
+			if err == nil {
+				wiStorage.Fields[oldFieldName] = newVal
 			}
 			// Failed to assign the old value to the new field. Add the field to
 			// the diff and remove it from the old workitem.

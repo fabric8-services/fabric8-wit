@@ -38,11 +38,17 @@ func NewEventsController(service *goa.Service, db application.DB, config EventsC
 
 // List runs the list action.
 func (c *EventsController) List(ctx *app.ListWorkItemEventsContext) error {
-	var eventList []event.Event
+	var eventList event.List
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		eventList, err = appl.Events().List(ctx, ctx.WiID)
-		return errs.Wrap(err, "list events model failed")
+		if err != nil {
+			return errs.Wrap(err, "list events model failed")
+		}
+		if ctx.RevisionID != nil {
+			eventList = eventList.FilterByRevisionID(*ctx.RevisionID)
+		}
+		return nil
 	})
 
 	if err != nil {
@@ -84,10 +90,11 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 	modifierData, modifierLinks := ConvertUserSimple(req, wiEvent.Modifier)
 	e := app.Event{
 		Type: event.APIStringTypeEvents,
-		ID:   wiEvent.ID,
+		ID:   uuid.NewV4(),
 		Attributes: &app.EventAttributes{
-			Name:      wiEvent.Name,
-			Timestamp: wiEvent.Timestamp,
+			Name:       wiEvent.Name,
+			Timestamp:  wiEvent.Timestamp,
+			RevisionID: wiEvent.RevisionID,
 		},
 		Relationships: &app.EventRelations{
 			Modifier: &app.RelationGeneric{

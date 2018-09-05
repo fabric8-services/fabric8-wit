@@ -153,7 +153,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration101", testMigration101TypeGroupHasDescriptionField)
 	t.Run("TestMigration102", testMigration102LinkTypeDescriptionFields)
 	t.Run("TestMigration103", testMigration103NotNullNotEmptyonEmail)
-	t.Run("TestMirgraion104", testMigration104UpdateRootIterationAreaPathField)
+	t.Run("TestMirgraion104", testMigration104IndexOnWIRevisionTable)
+	t.Run("TestMirgraion105", testMigration105UpdateRootIterationAreaPathField)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1222,10 +1223,16 @@ func testMigration103NotNullNotEmptyonEmail(t *testing.T) {
 	require.False(t, rows.Next(), "row found with email = '' or NULL when all should have a valid email")
 }
 
+func testMigration104IndexOnWIRevisionTable(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:105], 105)
+
+	assert.True(t, dialect.HasIndex("work_item_revisions", "ix_workitem_id"))
+}
+
 // test that root iterations are no longer empty and containt he converted id
-func testMigration104UpdateRootIterationAreaPathField(t *testing.T) {
+func testMigration105UpdateRootIterationAreaPathField(t *testing.T) {
 	t.Run("migrate to previous version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:104], 104)
+		migrateToVersion(t, sqlDB, migrations[:105], 105)
 	})
 
 	spaceID := uuid.NewV4()
@@ -1239,7 +1246,7 @@ func testMigration104UpdateRootIterationAreaPathField(t *testing.T) {
 	areaChildOfNullPathID := uuid.NewV4()
 
 	t.Run("setup test data to migrate", func(t *testing.T) {
-		require.Nil(t, runSQLscript(sqlDB, "104-insert-test-root-iteration.sql",
+		require.Nil(t, runSQLscript(sqlDB, "105-insert-test-root-iteration.sql",
 			spaceID.String(),
 			iterRootEmptyPathID.String(),
 			iterRootNullPathID.String(),
@@ -1296,7 +1303,7 @@ func testMigration104UpdateRootIterationAreaPathField(t *testing.T) {
 	})
 
 	t.Run("migrate to current version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:105], 105)
+		migrateToVersion(t, sqlDB, migrations[:106], 106)
 	})
 
 	t.Run("check iterations after migration", func(t *testing.T) {

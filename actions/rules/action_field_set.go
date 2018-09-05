@@ -39,7 +39,7 @@ func (act ActionFieldSet) storeWorkItem(wi *workitem.WorkItem) (*workitem.WorkIt
 	var storeResultWorkItem *workitem.WorkItem
 	err := application.Transactional(act.Db, func(appl application.Application) error {
 		var err error
-		storeResultWorkItem, err = appl.WorkItems().Save(act.Ctx, wi.SpaceID, *wi, *act.UserID)
+		storeResultWorkItem, _, err = appl.WorkItems().Save(act.Ctx, wi.SpaceID, *wi, *act.UserID)
 		if err != nil {
 			return errs.Wrap(err, "error updating work item")
 		}

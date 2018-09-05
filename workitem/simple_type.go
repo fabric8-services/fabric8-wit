@@ -219,3 +219,37 @@ func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 		return nil, errs.Errorf("unexpected field type: %s", t.GetKind())
 	}
 }
+
+// ConvertToModelWithType implements FieldType
+func (t SimpleType) ConvertToModelWithType(newFieldType FieldType, v interface{}) (interface{}, error) {
+	// Try to assign the old value to the new field
+	newVal, err := newFieldType.ConvertToModel(v)
+	if err == nil {
+		return newVal, nil
+	}
+
+	// if the new type is a list, stuff the old value in a list and
+	// try to assign it
+	if newFieldType.GetKind() == KindList {
+		newVal, err = newFieldType.ConvertToModel([]interface{}{v})
+		if err == nil {
+			return newVal, nil
+		}
+	}
+
+	// if the old type is a list but the new one isn't check that
+	// the list contains only one element and assign that
+	if t.GetKind() == KindList && newFieldType.GetKind() != KindList {
+		ifArr, ok := v.([]interface{})
+		if !ok {
+			return nil, errs.Errorf("failed to convert value to interface array: %+v", v)
+		}
+		if len(ifArr) == 1 {
+			newVal, err = newFieldType.ConvertToModel(ifArr[0])
+			if err == nil {
+				return newVal, nil
+			}
+		}
+	}
+	return nil, errs.Errorf("failed to convert value %+v (%[1]T) to field type %+v (%[2]T)", v, newFieldType)
+}

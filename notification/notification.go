@@ -29,20 +29,31 @@ type Message struct {
 	UserID      *string
 	TargetID    string
 	MessageType string
+	Custom      map[string]interface{}
 }
 
 func (m Message) String() string {
-	return fmt.Sprintf("id:%v type:%v by:%v for:%v", m.MessageID, m.MessageType, m.UserID, m.TargetID)
+	return fmt.Sprintf("id:%v type:%v by:%v for:%v custom:%+v", m.MessageID, m.MessageType, m.UserID, m.TargetID, m.Custom)
 }
 
 // NewWorkItemCreated creates a new message instance for the newly created WorkItemID
-func NewWorkItemCreated(workitemID string) Message {
-	return Message{MessageID: uuid.NewV4(), MessageType: "workitem.create", TargetID: workitemID}
+func NewWorkItemCreated(workitemID string, revisionID uuid.UUID) Message {
+	return Message{
+		MessageID:   uuid.NewV4(),
+		MessageType: "workitem.create",
+		TargetID:    workitemID,
+		Custom:      map[string]interface{}{"revision_id": revisionID},
+	}
 }
 
 // NewWorkItemUpdated creates a new message instance for the updated WorkItemID
-func NewWorkItemUpdated(workitemID string) Message {
-	return Message{MessageID: uuid.NewV4(), MessageType: "workitem.update", TargetID: workitemID}
+func NewWorkItemUpdated(workitemID string, revisionID uuid.UUID) Message {
+	return Message{
+		MessageID:   uuid.NewV4(),
+		MessageType: "workitem.update",
+		TargetID:    workitemID,
+		Custom:      map[string]interface{}{"revision_id": revisionID},
+	}
 }
 
 // NewCommentCreated creates a new message instance for the newly created CommentID
@@ -124,8 +135,9 @@ func (s *Service) Send(ctx context.Context, msg Message) {
 					Type: "notifications",
 					ID:   &msgID,
 					Attributes: &client.NotificationAttributes{
-						Type: msg.MessageType,
-						ID:   msg.TargetID,
+						Type:   msg.MessageType,
+						ID:     msg.TargetID,
+						Custom: msg.Custom,
 					},
 				},
 			},
