@@ -74,7 +74,7 @@ func (s *TestAreaRepository) TestExistsArea() {
 
 	t.Run("area exists", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Areas(1))
 		// when
 		err := repo.CheckExists(context.Background(), fxt.Areas[0].ID)
 		// then
