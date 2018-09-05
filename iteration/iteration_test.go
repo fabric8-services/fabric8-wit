@@ -2,7 +2,6 @@ package iteration_test
 
 import (
 	"context"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
