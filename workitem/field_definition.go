@@ -81,6 +81,10 @@ type FieldType interface {
 	// look at the implementation of this function to find out what's actually
 	// been checked for each individual type.
 	Validate() error
+	// ConvertToModelWithType tries to find way to convert the value v from this
+	// FieldType to the other FieldType in model representation; returns error
+	// otherwise.
+	ConvertToModelWithType(other FieldType, v interface{}) (interface{}, error)
 }
 
 // FieldDefinition describes type & other restrictions of a field
