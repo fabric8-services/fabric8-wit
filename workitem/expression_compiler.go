@@ -211,7 +211,9 @@ var DefaultTableJoins = func() TableJoinMap {
 	res["parent_link"] = &TableJoin{
 		TableName:  "work_item_links",
 		TableAlias: "parent_link",
-		On:         Column("parent_link", "link_type_id") + "= '25C326A7-6D03-4F5A-B23B-86A9EE4171E9' AND " + Column("parent_link", "target_id") + "=" + Column(WorkItemStorage{}.TableName(), "id"),
+		// importing the link package here to get the link type is currently not
+		// possible because of an import cycle
+		On: Column("parent_link", "link_type_id") + "= '25C326A7-6D03-4F5A-B23B-86A9EE4171E9' AND " + Column("parent_link", "target_id") + "=" + Column(WorkItemStorage{}.TableName(), "id"),
 	}
 	res["parent"] = &TableJoin{
 		TableName:          WorkItemStorage{}.TableName(),
