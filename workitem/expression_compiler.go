@@ -206,6 +206,27 @@ var DefaultTableJoins = func() TableJoinMap {
 			"typegroup.": res["typegroup"],
 		},
 	}
+
+	// Filter by parent's ID or human-readable Number
+	res["parent"] = &TableJoin{
+		TableName:      WorkItemStorage{}.TableName(),
+		TableAlias:     "parent",
+		On:             Column("parent_link", "source_id") + "=" + Column("parent", "id"),
+		AllowedColumns: []string{"id", "number"},
+	}
+	res["parent_link"] = &TableJoin{
+		TableName:          "work_item_links",
+		TableAlias:         "parent_link",
+		On:                 Column("parent_link", "link_type_id") + "= 25C326A7-6D03-4F5A-B23B-86A9EE4171E9 AND " + Column("parent_link", "target_id") + "=" + Column(WorkItemStorage{}.TableName(), "id"),
+		PrefixActivators:   []string{"parent."},
+		ActivateOtherJoins: []string{"parent"},
+		// every field prefixed with .parent will be handled by the "parent"
+		// join
+		DelegateTo: map[string]*TableJoin{
+			"parent.": res["parent"],
+		},
+	}
+
 	return res
 }
 
