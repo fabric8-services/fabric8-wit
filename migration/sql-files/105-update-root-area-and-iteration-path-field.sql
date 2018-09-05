@@ -17,7 +17,7 @@ ALTER TABLE areas DROP CONSTRAINT areas_name_space_id_path_unique;
 ALTER TABLE iterations ADD CONSTRAINT non_empty_path_check CHECK (trim(path::text) <> '');
 ALTER TABLE areas ADD CONSTRAINT non_empty_path_check CHECK (trim(path::text) <> '');
 
--- add constraints for subpaths
+-- add constraints for subpaths - two areas/iterations under the same parent area/iteraion must have a unique name
 CREATE UNIQUE INDEX areas_name_space_id_path_unique ON areas (
     space_id, 
     coalesce(lca(path, path), ''), 
