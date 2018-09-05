@@ -978,12 +978,12 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 				case 0:
 					fxt.WorkItemTypes[idx].Name = "First WorkItem Type"
 					fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
-						"fooo": {
-							Label: "Type1 fooo",
+						"foo": {
+							Label: "Type1 foo",
 							Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
 						},
-						"fooBar": {
-							Label: "Type1 fooBar",
+						"enumField": {
+							Label: "Type1 enumField",
 							Type: workitem.EnumType{
 								BaseType:   workitem.SimpleType{Kind: workitem.KindString},
 								SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
@@ -1005,16 +1005,16 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 				case 1:
 					fxt.WorkItemTypes[idx].Name = "Second WorkItem Type"
 					fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
-						"fooo": {
-							Label: "Type2 fooo",
+						"foo": {
+							Label: "Type2 foo",
 							Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
 						},
 						"bar": {
 							Label: "Type2 bar",
 							Type:  &workitem.SimpleType{Kind: workitem.KindInteger},
 						},
-						"fooBar": {
-							Label: "Type2 fooBar",
+						"enumField": {
+							Label: "Type2 enumField",
 							Type: workitem.EnumType{
 								BaseType:   workitem.SimpleType{Kind: workitem.KindString},
 								SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
@@ -1035,8 +1035,8 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 			tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
 				fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
 				fxt.WorkItems[idx].Fields["integer-or-float-list"] = []int{101}
-				fxt.WorkItems[idx].Fields["fooo"] = 2.5
-				fxt.WorkItems[idx].Fields["fooBar"] = "open"
+				fxt.WorkItems[idx].Fields["foo"] = 2.5
+				fxt.WorkItems[idx].Fields["enumField"] = "open"
 				fxt.WorkItems[idx].Fields["bar"] = "hello"
 				fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("description1")
 				return nil
@@ -1057,10 +1057,10 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 		newDescription := newWI.Data.Attributes[workitem.SystemDescription]
 		assert.NotNil(t, newDescription)
 		// Type of old and new field is same
-		assert.NotContains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooo"].Label)
+		assert.NotContains(t, newDescription, fxt.WorkItemTypes[0].Fields["foo"].Label)
 		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["bar"].Label)
-		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooBar"].Label)
-		assert.Equal(t, "alpha", newWI.Data.Attributes["fooBar"]) // First value of enum for field foobar
+		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["enumField"].Label)
+		assert.Equal(t, "alpha", newWI.Data.Attributes["enumField"]) // First value of enum for field enumField
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
 	})
 
@@ -1175,7 +1175,6 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 		u.Data.Attributes["bar"] = 299
 		u.Data.Attributes["foo"] = 9.5
 		svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
-
 		_, newWI := test.UpdateWorkitemOK(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
 
 		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)

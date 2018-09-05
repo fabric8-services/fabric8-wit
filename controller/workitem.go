@@ -290,12 +290,15 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 // response resource object by jsonapi.org specifications
 func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, witID uuid.UUID, spaceID uuid.UUID) error {
 	// load work item type to perform conversion according to a field type
-	wit, err := appl.WorkItemTypes().Load(ctx, witID)
+	newWIT, err := appl.WorkItemTypes().Load(ctx, witID)
 	if err != nil {
-		return errs.Wrapf(err, "failed to load work item type: %s", witID)
+		return errs.Wrapf(err, "failed to load the new work item type: %s", witID)
 	}
-	_ = wit
-
+	// Chances are that old and new workitem type are same.
+	oldWIT, err := appl.WorkItemTypes().Load(ctx, target.Type)
+	if err != nil {
+		return errs.Wrapf(err, "failed to load the old work item type: %s", target.Type)
+	}
 	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
@@ -486,6 +489,29 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			target.Fields[key] = *m
 		default:
 			target.Fields[key] = val
+		}
+	}
+	// Remove fields from target that do not belong to the type definition
+	for fieldName := range target.Fields {
+		// This is an exception because systemDescriptionMarkup isn't part of
+		// the type definition but we cannot remove it.
+		if fieldName == workitem.SystemDescriptionMarkup {
+			continue
+		}
+		// Remove field from target if it doesn't exist in the new type
+		if _, ok := newWIT.Fields[fieldName]; !ok {
+			delete(target.Fields, fieldName)
+			continue
+		}
+		// Remove field from target if TYPE has changed and the new value cannot
+		// be assigned to an old field.
+		// For example: Type 1 has "foo":string and Type2 has "foo":int and we
+		// cannot assign old value to new type
+		if oldWIT.ID != newWIT.ID {
+			_, err := newWIT.Fields[fieldName].ConvertToModel(fieldName, target.Fields[fieldName])
+			if err != nil {
+				delete(target.Fields, fieldName)
+			}
 		}
 	}
 	if description, ok := target.Fields[workitem.SystemDescription].(rendering.MarkupContent); ok {
