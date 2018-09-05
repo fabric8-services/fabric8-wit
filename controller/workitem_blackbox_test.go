@@ -586,7 +586,6 @@ func (s *WorkItemSuite) TestReorderDoesNotUpdateOtherWIFields() {
 	require.Len(s.T(), reorderedList.Data, 1)
 	assert.Equal(s.T(), workitem1.Data.Attributes["version"].(int)+1, reorderedList.Data[0].Attributes["version"])
 	assert.Equal(s.T(), *workitem1.Data.ID, *reorderedList.Data[0].ID)
-	assert.NotEqual(s.T(), titleNotUpdated, reorderedList.Data[0].Attributes[workitem.SystemTitle])
 	assert.Equal(s.T(), originalTitle, reorderedList.Data[0].Attributes[workitem.SystemTitle])
 }
 
