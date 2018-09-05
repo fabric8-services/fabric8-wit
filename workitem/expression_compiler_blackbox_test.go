@@ -124,10 +124,9 @@ func TestField(t *testing.T) {
 				parent.HandledFields = []string{"id"}
 				parent_link := *defJoins["parent_link"]
 				parent_link.Active = true
-				parent_link.DelegateTo["parent."] = &parent
 				expect(t,
 					c.Equals(c.Field("parent.id"), c.Literal("c20882bd-3a70-48a4-9784-3d6735992a43")),
-					`(`+workitem.Column("parent", "id")+` = ?)`, []interface{}{"c20882bd-3a70-48a4-9784-3d6735992a43"}, []*workitem.TableJoin{&parent, &parent_link})
+					`(`+workitem.Column("parent", "id")+` = ?)`, []interface{}{"c20882bd-3a70-48a4-9784-3d6735992a43"}, []*workitem.TableJoin{&parent_link, &parent})
 			})
 			t.Run("by number", func(t *testing.T) {
 				parent := *defJoins["parent"]
@@ -135,10 +134,9 @@ func TestField(t *testing.T) {
 				parent.HandledFields = []string{"number"}
 				parent_link := *defJoins["parent_link"]
 				parent_link.Active = true
-				parent_link.DelegateTo["parent."] = &parent
 				expect(t,
 					c.Equals(c.Field("parent.number"), c.Literal("1234")),
-					`(`+workitem.Column("parent", "number")+` = ?)`, []interface{}{"1234"}, []*workitem.TableJoin{&parent, &parent_link})
+					`(`+workitem.Column("parent", "number")+` = ?)`, []interface{}{"1234"}, []*workitem.TableJoin{&parent_link, &parent})
 			})
 			t.Run("by number or id", func(t *testing.T) {
 				parent := *defJoins["parent"]
@@ -146,12 +144,12 @@ func TestField(t *testing.T) {
 				parent.HandledFields = []string{"number", "id"}
 				parent_link := *defJoins["parent_link"]
 				parent_link.Active = true
-				parent_link.DelegateTo["parent."] = &parent
 				expect(t,
 					c.Or(
 						c.Equals(c.Field("parent.number"), c.Literal("1234")),
 						c.Equals(c.Field("parent.id"), c.Literal("5feea506-b0ab-4913-a08b-fe6a5234fa69")),
-					`(`+workitem.Column("parent", "number")+` = ?) OR (`+workitem.Column("parent", "id")+` = ?)`, []interface{}{"1234", "5feea506-b0ab-4913-a08b-fe6a5234fa69"}, []*workitem.TableJoin{&parent, &parent_link})
+					),
+					`((`+workitem.Column("parent", "number")+` = ?) OR (`+workitem.Column("parent", "id")+` = ?))`, []interface{}{"1234", "5feea506-b0ab-4913-a08b-fe6a5234fa69"}, []*workitem.TableJoin{&parent_link, &parent})
 			})
 		})
 	})
