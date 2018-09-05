@@ -112,8 +112,8 @@ func (s *TestIterationRepository) TestCreateIteration() {
 
 			i3 := iteration.Iteration{
 				ID:      uuid.NewV4(),
-				Name:    fxt.Iterations[1].Name,
-				SpaceID: fxt.Iterations[0].SpaceID,
+				Name:    i.Name,
+				SpaceID: i.SpaceID,
 			}
 			i3.MakeChildOf(*fxt.Iterations[0])
 
