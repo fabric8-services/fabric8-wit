@@ -120,12 +120,15 @@ func (s *TestIterationRepository) TestCreateIteration() {
 
 			// when
 			err := repo.Create(context.Background(), &i2)
+
+			// then
 			require.NoError(t, err)
 
+			// when
 			err = repo.Create(context.Background(), &i3)
-			spew.Dump(i, i2, i3)
-			require.Error(t, err)
 
+			// then
+			require.Error(t, err)
 			assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
 		})
 
