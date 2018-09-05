@@ -81,6 +81,17 @@ type FieldType interface {
 	// look at the implementation of this function to find out what's actually
 	// been checked for each individual type.
 	Validate() error
+	// ConvertToModelWithType tries to find way to convert the value v from this
+	// FieldType to the other FieldType in model representation; returns error
+	// otherwise.
+	//
+	// For example if the given value v is a string and the other FieldType is a
+	// string list, we will return the value v as an array of interfaces.
+	//
+	// Let's say the current FieldType is a string list and the other FieldType
+	// is a string field, then we check if the value v has only one element and
+	// return that instead of the whole list.
+	ConvertToModelWithType(other FieldType, v interface{}) (interface{}, error)
 }
 
 // FieldDefinition describes type & other restrictions of a field
