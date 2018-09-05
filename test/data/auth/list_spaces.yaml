@@ -4,7 +4,7 @@ interactions:
 - request:
     headers:
       sub: ["bcdd0b29-123d-11e8-a8bc-b69930b94f5c"] # will be compared against the `sub` claim in the incoming request's token
-    url: https://auth/api/user/resources?type=spaces
+    url: https://auth/api/user/resources?type=openshift.io%2Fresource%2Fspace
     method: GET
   response:
     status: 200 OK
@@ -24,7 +24,7 @@ interactions:
 - request:
     headers:
       sub: ["83fdcae2-634f-4a52-958a-f723cb621700"] # will be compared against the `sub` claim in the incoming request's token
-    url: https://auth/api/user/resources?type=spaces
+    url: https://auth/api/user/resources?type=openshift.io%2Fresource%2Fspace
     method: GET
   response:
     status: 200 OK
@@ -45,7 +45,7 @@ interactions:
         }]
     }'
 - request:
-    url: https://auth/api/user/resources?type=spaces
+    url: https://auth/api/user/resources?type=openshift.io%2Fresource%2Fspace
     method: GET
   response:
     status: 401 Unauthorized

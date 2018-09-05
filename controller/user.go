@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/fabric8-services/fabric8-auth/authorization"
+
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	uuid "github.com/satori/go.uuid"
@@ -118,7 +120,7 @@ func (c *UserController) ListSpaces(ctx *app.ListSpacesUserContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	res, err := client.ListResourcesUser(goasupport.ForwardContextRequestID(ctx), authservice.ListResourcesUserPath(), "spaces")
+	res, err := client.ListResourcesUser(goasupport.ForwardContextRequestID(ctx), authservice.ListResourcesUserPath(), authorization.ResourceTypeSpace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
