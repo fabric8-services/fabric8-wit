@@ -600,33 +600,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		// This will be used by the ConvertWorkItemStorageToModel function
 		wiType = newWiType
 	}
-	// wiStorage.Fields = Fields{}
-
-	// for fieldName, fieldDef := range wiType.Fields {
-	// 	if fieldDef.ReadOnly {
-	// 		continue
-	// 	}
-	// 	fieldValue := updatedWorkItem.Fields[fieldName]
-	// 	var err error
-	// 	if fieldDef.Type.GetKind() == KindList {
-	// 		switch fieldValue.(type) {
-	// 		case []string:
-	// 			if len(fieldValue.([]string)) == 0 {
-	// 				delete(wiStorage.Fields, fieldName)
-	// 				continue
-	// 			}
-	// 		case []interface{}:
-	// 			if len(fieldValue.([]interface{})) == 0 {
-	// 				delete(wiStorage.Fields, fieldName)
-	// 				continue
-	// 			}
-	// 		}
-	// 	}
-	// 	wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
-	// 	if err != nil {
-	// 		return nil, errors.NewBadParameterError(fieldName, fieldValue)
-	// 	}
-	// }
 	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -1330,7 +1303,7 @@ Missing fields in workitem type: {{ .NewTypeName }}
 			return errs.Wrapf(err, "failed to convert field \"%s\"", fieldName)
 		}
 	}
-
+	// Assign all values from the payload to the wiStorage
 	for fieldName, fieldValue := range updatedWorkitem.Fields {
 		fieldDef, ok := newWIType.Fields[fieldName]
 		if ok {
