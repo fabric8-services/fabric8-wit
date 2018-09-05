@@ -3,19 +3,17 @@ package iteration
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
-
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	"strconv"
+	"time"
 )
 
 // Defines "type" string to be used while validating jsonapi spec based payload

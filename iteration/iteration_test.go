@@ -2,21 +2,19 @@ package iteration_test
 
 import (
 	"context"
-	"reflect"
-	"testing"
-	"time"
-
-	"github.com/fabric8-services/fabric8-wit/iteration"
-
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/path"
+	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"reflect"
+	"testing"
+	"time"
 )
 
 type TestIterationRepository struct {
@@ -37,7 +35,7 @@ func (s *TestIterationRepository) TestCreateIteration() {
 		end := start.Add(time.Hour * (24 * 8 * 3))
 		name := "Sprint #24"
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 
 		i := iteration.Iteration{
 			Name:    name,
@@ -65,7 +63,7 @@ func (s *TestIterationRepository) TestCreateIteration() {
 		name := "Sprint #24"
 		name2 := "Sprint #24.1"
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 
 		i := iteration.Iteration{
 			Name:    name,
@@ -99,25 +97,44 @@ func (s *TestIterationRepository) TestCreateIteration() {
 		t.Run("root iteration", func(t *testing.T) {
 			name := "Iteration name test"
 			// given
-			fxt := tf.NewTestFixture(s.T(), s.DB,
+			fxt := tf.NewTestFixture(t, s.DB,
 				tf.Iterations(1, tf.SetIterationNames(name)),
 			)
 
 			i := *fxt.Iterations[0]
+
 			// another iteration with same name within same sapce, should fail
-			i2 := i
-			i2.ID = uuid.Nil
+			i2 := iteration.Iteration{
+				ID:      uuid.NewV4(),
+				Name:    i.Name,
+				SpaceID: i.SpaceID,
+			}
+			i2.MakeChildOf(i)
+
+			i3 := iteration.Iteration{
+				ID:      uuid.NewV4(),
+				Name:    i.Name,
+				SpaceID: i.SpaceID,
+			}
+			i3.MakeChildOf(i)
+
 			// when
 			err := repo.Create(context.Background(), &i2)
-			// then
+			require.NoError(t, err)
+
+			err = repo.Create(context.Background(), &i3)
+			spew.Dump(i, i2, i3)
 			require.Error(t, err)
+
 			assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
 		})
 
 		t.Run("sub iteration", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(s.T(), s.DB,
+			// givend
+			name := "Iteration name test"
+			fxt := tf.NewTestFixture(t, s.DB,
 				tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+					fxt.Iterations[idx].Name = name
 					if idx == 1 {
 						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[idx-1])
 					}
@@ -125,16 +142,19 @@ func (s *TestIterationRepository) TestCreateIteration() {
 				}),
 			)
 
-			// another iteration with same name within same sapce, should fail
+			// another iteration with same name within same space, should fail
+
 			iterationID := uuid.NewV4()
 			i3 := iteration.Iteration{
 				ID:      iterationID,
-				Path:    path.Path{fxt.Iterations[0].ID, iterationID},
+				Path:    append(fxt.Iterations[0].Path, iterationID),
 				Name:    fxt.Iterations[1].Name,
-				SpaceID: fxt.Iterations[1].SpaceID,
+				SpaceID: fxt.Iterations[0].SpaceID,
 			}
+
 			// when
 			err := repo.Create(context.Background(), &i3)
+
 			// then
 			require.Error(t, err)
 			assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
@@ -144,7 +164,7 @@ func (s *TestIterationRepository) TestCreateIteration() {
 	t.Run("pass - same iteration name across different space", func(t *testing.T) {
 		name := "Iteration name test"
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB,
+		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Spaces(2),
 			tf.Iterations(1, tf.SetIterationNames(name)),
 		)
@@ -173,29 +193,27 @@ func (s *TestIterationRepository) TestLoad() {
 		name := "Sprint #24"
 		name2 := "Sprint #24.1"
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 
-		iterID := uuid.NewV4()
 		i := iteration.Iteration{
-			ID:      iterID,
 			Name:    name,
 			SpaceID: fxt.Spaces[0].ID,
 			StartAt: &start,
 			EndAt:   &end,
-			Path:    path.Path{iterID},
 		}
 		// when
 		repo.Create(context.Background(), &i)
 
-		iter2ID := uuid.NewV4()
 		i2 := iteration.Iteration{
-			ID:      iter2ID,
+			ID:      uuid.NewV4(),
 			Name:    name2,
 			SpaceID: fxt.Spaces[0].ID,
 			StartAt: &start,
 			EndAt:   &end,
-			Path:    append(i.Path, iter2ID),
 		}
+
+		i2.MakeChildOf(i)
+
 		repo.Create(context.Background(), &i2)
 		// then
 		res, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
@@ -209,7 +227,7 @@ func (s *TestIterationRepository) TestLoad() {
 
 	t.Run("list by space", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB,
+		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Spaces(2),
 			tf.Iterations(4, func(fxt *tf.TestFixture, idx int) error {
 				if idx == 3 {
@@ -251,7 +269,7 @@ func (s *TestIterationRepository) TestLoad() {
 
 	t.Run("success - load children for iteration", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB,
+		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
 				i := fxt.Iterations[idx]
 				switch idx {
@@ -331,7 +349,7 @@ func (s *TestIterationRepository) TestUpdate() {
 		start := time.Now()
 		end := start.Add(time.Hour * (24 * 8 * 3))
 
-		fxt := tf.NewTestFixture(s.T(), s.DB,
+		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Iterations(1,
 				tf.UserActive(false),
 				func(fxt *tf.TestFixture, idx int) error {
@@ -373,7 +391,7 @@ func (s *TestIterationRepository) TestExistsIteration() {
 	resource.Require(t, resource.Database)
 	repo := iteration.NewIterationRepository(s.DB)
 	t.Run("iteration exists", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Iterations(1))
 		require.Nil(t, repo.CheckExists(context.Background(), fxt.Iterations[0].ID))
 	})
 	t.Run("iteration doesn't exist", func(t *testing.T) {
@@ -385,15 +403,15 @@ func (s *TestIterationRepository) TestExistsIteration() {
 func (s *TestIterationRepository) TestIsActive() {
 	t := s.T()
 	t.Run("user active is true", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1, tf.UserActive(true)))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Iterations(1, tf.UserActive(true)))
 		require.True(t, fxt.Iterations[0].IsActive())
 	})
 	t.Run("start date is nil", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1, tf.UserActive(false)))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Iterations(1, tf.UserActive(false)))
 		require.False(t, fxt.Iterations[0].IsActive())
 	})
 	t.Run("end date is nil and current date is after start date", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB,
+		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Iterations(1,
 				tf.UserActive(false),
 				func(fxt *tf.TestFixture, idx int) error {
@@ -406,7 +424,7 @@ func (s *TestIterationRepository) TestIsActive() {
 		require.True(t, fxt.Iterations[0].IsActive())
 	})
 	t.Run("end date is nil and current date is before start date", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB,
+		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Iterations(1,
 				tf.UserActive(false),
 				func(fxt *tf.TestFixture, idx int) error {
@@ -424,7 +442,7 @@ func (s *TestIterationRepository) TestIsRoot() {
 	t := s.T()
 	resource.Require(t, resource.Database)
 	t.Run("check IsRoot on root & other iterations", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(2, tf.PlaceIterationUnderRootIteration()))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Iterations(2, tf.PlaceIterationUnderRootIteration()))
 		spaceID := fxt.Spaces[0].ID
 		require.True(t, fxt.Iterations[0].IsRoot(spaceID))
 		require.False(t, fxt.Iterations[1].IsRoot(spaceID))
@@ -445,7 +463,7 @@ func (s *TestIterationRepository) TestParent() {
 		// |                                |___________Iteration 3
 		// |___________Iteration 4
 		//                     |___________Iteration 5
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(6,
+		fxt := tf.NewTestFixture(t, s.DB, tf.Iterations(6,
 			func(fxt *tf.TestFixture, idx int) error {
 				i := fxt.Iterations[idx]
 				switch idx {
