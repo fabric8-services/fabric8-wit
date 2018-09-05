@@ -545,7 +545,10 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		return &wi, nil
 	}
 
-	tx = tx.Model(&res).Where("Version = ?", wi.Version).UpdateColumns(WorkItemStorage{ExecutionOrder: order, Version: res.Version + 1})
+	tx = tx.Model(&res).Select("execution_order", "version").Updates(WorkItemStorage{
+		ExecutionOrder: order,
+		Version:        res.Version + 1,
+	})
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
