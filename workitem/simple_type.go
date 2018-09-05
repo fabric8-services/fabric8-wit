@@ -14,7 +14,8 @@ import (
 
 // SimpleType is an unstructured FieldType
 type SimpleType struct {
-	Kind Kind `json:"kind"`
+	Kind         Kind        `json:"kind"`
+	DefaultValue interface{} `json:"default_value,omitempty"`
 }
 
 // Ensure SimpleType implements the FieldType interface
@@ -25,15 +26,44 @@ var _ FieldType = (*SimpleType)(nil)
 var _ convert.Equaler = SimpleType{}
 var _ convert.Equaler = (*SimpleType)(nil)
 
-// DefaultValue implements FieldType
-func (t SimpleType) DefaultValue(value interface{}) (interface{}, error) {
-	return value, nil
+// Validate checks that the default value matches the Kind
+func (t SimpleType) Validate() error {
+	if !t.Kind.IsSimpleType() {
+		return errs.New("a simple type can only have a simple type (e.g. no list or enum)")
+	}
+	_, err := t.SetDefaultValue(t.DefaultValue)
+	if err != nil {
+		return errs.Wrapf(err, "failed to validate default value for kind %s: %+v (%[1]T)", t.Kind, t.DefaultValue)
+	}
+	return nil
+}
+
+// SetDefaultValue implements FieldType
+func (t SimpleType) SetDefaultValue(v interface{}) (FieldType, error) {
+	if v == nil {
+		t.DefaultValue = nil
+		return t, nil
+	}
+	defVal, err := t.ConvertToModel(v)
+	if err != nil {
+		return nil, errs.Wrapf(err, "failed to set default value of simple type to %+v (%[1]T)", v)
+	}
+	t.DefaultValue = defVal
+	return t, nil
+}
+
+// GetDefaultValue implements FieldType
+func (t SimpleType) GetDefaultValue() interface{} {
+	return t.DefaultValue
 }
 
 // Equal returns true if two SimpleType objects are equal; otherwise false is returned.
 func (t SimpleType) Equal(u convert.Equaler) bool {
 	other, ok := u.(SimpleType)
 	if !ok {
+		return false
+	}
+	if t.DefaultValue != other.DefaultValue {
 		return false
 	}
 	return t.Kind == other.Kind
@@ -188,4 +218,38 @@ func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	default:
 		return nil, errs.Errorf("unexpected field type: %s", t.GetKind())
 	}
+}
+
+// ConvertToModelWithType implements FieldType
+func (t SimpleType) ConvertToModelWithType(newFieldType FieldType, v interface{}) (interface{}, error) {
+	// Try to assign the old value to the new field
+	newVal, err := newFieldType.ConvertToModel(v)
+	if err == nil {
+		return newVal, nil
+	}
+
+	// if the new type is a list, stuff the old value in a list and
+	// try to assign it
+	if newFieldType.GetKind() == KindList {
+		newVal, err = newFieldType.ConvertToModel([]interface{}{v})
+		if err == nil {
+			return newVal, nil
+		}
+	}
+
+	// if the old type is a list but the new one isn't check that
+	// the list contains only one element and assign that
+	if t.GetKind() == KindList && newFieldType.GetKind() != KindList {
+		ifArr, ok := v.([]interface{})
+		if !ok {
+			return nil, errs.Errorf("failed to convert value to interface array: %+v", v)
+		}
+		if len(ifArr) == 1 {
+			newVal, err = newFieldType.ConvertToModel(ifArr[0])
+			if err == nil {
+				return newVal, nil
+			}
+		}
+	}
+	return nil, errs.Errorf("failed to convert value %+v (%[1]T) to field type %+v (%[2]T)", v, newFieldType)
 }

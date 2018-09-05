@@ -14,3 +14,9 @@ type Tracker struct {
 	// Type of the tracker (jira, github, bugzilla, trello etc.)
 	Type string
 }
+
+// TableName overrides the table name settings in Gorm to force a specific table name
+// in the database.
+func (t Tracker) TableName() string {
+	return trackersTableName
+}

@@ -178,3 +178,11 @@ func TestToStringSlice(t *testing.T) {
 	s := id.Slice{a, b, c}
 	require.Equal(t, []string{a.String(), b.String(), c.String()}, s.ToStringSlice())
 }
+
+func TestSlice_Contains(t *testing.T) {
+	a := uuid.FromStringOrNil("cb4364bf-893c-4ac2-a35f-4ef74c212e88")
+	b := uuid.FromStringOrNil("d085a858-6b98-44ce-8777-b36d927b07dc")
+	require.True(t, id.Slice{a, b}.Contains(a))
+	require.False(t, id.Slice{}.Contains(a))
+	require.False(t, id.Slice{a}.Contains(b))
+}

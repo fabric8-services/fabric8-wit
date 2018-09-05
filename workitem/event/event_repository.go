@@ -16,10 +16,13 @@ import (
 // APIStringTypeEvents represent the type of event
 const APIStringTypeEvents = "events"
 
+// WorkitemTypeChangeEvent represents the attribute name for type change event
+const WorkitemTypeChangeEvent = "workitemtype"
+
 // Repository encapsulates retrieval of work item events
 type Repository interface {
-	//repository.Exister
-	List(ctx context.Context, wiID uuid.UUID) ([]Event, error)
+	// List returns all events for a work item.
+	List(ctx context.Context, wiID uuid.UUID) (List, error)
 }
 
 // NewEventRepository creates a work item event repository based on gorm
@@ -42,33 +45,24 @@ type GormEventRepository struct {
 	identityRepo     *account.GormIdentityRepository
 }
 
-// List return the events
-func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event, error) {
+// List implements Repository interface
+func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) (List, error) {
 	revisionList, err := r.wiRevisionRepo.List(ctx, wiID)
 	if err != nil {
-		return nil, errs.Wrapf(err, "failed to list revisions for work item: %s", wiID)
+		return nil, errs.Wrapf(err, "failed to list revisions for work item %s", wiID)
 	}
 	if revisionList == nil {
-		return []Event{}, nil
+		return List{}, nil
 	}
 	if err = r.workItemRepo.CheckExists(ctx, wiID); err != nil {
 		return nil, errs.Wrapf(err, "failed to find work item: %s", wiID)
 	}
 
-	eventList := []Event{}
+	eventList := List{}
 	for k := 1; k < len(revisionList); k++ {
 
 		oldRev := revisionList[k-1]
 		newRev := revisionList[k]
-
-		// If the new and old work item type are different, we're skipping this
-		// revision because it denotes the change of a work item type.
-		//
-		// TODO(kwk): make sure we have a proper "changed work item type"
-		// revision entry in one way or another.
-		if oldRev.WorkItemTypeID != newRev.WorkItemTypeID {
-			continue
-		}
 
 		wit, err := r.workItemTypeRepo.Load(ctx, oldRev.WorkItemTypeID)
 		if err != nil {
@@ -80,13 +74,31 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 			return nil, errs.Wrapf(err, "failed to load modifier identity %s", newRev.ModifierIdentity)
 		}
 
+		// TODO(kwk): make sure we have a proper "changed work item type"
+		// revision entry in one way or another.
+		// TODO(ibrahim): type change event should have more information than just the new and old type IDs
+		if oldRev.WorkItemTypeID != newRev.WorkItemTypeID {
+			event := Event{
+				RevisionID:     newRev.ID,
+				Name:           WorkitemTypeChangeEvent,
+				WorkItemTypeID: newRev.WorkItemTypeID,
+				Timestamp:      newRev.Time,
+				Modifier:       modifierID.ID,
+				Old:            oldRev.WorkItemTypeID,
+				New:            newRev.WorkItemTypeID,
+			}
+			eventList = append(eventList, event)
+			// We do not compare any of the fields since this is a type change event.
+			continue
+		}
+
 		for fieldName, fieldDef := range wit.Fields {
 
 			oldVal := oldRev.WorkItemFields[fieldName]
 			newVal := newRev.WorkItemFields[fieldName]
 
 			event := Event{
-				ID:             newRev.ID,
+				RevisionID:     newRev.ID,
 				Name:           fieldName,
 				WorkItemTypeID: newRev.WorkItemTypeID,
 				Timestamp:      newRev.Time,
@@ -167,5 +179,6 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 			}
 		}
 	}
+
 	return eventList, nil
 }

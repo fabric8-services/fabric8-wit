@@ -72,9 +72,26 @@ type FieldType interface {
 	ConvertFromModel(value interface{}) (interface{}, error)
 	// Implement the Equaler interface
 	Equal(u convert.Equaler) bool
-	// DefaultValue is called if a field is not specified. In it's simplest form
-	// the DefaultValue returns the given input value without any conversion.
-	DefaultValue(value interface{}) (interface{}, error)
+	// GetDefaultValue is called if a field's value is nil.
+	GetDefaultValue() interface{}
+	// SetDefaultValue returns a copy of the FieldType object at hand if there
+	// was no error setting the default value of that field type.
+	SetDefaultValue(v interface{}) (FieldType, error)
+	// Validate checks that the type definition of a field is correct. Take a
+	// look at the implementation of this function to find out what's actually
+	// been checked for each individual type.
+	Validate() error
+	// ConvertToModelWithType tries to find way to convert the value v from this
+	// FieldType to the other FieldType in model representation; returns error
+	// otherwise.
+	//
+	// For example if the given value v is a string and the other FieldType is a
+	// string list, we will return the value v as an array of interfaces.
+	//
+	// Let's say the current FieldType is a string list and the other FieldType
+	// is a string field, then we check if the value v has only one element and
+	// return that instead of the whole list.
+	ConvertToModelWithType(other FieldType, v interface{}) (interface{}, error)
 }
 
 // FieldDefinition describes type & other restrictions of a field
@@ -93,8 +110,13 @@ var _ convert.Equaler = (*FieldDefinition)(nil)
 // Ensure FieldDefinition implements the json.Unmarshaler interface
 var _ json.Unmarshaler = (*FieldDefinition)(nil)
 
-// // Ensure FieldDefinition implements the yaml.Unmarshaler interface
-// var _ yaml.Unmarshaler = (*FieldDefinition)(nil)
+// Validate checks that a field has a proper setup
+func (f FieldDefinition) Validate() error {
+	if strings.TrimSpace(f.Label) == "" {
+		return errs.Errorf(`field label is empty "%s" when trimmed`, f.Label)
+	}
+	return f.Type.Validate()
+}
 
 // Equal returns true if two FieldDefinition objects are equal; otherwise false is returned.
 func (f FieldDefinition) Equal(u convert.Equaler) bool {
@@ -121,11 +143,7 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
 	// Overwrite value if default value if none was provided
 	if value == nil {
-		defValue, err := f.Type.DefaultValue(value)
-		if err != nil {
-			return nil, errs.Wrapf(err, "failed to get default value for field \"%s\"", name)
-		}
-		value = defValue
+		value = f.Type.GetDefaultValue()
 	}
 
 	if f.Required {
@@ -183,19 +201,15 @@ func (f rawFieldDef) Equal(u convert.Equaler) bool {
 	if f.Description != other.Description {
 		return false
 	}
-	if f.Type == nil && other.Type == nil {
-		return true
+	if !reflect.DeepEqual(f.Type, other.Type) {
+		return false
 	}
-	if f.Type != nil && other.Type != nil {
-		return reflect.DeepEqual(f.Type, other.Type)
-	}
-	return false
+	return true
 }
 
 // UnmarshalJSON implements encoding/json.Unmarshaler
 func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 	temp := rawFieldDef{}
-
 	err := json.Unmarshal(bytes, &temp)
 	if err != nil {
 		return errs.Wrapf(err, "failed to unmarshall field definition into rawFieldDef")
