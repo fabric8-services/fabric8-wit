@@ -57,7 +57,7 @@ func TestParentPath(t *testing.T) {
 	this := uuid.NewV4()
 
 	// when/then
-	require.Equal(t, path.Path{grandParent, parent, this}, path.Path{grandParent, parent, this}.ParentPath())
+	require.Equal(t, path.Path{grandParent, parent}, path.Path{grandParent, parent, this}.ParentPath())
 	require.Equal(t, path.Path{grandParent}, path.Path{grandParent, parent}.ParentPath())
 	require.Equal(t, path.Path{}, path.Path{grandParent}.ParentPath())
 	require.Equal(t, path.Path{}, path.Path{}.ParentPath())
