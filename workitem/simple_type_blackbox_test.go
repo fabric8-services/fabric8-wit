@@ -121,3 +121,145 @@ func TestSimpleType_SetDefaultValue(t *testing.T) {
 		})
 	}
 }
+
+type testData struct {
+	name string
+
+	initialValue interface{}
+	targetValue  interface{}
+
+	initialFieldType FieldType
+	targetFieldType  FieldType
+
+	fieldConvertible bool
+}
+
+func getFieldTypeConversionTestData() []testData {
+	k := KindString
+	return []testData{
+		// valid conversions
+		{"ok - simple type to simple type",
+			"foo1",
+			"foo1",
+			SimpleType{Kind: k},
+			SimpleType{Kind: k},
+			true},
+		{"ok - simple type to list",
+			"foo2",
+			[]interface{}{"foo2"},
+			SimpleType{Kind: k},
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: k}},
+			true},
+		{"ok - simple type to enum",
+			"foo3",
+			"foo3",
+			SimpleType{Kind: k},
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: k}, Values: []interface{}{"red", "foo3", "blue"}},
+			true},
+		{"ok - list to list",
+			[]interface{}{"foo4", "foo5"},
+			[]interface{}{"foo4", "foo5"},
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: k}},
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: k}},
+			true},
+		{"ok - list to simple type",
+			[]interface{}{"foo6"},
+			"foo6",
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: k}},
+			SimpleType{Kind: k},
+			true},
+		{"ok - list to enum",
+			[]interface{}{"foo7"},
+			"foo7",
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: k}},
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: k}, Values: []interface{}{"yellow", "foo7", "cyan"}},
+			true},
+		{"ok - enum to enum",
+			"foo8",
+			"foo8",
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: k}, Values: []interface{}{"Bach", "foo8", "Chapdelaine"}},
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: k}, Values: []interface{}{"Kant", "Hume", "foo8", "Aristoteles"}},
+			true},
+		{"ok - enum to simple type",
+			"foo9",
+			"foo9",
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: k}, Values: []interface{}{"Schopenhauer", "foo9", "Duerer"}},
+			SimpleType{Kind: k},
+			true},
+		{"ok - enum to list",
+			"foo10",
+			[]interface{}{"foo10"},
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: k}, Values: []interface{}{"Sokrates", "foo10", "Fromm"}},
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: k}},
+			true},
+		// invalid conversions
+		{"err - simple type (string) to simple type (int)",
+			"foo11",
+			nil,
+			SimpleType{Kind: KindString},
+			SimpleType{Kind: KindInteger},
+			false},
+		{"err - simple type (string) to list (integer)",
+			"foo2",
+			([]interface{})(nil),
+			SimpleType{Kind: k},
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: KindInteger}},
+			false},
+		{"err - simple type (string) to enum (float)",
+			"foo3",
+			11.1,
+			SimpleType{Kind: k},
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: KindFloat}, Values: []interface{}{11.1, 22.2, 33.3}},
+			false},
+		{"err - list (string) to list (float)",
+			[]interface{}{"foo4", "foo5"},
+			([]interface{})(nil),
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: k}},
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: KindFloat}},
+			false},
+		{"err - list (string) to simple type (int)",
+			[]interface{}{"foo6"},
+			nil,
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: k}},
+			SimpleType{Kind: KindInteger},
+			false},
+		{"err - list (string) to enum (float)",
+			[]interface{}{"foo7"},
+			11.1,
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: k}},
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: KindFloat}, Values: []interface{}{11.1, 22.2, 33.3}},
+			false},
+		{"err - enum (string) to enum (float)",
+			"foo8",
+			11.1,
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: k}, Values: []interface{}{"Bach", "foo8", "Chapdelaine"}},
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: KindFloat}, Values: []interface{}{11.1, 22.2, 33.3}},
+			false},
+		{"err - enum (string) to simple type (float)",
+			"foo9",
+			nil,
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: k}, Values: []interface{}{"Schopenhauer", "foo9", "Duerer"}},
+			SimpleType{Kind: KindFloat},
+			false},
+		{"err - enum (string) to list (float)",
+			"foo10",
+			([]interface{})(nil),
+			EnumType{SimpleType: SimpleType{Kind: KindEnum}, BaseType: SimpleType{Kind: k}, Values: []interface{}{"Sokrates", "foo10", "Fromm"}},
+			ListType{SimpleType: SimpleType{Kind: KindList}, ComponentType: SimpleType{Kind: KindFloat}},
+			false},
+	}
+}
+
+func TestConvertToModelWithType(t *testing.T) {
+	for _, d := range getFieldTypeConversionTestData() {
+		t.Run(d.name, func(t *testing.T) {
+			convertedVal, err := d.initialFieldType.ConvertToModelWithType(d.targetFieldType, d.initialValue)
+			if !d.fieldConvertible {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, convertedVal, d.targetValue)
+		})
+	}
+}
