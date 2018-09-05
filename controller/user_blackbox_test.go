@@ -73,6 +73,21 @@ func (s *UserControllerTestSuite) TestListSpaces() {
 
 	s.T().Run("ok", func(t *testing.T) {
 
+		t.Run("user has no role in any space", func(t *testing.T) {
+			// given
+			ctx, err := testjwt.NewJWTContext("aa8bffab-c505-40b6-8e87-cd8b0fc1a0c4", "")
+			require.NoError(t, err)
+			r, err := testrecorder.New("../test/data/auth/list_spaces",
+				testrecorder.WithJWTMatcher("../test/jwt/public_key.pem"))
+			require.NoError(t, err)
+			defer r.Stop()
+			svc, userCtrl := s.NewSecuredController(configuration.WithRoundTripper(r.Transport))
+			// when
+			_, result := test.ListSpacesUserOK(t, ctx, svc, userCtrl)
+			// then
+			require.Empty(t, result.Data)
+		})
+
 		t.Run("user has a role in 1 space", func(t *testing.T) {
 			// given
 			tf.NewTestFixture(t, s.DB, tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {

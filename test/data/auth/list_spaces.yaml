@@ -3,6 +3,17 @@ version: 1
 interactions:
 - request:
     headers:
+      sub: ["aa8bffab-c505-40b6-8e87-cd8b0fc1a0c4"] # will be compared against the `sub` claim in the incoming request's token
+    url: https://auth/api/user/resources?type=openshift.io%2Fresource%2Fspace
+    method: GET
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+      "data":[]
+    }'
+- request:
+    headers:
       sub: ["bcdd0b29-123d-11e8-a8bc-b69930b94f5c"] # will be compared against the `sub` claim in the incoming request's token
     url: https://auth/api/user/resources?type=openshift.io%2Fresource%2Fspace
     method: GET
@@ -13,11 +24,10 @@ interactions:
       "data":[
         {
           "id": "6c378ed7-67cf-4e09-b099-c25bf8202617",
-          "type": "spaces",
-          "attributes": {
-            "role": "contributor",
-            "scopes": ["contribute","view"]
-          }
+          "links": {
+                "related": "http:///api/resource/6bfa9182-dc81-4bc1-a694-c2e96ec23d3e"
+            },
+          "type": "resources"
         }
       ]
     }'
