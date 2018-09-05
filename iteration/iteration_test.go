@@ -112,10 +112,10 @@ func (s *TestIterationRepository) TestCreateIteration() {
 
 			i3 := iteration.Iteration{
 				ID:      uuid.NewV4(),
-				Name:    i.Name,
-				SpaceID: i.SpaceID,
+				Name:    fxt.Iterations[1].Name,
+				SpaceID: fxt.Iterations[0].SpaceID,
 			}
-			i3.MakeChildOf(i)
+			i3.MakeChildOf(*fxt.Iterations[0])
 
 			// when
 			err := repo.Create(context.Background(), &i2)
