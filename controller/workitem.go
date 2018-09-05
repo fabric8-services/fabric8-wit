@@ -294,10 +294,14 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 	if err != nil {
 		return errs.Wrapf(err, "failed to load the new work item type: %s", witID)
 	}
-	// Chances are that old and new workitem type are same.
-	oldWIT, err := appl.WorkItemTypes().Load(ctx, target.Type)
-	if err != nil {
-		return errs.Wrapf(err, "failed to load the old work item type: %s", target.Type)
+	oldWIT := newWIT
+	// If target.Type has a value we use that as the Old workitem type
+	if target.Type != uuid.Nil {
+		// Chances are that old and new workitem type are same.
+		oldWIT, err = appl.WorkItemTypes().Load(ctx, target.Type)
+		if err != nil {
+			return errs.Wrapf(err, "failed to load the old work item type: %s", target.Type)
+		}
 	}
 	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
