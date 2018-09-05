@@ -51,6 +51,7 @@ func TestParentID(t *testing.T) {
 func TestParentPath(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
+
 	// given
 	grandParent := uuid.NewV4()
 	parent := uuid.NewV4()
