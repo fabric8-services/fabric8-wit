@@ -92,7 +92,6 @@ func (s *DummySpaceAuthzService) Configuration() witauth.ServiceConfiguration {
 }
 
 func (rest *TestIterationREST) TestCreateChildIteration() {
-
 	rest.T().Run("Ok", func(t *testing.T) {
 		t.Run("as space owner", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
