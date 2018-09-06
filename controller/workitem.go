@@ -130,7 +130,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
-
+	witID := wi.Type
 	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
 		ctx.Payload.Data.Relationships.BaseType.Data != nil && ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
 
@@ -141,26 +141,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if !authorized {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to change the workitemtype"))
 		}
-		// Store new values of type and version
-		newType := ctx.Payload.Data.Relationships.BaseType
-		newVersion := ctx.Payload.Data.Attributes[workitem.SystemVersion]
-
-		// Remove version and base type from payload
-		delete(ctx.Payload.Data.Attributes, workitem.SystemVersion)
-		ctx.Payload.Data.Relationships.BaseType = nil
-
-		// Ensure we do not have any other change in payload except type change
-		if (app.WorkItemRelationships{}) != *ctx.Payload.Data.Relationships || len(ctx.Payload.Data.Attributes) > 0 {
-			// Todo(ibrahim) - Change this error to 422 Unprocessable entity
-			// error once we have this error in our error package. Please see
-			// https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r208842063
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("cannot update type along with other fields"))
-		}
-
-		// Restore the original values
-		ctx.Payload.Data.Relationships.BaseType = newType
-		ctx.Payload.Data.Attributes[workitem.SystemVersion] = newVersion
-
+		witID = ctx.Payload.Data.Relationships.BaseType.Data.ID
 	}
 	var rev *workitem.Revision
 	err = application.Transactional(c.db, func(appl application.Application) error {
@@ -168,7 +149,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		// we overwrite the values with its old value after the work item was
 		// converted.
 		oldNumber := wi.Number
-		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.Type, wi.SpaceID)
+		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, witID, wi.SpaceID)
 		if err != nil {
 			return err
 		}
@@ -309,12 +290,19 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 // response resource object by jsonapi.org specifications
 func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, witID uuid.UUID, spaceID uuid.UUID) error {
 	// load work item type to perform conversion according to a field type
-	wit, err := appl.WorkItemTypes().Load(ctx, witID)
+	newWIT, err := appl.WorkItemTypes().Load(ctx, witID)
 	if err != nil {
-		return errs.Wrapf(err, "failed to load work item type: %s", witID)
+		return errs.Wrapf(err, "failed to load the new work item type: %s", witID)
 	}
-	_ = wit
-
+	oldWIT := newWIT
+	// If target.Type has a value we use that as the Old workitem type
+	if target.Type != uuid.Nil {
+		// Chances are that old and new workitem type are same.
+		oldWIT, err = appl.WorkItemTypes().Load(ctx, target.Type)
+		if err != nil {
+			return errs.Wrapf(err, "failed to load the old work item type: %s", target.Type)
+		}
+	}
 	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
@@ -505,6 +493,29 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			target.Fields[key] = *m
 		default:
 			target.Fields[key] = val
+		}
+	}
+	// Remove fields from target that do not belong to the type definition
+	for fieldName := range target.Fields {
+		// This is an exception because systemDescriptionMarkup isn't part of
+		// the type definition but we cannot remove it.
+		if fieldName == workitem.SystemDescriptionMarkup {
+			continue
+		}
+		// Remove field from target if it doesn't exist in the new type
+		if _, ok := newWIT.Fields[fieldName]; !ok {
+			delete(target.Fields, fieldName)
+			continue
+		}
+		// Remove field from target if TYPE has changed and the new value cannot
+		// be assigned to an old field.
+		// For example: Type 1 has "foo":string and Type2 has "foo":int and we
+		// cannot assign old value to new type
+		if oldWIT.ID != newWIT.ID {
+			_, err := newWIT.Fields[fieldName].ConvertToModel(fieldName, target.Fields[fieldName])
+			if err != nil {
+				delete(target.Fields, fieldName)
+			}
 		}
 	}
 	if description, ok := target.Fields[workitem.SystemDescription].(rendering.MarkupContent); ok {

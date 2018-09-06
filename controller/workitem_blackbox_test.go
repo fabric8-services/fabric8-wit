@@ -970,131 +970,237 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
-	userFullName := []string{"First User", "Second User"}
-	userUserName := []string{"jon_doe", "lorem_ipsum"}
-	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.CreateWorkItemEnvironment(),
-		tf.Users(2, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Users[idx].FullName = userFullName[idx]
-			return nil
-		}),
-		tf.Identities(2, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Identities[idx].Username = userUserName[idx]
-			fxt.Identities[idx].User = *fxt.Users[idx]
-			return nil
-		}),
-		tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
-			switch idx {
-			case 0:
-				fxt.WorkItemTypes[idx].Name = "First WorkItem Type"
-				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
-					"fooo": {
-						Label: "Type1 fooo",
-						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
-					},
-					"fooBar": {
-						Label: "Type1 fooBar",
-						Type: workitem.EnumType{
-							BaseType:   workitem.SimpleType{Kind: workitem.KindString},
-							SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
-							Values:     []interface{}{"open", "done", "closed"},
-						},
-					},
-					"assigned-to": {
-						Label: "Type1 Assigned To",
-						Type: workitem.ListType{
-							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-							ComponentType: workitem.SimpleType{Kind: workitem.KindUser},
-						},
-					},
-					"bar": {
-						Label: "Type1 bar",
-						Type:  &workitem.SimpleType{Kind: workitem.KindString},
-					},
-					"reporter": {
-						Label: "Type1 reporter",
-						Type:  &workitem.SimpleType{Kind: workitem.KindUser},
-					},
-					"integer-or-float-list": {
-						Label: "Type1 integer-or-float-list",
-						Type: workitem.ListType{
-							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-							ComponentType: workitem.SimpleType{Kind: workitem.KindInteger},
-						},
-					},
-				}
-			case 1:
-				fxt.WorkItemTypes[idx].Name = "Second WorkItem Type"
-				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
-					"fooo": {
-						Label: "Type2 fooo",
-						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
-					},
-					"bar": {
-						Label: "Type2 bar",
-						Type:  &workitem.SimpleType{Kind: workitem.KindInteger},
-					},
-					"fooBar": {
-						Label: "Type2 fooBar",
-						Type: workitem.EnumType{
-							BaseType:   workitem.SimpleType{Kind: workitem.KindString},
-							SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
-							Values:     []interface{}{"alpha", "beta", "gamma"},
-						},
-					},
-					"integer-or-float-list": {
-						Label: "Type2 integer-or-float-list",
-						Type: workitem.ListType{
-							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-							ComponentType: workitem.SimpleType{Kind: workitem.KindFloat},
-						},
-					},
-				}
-			}
-			return nil
-		}),
-		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
-			fxt.WorkItems[idx].Fields["integer-or-float-list"] = []int{101}
-			fxt.WorkItems[idx].Fields["fooo"] = 2.5
-			fxt.WorkItems[idx].Fields["fooBar"] = "open"
-			fxt.WorkItems[idx].Fields["bar"] = "hello"
-			fxt.WorkItems[idx].Fields["reporter"] = fxt.Identities[0].ID.String()
-			fxt.WorkItems[idx].Fields["assigned-to"] = []string{fxt.Identities[0].ID.String(), fxt.Identities[1].ID.String()}
-			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("description1")
-			return nil
-		}),
-	)
-	// when
-	u := minimumRequiredUpdatePayload()
-	u.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[0].Version
-	u.Data.ID = &fxt.WorkItems[0].ID
-	u.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
-	}
-	svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
 	s.T().Run("ok", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0:
+					fxt.WorkItemTypes[idx].Name = "First WorkItem Type"
+					fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+						"foo": {
+							Label: "Type1 foo",
+							Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+						},
+						"enumField": {
+							Label: "Type1 enumField",
+							Type: workitem.EnumType{
+								BaseType:   workitem.SimpleType{Kind: workitem.KindString},
+								SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+								Values:     []interface{}{"open", "done", "closed"},
+							},
+						},
+						"bar": {
+							Label: "Type1 bar",
+							Type:  &workitem.SimpleType{Kind: workitem.KindString},
+						},
+						"integer-or-float-list": {
+							Label: "Type1 integer-or-float-list",
+							Type: workitem.ListType{
+								SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+								ComponentType: workitem.SimpleType{Kind: workitem.KindInteger},
+							},
+						},
+					}
+				case 1:
+					fxt.WorkItemTypes[idx].Name = "Second WorkItem Type"
+					fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+						"foo": {
+							Label: "Type2 foo",
+							Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+						},
+						"bar": {
+							Label: "Type2 bar",
+							Type:  &workitem.SimpleType{Kind: workitem.KindInteger},
+						},
+						"enumField": {
+							Label: "Type2 enumField",
+							Type: workitem.EnumType{
+								BaseType:   workitem.SimpleType{Kind: workitem.KindString},
+								SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+								Values:     []interface{}{"alpha", "beta", "gamma"},
+							},
+						},
+						"integer-or-float-list": {
+							Label: "Type2 integer-or-float-list",
+							Type: workitem.ListType{
+								SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+								ComponentType: workitem.SimpleType{Kind: workitem.KindFloat},
+							},
+						},
+					}
+				}
+				return nil
+			}),
+			tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+				fxt.WorkItems[idx].Fields["integer-or-float-list"] = []int{101}
+				fxt.WorkItems[idx].Fields["foo"] = 2.5
+				fxt.WorkItems[idx].Fields["enumField"] = "open"
+				fxt.WorkItems[idx].Fields["bar"] = "hello"
+				fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("description1")
+				return nil
+			}),
+		)
+		// when
+		u := minimumRequiredUpdatePayload()
+		u.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[0].Version
+		u.Data.ID = &fxt.WorkItems[0].ID
+		u.Data.Relationships = &app.WorkItemRelationships{
+			BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
+		}
+		svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
+
 		_, newWI := test.UpdateWorkitemOK(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
 
 		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
 		newDescription := newWI.Data.Attributes[workitem.SystemDescription]
 		assert.NotNil(t, newDescription)
 		// Type of old and new field is same
-		assert.NotContains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooo"].Label)
+		assert.NotContains(t, newDescription, fxt.WorkItemTypes[0].Fields["foo"].Label)
 		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["bar"].Label)
-		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooBar"].Label)
-		assert.Equal(t, "alpha", newWI.Data.Attributes["fooBar"]) // First value of enum for field foobar
+		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["enumField"].Label)
+		assert.Equal(t, "alpha", newWI.Data.Attributes["enumField"]) // First value of enum for field enumField
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
 	})
 
-	s.T().Run("disallow update of field along with type", func(t *testing.T) {
-		u.Data.Attributes[workitem.SystemTitle] = "xyz"
-		// TODO (ibrahim) - Check type of error once error 422 has been added.
-		//https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r210184092
-		test.UpdateWorkitemConflict(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+	s.T().Run("ok - relational values are resolved", func(t *testing.T) {
+		userFullName := []string{"First User", "Second User"}
+		userUserName := []string{"jon_doe", "lorem_ipsum"}
+		fxt := tf.NewTestFixture(s.T(), s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Users(2, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Users[idx].FullName = userFullName[idx]
+				return nil
+			}),
+			tf.Identities(2, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Identities[idx].Username = userUserName[idx]
+				fxt.Identities[idx].User = *fxt.Users[idx]
+				return nil
+			}),
+			tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0:
+					fxt.WorkItemTypes[idx].Name = "First WorkItem Type"
+					fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+						"assigned-to": {
+							Label: "Type1 Assigned To",
+							Type: workitem.ListType{
+								SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+								ComponentType: workitem.SimpleType{Kind: workitem.KindUser},
+							},
+						},
+						"reporter": {
+							Label: "Type1 reporter",
+							Type:  &workitem.SimpleType{Kind: workitem.KindUser},
+						},
+					}
+				case 1:
+					fxt.WorkItemTypes[idx].Name = "Second WorkItem Type"
+				}
+				return nil
+			}),
+			tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+				fxt.WorkItems[idx].Fields["reporter"] = fxt.Identities[0].ID.String()
+				fxt.WorkItems[idx].Fields["assigned-to"] = []string{fxt.Identities[0].ID.String(), fxt.Identities[1].ID.String()}
+				return nil
+			}),
+		)
+		// when
+		u := minimumRequiredUpdatePayload()
+		u.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[0].Version
+		u.Data.ID = &fxt.WorkItems[0].ID
+		u.Data.Relationships = &app.WorkItemRelationships{
+			BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
+		}
+		svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
+		_, newWI := test.UpdateWorkitemOK(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
+		newDescription := newWI.Data.Attributes[workitem.SystemDescription]
+		assert.NotNil(t, newDescription)
+		// Ensure all "fullName" and "username" are added to the description
+		for _, item := range append(userFullName, userUserName...) {
+			assert.Contains(t, newDescription, item)
+		}
+	})
+
+	s.T().Run("allow update of field along with type", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0:
+					fxt.WorkItemTypes[idx].Name = "First WorkItem Type"
+					fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+						"foo": {
+							Label: "Type1 foo",
+							Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+						},
+						"bar": {
+							Label: "Type1 bar",
+							Type:  &workitem.SimpleType{Kind: workitem.KindString},
+						},
+					}
+				case 1:
+					fxt.WorkItemTypes[idx].Name = "Second WorkItem Type"
+					fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+						"foo": {
+							Label: "Type2 foo",
+							Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+						},
+						"bar": {
+							Label: "Type2 bar",
+							Type:  &workitem.SimpleType{Kind: workitem.KindInteger},
+						},
+					}
+				}
+				return nil
+			}),
+			tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+				fxt.WorkItems[idx].Fields["foo"] = 2.5
+				fxt.WorkItems[idx].Fields["bar"] = "hello"
+				return nil
+			}),
+		)
+		// when
+		u := minimumRequiredUpdatePayload()
+		u.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[0].Version
+		u.Data.ID = &fxt.WorkItems[0].ID
+		u.Data.Relationships = &app.WorkItemRelationships{
+			BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
+		}
+		u.Data.Attributes["bar"] = 299
+		u.Data.Attributes["foo"] = 9.5
+		svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
+		_, newWI := test.UpdateWorkitemOK(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
+		assert.NotNil(t, newWI.Data.Attributes[workitem.SystemDescription])
+		// This value was explicitly changed in the update payload
+		assert.Equal(t, 9.5, newWI.Data.Attributes["foo"])
+		assert.Equal(t, 299, newWI.Data.Attributes["bar"])
+		assert.Contains(t, newWI.Data.Attributes[workitem.SystemDescription], fxt.WorkItemTypes[0].Fields["bar"].Label)
 	})
 
 	s.T().Run("unauthorized", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Identities(2),
+			tf.WorkItemTypes(2),
+			tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+				return nil
+			}),
+		)
+		u := minimumRequiredUpdatePayload()
+		u.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[0].Version
+		u.Data.ID = &fxt.WorkItems[0].ID
+		u.Data.Relationships = &app.WorkItemRelationships{
+			BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
+		}
 		// Only Space owner and workitem creator is allowed to change type
 		svcNotAuthorized := testsupport.ServiceAsSpaceUser("TypeChange-Service", *fxt.Identities[1], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 		workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)

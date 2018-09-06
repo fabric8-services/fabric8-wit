@@ -108,6 +108,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	}
 	wi := &workitem.WorkItem{
 		Fields: make(map[string]interface{}),
+		Type:   *wit,
 	}
 	var rev *workitem.Revision
 	err = application.Transactional(c.db, func(appl application.Application) error {

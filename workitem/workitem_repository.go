@@ -103,7 +103,7 @@ type WorkItemRepository interface {
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error)
 	Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error)
-	ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error
+	ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, updatedWorkitem WorkItem, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error
 }
 
 // NewWorkItemRepository creates a GormWorkItemRepository
@@ -588,39 +588,13 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		return nil, nil, errors.NewVersionConflictError("version conflict")
 	}
 	wiStorage.Version = wiStorage.Version + 1
-	wiStorage.Fields = Fields{}
-	for fieldName, fieldDef := range wiType.Fields {
-		if fieldDef.ReadOnly {
-			continue
-		}
-		fieldValue := updatedWorkItem.Fields[fieldName]
-		var err error
-		if fieldName == SystemAssignees || fieldName == SystemLabels || fieldName == SystemBoardcolumns {
-			switch fieldValue.(type) {
-			case []string:
-				if len(fieldValue.([]string)) == 0 {
-					delete(wiStorage.Fields, fieldName)
-					continue
-				}
-			case []interface{}:
-				if len(fieldValue.([]interface{})) == 0 {
-					delete(wiStorage.Fields, fieldName)
-					continue
-				}
-			}
-		}
-		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
-		if err != nil {
-			return nil, nil, errors.NewBadParameterError(fieldName, fieldValue)
-		}
-	}
 	// Change of Work Item Type
 	if wiStorage.Type != updatedWorkItem.Type {
 		newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
 		if err != nil {
 			return nil, nil, errs.Wrapf(err, "failed to load workitemtype: %s ", updatedWorkItem.Type)
 		}
-		if err := r.ChangeWorkItemType(ctx, wiStorage, wiType, newWiType, spaceID); err != nil {
+		if err := r.ChangeWorkItemType(ctx, wiStorage, updatedWorkItem, wiType, newWiType, spaceID); err != nil {
 			return nil, nil, errs.Wrapf(err, "unable to change workitem type from %s (ID: %s) to %s (ID: %s)", wiType.Name, wiType.ID, newWiType.Name, newWiType.ID)
 		}
 		// This will be used by the ConvertWorkItemStorageToModel function
@@ -1172,9 +1146,11 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 	return workitems, nil
 }
 
-// ChangeWorkItemType changes the workitem in wiStorage to newWIType. Returns
-// error if the operation fails
-func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error {
+// ChangeWorkItemType changes the workitem in wiStorage to newWIType.
+// If the updated workitem (from payload data) contains value for fields in
+// newWIType, that value will be set for the field.
+// Returns error if the operation fails
+func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStorage *WorkItemStorage, updatedWorkitem WorkItem, oldWIType *WorkItemType, newWIType *WorkItemType, spaceID uuid.UUID) error {
 	allowedWIT, err := r.CheckTypeAndSpaceShareTemplate(ctx, newWIType, spaceID)
 	if err != nil {
 		return errs.Wrap(err, "failed to check workitem type")
@@ -1225,11 +1201,16 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	// Append diff (fields along with their values) between the workitem types
 	// to the description
 	if len(fieldDiff) > 0 {
-		// If description doesn't exists, assign it empty value
-		if wiStorage.Fields[SystemDescription] == nil {
-			wiStorage.Fields[SystemDescription] = ""
+		// If updated workitem doesn't have a description, use either the existing
+		// description of old workitem (if it exists) or set empty description
+		if updatedWorkitem.Fields[SystemDescription] == nil {
+			if desc := wiStorage.Fields[SystemDescription]; desc != nil {
+				updatedWorkitem.Fields[SystemDescription] = desc
+			} else {
+				updatedWorkitem.Fields[SystemDescription] = ""
+			}
 		}
-		originalDescription := rendering.NewMarkupContentFromValue(wiStorage.Fields[SystemDescription])
+		originalDescription := rendering.NewMarkupContentFromValue(updatedWorkitem.Fields[SystemDescription])
 		// TemplateData holds the information to be added to the description
 		templateData := struct {
 			NewTypeName         string
@@ -1307,11 +1288,11 @@ Missing fields in workitem type: {{ .NewTypeName }}
 		if err := descriptionTemplate.Execute(&newDescription, templateData); err != nil {
 			return errs.Wrap(err, "failed to populate description template")
 		}
-		wiStorage.Fields[SystemDescription] = rendering.NewMarkupContent(newDescription.String(), rendering.SystemMarkupMarkdown)
+		updatedWorkitem.Fields[SystemDescription] = rendering.NewMarkupContent(newDescription.String(), rendering.SystemMarkupMarkdown)
 	}
 	// Set default values for all field in newWIType
 	for fieldName, fieldDef := range newWIType.Fields {
-		fieldValue := wiStorage.Fields[fieldName]
+		fieldValue := updatedWorkitem.Fields[fieldName]
 		// Do not assign default value to metastate
 		if fieldName == SystemMetaState {
 			continue
@@ -1320,6 +1301,17 @@ Missing fields in workitem type: {{ .NewTypeName }}
 		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return errs.Wrapf(err, "failed to convert field \"%s\"", fieldName)
+		}
+	}
+	// Assign all values from the payload to the wiStorage
+	for fieldName, fieldValue := range updatedWorkitem.Fields {
+		fieldDef, ok := newWIType.Fields[fieldName]
+		if ok {
+			var err error
+			wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+			if err != nil {
+				return errs.Wrapf(err, "failed to convert field \"%s\"", fieldName)
+			}
 		}
 	}
 	wiStorage.Type = newWIType.ID
