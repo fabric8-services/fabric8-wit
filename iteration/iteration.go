@@ -150,7 +150,7 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 			"path":     u.Path,
 			"space_id": u.SpaceID,
 		}, "unable to create child iteration because an iteration in the same path already exists")
-		return errors.NewDataConflictError(fmt.Sprintf("iteration already exists with name = %s , space_id = %s , path = %s ", u.Name, u.SpaceID.String(), u.Path.String()))
+		return errors.NewDataConflictError(fmt.Sprintf("iteration already exists with name = %s , space_id = %s , path = %s ", u.Name, u.SpaceID.String(), u.Path.ParentPath().String()))
 	}
 
 	if err != nil {

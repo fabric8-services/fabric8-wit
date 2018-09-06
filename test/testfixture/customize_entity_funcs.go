@@ -199,7 +199,7 @@ func PlaceIterationUnderRootIteration() CustomizeIterationFunc {
 func PlaceAreaUnderRootArea() CustomizeAreaFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if idx > 0 {
-			fxt.Iterations[idx].ID = uuid.NewV4()
+			fxt.Areas[idx].ID = uuid.NewV4()
 			fxt.Areas[idx].MakeChildOf(*fxt.Areas[0])
 		}
 		return nil

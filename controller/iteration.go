@@ -3,8 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"net/http"
-
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -16,6 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"net/http"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -71,8 +70,10 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	var parentItr *iteration.Iteration
 	var itrSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
+		fmt.Printf("\n\n\n\n\n %s", "TINAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA------4")
 		parentItr, err = appl.Iterations().Load(ctx, parentID)
 		if err != nil {
+			fmt.Printf("\n\n %+v\n\n", err)
 			return err
 		}
 		itrSpace, err = appl.Spaces().Load(ctx, parentItr.SpaceID)
@@ -104,7 +105,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	if reqItr.Attributes.Name == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 	}
-	childPath := append(parentItr.Path, parentItr.ID)
+
 	if ctx.Payload.Data.Attributes.UserActive != nil {
 		reqItr.Attributes.UserActive = ctx.Payload.Data.Attributes.UserActive
 	} else {
@@ -113,7 +114,6 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	}
 	itr := &iteration.Iteration{
 		SpaceID:     parentItr.SpaceID,
-		Path:        childPath,
 		Name:        *reqItr.Attributes.Name,
 		Description: reqItr.Attributes.Description,
 		StartAt:     reqItr.Attributes.StartAt,
@@ -122,7 +122,11 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	}
 	if reqItr.ID != nil {
 		itr.ID = *reqItr.ID
+	} else {
+		itr.ID = uuid.NewV4()
 	}
+	itr.MakeChildOf(*parentItr)
+
 	itrMap := make(iterationIDMap)
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		err = appl.Iterations().Create(ctx, itr)
@@ -131,7 +135,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		}
 		// For create, count will always be zero hence no need to query
 		// by passing empty map, updateIterationsWithCounts will be able to put zero values
-		parentItrs, err := appl.Iterations().LoadMultiple(ctx, itr.Path)
+		parentItrs, err := appl.Iterations().LoadMultiple(ctx, itr.Path.ParentPath())
 		if err != nil {
 			return err
 		}
@@ -207,6 +211,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		itr, err = appl.Iterations().Load(ctx.Context, id)
 		if err != nil {
+			fmt.Printf("\n\n\n %s \n\n\n", err)
 			return err
 		}
 		sp, err = appl.Spaces().Load(ctx, itr.SpaceID)
@@ -385,7 +390,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			return err
 		}
 		// Fetch parent iteration to which work items will get attached
-		parentID := itr.Parent()
+		parentID := itr.Path.ParentID()
 		if parentID == uuid.Nil {
 			return goa.ErrNotFound("can not find parent iteration")
 		}
@@ -456,7 +461,7 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 	relatedURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
-	pathToTopMostParent := itr.Path.String()
+	pathToTopMostParent := itr.Path.ParentPath().String()
 	activeStatus := itr.IsActive()
 	i := &app.Iteration{
 		Type: iterationType,
@@ -496,7 +501,7 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 		},
 	}
 	if itr.Path.IsEmpty() == false {
-		parentID := itr.Path.This().String()
+		parentID := itr.Path.ParentID().String()
 		parentRelatedURL := rest.AbsoluteURL(request, app.IterationHref(parentID))
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
@@ -537,7 +542,7 @@ type iterationIDMap map[uuid.UUID]iteration.Iteration
 
 func parentPathResolver(itrMap iterationIDMap) IterationConvertFunc {
 	return func(request *http.Request, itr *iteration.Iteration, appIteration *app.Iteration) {
-		parentUUIDs := itr.Path
+		parentUUIDs := itr.Path.ParentPath()
 		pathResolved := ""
 		for _, id := range parentUUIDs {
 			if i, ok := itrMap[id]; ok {

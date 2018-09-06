@@ -3,13 +3,6 @@ package controller_test
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
-	"path/filepath"
-	"strings"
-	"testing"
-	"time"
-
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -31,6 +24,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"net/http"
+	"net/url"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
 )
 
 type TestIterationREST struct {
@@ -44,7 +43,7 @@ func TestRunIterationREST(t *testing.T) {
 }
 
 func (rest *TestIterationREST) SetupTest() {
-	rest.DBTestSuite.SetupTest()
+	//rest.DBTestSuite.SetupTest()
 	rest.testDir = filepath.Join("test-files", "iteration")
 }
 
@@ -100,8 +99,11 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 				tf.CreateWorkItemEnvironment(),
 				tf.Iterations(2,
 					tf.SetIterationNames("root", "child")))
+
 			childItr := fxt.IterationByName("child")
+
 			ci := getChildIterationPayload("Sprint #21")
+
 			startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
 			require.NoError(t, err)
 			endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
@@ -191,6 +193,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 	})
 
 	rest.T().Run("fail - create same child iteration conflict", func(t *testing.T) {
+		rest.DB.LogMode(true)
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1),
 			tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
 				if idx == 1 {
@@ -198,12 +201,14 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 				}
 				return nil
 			}))
+
 		ci := getChildIterationPayload(fxt.Iterations[1].Name)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		_, jerrs := test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 
 		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.res.errors.golden.json"), jerrs)
 		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.req.payload.golden.json"), ci)
+		rest.DB.LogMode(false)
 	})
 
 	rest.T().Run("fail - create child iteration missing name", func(t *testing.T) {
@@ -673,8 +678,14 @@ func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 
 func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// given
+	rest.DB.LogMode(true)
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr1 := *fxt.Iterations[1]
+	fmt.Printf("\n\n\n %s \n\n\n", fxt.Iterations[0].ID)
+	svc1, ctrl1 := rest.UnSecuredController()
+	test.ShowIterationOK(rest.T(), rest.Ctx, svc1, ctrl1, itr1.ID.String(), nil, nil)
+	rest.DB.LogMode(false)
+
 	sp := *fxt.Spaces[0]
 	assert.Equal(rest.T(), iteration.StateNew, itr1.State)
 	startState := iteration.StateStart
@@ -690,14 +701,17 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	owner, errIdn := rest.GormDB.Identities().Load(context.Background(), sp.OwnerID)
 	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), startState.String(), *updated.Data.Attributes.State)
-	// create another iteration in same space and then change State to start
+	//create another iteration in same space and then change State to start
 	itr2 := iteration.Iteration{
+		ID:      uuid.NewV4(),
 		Name:    "Spring 123",
 		SpaceID: itr1.SpaceID,
-		Path:    itr1.Path,
 	}
+	itr2.MakeChildOf(itr1)
+
 	err := rest.GormDB.Iterations().Create(context.Background(), &itr2)
 	require.NoError(rest.T(), err)
 	payload2 := app.UpdateIterationPayload{
@@ -713,9 +727,11 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// now close first iteration
 	closeState := iteration.StateClose
 	payload.Data.Attributes.State = closeState.StringPtr()
+
 	_, updated = test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), closeState.String(), *updated.Data.Attributes.State)
 	// try to start iteration 2 now
+	fmt.Println("TINAAAAAAAAAAAAAAAAAAAAAAAAA -- 12")
 	_, updated2 := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
 	assert.Equal(rest.T(), startState.String(), *updated2.Data.Attributes.State)
 }
@@ -751,34 +767,35 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, ri.ID.String(), &payload)
 }
 
-func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *account.Identity) {
-	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
-	parent := *fxt.Iterations[1]
-	sp := *fxt.Spaces[0]
-	_, err := rest.GormDB.Iterations().Root(context.Background(), parent.SpaceID)
-	require.NoError(rest.T(), err)
-	parentID := parent.ID
-	ci := getChildIterationPayload(testsupport.CreateRandomValidTestName("Iteration-"))
-	owner, err := rest.GormDB.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	// when
-	_, created := test.CreateChildIterationCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
-	// then
-	require.NotNil(rest.T(), created)
-	return created, owner
-}
-
 // TestIterationActiveInTimeframe tests iteration should be active when it is in timeframe
 func (rest *TestIterationREST) TestIterationActiveInTimeframe() {
-	itr1, _ := rest.createIterations()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+		switch idx {
+		case 1:
+			start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
+			if err != nil {
+				return err
+			}
+			end := start.Add(time.Hour * 24 * 365 * 100)
+			fxt.Iterations[idx].StartAt = &start
+			fxt.Iterations[idx].EndAt = &end
+		}
+		return nil
+	}))
+
+	svc, ctrl := rest.UnSecuredController()
+	_, itr1 := test.ShowIterationOK(rest.T(), rest.Ctx, svc, ctrl, fxt.Iterations[1].ID.String(), nil, nil)
+
 	assert.Equal(rest.T(), iteration.IterationNotActive, *itr1.Data.Attributes.UserActive)
 	assert.Equal(rest.T(), iteration.IterationActive, *itr1.Data.Attributes.ActiveStatus) // iteration falls in timeframe, so iteration is active
 }
 
 // TestIterationNotActiveInTimeframe tests iteration should not be active when it is outside the timeframe
 func (rest *TestIterationREST) TestIterationNotActiveInTimeframe() {
-	itr1, owner := rest.createIterations()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+	itr1 := fxt.Iterations[1]
+	owner := fxt.Identities[0]
+
 	startDate := time.Date(2017, 5, 17, 00, 00, 00, 00, time.UTC)
 	endDate := time.Date(2017, 6, 17, 00, 00, 00, 00, time.UTC)
 	payload := app.UpdateIterationPayload{
@@ -787,34 +804,37 @@ func (rest *TestIterationREST) TestIterationNotActiveInTimeframe() {
 				StartAt: &startDate,
 				EndAt:   &endDate,
 			},
-			ID:   itr1.Data.ID,
+			ID:   &itr1.ID,
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
 	owner, errIdn := rest.GormDB.Identities().Load(context.Background(), owner.ID)
 	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
+	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), iteration.IterationNotActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe, so iteration is not active
 }
 
 // TestIterationActivatedByUser tests iteration should always be active when user sets it to active
 func (rest *TestIterationREST) TestIterationActivatedByUser() {
-	itr1, owner := rest.createIterations()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+	itr1 := fxt.Iterations[1]
+	owner := fxt.Identities[0]
+
 	userActive := true
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{
 				UserActive: &userActive,
 			},
-			ID:   itr1.Data.ID,
+			ID:   &itr1.ID,
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
 	owner, errIdn := rest.GormDB.Identities().Load(context.Background(), owner.ID)
 	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
+	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), iteration.IterationActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe yet userActive is true so iteration is active
 }
 
