@@ -314,39 +314,22 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {
 func (s *searchControllerTestSuite) TestFullTextSearch() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.CreateWorkItemEnvironment(),
-		tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
-			wi := fxt.WorkItems[idx]
-			switch idx {
-			case 0:
-				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Philosopher Noam Chomsky")
-			case 1:
-				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Philosopher Schopenhauer")
-			}
-			return nil
-		}),
+		tf.WorkItems(2, tf.SetWorkItemTitles("'planner wi1'")),
 	)
-	s.T().Run("search by full text", func(t *testing.T) {
+	// regression test for:
+	// https://github.com/openshiftio/openshift.io/issues/4288
+	// https://github.com/fabric8-services/fabric8-wit/issues/2273
+	s.T().Run("search for work item with single quotes in name", func(t *testing.T) {
 		// when
-		q := "Philosopher"
+		q := "'planner"
 		spaceIDStr := fxt.Spaces[0].ID.String()
+		s.DB.LogMode(true)
 		_, sr := test.ShowSearchOK(t, nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
+		s.DB.LogMode(false)
 		// then
 		require.NotNil(t, sr)
-		require.Len(t, sr.Data, 2)
-		toBeFound := id.Slice{fxt.WorkItems[0].ID, fxt.WorkItems[1].ID}.ToMap()
-		for _, ele := range sr.Data {
-			delete(toBeFound, *ele.ID)
-		}
-		require.Empty(t, toBeFound, "failed to find these work items: %+v", toBeFound)
-	})
-	s.T().Run("regression test for https://github.com/fabric8-services/fabric8-wit/issues/2273", func(t *testing.T) {
-		// when single quote is in the query we MUST NOT fail
-		q := "'kaudawelsch"
-		spaceIDStr := fxt.Spaces[0].ID.String()
-		_, sr := test.ShowSearchOK(t, nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
-		// then
-		require.NotNil(t, sr)
-		require.Empty(t, sr.Data)
+		require.Len(t, sr.Data, 1)
+		require.Equal(t, fxt.WorkItems[0].ID, *sr.Data[0].ID)
 	})
 }
 

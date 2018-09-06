@@ -137,7 +137,7 @@ func trimProtocolFromURLString(urlString string) string {
 
 func escapeCharFromURLString(urlString string) string {
 	// Replacer will escape `:` and `)` `(`.
-	var replacer = strings.NewReplacer(":", "\\:", "(", "\\(", ")", "\\)", "'", "''")
+	var replacer = strings.NewReplacer(":", "\\:", "(", "\\(", ")", "\\)", "'", "[\\']")
 	return replacer.Replace(urlString)
 }
 
@@ -579,7 +579,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	}
 
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
-	db = db.Joins(", plainto_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
+	db = db.Joins(", to_tsquery('english', E?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
 	if spaceID != nil {
 		db = db.Where("space_id=?", *spaceID)
 	}
