@@ -99,11 +99,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 				tf.CreateWorkItemEnvironment(),
 				tf.Iterations(2,
 					tf.SetIterationNames("root", "child")))
-
 			childItr := fxt.IterationByName("child")
-
 			ci := getChildIterationPayload("Sprint #21")
-
 			startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
 			require.NoError(t, err)
 			endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
