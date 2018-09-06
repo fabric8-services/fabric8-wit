@@ -197,7 +197,6 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 				}
 				return nil
 			}))
-
 		ci := getChildIterationPayload(fxt.Iterations[1].Name)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		_, jerrs := test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
