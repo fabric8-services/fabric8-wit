@@ -193,7 +193,6 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 	})
 
 	rest.T().Run("fail - create same child iteration conflict", func(t *testing.T) {
-		rest.DB.LogMode(true)
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1),
 			tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
 				if idx == 1 {
@@ -208,7 +207,6 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 
 		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.res.errors.golden.json"), jerrs)
 		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.req.payload.golden.json"), ci)
-		rest.DB.LogMode(false)
 	})
 
 	rest.T().Run("fail - create child iteration missing name", func(t *testing.T) {
@@ -678,12 +676,10 @@ func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 
 func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// given
-	rest.DB.LogMode(true)
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr1 := *fxt.Iterations[1]
 	svc1, ctrl1 := rest.UnSecuredController()
 	test.ShowIterationOK(rest.T(), rest.Ctx, svc1, ctrl1, itr1.ID.String(), nil, nil)
-	rest.DB.LogMode(false)
 
 	sp := *fxt.Spaces[0]
 	assert.Equal(rest.T(), iteration.StateNew, itr1.State)
