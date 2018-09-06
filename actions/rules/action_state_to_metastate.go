@@ -67,11 +67,11 @@ func (act ActionStateToMetaState) difference(old []interface{}, new []interface{
 func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID) ([]*workitem.Board, error) {
 	space, err := act.Db.Spaces().Load(act.Ctx, spaceID)
 	if err != nil {
-		return nil, errs.Wrap(err, "error loading space: "+err.Error())
+		return nil, errs.Wrap(err, "error loading space")
 	}
 	boards, err := act.Db.Boards().List(act.Ctx, space.SpaceTemplateID)
 	if err != nil {
-		return nil, errs.Wrap(err, "error loading work item type: "+err.Error())
+		return nil, errs.Wrap(err, "error loading work item type")
 	}
 	return boards, nil
 }
@@ -79,7 +79,7 @@ func (act ActionStateToMetaState) loadWorkItemBoardsBySpaceID(spaceID uuid.UUID)
 func (act ActionStateToMetaState) loadWorkItemByID(id uuid.UUID) (*workitem.WorkItem, error) {
 	wi, err := act.Db.WorkItems().LoadByID(act.Ctx, id)
 	if err != nil {
-		return nil, errs.Wrap(err, "error loading work item: "+err.Error())
+		return nil, errs.Wrap(err, "error loading work item")
 	}
 	return wi, nil
 }
@@ -196,9 +196,6 @@ func (act ActionStateToMetaState) OnChange(newContext change.Detector, contextCh
 	}
 	if act.UserID == nil {
 		return nil, nil, errs.New("userID is nil")
-	}
-	if actionChanges == nil {
-		return nil, nil, errs.New("given actionChanges is nil")
 	}
 	if len(contextChanges) == 0 {
 		// no changes, just return what we have.
