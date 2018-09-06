@@ -43,8 +43,8 @@ type TableJoin struct {
 	// object to be activated.
 	PrefixActivators []string // e.g. []string{"iteration."}
 
-	// disallowedColumns specified all fields that are allowed to be queried
-	// from the foreign table. When empty all columns are allowed.
+	// AllowedColumns specified all fields that are allowed to be queried from
+	// the foreign table. When empty all columns are allowed.
 	AllowedColumns []string // e.g. ["name"].
 
 	// DisallowedColumns specified all fields that are not allowed to be queried
