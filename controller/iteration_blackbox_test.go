@@ -718,7 +718,6 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// now close first iteration
 	closeState := iteration.StateClose
 	payload.Data.Attributes.State = closeState.StringPtr()
-
 	_, updated = test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), closeState.String(), *updated.Data.Attributes.State)
 	// try to start iteration 2 now

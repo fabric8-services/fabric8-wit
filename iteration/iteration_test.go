@@ -213,9 +213,7 @@ func (s *TestIterationRepository) TestLoad() {
 			StartAt: &start,
 			EndAt:   &end,
 		}
-
 		i2.MakeChildOf(i)
-
 		repo.Create(context.Background(), &i2)
 		// then
 		res, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
