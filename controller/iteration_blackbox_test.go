@@ -43,7 +43,7 @@ func TestRunIterationREST(t *testing.T) {
 }
 
 func (rest *TestIterationREST) SetupTest() {
-	//rest.DBTestSuite.SetupTest()
+	rest.DBTestSuite.SetupTest()
 	rest.testDir = filepath.Join("test-files", "iteration")
 }
 
