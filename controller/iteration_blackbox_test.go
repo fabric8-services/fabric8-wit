@@ -681,7 +681,6 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	rest.DB.LogMode(true)
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr1 := *fxt.Iterations[1]
-	fmt.Printf("\n\n\n %s \n\n\n", fxt.Iterations[0].ID)
 	svc1, ctrl1 := rest.UnSecuredController()
 	test.ShowIterationOK(rest.T(), rest.Ctx, svc1, ctrl1, itr1.ID.String(), nil, nil)
 	rest.DB.LogMode(false)
@@ -731,7 +730,6 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	_, updated = test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), closeState.String(), *updated.Data.Attributes.State)
 	// try to start iteration 2 now
-	fmt.Println("TINAAAAAAAAAAAAAAAAAAAAAAAAA -- 12")
 	_, updated2 := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
 	assert.Equal(rest.T(), startState.String(), *updated2.Data.Attributes.State)
 }

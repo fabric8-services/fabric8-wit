@@ -70,10 +70,8 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	var parentItr *iteration.Iteration
 	var itrSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		fmt.Printf("\n\n\n\n\n %s", "TINAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA------4")
 		parentItr, err = appl.Iterations().Load(ctx, parentID)
 		if err != nil {
-			fmt.Printf("\n\n %+v\n\n", err)
 			return err
 		}
 		itrSpace, err = appl.Spaces().Load(ctx, parentItr.SpaceID)
@@ -211,7 +209,6 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		itr, err = appl.Iterations().Load(ctx.Context, id)
 		if err != nil {
-			fmt.Printf("\n\n\n %s \n\n\n", err)
 			return err
 		}
 		sp, err = appl.Spaces().Load(ctx, itr.SpaceID)

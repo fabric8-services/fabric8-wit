@@ -224,7 +224,6 @@ func makeIterations(fxt *TestFixture) error {
 		if err != nil {
 			return errs.Wrapf(err, "failed to create iteration: %+v", fxt.Iterations[i])
 		}
-		fmt.Printf("KONRADDDDDDDDDDDD \n\n\n %s \n\n\n", fxt.Iterations[i].ID)
 	}
 	return nil
 }
