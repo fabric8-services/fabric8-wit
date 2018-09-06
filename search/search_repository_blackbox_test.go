@@ -256,6 +256,79 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {
 	})
 }
 
+func (s *searchRepositoryBlackboxTest) TestSearchByParent() {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItems(4, tf.SetWorkItemTitles("grandparent", "parent", "child1", "child2")),
+		tf.WorkItemLinksCustom(3,
+			func(fxt *tf.TestFixture, idx int) error {
+				l := fxt.WorkItemLinks[idx]
+				l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+				switch idx {
+				case 0:
+					l.SourceID = fxt.WorkItemByTitle("grandparent").ID
+					l.TargetID = fxt.WorkItemByTitle("parent").ID
+				case 1:
+					l.SourceID = fxt.WorkItemByTitle("parent").ID
+					l.TargetID = fxt.WorkItemByTitle("child1").ID
+				case 2:
+					l.SourceID = fxt.WorkItemByTitle("parent").ID
+					l.TargetID = fxt.WorkItemByTitle("child2").ID
+				}
+				return nil
+			}),
+	)
+	s.T().Run("search for children of grandparent by ID", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.id": "%s"}`, fxt.WorkItemByTitle("grandparent").ID)
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, count)
+		require.Len(t, res, count)
+		assert.Equal(t, fxt.WorkItemByTitle("parent").ID, res[0].ID)
+	})
+	s.T().Run("search for children of parent by ID", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.id": "%s"}`, fxt.WorkItemByTitle("parent").ID)
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 2, count)
+		require.Len(t, res, count)
+		assert.Equal(t, fxt.WorkItemByTitle("child1").ID, res[1].ID)
+		assert.Equal(t, fxt.WorkItemByTitle("child2").ID, res[0].ID)
+	})
+	s.T().Run("search for children of grandparent by number", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.number": "%d"}`, fxt.WorkItemByTitle("grandparent").Number)
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, count)
+		require.Len(t, res, count)
+		assert.Equal(t, fxt.WorkItemByTitle("parent").ID, res[0].ID)
+	})
+	s.T().Run("search for children of parent by number", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.number": "%d"}`, fxt.WorkItemByTitle("parent").Number)
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 2, count)
+		require.Len(t, res, count)
+		assert.Equal(t, fxt.WorkItemByTitle("child1").ID, res[1].ID)
+		assert.Equal(t, fxt.WorkItemByTitle("child2").ID, res[0].ID)
+	})
+	s.T().Run("search for children of not existing item by ID", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.id": "%s"}`, uuid.NewV4())
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, count)
+		require.Len(t, res, count)
+		require.Empty(t, res)
+	})
+	s.T().Run("search for children of not existing item by number", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.number": "%d"}`, 12334)
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, count)
+		require.Len(t, res, count)
+		require.Empty(t, res)
+	})
+}
+
 func (s *searchRepositoryBlackboxTest) TestSearchBoardID() {
 	s.T().Run("board", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
