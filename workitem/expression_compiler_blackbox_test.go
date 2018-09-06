@@ -117,6 +117,41 @@ func TestField(t *testing.T) {
 				c.Equals(c.Field("board.id"), c.Literal("c20882bd-3a70-48a4-9784-3d6735992a43")),
 				`(`+workitem.Column("boardcolumns", "id")+` = ?)`, []interface{}{"c20882bd-3a70-48a4-9784-3d6735992a43"}, []*workitem.TableJoin{&columns})
 		})
+		t.Run("parent", func(t *testing.T) {
+			t.Run("by id", func(t *testing.T) {
+				parent := *defJoins["parent"]
+				parent.Active = true
+				parent.HandledFields = []string{"id"}
+				parent_link := *defJoins["parent_link"]
+				parent_link.Active = true
+				expect(t,
+					c.Equals(c.Field("parent.id"), c.Literal("c20882bd-3a70-48a4-9784-3d6735992a43")),
+					`(`+workitem.Column("parent", "id")+` = ?)`, []interface{}{"c20882bd-3a70-48a4-9784-3d6735992a43"}, []*workitem.TableJoin{&parent_link, &parent})
+			})
+			t.Run("by number", func(t *testing.T) {
+				parent := *defJoins["parent"]
+				parent.Active = true
+				parent.HandledFields = []string{"number"}
+				parent_link := *defJoins["parent_link"]
+				parent_link.Active = true
+				expect(t,
+					c.Equals(c.Field("parent.number"), c.Literal("1234")),
+					`(`+workitem.Column("parent", "number")+` = ?)`, []interface{}{"1234"}, []*workitem.TableJoin{&parent_link, &parent})
+			})
+			t.Run("by number or id", func(t *testing.T) {
+				parent := *defJoins["parent"]
+				parent.Active = true
+				parent.HandledFields = []string{"number", "id"}
+				parent_link := *defJoins["parent_link"]
+				parent_link.Active = true
+				expect(t,
+					c.Or(
+						c.Equals(c.Field("parent.number"), c.Literal("1234")),
+						c.Equals(c.Field("parent.id"), c.Literal("5feea506-b0ab-4913-a08b-fe6a5234fa69")),
+					),
+					`((`+workitem.Column("parent", "number")+` = ?) OR (`+workitem.Column("parent", "id")+` = ?))`, []interface{}{"1234", "5feea506-b0ab-4913-a08b-fe6a5234fa69"}, []*workitem.TableJoin{&parent_link, &parent})
+			})
+		})
 	})
 	t.Run("test illegal field name", func(t *testing.T) {
 		t.Run("double quote", func(t *testing.T) {
@@ -168,7 +203,12 @@ func expect(t *testing.T, expr c.Expression, expectedClause string, expectedPara
 		require.Equal(t, expectedParameters, parameters, "parameters mismatch")
 	})
 	t.Run("check joins", func(t *testing.T) {
-		require.Equal(t, expectedJoins, joins, "joins mismatch")
+		// We could just use `require.Equal` on the two join array but that is
+		// much harder to debug, therefore we do it manually.
+		require.Len(t, joins, len(expectedJoins), "number of joins not matching the expected number of joins")
+		for i, expected := range expectedJoins {
+			require.Equal(t, expected, joins[i], "join at index #%d is not matching", i)
+		}
 	})
 }
 

@@ -1184,7 +1184,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	}
 	var fieldDiff = Fields{}
 	// Loop through old workitem type
-	for oldFieldName := range oldWIType.Fields {
+	for oldFieldName, oldFieldDef := range oldWIType.Fields {
 		// Temporary workaround to not add metastates to the field diff. We need
 		// to have a special handling for fields that shouldn't be set by user
 		// (or affected by type change) MetaState is a system level detail and
@@ -1197,33 +1197,9 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 		}
 		// The field exists in old type and new type
 		if newField, ok := newWIType.Fields[oldFieldName]; ok {
-			// Try to assign the old value to the new field
-			_, err := newField.Type.ConvertToModel(wiStorage.Fields[oldFieldName])
-			if err != nil {
-				// if the new type is a list, stuff the old value in a list and
-				// try to assign it
-				if newField.Type.GetKind() == KindList {
-					var convertedValue interface{}
-					convertedValue, err = newField.Type.ConvertToModel([]interface{}{wiStorage.Fields[oldFieldName]})
-					if err == nil {
-						wiStorage.Fields[oldFieldName] = convertedValue
-					}
-				}
-				// if the old type is a list but the new one isn't check that
-				// the list contains only one element and assign that
-				if oldWIType.Fields[oldFieldName].Type.GetKind() == KindList && newField.Type.GetKind() != KindList {
-					ifArr, ok := wiStorage.Fields[oldFieldName].([]interface{})
-					if !ok {
-						return errs.Errorf("failed to convert field \"%s\" to interface array: %+v", oldFieldName, wiStorage.Fields[oldFieldName])
-					}
-					if len(ifArr) == 1 {
-						var convertedValue interface{}
-						convertedValue, err = newField.Type.ConvertToModel(ifArr[0])
-						if err == nil {
-							wiStorage.Fields[oldFieldName] = convertedValue
-						}
-					}
-				}
+			newVal, err := oldFieldDef.Type.ConvertToModelWithType(newField.Type, wiStorage.Fields[oldFieldName])
+			if err == nil {
+				wiStorage.Fields[oldFieldName] = newVal
 			}
 			// Failed to assign the old value to the new field. Add the field to
 			// the diff and remove it from the old workitem.
