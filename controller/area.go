@@ -104,13 +104,11 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			return errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil")
 		}
 
-		areaID := uuid.NewV4()
 		a = &area.Area{
-			ID:      areaID,
 			SpaceID: parent.SpaceID,
-			Path:    append(parent.Path, areaID),
 			Name:    *reqArea.Attributes.Name,
 		}
+		a.MakeChildOf(*parent)
 		return appl.Areas().Create(ctx, a)
 	})
 	if err != nil {

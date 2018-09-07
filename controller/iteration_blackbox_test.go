@@ -673,8 +673,6 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// given
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr1 := *fxt.Iterations[1]
-	svc1, ctrl1 := rest.UnSecuredController()
-	test.ShowIterationOK(rest.T(), rest.Ctx, svc1, ctrl1, itr1.ID.String(), nil, nil)
 
 	sp := *fxt.Spaces[0]
 	assert.Equal(rest.T(), iteration.StateNew, itr1.State)
