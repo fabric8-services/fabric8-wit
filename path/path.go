@@ -43,9 +43,7 @@ func (p Path) ParentID() uuid.UUID {
 	if len(p) > 1 {
 		return p[len(p)-2]
 	}
-	// If the path is a root path, we should
-	// return it's path rather than nil
-	return p[len(p)-1]
+	return uuid.Nil
 }
 
 // ParentPath returns the path except this one and an empty path if the path was
