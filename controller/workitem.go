@@ -277,6 +277,80 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	return ctx.OK([]byte{})
 }
 
+// TypeChange does PATCH action on workitem/:id/relationships/basetype
+func (c *WorkitemController) TypeChange(ctx *app.TypeChangeWorkitemContext) error {
+	wi, err := c.db.WorkItems().LoadByID(ctx, ctx.WiID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	creator := wi.Fields[workitem.SystemCreator]
+	if creator == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
+	}
+	authorized, err := c.authorizeWorkitemTypeEditor(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to change the workitemtype"))
+	}
+	var updatedWI *workitem.WorkItem
+	var rev *workitem.Revision
+	// Ensure we do not have any other field values apart from workitem version
+	if len(ctx.Payload.Included.Data.Attributes) > 1 {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("include.data.attributes should contain only version"))
+	}
+	if ctx.Payload.Included == nil || ctx.Payload.Included.Data == nil ||
+		ctx.Payload.Included.Data.Attributes == nil || ctx.Payload.Included.Data.Attributes[workitem.SystemVersion] == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("version field should not be nil"))
+	}
+	version, ok := ctx.Payload.Included.Data.Attributes[workitem.SystemVersion].(int)
+	if !ok {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(
+			workitem.SystemVersion, ctx.Payload.Included.Data.Attributes[workitem.SystemVersion]))
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		// The Number of a work item is not allowed to be changed which is why
+		// we overwrite the values with its old value after the work item was
+		// converted.
+		oldNumber := wi.Number
+		newWI := workitem.WorkItem{
+			Fields:  wi.Fields,
+			Number:  oldNumber,
+			Version: version,
+			Type:    ctx.Payload.Data.ID,
+		}
+		updatedWI, rev, err = appl.WorkItems().Save(ctx, wi.SpaceID, newWI, *currentUserIdentityID)
+		if err != nil {
+			return errs.Wrap(err, "error updating work item")
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	wit, err := c.db.WorkItemTypes().Load(ctx, updatedWI.Type)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	converted, err := ConvertWorkItem(ctx.Request, *wit, *updatedWI, workItemIncludeHasChildren(ctx, c.db))
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	resp := &app.WorkItemSingle{
+		Data: converted,
+		Links: &app.WorkItemLinks{
+			Self: buildAbsoluteURL(ctx.Request),
+		},
+	}
+	ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
+	return ctx.OK(resp)
+}
+
 // Time is default value if no UpdatedAt field is found
 func updatedAt(wi workitem.WorkItem) time.Time {
 	var t time.Time

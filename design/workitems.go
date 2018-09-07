@@ -85,6 +85,48 @@ var workItemSingle = JSONSingle(
 	workItem,
 	workItemLinks)
 
+var baseTypeChange = a.Type("baseTypeChange", func() {
+	a.Attribute("data", baseTypeChangeData)
+	a.Attribute("included", baseTypeChangeWorkitem)
+	a.Required("data", "included")
+})
+
+var baseTypeChangeData = a.Type("baseTypeChangeData", func() {
+	a.Attribute("id", d.UUID, "ID of the new work item type")
+	a.Attribute("type", d.String, func() {
+		a.Enum("workitemtypes")
+	})
+	a.Attribute("relationships", baseTypeChangeRelationships)
+	a.Required("id", "type", "relationships")
+})
+
+var baseTypeChangeRelationships = a.Type("baseTypeChangeRelationships", func() {
+	a.Attribute("workitem", baseTypeChangeRelationshipWorkitem)
+	a.Required("workitem")
+})
+
+var baseTypeChangeRelationshipWorkitem = a.Type("baseTypeChangeRelationshipWorkitem", func() {
+	a.Attribute("type", d.String, func() {
+		a.Enum("workitems")
+	})
+	a.Attribute("id", d.UUID, "ID of the workitem")
+	a.Required("id", "type")
+})
+
+var baseTypeChangeWorkitem = a.Type("baseTypeChangeWorkitem", func() {
+	a.Attribute("data", baseTypeChangeWorkitemData)
+	a.Attribute("type", d.String, func() {
+		a.Enum("workitems")
+	})
+	a.Attribute("id", d.UUID, "ID of the workitem")
+	a.Required("data", "id", "type")
+})
+
+var baseTypeChangeWorkitemData = a.Type("baseTypeChangeWorkitemData", func() {
+	a.Attribute("attributes", a.HashOf(d.String, d.Any))
+	a.Required("attributes")
+})
+
 // Reorder creates a UserTypeDefinition for Reorder action
 func Reorder(name, description string, data *d.UserTypeDefinition, position *d.UserTypeDefinition) *d.MediaTypeDefinition {
 	return a.MediaType("application/vnd."+strings.ToLower(name)+"json", func() {
@@ -180,6 +222,23 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
+	})
+
+	a.Action("type-change", func() {
+		a.Routing(
+			a.PATCH("/:wiID/relationships/basetype"),
+		)
+		a.Description("Change workitem type (basetype)")
+		a.Params(func() {
+			a.Param("wiID", d.UUID, "ID of the work item to change type")
+		})
+		a.Payload(baseTypeChange)
+		a.Response(d.OK, func() {
+			a.Media(workItemSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 })
 
