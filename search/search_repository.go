@@ -136,8 +136,8 @@ func trimProtocolFromURLString(urlString string) string {
 }
 
 func escapeCharFromURLString(urlString string) string {
-	// Replacer will escape `:` and `)` `(`.
-	var replacer = strings.NewReplacer(":", "\\:", "(", "\\(", ")", "\\)", "'", "[\\']")
+	// Replacer will escape `:` and `)` `(`, and `'`.
+	var replacer = strings.NewReplacer(":", "\\:", "(", "\\(", ")", "\\)", "'", "")
 	return replacer.Replace(urlString)
 }
 
@@ -579,13 +579,13 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	}
 
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
-	db = db.Joins(", to_tsquery($1, $2) as query, ts_rank(tsv, query) as rank", "english", "planner") //(sqlSearchQueryParameter)
+	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
 	if spaceID != nil {
 		db = db.Where("space_id=?", *spaceID)
 	}
 	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", workitem.WorkItemStorage{}.TableName()))
 
-	rows, err := db.Debug().Rows()
+	rows, err := db.Rows()
 	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, errs.Wrapf(err, "failed to execute search query")

@@ -395,17 +395,20 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			assert.Equal(t, 2, count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})
-
-		t.Run("regression test for https://github.com/fabric8-services/fabric8-wit/issues/2273", func(t *testing.T) {
+		// regression test for:
+		// https://github.com/openshiftio/openshift.io/issues/4288
+		// https://github.com/fabric8-services/fabric8-wit/issues/2273
+		t.Run("search for work item with single quotes in name", func(t *testing.T) {
 			// given
-			fxt := s.getTestFixture()
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(3, tf.SetWorkItemTitles("foo", "title with 'single quotes' in it", "bar")))
 			spaceID := fxt.Spaces[0].ID.String()
-			query := "'leadingsinglequoteisnotallowed"
+			query := "with 'single quotes'"
 			// when
-			_, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.NoError(t, err)
-			require.Equal(t, 0, count)
+			require.Equal(t, 1, count)
+			require.Equal(t, fxt.WorkItems[1].ID, res[0].ID)
 		})
 	})
 
