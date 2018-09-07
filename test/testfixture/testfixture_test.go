@@ -440,3 +440,16 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 		})
 	})
 }
+
+func TestGetGetTestFileAndFunc(t *testing.T) {
+	var s string
+	func() {
+		func() {
+			func() {}()
+			func() {
+				s = tf.GetTestFileAndFunc()
+			}()
+		}()
+	}()
+	require.Equal(t, "(see function github.com/fabric8-services/fabric8-wit/test/testfixture_test.TestGetGetTestFileAndFunc.func1.1.2 in test/testfixture/testfixture_test.go)", s)
+}

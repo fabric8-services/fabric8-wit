@@ -92,15 +92,6 @@ func (p Path) Root() Path {
 	return Path{uuid.Nil}
 }
 
-// Parent returns a Path instance with last element in the UUID slice
-// Similar to `This` but following funtion returns Path instance and not just UUID
-func (p Path) Parent() Path {
-	if len(p) > 0 {
-		return Path{p[len(p)-1]}
-	}
-	return Path{uuid.Nil}
-}
-
 // ConvertToLtree returns ltree form of given UUID
 func ConvertToLtree(id uuid.UUID) string {
 	converted := strings.Replace(id.String(), "-", "_", -1)
