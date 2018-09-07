@@ -579,16 +579,16 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	}
 
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
-	db = db.Joins(", to_tsquery('english', E?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
+	db = db.Joins(", to_tsquery($1, $2) as query, ts_rank(tsv, query) as rank", "english", "planner") //(sqlSearchQueryParameter)
 	if spaceID != nil {
 		db = db.Where("space_id=?", *spaceID)
 	}
 	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", workitem.WorkItemStorage{}.TableName()))
 
-	rows, err := db.Rows()
+	rows, err := db.Debug().Rows()
 	defer closeable.Close(ctx, rows)
 	if err != nil {
-		return nil, 0, errs.WithStack(err)
+		return nil, 0, errs.Wrapf(err, "failed to execute search query")
 	}
 
 	result := []workitem.WorkItemStorage{}

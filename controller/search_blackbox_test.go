@@ -323,9 +323,8 @@ func (s *searchControllerTestSuite) TestFullTextSearch() {
 		// when
 		q := "'planner"
 		spaceIDStr := fxt.Spaces[0].ID.String()
-		s.DB.LogMode(true)
+		fmt.Printf("\n\nQuoted: %s\n\n", s.DB.Dialect().BindVar(1))
 		_, sr := test.ShowSearchOK(t, nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
-		s.DB.LogMode(false)
 		// then
 		require.NotNil(t, sr)
 		require.Len(t, sr.Data, 1)
