@@ -2,6 +2,10 @@ package iteration_test
 
 import (
 	"context"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -11,9 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"reflect"
-	"testing"
-	"time"
 )
 
 type TestIterationRepository struct {
@@ -104,14 +105,12 @@ func (s *TestIterationRepository) TestCreateIteration() {
 
 			// another iteration with same name within same sapce, should fail
 			i2 := iteration.Iteration{
-				ID:      uuid.NewV4(),
 				Name:    i.Name,
 				SpaceID: i.SpaceID,
 			}
 			i2.MakeChildOf(i)
 
 			i3 := iteration.Iteration{
-				ID:      uuid.NewV4(),
 				Name:    i.Name,
 				SpaceID: i.SpaceID,
 			}
@@ -146,13 +145,11 @@ func (s *TestIterationRepository) TestCreateIteration() {
 
 			// another iteration with same name within same space, should fail
 
-			iterationID := uuid.NewV4()
 			i3 := iteration.Iteration{
-				ID:      iterationID,
-				Path:    append(fxt.Iterations[0].Path, iterationID),
 				Name:    fxt.Iterations[1].Name,
 				SpaceID: fxt.Iterations[0].SpaceID,
 			}
+			i3.MakeChildOf(*fxt.Iterations[0])
 
 			// when
 			err := repo.Create(context.Background(), &i3)
@@ -207,7 +204,6 @@ func (s *TestIterationRepository) TestLoad() {
 		repo.Create(context.Background(), &i)
 
 		i2 := iteration.Iteration{
-			ID:      uuid.NewV4(),
 			Name:    name2,
 			SpaceID: fxt.Spaces[0].ID,
 			StartAt: &start,

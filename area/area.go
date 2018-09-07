@@ -30,9 +30,12 @@ type Area struct {
 	Version int
 }
 
-// MakeChildOf does all the path magic to make the current area a child of
-// the given parent area.
+// MakeChildOf does all the path magic to make the current area a child of the
+// given parent area.
 func (m *Area) MakeChildOf(parent Area) {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.NewV4()
+	}
 	m.Path = append(parent.Path, m.ID)
 }
 
@@ -81,8 +84,15 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
 		u.Path = path.Path{u.ID}
-
 	}
+	if u.Path == nil || len(u.Path) == 0 {
+		u.Path = path.Path{u.ID}
+	} else {
+		if u.Path.This() != u.ID {
+			return errs.Errorf("area path has to end with area ID %s", u.ID)
+		}
+	}
+
 	err := m.db.Create(u).Error
 	if err != nil {
 		// ( name, spaceID ,path ) needs to be unique

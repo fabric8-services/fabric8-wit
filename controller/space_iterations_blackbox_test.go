@@ -193,7 +193,7 @@ func (s *SpaceIterationControllerTestSuite) TestCreate() {
 
 func (s *SpaceIterationControllerTestSuite) TestListIterationsBySpace() {
 	s.T().Run("ok", func(t *testing.T) {
-		s.T().Run("default", func(t *testing.T) {
+		t.Run("default", func(t *testing.T) {
 			// given
 			spaceID, fatherIteration, childIteration, grandChildIteration := s.createIterations()
 			svc, ctrl := s.UnSecuredController()
@@ -203,7 +203,7 @@ func (s *SpaceIterationControllerTestSuite) TestListIterationsBySpace() {
 			assertIterations(t, cs.Data, fatherIteration, childIteration, grandChildIteration)
 		})
 
-		s.T().Run("using expired if-modified-since header", func(t *testing.T) {
+		t.Run("using expired if-modified-since header", func(t *testing.T) {
 			// given
 			spaceID, fatherIteration, childIteration, grandChildIteration := s.createIterations()
 			svc, ctrl := s.UnSecuredController()
@@ -214,7 +214,7 @@ func (s *SpaceIterationControllerTestSuite) TestListIterationsBySpace() {
 			assertIterations(t, cs.Data, fatherIteration, childIteration, grandChildIteration)
 		})
 
-		s.T().Run("using expired if-none-match header", func(t *testing.T) {
+		t.Run("using expired if-none-match header", func(t *testing.T) {
 			// given
 			spaceID, fatherIteration, childIteration, grandChildIteration := s.createIterations()
 			svc, ctrl := s.UnSecuredController()
@@ -305,7 +305,6 @@ func (s *SpaceIterationControllerTestSuite) TestWICountsWithIterationListBySpace
 	require.Equal(s.T(), path.Path{iteration2.ID}, iteration2.Path)
 
 	childOfIteration2 := iteration.Iteration{
-		ID:      uuid.NewV4(),
 		Name:    "Sprint 2.1",
 		SpaceID: spaceInstance.ID,
 	}
@@ -315,7 +314,6 @@ func (s *SpaceIterationControllerTestSuite) TestWICountsWithIterationListBySpace
 	require.Equal(s.T(), path.Path{iteration2.ID, childOfIteration2.ID}, childOfIteration2.Path)
 
 	grandChildOfIteration2 := iteration.Iteration{
-		ID:      uuid.NewV4(),
 		Name:    "Sprint 2.1.1",
 		SpaceID: spaceInstance.ID,
 	}

@@ -3,6 +3,9 @@ package iteration
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -12,8 +15,6 @@ import (
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"strconv"
-	"time"
 )
 
 // Defines "type" string to be used while validating jsonapi spec based payload
@@ -45,6 +46,9 @@ type Iteration struct {
 // MakeChildOf does all the path magic to make the current iteration a child of
 // the given parent iteration.
 func (m *Iteration) MakeChildOf(parent Iteration) {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.NewV4()
+	}
 	m.Path = append(parent.Path, m.ID)
 }
 
@@ -79,7 +83,7 @@ func (m Iteration) IsRoot(spaceID uuid.UUID) bool {
 // Parent returns UUID of parent iteration or uuid.Nil
 // handle root itearion case, leaf node case, intermediate case
 func (m Iteration) Parent() uuid.UUID {
-	return m.Path.Parent().This()
+	return m.Path.ParentID()
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -137,6 +141,14 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 		u.ID = uuid.NewV4()
 		u.Path = path.Path{u.ID}
 	}
+	if u.Path == nil || len(u.Path) == 0 {
+		u.Path = path.Path{u.ID}
+	} else {
+		if u.Path.This() != u.ID {
+			return errs.Errorf("iteration path has to end with iteration ID %s", u.ID)
+		}
+	}
+
 	if !u.State.IsSet() {
 		u.State = StateNew
 	}

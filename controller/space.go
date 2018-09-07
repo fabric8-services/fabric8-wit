@@ -121,12 +121,9 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			to happen in a single transaction as per requirements.
 		*/
 
-		areaID := uuid.NewV4()
 		newArea := area.Area{
-			ID:      areaID,
 			SpaceID: rSpace.ID,
 			Name:    rSpace.Name,
-			Path:    []uuid.UUID{areaID},
 		}
 		err = appl.Areas().Create(ctx, &newArea)
 		if err != nil {
@@ -134,12 +131,9 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		}
 
 		// Similar to above, we create a root iteration for this new space
-		iterationID := uuid.NewV4()
 		newIteration := iteration.Iteration{
-			ID:      iterationID,
 			SpaceID: rSpace.ID,
 			Name:    rSpace.Name,
-			Path:    []uuid.UUID{iterationID},
 		}
 		err = appl.Iterations().Create(ctx, &newIteration)
 		if err != nil {

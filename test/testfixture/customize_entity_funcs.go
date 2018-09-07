@@ -4,7 +4,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 )
 
 // A CustomizeEntityFunc acts as a generic function to the various
@@ -186,7 +185,6 @@ func SetIterationNames(names ...string) CustomizeIterationFunc {
 func PlaceIterationUnderRootIteration() CustomizeIterationFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if idx > 0 {
-			fxt.Iterations[idx].ID = uuid.NewV4()
 			fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
 
 		}
@@ -199,7 +197,6 @@ func PlaceIterationUnderRootIteration() CustomizeIterationFunc {
 func PlaceAreaUnderRootArea() CustomizeAreaFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if idx > 0 {
-			fxt.Areas[idx].ID = uuid.NewV4()
 			fxt.Areas[idx].MakeChildOf(*fxt.Areas[0])
 		}
 		return nil

@@ -15,7 +15,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
-	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rendering"
@@ -229,12 +228,9 @@ func makeIterations(fxt *TestFixture) error {
 	iterationRepo := iteration.NewIterationRepository(fxt.db)
 	for i := range fxt.Iterations {
 		desc := "Some description"
-		iterationID := uuid.NewV4()
 		fxt.Iterations[i] = &iteration.Iteration{
-			ID:          iterationID,
 			Name:        testsupport.CreateRandomValidTestName("iteration "),
 			Description: &desc,
-			Path:        path.Path{iterationID},
 		}
 		if !fxt.isolatedCreation {
 			fxt.Iterations[i].SpaceID = fxt.Spaces[0].ID
@@ -262,11 +258,8 @@ func makeAreas(fxt *TestFixture) error {
 	fxt.Areas = make([]*area.Area, fxt.info[kindAreas].numInstances)
 	areaRepo := area.NewAreaRepository(fxt.db)
 	for i := range fxt.Areas {
-		areaID := uuid.NewV4()
 		fxt.Areas[i] = &area.Area{
-			ID:   areaID,
 			Name: testsupport.CreateRandomValidTestName("area "),
-			Path: path.Path{areaID},
 		}
 		if !fxt.isolatedCreation {
 			fxt.Areas[i].SpaceID = fxt.Spaces[0].ID
