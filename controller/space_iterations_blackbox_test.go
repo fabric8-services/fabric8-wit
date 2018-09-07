@@ -3,13 +3,6 @@ package controller_test
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
-	"path/filepath"
-	"strconv"
-	"testing"
-	"time"
-
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -18,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -30,6 +24,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"net/http"
+	"net/url"
+	"path/filepath"
+	"strconv"
+	"testing"
+	"time"
 )
 
 type SpaceIterationControllerTestSuite struct {
@@ -192,7 +192,7 @@ func (s *SpaceIterationControllerTestSuite) TestCreate() {
 
 func (s *SpaceIterationControllerTestSuite) TestListIterationsBySpace() {
 	s.T().Run("ok", func(t *testing.T) {
-		t.Run("default", func(t *testing.T) {
+		s.T().Run("default", func(t *testing.T) {
 			// given
 			spaceID, fatherIteration, childIteration, grandChildIteration := s.createIterations()
 			svc, ctrl := s.UnSecuredController()
@@ -476,33 +476,43 @@ func (s *SpaceIterationControllerTestSuite) createIterations() (spaceID uuid.UUI
 			start := time.Now()
 			end := start.Add(time.Hour * (24 * 8 * 3))
 			name := "Sprint Test #" + strconv.Itoa(i)
+			itrID := uuid.NewV4()
 			i := iteration.Iteration{
+				ID:      itrID,
 				Name:    name,
 				SpaceID: spaceID,
 				StartAt: &start,
 				EndAt:   &end,
+				Path:    path.Path{itrID},
 			}
 			repo.Create(s.Ctx, &i)
 		}
+
 		// create one child iteration and test for relationships.Parent
+		itrID := uuid.NewV4()
 		fatherIteration = &iteration.Iteration{
+			ID:      itrID,
 			Name:    "Parent Iteration",
 			SpaceID: spaceID,
+			Path:    path.Path{itrID},
 		}
 		repo.Create(s.Ctx, fatherIteration)
 		s.T().Log("fatherIteration:", fatherIteration.ID, fatherIteration.Name, fatherIteration.Path)
 		childIteration = &iteration.Iteration{
+			ID:      uuid.NewV4(),
 			Name:    "Child Iteration",
 			SpaceID: spaceID,
-			Path:    append(fatherIteration.Path, fatherIteration.ID),
 		}
+		childIteration.MakeChildOf(*fatherIteration)
 		repo.Create(s.Ctx, childIteration)
+
 		s.T().Log("childIteration:", childIteration.ID, childIteration.Name, childIteration.Path)
 		grandChildIteration = &iteration.Iteration{
+			ID:      uuid.NewV4(),
 			Name:    "Grand Child Iteration",
 			SpaceID: spaceID,
-			Path:    append(childIteration.Path, childIteration.ID),
 		}
+		grandChildIteration.MakeChildOf(*childIteration)
 		repo.Create(s.Ctx, grandChildIteration)
 		s.T().Log("grandChildIteration:", grandChildIteration.ID, grandChildIteration.Name, grandChildIteration.Path)
 
