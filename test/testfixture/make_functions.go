@@ -3,10 +3,8 @@ package testfixture
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"strings"
-
-	"github.com/fabric8-services/fabric8-wit/ptr"
-	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
@@ -14,16 +12,44 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
+
+// GetTestFileAndFunc returns the file and function of the first _test.go file
+// to appear in the stack and returns it in this schema (without the line
+// breaks)
+//
+// (see function
+// github.com/fabric8-services/fabric8-wit/test/testfixture_test.TestGetGetTestFileAndFunc
+// in test/testfixture/testfixture_test.go)
+//
+// The result can be used to augment entities so that we always can tell which
+// test created an entity that is a left-over and not cleaned up for example.
+func GetTestFileAndFunc() string {
+	// Get filename and line of the function that sits at the top of the call stack
+	skip := 0
+	pc, file, _, ok := runtime.Caller(skip)
+	prefix := strings.Replace(file, "test/testfixture/make_functions.go", "", -1)
+	var found bool
+	for skip := 1; !found && ok; skip++ {
+		if strings.Contains(file, "_test.go") {
+			found = true
+		} else {
+			pc, file, _, ok = runtime.Caller(skip)
+		}
+	}
+	return fmt.Sprintf("(see function %s in %s)", runtime.FuncForPC(pc).Name(), strings.Replace(file, prefix, "", -1))
+}
 
 func makeUsers(fxt *TestFixture) error {
 	if fxt.info[kindUsers] == nil {
@@ -78,10 +104,9 @@ func makeWorkItemLinkCategories(fxt *TestFixture) error {
 	fxt.WorkItemLinkCategories = make([]*link.WorkItemLinkCategory, fxt.info[kindWorkItemLinkCategories].numInstances)
 	wilcRepo := link.NewWorkItemLinkCategoryRepository(fxt.db)
 	for i := range fxt.WorkItemLinkCategories {
-		desc := "some description"
 		fxt.WorkItemLinkCategories[i] = &link.WorkItemLinkCategory{
 			Name:        testsupport.CreateRandomValidTestName("link category "),
-			Description: &desc,
+			Description: ptr.String("some description " + GetTestFileAndFunc()),
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemLinkCategories); err != nil {
 			return errs.WithStack(err)
@@ -101,12 +126,13 @@ func makeSpaceTemplates(fxt *TestFixture) error {
 	}
 	fxt.SpaceTemplates = make([]*spacetemplate.SpaceTemplate, fxt.info[kindSpaceTemplates].numInstances)
 	spaceTemplateRepo := spacetemplate.NewRepository(fxt.db)
+
 	for i := range fxt.SpaceTemplates {
 		fxt.SpaceTemplates[i] = &spacetemplate.SpaceTemplate{
 			Name:         testsupport.CreateRandomValidTestName("space template "),
 			CanConstruct: true,
 		}
-		fxt.SpaceTemplates[i].Description = ptr.String("Description for " + fxt.SpaceTemplates[i].Name)
+		fxt.SpaceTemplates[i].Description = ptr.String("Description for " + fxt.SpaceTemplates[i].Name + " " + GetTestFileAndFunc())
 
 		if err := fxt.runCustomizeEntityFuncs(i, kindSpaceTemplates); err != nil {
 			return errs.WithStack(err)
@@ -129,7 +155,7 @@ func makeSpaces(fxt *TestFixture) error {
 	for i := range fxt.Spaces {
 		fxt.Spaces[i] = &space.Space{
 			Name:        testsupport.CreateRandomValidTestName("space "),
-			Description: "Some description",
+			Description: "Some description " + GetTestFileAndFunc(),
 		}
 		if !fxt.isolatedCreation {
 			fxt.Spaces[i].OwnerID = fxt.Identities[0].ID
@@ -161,10 +187,9 @@ func makeWorkItemLinkTypes(fxt *TestFixture) error {
 	fxt.WorkItemLinkTypes = make([]*link.WorkItemLinkType, fxt.info[kindWorkItemLinkTypes].numInstances)
 	wiltRepo := link.NewWorkItemLinkTypeRepository(fxt.db)
 	for i := range fxt.WorkItemLinkTypes {
-		desc := "some description"
 		fxt.WorkItemLinkTypes[i] = &link.WorkItemLinkType{
 			Name:        testsupport.CreateRandomValidTestName("work item link type "),
-			Description: &desc,
+			Description: ptr.String("some description " + GetTestFileAndFunc()),
 			Topology:    link.TopologyTree,
 			ForwardName: "forward name (e.g. blocks)",
 			ReverseName: "reverse name (e.g. blocked by)",
@@ -200,10 +225,9 @@ func makeIterations(fxt *TestFixture) error {
 	fxt.Iterations = make([]*iteration.Iteration, fxt.info[kindIterations].numInstances)
 	iterationRepo := iteration.NewIterationRepository(fxt.db)
 	for i := range fxt.Iterations {
-		desc := "Some description"
 		fxt.Iterations[i] = &iteration.Iteration{
 			Name:        testsupport.CreateRandomValidTestName("iteration "),
-			Description: &desc,
+			Description: ptr.String("some description " + GetTestFileAndFunc()),
 		}
 		if !fxt.isolatedCreation {
 			fxt.Iterations[i].SpaceID = fxt.Spaces[0].ID
@@ -297,7 +321,7 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 		fxt.WorkItemTypes[i] = &workitem.WorkItemType{
 			ID:           uuid.NewV4(),
 			Name:         testsupport.CreateRandomValidTestName("work item type "),
-			Description:  ptr.String("this work item type was automatically generated"),
+			Description:  ptr.String("this work item type was automatically generated " + GetTestFileAndFunc()),
 			Icon:         "fa-bug",
 			Extends:      workitem.SystemPlannerItem,
 			CanConstruct: true,
@@ -331,11 +355,12 @@ func makeWorkItemTypeGroups(fxt *TestFixture) error {
 	witgRepo := workitem.NewWorkItemTypeGroupRepository(fxt.db)
 	for i := range fxt.WorkItemTypeGroups {
 		fxt.WorkItemTypeGroups[i] = &workitem.WorkItemTypeGroup{
-			ID:       uuid.NewV4(),
-			Name:     testsupport.CreateRandomValidTestName("work item type group "),
-			Bucket:   workitem.BucketPortfolio,
-			Icon:     "fa fa-suitcase",
-			Position: i,
+			ID:          uuid.NewV4(),
+			Name:        testsupport.CreateRandomValidTestName("work item type group "),
+			Description: ptr.String(GetTestFileAndFunc()),
+			Bucket:      workitem.BucketPortfolio,
+			Icon:        "fa fa-suitcase",
+			Position:    i,
 		}
 		if !fxt.isolatedCreation {
 			fxt.WorkItemTypeGroups[i].TypeList = append(fxt.WorkItemTypeGroups[i].TypeList, fxt.WorkItemTypes[0].ID)
@@ -443,8 +468,9 @@ func makeWorkItems(fxt *TestFixture) error {
 	for i := range fxt.WorkItems {
 		fxt.WorkItems[i] = &workitem.WorkItem{
 			Fields: map[string]interface{}{
-				workitem.SystemTitle: testsupport.CreateRandomValidTestName("work item "),
-				workitem.SystemState: workitem.SystemStateNew,
+				workitem.SystemTitle:       testsupport.CreateRandomValidTestName("work item "),
+				workitem.SystemState:       workitem.SystemStateNew,
+				workitem.SystemDescription: rendering.NewMarkupContent("`"+GetTestFileAndFunc()+"`", rendering.SystemMarkupMarkdown),
 			},
 		}
 		if !fxt.isolatedCreation {
@@ -551,7 +577,7 @@ func makeComments(fxt *TestFixture) error {
 	quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
 	consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
 	dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,
-	sunt in culpa qui officia deserunt mollit anim id est laborum.`
+	sunt in culpa qui officia deserunt mollit anim id est laborum. ` + GetTestFileAndFunc()
 		fxt.Comments[i] = &comment.Comment{
 			Markup: rendering.SystemMarkupMarkdown,
 			Body:   loremIpsum,

@@ -40,7 +40,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "Some description",
+        "description": "Some description (see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func1 in controller/search_blackbox_test.go)",
         "name": "space 00000000-0000-0000-0000-000000000003",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
