@@ -81,7 +81,7 @@ func TestErrorToJSONAPIError(t *testing.T) {
 
 func ExampleFormatMemberName() {
 	formatAndPrint := func(name string) {
-		fmt.Printf("\"%s\"\n", jsonapi.FormatMemberName(name))
+		fmt.Printf("%q\n", jsonapi.FormatMemberName(name))
 	}
 	formatAndPrint("1")
 	formatAndPrint("a")

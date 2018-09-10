@@ -585,7 +585,7 @@ func (s *WorkItemSuite) TestListByFields() {
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
-	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
+	filter = fmt.Sprintf("{\"system.creator\":%q}", s.testIdentity.ID.String())
 	// then
 	_, result = test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	require.NotNil(s.T(), result)
@@ -3343,7 +3343,7 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 	for _, templ := range templates {
 		s.T().Run(templ.Name, func(t *testing.T) {
 			if !templ.CanConstruct {
-				t.Skipf("skipping space template \"%s\" because it is marked as: \"cannot construct spaces\"", templ.Name)
+				t.Skipf("skipping space template %q because it is marked as: \"cannot construct spaces\"", templ.Name)
 			}
 			witRepo := workitem.NewWorkItemTypeRepository(s.DB)
 			fxt := tf.NewTestFixture(s.T(), s.DB,
@@ -3358,7 +3358,7 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 			for _, wit := range wits {
 				t.Run(wit.Name, func(t *testing.T) {
 					if !wit.CanConstruct {
-						t.Skipf("skipping WIT \"%s\" because it is marked as: \" cannot construct work items\"", wit.Name)
+						t.Skipf("skipping WIT %q because it is marked as: \" cannot construct work items\"", wit.Name)
 					}
 					var id uuid.UUID
 					c := minimumRequiredCreateWithType(wit.ID)
