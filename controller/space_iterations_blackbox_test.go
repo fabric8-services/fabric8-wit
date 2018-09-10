@@ -18,6 +18,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -202,7 +203,7 @@ func (s *SpaceIterationControllerTestSuite) TestListIterationsBySpace() {
 			assertIterations(t, cs.Data, fatherIteration, childIteration, grandChildIteration)
 		})
 
-		s.T().Run("using expired if-modified-since header", func(t *testing.T) {
+		t.Run("using expired if-modified-since header", func(t *testing.T) {
 			// given
 			spaceID, fatherIteration, childIteration, grandChildIteration := s.createIterations()
 			svc, ctrl := s.UnSecuredController()
@@ -213,7 +214,7 @@ func (s *SpaceIterationControllerTestSuite) TestListIterationsBySpace() {
 			assertIterations(t, cs.Data, fatherIteration, childIteration, grandChildIteration)
 		})
 
-		s.T().Run("using expired if-none-match header", func(t *testing.T) {
+		t.Run("using expired if-none-match header", func(t *testing.T) {
 			// given
 			spaceID, fatherIteration, childIteration, grandChildIteration := s.createIterations()
 			svc, ctrl := s.UnSecuredController()
@@ -276,7 +277,6 @@ func (s *SpaceIterationControllerTestSuite) TestListIterationsBySpace() {
 // Verify updated count values for all 4 iterations retrieved.
 func (s *SpaceIterationControllerTestSuite) TestWICountsWithIterationListBySpace() {
 	// given
-	resource.Require(s.T(), resource.Database)
 	// create seed data
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance := space.Space{
@@ -293,30 +293,34 @@ func (s *SpaceIterationControllerTestSuite) TestWICountsWithIterationListBySpace
 		SpaceID: spaceInstance.ID,
 	}
 	iterationRepo.Create(s.Ctx, &iteration1)
-	assert.NotEqual(s.T(), uuid.UUID{}, iteration1.ID)
+	require.NotEqual(s.T(), uuid.UUID{}, iteration1.ID)
+	require.Equal(s.T(), path.Path{iteration1.ID}, iteration1.Path)
 
 	iteration2 := iteration.Iteration{
 		Name:    "Sprint 2",
 		SpaceID: spaceInstance.ID,
 	}
 	iterationRepo.Create(s.Ctx, &iteration2)
-	assert.NotEqual(s.T(), uuid.UUID{}, iteration2.ID)
+	require.NotEqual(s.T(), uuid.UUID{}, iteration2.ID)
+	require.Equal(s.T(), path.Path{iteration2.ID}, iteration2.Path)
 
 	childOfIteration2 := iteration.Iteration{
 		Name:    "Sprint 2.1",
 		SpaceID: spaceInstance.ID,
-		Path:    append(iteration2.Path, iteration2.ID),
 	}
+	childOfIteration2.MakeChildOf(iteration2)
 	iterationRepo.Create(s.Ctx, &childOfIteration2)
 	require.NotEqual(s.T(), uuid.Nil, childOfIteration2.ID)
+	require.Equal(s.T(), path.Path{iteration2.ID, childOfIteration2.ID}, childOfIteration2.Path)
 
 	grandChildOfIteration2 := iteration.Iteration{
 		Name:    "Sprint 2.1.1",
 		SpaceID: spaceInstance.ID,
-		Path:    append(childOfIteration2.Path, childOfIteration2.ID),
 	}
+	grandChildOfIteration2.MakeChildOf(childOfIteration2)
 	iterationRepo.Create(s.Ctx, &grandChildOfIteration2)
 	require.NotEqual(s.T(), uuid.UUID{}, grandChildOfIteration2.ID)
+	require.Equal(s.T(), path.Path{iteration2.ID, childOfIteration2.ID, grandChildOfIteration2.ID}, grandChildOfIteration2.Path)
 
 	wirepo := workitem.NewWorkItemRepository(s.DB)
 
@@ -476,33 +480,43 @@ func (s *SpaceIterationControllerTestSuite) createIterations() (spaceID uuid.UUI
 			start := time.Now()
 			end := start.Add(time.Hour * (24 * 8 * 3))
 			name := "Sprint Test #" + strconv.Itoa(i)
+			itrID := uuid.NewV4()
 			i := iteration.Iteration{
+				ID:      itrID,
 				Name:    name,
 				SpaceID: spaceID,
 				StartAt: &start,
 				EndAt:   &end,
+				Path:    path.Path{itrID},
 			}
 			repo.Create(s.Ctx, &i)
 		}
+
 		// create one child iteration and test for relationships.Parent
+		itrID := uuid.NewV4()
 		fatherIteration = &iteration.Iteration{
+			ID:      itrID,
 			Name:    "Parent Iteration",
 			SpaceID: spaceID,
+			Path:    path.Path{itrID},
 		}
 		repo.Create(s.Ctx, fatherIteration)
 		s.T().Log("fatherIteration:", fatherIteration.ID, fatherIteration.Name, fatherIteration.Path)
 		childIteration = &iteration.Iteration{
+			ID:      uuid.NewV4(),
 			Name:    "Child Iteration",
 			SpaceID: spaceID,
-			Path:    append(fatherIteration.Path, fatherIteration.ID),
 		}
+		childIteration.MakeChildOf(*fatherIteration)
 		repo.Create(s.Ctx, childIteration)
+
 		s.T().Log("childIteration:", childIteration.ID, childIteration.Name, childIteration.Path)
 		grandChildIteration = &iteration.Iteration{
+			ID:      uuid.NewV4(),
 			Name:    "Grand Child Iteration",
 			SpaceID: spaceID,
-			Path:    append(childIteration.Path, childIteration.ID),
 		}
+		grandChildIteration.MakeChildOf(*childIteration)
 		repo.Create(s.Ctx, grandChildIteration)
 		s.T().Log("grandChildIteration:", grandChildIteration.ID, grandChildIteration.Name, grandChildIteration.Path)
 

@@ -186,6 +186,7 @@ func PlaceIterationUnderRootIteration() CustomizeIterationFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if idx > 0 {
 			fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+
 		}
 		return nil
 	}

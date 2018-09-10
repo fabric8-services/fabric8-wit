@@ -66,20 +66,20 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		if err != nil {
 			return goa.ErrNotFound(err.Error())
 		}
-		childPath := append(rootIteration.Path, rootIteration.ID)
 
 		userActive := false
 		if reqIter.Attributes.UserActive != nil {
 			userActive = *reqIter.Attributes.UserActive
 		}
 		newItr := iteration.Iteration{
+			ID:         uuid.NewV4(),
 			SpaceID:    ctx.SpaceID,
 			Name:       *reqIter.Attributes.Name,
 			StartAt:    reqIter.Attributes.StartAt,
 			EndAt:      reqIter.Attributes.EndAt,
-			Path:       childPath,
 			UserActive: userActive,
 		}
+		newItr.MakeChildOf(*rootIteration)
 		if reqIter.Attributes.Description != nil {
 			newItr.Description = reqIter.Attributes.Description
 		}
@@ -95,8 +95,8 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			"wiCounts":     wiCounts,
 		}, "wicounts for created iteration %s -> %v", newItr.ID.String(), wiCounts)
 
-		if newItr.Path.IsEmpty() == false {
-			allParentsUUIDs := newItr.Path
+		if !newItr.Path.IsEmpty() {
+			allParentsUUIDs := newItr.Path.ParentPath()
 			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
 			if error != nil {
 				return err

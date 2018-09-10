@@ -30,10 +30,13 @@ type Area struct {
 	Version int
 }
 
-// MakeChildOf does all the path magic to make the current area a child of
-// the given parent area.
+// MakeChildOf does all the path magic to make the current area a child of the
+// given parent area.
 func (m *Area) MakeChildOf(parent Area) {
-	m.Path = append(parent.Path, parent.ID)
+	if m.ID == uuid.Nil {
+		m.ID = uuid.NewV4()
+	}
+	m.Path = append(parent.Path, m.ID)
 }
 
 // GetETagData returns the field values to use to generate the ETag
@@ -80,7 +83,16 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
+		u.Path = path.Path{u.ID}
 	}
+	if u.Path == nil || len(u.Path) == 0 {
+		u.Path = path.Path{u.ID}
+	} else {
+		if u.Path.This() != u.ID {
+			return errs.Errorf("area path has to end with area ID %s", u.ID)
+		}
+	}
+
 	err := m.db.Create(u).Error
 	if err != nil {
 		// ( name, spaceID ,path ) needs to be unique
@@ -91,7 +103,7 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 				"path":     u.Path,
 				"space_id": u.SpaceID,
 			}, "unable to create child area because an area in the same path already exists")
-			return errors.NewDataConflictError(fmt.Sprintf("area already exists with name = %s , space_id = %s , path = %s ", u.Name, u.SpaceID.String(), u.Path.String()))
+			return errors.NewDataConflictError(fmt.Sprintf("area already exists with name = %s , space_id = %s , path = %s ", u.Name, u.SpaceID.String(), u.Path.ParentPath().String()))
 		}
 		log.Error(ctx, map[string]interface{}{}, "error adding Area: %s", err.Error())
 		return err
@@ -153,7 +165,7 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 	defer goa.MeasureSince([]string{"goa", "db", "Area", "querychild"}, time.Now())
 	var objs []Area
 
-	tx := m.db.Where("path ~ ?", path.ToExpression(parentArea.Path, parentArea.ID)).Find(&objs)
+	tx := m.db.Where("path ~ ($1 || '.*{1}')::lquery", parentArea.Path.Convert()).Find(&objs)
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("Area", parentArea.ID.String())
 	}
@@ -168,8 +180,10 @@ func (m *GormAreaRepository) Root(ctx context.Context, spaceID uuid.UUID) (*Area
 	defer goa.MeasureSince([]string{"goa", "db", "Area", "root"}, time.Now())
 	var rootArea []Area
 
-	parentPathOfRootArea := path.Path{}
-	rootArea, err := m.Query(FilterBySpaceID(spaceID), FilterByPath(parentPathOfRootArea))
+	rootArea, err := m.Query(FilterBySpaceID(spaceID), func(db *gorm.DB) *gorm.DB {
+		return db.Where("space_id = ? AND nlevel(path)=1", spaceID)
+	})
+
 	if len(rootArea) != 1 {
 		return nil, errors.NewInternalError(ctx, errs.Errorf("single Root area not found for space %s", spaceID))
 	}
@@ -207,12 +221,5 @@ func FilterBySpaceID(spaceID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 func FilterByName(name string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("name = ?", name).Limit(1)
-	}
-}
-
-// FilterByPath is a gorm filter by 'path' of the parent area for any given area.
-func FilterByPath(pathOfParent path.Path) func(db *gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("path = ?", pathOfParent.Convert()).Limit(1)
 	}
 }
