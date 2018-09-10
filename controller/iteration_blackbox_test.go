@@ -405,7 +405,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 		return err
 	})
 	require.NoError(rest.T(), err)
-	// when/then
+	// when / then
 	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
 }
 
