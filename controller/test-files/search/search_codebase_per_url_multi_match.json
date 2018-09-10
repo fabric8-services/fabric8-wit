@@ -180,13 +180,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-<<<<<<< HEAD
-        "description": "Some description (see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
-||||||| merged common ancestors
-        "description": "Some description",
-=======
         "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
->>>>>>> upstream/master
         "name": "space 00000000-0000-0000-0000-000000000011",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
@@ -283,13 +277,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-<<<<<<< HEAD
-        "description": "Some description (see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
-||||||| merged common ancestors
-        "description": "Some description",
-=======
         "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
->>>>>>> upstream/master
         "name": "space 00000000-0000-0000-0000-000000000014",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
@@ -386,13 +374,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-<<<<<<< HEAD
-        "description": "Some description (see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
-||||||| merged common ancestors
-        "description": "Some description",
-=======
         "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
->>>>>>> upstream/master
         "name": "space 00000000-0000-0000-0000-000000000015",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
@@ -489,13 +471,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-<<<<<<< HEAD
-        "description": "Some description (see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
-||||||| merged common ancestors
-        "description": "Some description",
-=======
         "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
->>>>>>> upstream/master
         "name": "space 00000000-0000-0000-0000-000000000016",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
@@ -592,13 +568,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-<<<<<<< HEAD
-        "description": "Some description (see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
-||||||| merged common ancestors
-        "description": "Some description",
-=======
         "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
->>>>>>> upstream/master
         "name": "space 00000000-0000-0000-0000-000000000017",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
