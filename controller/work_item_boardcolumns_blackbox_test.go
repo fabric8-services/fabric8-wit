@@ -32,6 +32,7 @@ func TestRunWorkItemBoardcolumnREST(t *testing.T) {
 }
 
 func (l *TestWorkItemBoardcolumnREST) SetupTest() {
+	l.DBTestSuite.SetupTest()
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	l.ctx = goa.NewContext(context.Background(), nil, req, params)
