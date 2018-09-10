@@ -144,6 +144,56 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
 		})
 	})
+	s.T().Run("join labels", func(t *testing.T) {
+		labelNames := []string{"A", "B", "A", "B"}
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(2),
+			tf.Labels(4, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1:
+					fxt.Labels[idx].SpaceID = fxt.Spaces[0].ID
+					fxt.Labels[idx].Name = labelNames[idx]
+				case 2, 3:
+					fxt.Labels[idx].SpaceID = fxt.Spaces[1].ID
+					fxt.Labels[idx].Name = labelNames[idx]
+				}
+				return nil
+			}),
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2, 3, 4, 5, 6:
+					fxt.WorkItems[idx].Fields[workitem.SystemLabels] = []string{fxt.Labels[0].ID.String(), fxt.Labels[1].ID.String()}
+				default:
+					fxt.WorkItems[idx].Fields[workitem.SystemLabels] = []string{fxt.Labels[2].ID.String(), fxt.Labels[3].ID.String()}
+				}
+				return nil
+			}),
+		)
+		t.Run("matching name", func(t *testing.T) {
+			// when
+			filter := fmt.Sprintf(`{"label.name": "%s"}`, fxt.Labels[0].Name)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+	})
+
 }
 
 func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {

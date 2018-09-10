@@ -144,7 +144,7 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 	fieldName := wiEvent.Name
 	fieldDef, ok := wit.Fields[fieldName]
 	if !ok {
-		return nil, errs.Errorf("failed to find field \"%s\" in work item type: %s (%s)", fieldName, wit.Name, wit.ID)
+		return nil, errs.Errorf("failed to find field %q in work item type: %s (%s)", fieldName, wit.Name, wit.ID)
 	}
 
 	// convertVal returns the given value converted from storage space to
@@ -187,7 +187,7 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 	if kind == workitem.KindEnum {
 		enumType, ok := fieldDef.Type.(workitem.EnumType)
 		if !ok {
-			return nil, errs.Errorf("failed to convert field \"%s\" to enum type: %+v", fieldName, fieldDef)
+			return nil, errs.Errorf("failed to convert field %q to enum type: %+v", fieldName, fieldDef)
 		}
 		kind = enumType.BaseType.GetKind()
 	}
@@ -217,17 +217,17 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 	// handle multi-value fields
 	listType, ok := fieldDef.Type.(workitem.ListType)
 	if !ok {
-		return nil, errs.Errorf("failed to convert field \"%s\" to list type: %+v", fieldName, fieldDef)
+		return nil, errs.Errorf("failed to convert field %q to list type: %+v", fieldName, fieldDef)
 	}
 	componentTypeKind := listType.ComponentType.GetKind()
 
 	arrOld, ok := wiEvent.Old.([]interface{})
 	if !ok {
-		return nil, errs.Errorf("failed to convert old value of field \"%s\" to []interface{}: %+v", fieldName, wiEvent.Old)
+		return nil, errs.Errorf("failed to convert old value of field %q to []interface{}: %+v", fieldName, wiEvent.Old)
 	}
 	arrNew, ok := wiEvent.New.([]interface{})
 	if !ok {
-		return nil, errs.Errorf("failed to convert new value of field \"%s\" to []interface{}: %+v", fieldName, wiEvent.New)
+		return nil, errs.Errorf("failed to convert new value of field %q to []interface{}: %+v", fieldName, wiEvent.New)
 	}
 
 	for i, v := range arrOld {
