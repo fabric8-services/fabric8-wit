@@ -15,6 +15,7 @@ RUN yum --enablerepo=centosplus install -y --quiet \
       wget \
       which \
       bc \
+      postgresql \
     && yum clean all
 
 RUN test -n $USE_GO_VERSION_FROM_WEBSITE \
