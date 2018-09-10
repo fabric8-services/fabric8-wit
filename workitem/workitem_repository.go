@@ -661,7 +661,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 func (r *GormWorkItemRepository) CheckTypeAndSpaceShareTemplate(ctx context.Context, wit *WorkItemType, spaceID uuid.UUID) (bool, error) {
 	// Prohibit creation of work items from a base type.
 	if !wit.CanConstruct {
-		return false, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from \"%s\" (%s)", wit.Name, wit.ID))
+		return false, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from %q (%s)", wit.Name, wit.ID))
 	}
 	var exists bool
 	// Prohibit creation of work items from a type that doesn't belong to current space template
@@ -674,7 +674,7 @@ func (r *GormWorkItemRepository) CheckTypeAndSpaceShareTemplate(ctx context.Cont
 	err := r.db.Raw(query, wit.ID, spaceID).Row().Scan(&exists)
 	if err == nil && !exists {
 		return false, errors.NewBadParameterErrorFromString(
-			fmt.Sprintf("Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wit.Name, wit.ID),
+			fmt.Sprintf("Workitem Type %q (ID: %s) does not belong to the current space template", wit.Name, wit.ID),
 		)
 	}
 	if err != nil {
@@ -1249,7 +1249,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 			if oldKind == KindEnum {
 				enumType, ok := fieldDef.Type.(EnumType)
 				if !ok {
-					return errs.Errorf("failed to convert field \"%s\" to enum type: %+v", fieldName, fieldDef)
+					return errs.Errorf("failed to convert field %q to enum type: %+v", fieldName, fieldDef)
 				}
 				oldKind = enumType.BaseType.GetKind()
 			}
@@ -1272,12 +1272,12 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 			// Deal with multi value field (KindList)
 			listType, ok := fieldDef.Type.(ListType)
 			if !ok {
-				return errs.Errorf("failed to convert field \"%s\" to list type: %+v", fieldName, fieldDef)
+				return errs.Errorf("failed to convert field %q to list type: %+v", fieldName, fieldDef)
 			}
 			oldKind = listType.ComponentType.GetKind()
 			valList, ok := fieldDiff[fieldName].([]interface{})
 			if !ok {
-				return errs.Errorf("failed to convert list value of field \"%s\" to []interface{}: %+v", fieldName, fieldDiff[fieldName])
+				return errs.Errorf("failed to convert list value of field %q to []interface{}: %+v", fieldName, fieldDiff[fieldName])
 			}
 
 			var tempList []string
@@ -1319,7 +1319,7 @@ Missing fields in workitem type: {{ .NewTypeName }}
 		// Assign default only if fieldValue is nil
 		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert field \"%s\"", fieldName)
+			return errs.Wrapf(err, "failed to convert field %q", fieldName)
 		}
 	}
 	wiStorage.Type = newWIType.ID
