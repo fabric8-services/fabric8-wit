@@ -997,24 +997,21 @@ func (r *GormWorkItemRepository) getFinalCountAddingChild(ctx context.Context, d
 	}
 	var itrChildren []IterationHavingChildrenID
 	queryIterationWithChildren := fmt.Sprintf(`
-	WITH PathResolver AS
-	(SELECT CASE
-				WHEN path = '' THEN replace(id::text, '-', '_')::ltree
-				ELSE concat(path::text, '.', REPLACE(id::text, '-', '_'))::ltree
-			END AS pathself,
-			id
-	FROM %[1]s
-	WHERE space_id = ?)
-	SELECT array_agg(iterations.id)::text AS children,
-		PathResolver.id::text AS iterationid
-	FROM %[1]s,
-		PathResolver
-	WHERE path <@ PathResolver.pathself
-	AND space_id = ?
-	GROUP BY (PathResolver.pathself,
-		PathResolver.id)`,
+	SELECT
+		array_agg(iter1.id)::text AS children,
+		iter2.id::text AS iterationid
+	FROM
+		%[1]s iter1,
+		%[1]s iter2
+	WHERE
+		iter1.path <@ iter2.path
+		AND iter1.space_id = $1
+		AND iter2.space_id = $1
+		AND iter1.path <> iter2.path
+	GROUP BY
+		(iter2.path, iter2.id)`,
 		iterationTableName)
-	db = r.db.Raw(queryIterationWithChildren, spaceID.String(), spaceID.String())
+	db = r.db.Raw(queryIterationWithChildren, spaceID)
 	db.Scan(&itrChildren)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -1085,17 +1082,16 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountsForIteration"}, time.Now())
 	var res WICountsPerIteration
-	pathOfIteration := append(itr.Path, itr.ID)
 	// get child IDs of the iteration
 	var childIDs []uuid.UUID
 	iterationTable := iteration.Iteration{}
 	iterationTableName := iterationTable.TableName()
 	getIterationsOfSpace := fmt.Sprintf(`SELECT id FROM %s WHERE path <@ ? and space_id = ?`, iterationTableName)
-	db := r.db.Raw(getIterationsOfSpace, pathOfIteration.Convert(), itr.SpaceID.String())
+	db := r.db.Raw(getIterationsOfSpace, itr.Path.Convert(), itr.SpaceID.String())
 	db.Pluck("id", &childIDs)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"path": pathOfIteration.Convert(),
+			"path": itr.Path.Convert(),
 			"err":  db.Error,
 		}, "unable to fetch children for path")
 		return nil, errors.NewInternalError(ctx, db.Error)

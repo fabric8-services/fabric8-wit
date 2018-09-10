@@ -55,7 +55,7 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 				i.State = iteration.StateNew
 			case 1:
 				i.Name = "child"
-				i.Path = append(fxt.Iterations[0].Path, fxt.Iterations[0].ID)
+				i.MakeChildOf(*fxt.Iterations[0])
 				i.State = iteration.StateStart
 			}
 			return nil
