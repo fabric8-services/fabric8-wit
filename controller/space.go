@@ -122,7 +122,6 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		*/
 
 		newArea := area.Area{
-			ID:      uuid.NewV4(),
 			SpaceID: rSpace.ID,
 			Name:    rSpace.Name,
 		}
@@ -133,7 +132,6 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 
 		// Similar to above, we create a root iteration for this new space
 		newIteration := iteration.Iteration{
-			ID:      uuid.NewV4(),
 			SpaceID: rSpace.ID,
 			Name:    rSpace.Name,
 		}
