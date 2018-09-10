@@ -197,7 +197,7 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 				}
 			}
 			if len(toBeFoundFields) > 0 {
-				return errs.Errorf("you must not remove these fields from the new work item type definition of \"%s\": %+v", wit.Name, toBeFoundFields)
+				return errs.Errorf("you must not remove these fields from the new work item type definition of %q: %+v", wit.Name, toBeFoundFields)
 			}
 
 			// TODO(kwk): Check that fields have not changed types.

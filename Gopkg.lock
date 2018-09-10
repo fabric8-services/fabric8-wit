@@ -104,7 +104,7 @@
     "rest",
     "token/jwk"
   ]
-  revision = "9d855d80053b54776839a5316c6c609500dc072d"
+  revision = "9344288a2c4f9c1d4c070b4f9af46e415e0bf970"
 
 [[projects]]
   name = "github.com/fabric8-services/fabric8-notification"
@@ -811,6 +811,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f80bc108fd9afc9fc9d238cf49b96bc6473111be28e02db2d8b5e6c049960788"
+  inputs-digest = "184f1395afd8b419dc330f35b3c1c9ced8418bbe6c5baa24461ae975dd6053c2"
   solver-name = "gps-cdcl"
   solver-version = 1

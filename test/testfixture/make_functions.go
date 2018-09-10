@@ -491,16 +491,16 @@ func makeWorkItems(fxt *TestFixture) error {
 			}
 			_, ok := fxt.WorkItems[i].Fields[workitem.SystemCreator]
 			if !ok {
-				return errs.Errorf("you must specify a work creator ID for the \"%s\" field in %+v", workitem.SystemCreator, fxt.WorkItems[i].Fields)
+				return errs.Errorf("you must specify a work creator ID for the %q field in %+v", workitem.SystemCreator, fxt.WorkItems[i].Fields)
 			}
 		}
 		creatorIDStr, ok := fxt.WorkItems[i].Fields[workitem.SystemCreator].(string)
 		if !ok {
-			return errs.Errorf("failed to convert \"%s\" field to string in %+v: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields, fxt.WorkItems[i].Fields[workitem.SystemCreator])
+			return errs.Errorf("failed to convert %q field to string in %+v: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 		creatorID, err := uuid.FromString(creatorIDStr)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert \"%s\" field to uuid.UUID: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields[workitem.SystemCreator])
+			return errs.Wrapf(err, "failed to convert %q field to uuid.UUID: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 
 		wi, _, err := wiRepo.Create(fxt.ctx, fxt.WorkItems[i].SpaceID, fxt.WorkItems[i].Type, fxt.WorkItems[i].Fields, creatorID)
@@ -554,7 +554,7 @@ func makeWorkItemLinks(fxt *TestFixture) error {
 		}
 		creatorID, err := uuid.FromString(creatorIDStr)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert the string \"%s\" to a uuid.UUID object", creatorIDStr)
+			return errs.Wrapf(err, "failed to convert the string %q to a uuid.UUID object", creatorIDStr)
 		}
 
 		wilt, err := wilRepo.Create(fxt.ctx, fxt.WorkItemLinks[i].SourceID, fxt.WorkItemLinks[i].TargetID, fxt.WorkItemLinks[i].LinkTypeID, creatorID)
