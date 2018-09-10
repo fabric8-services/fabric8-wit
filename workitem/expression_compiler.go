@@ -477,6 +477,20 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 	c.ensureJoinTable(tblName)
 	c.parameters = append(c.parameters, r)
 
+	/*
+		Once https://github.com/fabric8-services/fabric8-wit/pull/2214 is merged, we can uncomment this code
+		and remomove below code
+
+			return fmt.Sprintf(`(uuid("work_items".fields->>'%[1]s') IN (
+				SELECT %[2]s.id
+					WHERE
+						(SELECT j.path
+							FROM %[3]s j
+							WHERE j.id = ?
+						) @> %[2]s.path
+							  ))`, left.FieldName, "iter", tblName)
+	*/
+
 	return fmt.Sprintf(`(uuid("work_items".fields->>'%[1]s') IN (
 		SELECT %[2]s.id
 			WHERE
