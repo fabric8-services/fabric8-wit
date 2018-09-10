@@ -207,13 +207,13 @@ func TestChild(t *testing.T) {
 	t.Run("iteration", func(t *testing.T) {
 		j := *defJoins["iteration"]
 		j.Active = true
-		e := "(uuid(\"work_items\".fields->>'system.iteration') IN (\n\t\tSELECT iter.id\n\t\t\tWHERE\n\t\t\t\t(SELECT text2ltree(concat_ws('.', nullif(j.path, ''), replace(cast(j.id as text), '-', '_')))\n\t\t\t\t\tFROM iterations j\n\t\t\t\t\tWHERE j.id = ?\n\t\t\t\t) @> text2ltree(concat_ws('.', nullif(iter.path, ''), replace(cast(iter.id as text), '-', '_')))\n\t\t\t\t\t  ))"
+		e := "(uuid(\"work_items\".fields->>'system.iteration') IN (\n\t\t\t\tSELECT iter.id\n\t\t\t\t\tWHERE\n\t\t\t\t\t\t(SELECT j.path\n\t\t\t\t\t\t\tFROM iterations j\n\t\t\t\t\t\t\tWHERE j.id = ?\n\t\t\t\t\t\t) @> iter.path\n\t\t\t\t\t\t\t  ))"
 		expect(t, c.Child(c.Field("system.iteration"), c.Literal("abcd")), e, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
 	})
 	t.Run("area", func(t *testing.T) {
 		j := *defJoins["area"]
 		j.Active = true
-		e := "(uuid(\"work_items\".fields->>'system.area') IN (\n\t\tSELECT iter.id\n\t\t\tWHERE\n\t\t\t\t(SELECT text2ltree(concat_ws('.', nullif(j.path, ''), replace(cast(j.id as text), '-', '_')))\n\t\t\t\t\tFROM areas j\n\t\t\t\t\tWHERE j.id = ?\n\t\t\t\t) @> text2ltree(concat_ws('.', nullif(iter.path, ''), replace(cast(iter.id as text), '-', '_')))\n\t\t\t\t\t  ))"
+		e := "(uuid(\"work_items\".fields->>'system.area') IN (\n\t\t\t\tSELECT iter.id\n\t\t\t\t\tWHERE\n\t\t\t\t\t\t(SELECT j.path\n\t\t\t\t\t\t\tFROM areas j\n\t\t\t\t\t\t\tWHERE j.id = ?\n\t\t\t\t\t\t) @> iter.path\n\t\t\t\t\t\t\t  ))"
 		expect(t, c.Child(c.Field("system.area"), c.Literal("abcd")), e, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
 	})
 
