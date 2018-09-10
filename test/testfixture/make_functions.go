@@ -155,7 +155,7 @@ func makeSpaces(fxt *TestFixture) error {
 	for i := range fxt.Spaces {
 		fxt.Spaces[i] = &space.Space{
 			Name:        testsupport.CreateRandomValidTestName("space "),
-			Description: "Some description " + GetTestFileAndFunc(),
+			Description: GetTestFileAndFunc(),
 		}
 		if !fxt.isolatedCreation {
 			fxt.Spaces[i].OwnerID = fxt.Identities[0].ID
