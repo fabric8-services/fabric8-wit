@@ -208,7 +208,7 @@ func PlaceAreaUnderRootArea() CustomizeAreaFunc {
 func SetWorkItemField(fieldName string, values ...interface{}) CustomizeWorkItemFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.WorkItems) < len(values) {
-			return errs.Errorf("number of \"%s\" fields (%d) must be smaller or equal to number of work items to create (%d)", fieldName, len(values), len(fxt.WorkItems))
+			return errs.Errorf("number of %q fields (%d) must be smaller or equal to number of work items to create (%d)", fieldName, len(values), len(fxt.WorkItems))
 		}
 		// Gracefully return when only a fraction of work items needs to set a
 		// field value.
@@ -222,11 +222,11 @@ func SetWorkItemField(fieldName string, values ...interface{}) CustomizeWorkItem
 		}
 		field, ok := wit.Fields[fieldName]
 		if !ok {
-			return errs.Errorf("failed to find field \"%s\" in work item type %s", fieldName, witID)
+			return errs.Errorf("failed to find field %q in work item type %s", fieldName, witID)
 		}
 		v, err := field.Type.ConvertToModel(values[idx])
 		if err != nil {
-			return errs.Wrapf(err, "failed to set field \"%s\" in work item type %s to: %+v", fieldName, wit.Name, values[idx])
+			return errs.Wrapf(err, "failed to set field %q in work item type %s to: %+v", fieldName, wit.Name, values[idx])
 		}
 		fxt.WorkItems[idx].Fields[fieldName] = v
 		return nil
