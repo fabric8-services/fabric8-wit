@@ -199,7 +199,7 @@ func (up *tenantURLProvider) GetEnvironmentMapping() map[string]string {
 			log.Error(nil, map[string]interface{}{
 				"namespace": envNS,
 			}, "namespace has no type")
-		} else if !isInternalNamespace(*envName) {
+		} else {
 			result[*envName] = envNS
 		}
 	}
@@ -207,15 +207,12 @@ func (up *tenantURLProvider) GetEnvironmentMapping() map[string]string {
 }
 
 // Types of namespaces where the user does not deploy applications
-var internalNamespaceTypes = []string{"user", "che", "jenkins"}
+var internalNamespaceTypes = map[string]struct{}{"user": {}, "che": {}, "jenkins": {}}
 
-func isInternalNamespace(envType string) bool {
-	for _, internalType := range internalNamespaceTypes {
-		if envType == internalType {
-			return true
-		}
-	}
-	return false
+// CanDeploy returns true if the environment type provided can be deployed to as part of a pipeline
+func (up *tenantURLProvider) CanDeploy(envType string) bool {
+	_, pres := internalNamespaceTypes[envType]
+	return !pres
 }
 
 func (up *tenantURLProvider) GetAPIToken() (*string, error) {
