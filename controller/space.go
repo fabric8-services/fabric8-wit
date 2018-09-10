@@ -362,7 +362,7 @@ func deleteOpenShiftResource(
 
 	// get all the apps and envs
 	path := client.ShowSpaceDeploymentsPath(spaceID)
-	resp, err := cl.ShowSpaceDeployments(ctx, path)
+	resp, err := cl.ShowSpaceDeployments(ctx, path, nil)
 	if err != nil {
 		return errors.NewInternalError(ctx,
 			fmt.Errorf("could not get deployments: %v", err))

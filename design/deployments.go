@@ -16,12 +16,14 @@ var simpleSpace = a.Type("SimpleSpace", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", simpleSpaceAttributes)
+	a.Attribute("links", simpleSpaceLinks)
 	a.Required("type", "id", "attributes")
 })
 
 var simpleSpaceLinks = a.Type("SimpleSpaceLinks", func() {
 	a.Description(`relevant links for a space object`)
 	a.Attribute("space", linkWithAccess)
+	a.Attribute("deployments", linkWithAccess)
 	a.Required("space")
 })
 
@@ -190,6 +192,7 @@ var _ = a.Resource("deployments", func() {
 		a.Description("list applications in a space")
 		a.Params(func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
+			a.Param("qp", d.Boolean, "if true, query and return permissions for this space")
 		})
 		a.Response(d.OK, simpleSpaceSingle)
 		a.Response(d.Unauthorized, JSONAPIErrors)

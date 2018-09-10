@@ -9,13 +9,16 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
+	witclient "github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/rest"
 
 	"github.com/goadesign/goa"
+	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/websocket"
@@ -332,8 +335,8 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 // ShowSpace runs the showSpace action.
 func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) error {
 
-	// TODO - get from ctx
-	//checkPerms := true
+	// should we ask k8s for permissions on select objects?
+	checkPerms := ctx.Qp != nil && *ctx.Qp
 
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
@@ -342,8 +345,7 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 	}
 
 	/****
-		guid := goauuid.UUID(ctx.SpaceID)
-		spaceURLStr := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(witclient.ShowSpacePath(guid)))
+
 
 		if checkPerms {
 			canRead, err := kc.CanGetSpace()
@@ -388,22 +390,70 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 
 	// Kubernetes doesn't know about space ID, so add it here
 	space.ID = ctx.SpaceID
-	/**
-		// next, try to get permissions
-		allowedMethods := []string{"GET"}
 
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve space %s", *kubeSpaceName))
+	if checkPerms {
+		// next, try to get permissions
+		guid := goauuid.UUID(ctx.SpaceID)
+
+		// permission for all deployments
+		for _, appl := range space.Attributes.Applications {
+			for _, depl := range appl.Attributes.Deployments {
+				deployPath := witclient.SetDeploymentDeploymentsPath(guid, appl.Attributes.Name, depl.Attributes.Name)
+				deployURLStr := rest.AbsoluteURL(ctx.Request, deployPath)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve path for %s", *kubeSpaceName))
+				}
+				envName := depl.Attributes.Name
+				methods := []string{}
+				canScale, err := kc.CanScaleDeployment(envName)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
+				}
+				if canScale {
+					methods = append(methods, "PATCH")
+				}
+				canDelete, err := kc.CanDeleteDeployment(envName)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
+				}
+				if canDelete {
+					methods = append(methods, "DELETE")
+				}
+				// NOTE: we don't actually allow GET to this endpoint, so don't claim we do by adding "GET" to methods
+				depl.Links.Self = &app.LinkWithAccess{
+					Href: &deployURLStr,
+					Meta: &app.EndpointAccess{
+						Methods: methods,
+					},
+				}
+			}
 		}
+
+		// permssions for this space
+		spaceURLStr := rest.AbsoluteURL(ctx.Request, witclient.ShowSpacePath(guid))
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve path for  %s", *kubeSpaceName))
+		}
+
+		methods := []string{}
+		canGetSpace, err := kc.CanGetSpace()
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
+		}
+		if canGetSpace {
+			methods = append(methods, "GET")
+		}
+		// DELETE, etc come later
 		space.Links = &app.SimpleSpaceLinks{
 			Space: &app.LinkWithAccess{
 				Href: &spaceURLStr,
 				Meta: &app.EndpointAccess{
-					Methods: []string{"GET", "POST", "DELETE", "PATCH"},
+					Methods: methods,
 				},
 			},
 		}
-	***/
+	}
+
 	res := &app.SimpleSpaceSingle{
 		Data: space,
 	}
