@@ -243,7 +243,7 @@ func TestShowSpace(t *testing.T) {
 			return createOSIOClientMock(t, spaceName), nil
 		}
 		// when
-		_, result := test.ShowSpaceDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
+		_, result := test.ShowSpaceDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace, nil)
 		// then
 		assert.Equal(t, space.SystemSpace, result.Data.ID, "space ID should be %s", space.SystemSpace.String())
 		assert.NotNil(t, result.Data.Attributes, "space attributes must be non-nil")
@@ -260,7 +260,7 @@ func TestShowSpace(t *testing.T) {
 				return nil, fmt.Errorf("failure")
 			}
 			// when/then
-			test.ShowSpaceDeploymentsInternalServerError(t, context.Background(), svc, ctrl, space.SystemSpace)
+			test.ShowSpaceDeploymentsInternalServerError(t, context.Background(), svc, ctrl, space.SystemSpace, nil)
 		})
 
 		t.Run("get space bad request", func(t *testing.T) {
@@ -277,7 +277,7 @@ func TestShowSpace(t *testing.T) {
 				return createOSIOClientMock(t, spaceName), nil
 			}
 			// when
-			test.ShowSpaceDeploymentsBadRequest(t, context.Background(), svc, ctrl, space.SystemSpace)
+			test.ShowSpaceDeploymentsBadRequest(t, context.Background(), svc, ctrl, space.SystemSpace, nil)
 			// then verify that the Close method was called
 			assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
 		})

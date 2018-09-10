@@ -687,11 +687,7 @@ func (s *TestEvent) TestListEvent() {
 			},
 		}
 		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
-<<<<<<< HEAD:controller/work_item_events_test.go
-		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
-=======
 		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil, nil)
->>>>>>> upstream/master:controller/work_item_events_blackbox_test.go
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
