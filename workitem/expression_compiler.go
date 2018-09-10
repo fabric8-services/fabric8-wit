@@ -191,6 +191,17 @@ var DefaultTableJoins = func() TableJoinMap {
 			AllowedColumns:     []string{"name"},
 			ActivateOtherJoins: []string{"space"},
 		},
+		"label": {
+			TableName:  "labels",
+			TableAlias: "lbl",
+			On: Column("lbl", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id") + `
+		                    AND lbl.id::text IN (
+		                        SELECT
+						jsonb_array_elements_text(` + Column(WorkItemStorage{}.TableName(), "fields") + `->'system.labels')
+					FROM labels)`,
+			PrefixActivators: []string{"label."},
+			AllowedColumns:   []string{"name"},
+		},
 	}
 
 	res["typegroup_members"] = &TableJoin{

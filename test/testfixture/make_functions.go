@@ -3,6 +3,7 @@ package testfixture
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -24,6 +25,32 @@ import (
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
+
+// GetTestFileAndFunc returns the file and function of the first _test.go file
+// to appear in the stack and returns it in this schema (without the line
+// breaks)
+//
+// (see function
+// github.com/fabric8-services/fabric8-wit/test/testfixture_test.TestGetGetTestFileAndFunc
+// in test/testfixture/testfixture_test.go)
+//
+// The result can be used to augment entities so that we always can tell which
+// test created an entity that is a left-over and not cleaned up for example.
+func GetTestFileAndFunc() string {
+	// Get filename and line of the function that sits at the top of the call stack
+	skip := 0
+	pc, file, _, ok := runtime.Caller(skip)
+	prefix := strings.Replace(file, "test/testfixture/make_functions.go", "", -1)
+	var found bool
+	for skip := 1; !found && ok; skip++ {
+		if strings.Contains(file, "_test.go") {
+			found = true
+		} else {
+			pc, file, _, ok = runtime.Caller(skip)
+		}
+	}
+	return fmt.Sprintf("(see function %s in %s)", runtime.FuncForPC(pc).Name(), strings.Replace(file, prefix, "", -1))
+}
 
 func makeUsers(fxt *TestFixture) error {
 	if fxt.info[kindUsers] == nil {
@@ -129,7 +156,7 @@ func makeSpaces(fxt *TestFixture) error {
 	for i := range fxt.Spaces {
 		fxt.Spaces[i] = &space.Space{
 			Name:        testsupport.CreateRandomValidTestName("space "),
-			Description: "Some description",
+			Description: GetTestFileAndFunc(),
 		}
 		if !fxt.isolatedCreation {
 			fxt.Spaces[i].OwnerID = fxt.Identities[0].ID
@@ -464,16 +491,16 @@ func makeWorkItems(fxt *TestFixture) error {
 			}
 			_, ok := fxt.WorkItems[i].Fields[workitem.SystemCreator]
 			if !ok {
-				return errs.Errorf("you must specify a work creator ID for the \"%s\" field in %+v", workitem.SystemCreator, fxt.WorkItems[i].Fields)
+				return errs.Errorf("you must specify a work creator ID for the %q field in %+v", workitem.SystemCreator, fxt.WorkItems[i].Fields)
 			}
 		}
 		creatorIDStr, ok := fxt.WorkItems[i].Fields[workitem.SystemCreator].(string)
 		if !ok {
-			return errs.Errorf("failed to convert \"%s\" field to string in %+v: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields, fxt.WorkItems[i].Fields[workitem.SystemCreator])
+			return errs.Errorf("failed to convert %q field to string in %+v: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 		creatorID, err := uuid.FromString(creatorIDStr)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert \"%s\" field to uuid.UUID: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields[workitem.SystemCreator])
+			return errs.Wrapf(err, "failed to convert %q field to uuid.UUID: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 
 		wi, _, err := wiRepo.Create(fxt.ctx, fxt.WorkItems[i].SpaceID, fxt.WorkItems[i].Type, fxt.WorkItems[i].Fields, creatorID)
@@ -527,7 +554,7 @@ func makeWorkItemLinks(fxt *TestFixture) error {
 		}
 		creatorID, err := uuid.FromString(creatorIDStr)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert the string \"%s\" to a uuid.UUID object", creatorIDStr)
+			return errs.Wrapf(err, "failed to convert the string %q to a uuid.UUID object", creatorIDStr)
 		}
 
 		wilt, err := wilRepo.Create(fxt.ctx, fxt.WorkItemLinks[i].SourceID, fxt.WorkItemLinks[i].TargetID, fxt.WorkItemLinks[i].LinkTypeID, creatorID)

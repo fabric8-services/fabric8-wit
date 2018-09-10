@@ -218,7 +218,7 @@ func checkCounter(t *testing.T, method, entity, code string, expected int64) {
 	reqMetric.Write(m)
 	actual := int64(m.Counter.GetValue())
 	if actual != expected {
-		t.Errorf("metric(\"%s\", \"%s\", \"%s\"), want: %d, got: %d", entity, method, code, expected, actual)
+		t.Errorf("metric(%q, %q, %q), want: %d, got: %d", entity, method, code, expected, actual)
 	}
 }
 
