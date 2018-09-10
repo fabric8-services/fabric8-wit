@@ -25,6 +25,30 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+func makeUsers(fxt *TestFixture) error {
+	if fxt.info[kindUsers] == nil {
+		return nil
+	}
+	userRepo := account.NewUserRepository(fxt.db)
+	fxt.Users = make([]*account.User, fxt.info[kindUsers].numInstances)
+	for i := range fxt.Users {
+		id := uuid.NewV4()
+		fxt.Users[i] = &account.User{
+			ID:       id,
+			Email:    fmt.Sprintf("%s@example.com", id),
+			FullName: testsupport.CreateRandomValidTestName("user"),
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindUsers); err != nil {
+			return errs.WithStack(err)
+		}
+		err := userRepo.Create(fxt.ctx, fxt.Users[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create user: %+v", fxt.Users[i])
+		}
+	}
+	return nil
+}
+
 func makeIdentities(fxt *TestFixture) error {
 	if fxt.info[kindIdentities] == nil {
 		return nil
@@ -34,6 +58,7 @@ func makeIdentities(fxt *TestFixture) error {
 		fxt.Identities[i] = &account.Identity{
 			Username:     testsupport.CreateRandomValidTestName("John Doe "),
 			ProviderType: account.KeycloakIDP,
+			User:         *fxt.Users[0],
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindIdentities); err != nil {
 			return errs.WithStack(err)
@@ -439,19 +464,19 @@ func makeWorkItems(fxt *TestFixture) error {
 			}
 			_, ok := fxt.WorkItems[i].Fields[workitem.SystemCreator]
 			if !ok {
-				return errs.Errorf("you must specify a work creator ID for the \"%s\" field in %+v", workitem.SystemCreator, fxt.WorkItems[i].Fields)
+				return errs.Errorf("you must specify a work creator ID for the %q field in %+v", workitem.SystemCreator, fxt.WorkItems[i].Fields)
 			}
 		}
 		creatorIDStr, ok := fxt.WorkItems[i].Fields[workitem.SystemCreator].(string)
 		if !ok {
-			return errs.Errorf("failed to convert \"%s\" field to string in %+v: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields, fxt.WorkItems[i].Fields[workitem.SystemCreator])
+			return errs.Errorf("failed to convert %q field to string in %+v: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 		creatorID, err := uuid.FromString(creatorIDStr)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert \"%s\" field to uuid.UUID: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields[workitem.SystemCreator])
+			return errs.Wrapf(err, "failed to convert %q field to uuid.UUID: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 
-		wi, err := wiRepo.Create(fxt.ctx, fxt.WorkItems[i].SpaceID, fxt.WorkItems[i].Type, fxt.WorkItems[i].Fields, creatorID)
+		wi, _, err := wiRepo.Create(fxt.ctx, fxt.WorkItems[i].SpaceID, fxt.WorkItems[i].Type, fxt.WorkItems[i].Fields, creatorID)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item: %+v", fxt.WorkItems[i])
 		}
@@ -502,7 +527,7 @@ func makeWorkItemLinks(fxt *TestFixture) error {
 		}
 		creatorID, err := uuid.FromString(creatorIDStr)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert the string \"%s\" to a uuid.UUID object", creatorIDStr)
+			return errs.Wrapf(err, "failed to convert the string %q to a uuid.UUID object", creatorIDStr)
 		}
 
 		wilt, err := wilRepo.Create(fxt.ctx, fxt.WorkItemLinks[i].SourceID, fxt.WorkItemLinks[i].TargetID, fxt.WorkItemLinks[i].LinkTypeID, creatorID)

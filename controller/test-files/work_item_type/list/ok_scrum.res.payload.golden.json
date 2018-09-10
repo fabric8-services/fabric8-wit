@@ -709,6 +709,7 @@
             "required": false,
             "type": {
               "baseType": "string",
+              "defaultValue": "Medium",
               "kind": "enum",
               "values": [
                 "Critical",

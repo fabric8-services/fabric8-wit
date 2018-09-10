@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-auth/auth"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -24,7 +23,6 @@ import (
 type TestQueryREST struct {
 	gormtestsupport.DBTestSuite
 	testDir string
-	policy  *auth.KeycloakPolicy
 }
 
 func TestRunQueryREST(t *testing.T) {
@@ -49,12 +47,6 @@ func (rest *TestQueryREST) UnSecuredController() (*goa.Service, *QueryController
 func (rest *TestQueryREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.testDir = filepath.Join("test-files", "query")
-	rest.policy = &auth.KeycloakPolicy{
-		Name:             "TestCollaborators-" + uuid.NewV4().String(),
-		Type:             auth.PolicyTypeUser,
-		Logic:            auth.PolicyLogicPossitive,
-		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
-	}
 }
 
 func getQueryCreatePayload(title string, qs *string) *app.CreateQueryPayload {

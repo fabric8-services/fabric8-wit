@@ -585,7 +585,7 @@ func (s *WorkItemSuite) TestListByFields() {
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
-	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
+	filter = fmt.Sprintf("{\"system.creator\":%q}", s.testIdentity.ID.String())
 	// then
 	_, result = test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	require.NotNil(s.T(), result)
@@ -947,7 +947,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
 
 func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.WorkItemTypes(2))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.WorkItemTypes(1))
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.Attributes[workitem.SystemTitle] = "Test title"
@@ -955,7 +955,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 	u.Data.Attributes[workitem.SystemNumber] = fxt.WorkItems[0].Number + 666
 	u.Data.ID = &fxt.WorkItems[0].ID
 	u.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
+		BaseType: newRelationBaseType(fxt.WorkItemTypes[0].ID),
 	}
 
 	// when
@@ -966,6 +966,139 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 	})
 	s.T().Run("ensure number was not updated", func(t *testing.T) {
 		require.Equal(t, fxt.WorkItems[0].Number, updatedWI.Data.Attributes[workitem.SystemNumber])
+	})
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
+	userFullName := []string{"First User", "Second User"}
+	userUserName := []string{"jon_doe", "lorem_ipsum"}
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Users(2, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Users[idx].FullName = userFullName[idx]
+			return nil
+		}),
+		tf.Identities(2, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Identities[idx].Username = userUserName[idx]
+			fxt.Identities[idx].User = *fxt.Users[idx]
+			return nil
+		}),
+		tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 0:
+				fxt.WorkItemTypes[idx].Name = "First WorkItem Type"
+				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+					"fooo": {
+						Label: "Type1 fooo",
+						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+					},
+					"fooBar": {
+						Label: "Type1 fooBar",
+						Type: workitem.EnumType{
+							BaseType:   workitem.SimpleType{Kind: workitem.KindString},
+							SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+							Values:     []interface{}{"open", "done", "closed"},
+						},
+					},
+					"assigned-to": {
+						Label: "Type1 Assigned To",
+						Type: workitem.ListType{
+							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindUser},
+						},
+					},
+					"bar": {
+						Label: "Type1 bar",
+						Type:  &workitem.SimpleType{Kind: workitem.KindString},
+					},
+					"reporter": {
+						Label: "Type1 reporter",
+						Type:  &workitem.SimpleType{Kind: workitem.KindUser},
+					},
+					"integer-or-float-list": {
+						Label: "Type1 integer-or-float-list",
+						Type: workitem.ListType{
+							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindInteger},
+						},
+					},
+				}
+			case 1:
+				fxt.WorkItemTypes[idx].Name = "Second WorkItem Type"
+				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+					"fooo": {
+						Label: "Type2 fooo",
+						Type:  &workitem.SimpleType{Kind: workitem.KindFloat},
+					},
+					"bar": {
+						Label: "Type2 bar",
+						Type:  &workitem.SimpleType{Kind: workitem.KindInteger},
+					},
+					"fooBar": {
+						Label: "Type2 fooBar",
+						Type: workitem.EnumType{
+							BaseType:   workitem.SimpleType{Kind: workitem.KindString},
+							SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+							Values:     []interface{}{"alpha", "beta", "gamma"},
+						},
+					},
+					"integer-or-float-list": {
+						Label: "Type2 integer-or-float-list",
+						Type: workitem.ListType{
+							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindFloat},
+						},
+					},
+				}
+			}
+			return nil
+		}),
+		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+			fxt.WorkItems[idx].Fields["integer-or-float-list"] = []int{101}
+			fxt.WorkItems[idx].Fields["fooo"] = 2.5
+			fxt.WorkItems[idx].Fields["fooBar"] = "open"
+			fxt.WorkItems[idx].Fields["bar"] = "hello"
+			fxt.WorkItems[idx].Fields["reporter"] = fxt.Identities[0].ID.String()
+			fxt.WorkItems[idx].Fields["assigned-to"] = []string{fxt.Identities[0].ID.String(), fxt.Identities[1].ID.String()}
+			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("description1")
+			return nil
+		}),
+	)
+	// when
+	u := minimumRequiredUpdatePayload()
+	u.Data.Attributes[workitem.SystemVersion] = fxt.WorkItems[0].Version
+	u.Data.ID = &fxt.WorkItems[0].ID
+	u.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: newRelationBaseType(fxt.WorkItemTypes[1].ID),
+	}
+	svc := testsupport.ServiceAsUser("TypeChangeService", *fxt.Identities[0])
+	s.T().Run("ok", func(t *testing.T) {
+		_, newWI := test.UpdateWorkitemOK(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWI.Data.Relationships.BaseType.Data.ID)
+		newDescription := newWI.Data.Attributes[workitem.SystemDescription]
+		assert.NotNil(t, newDescription)
+		// Type of old and new field is same
+		assert.NotContains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooo"].Label)
+		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["bar"].Label)
+		assert.Contains(t, newDescription, fxt.WorkItemTypes[0].Fields["fooBar"].Label)
+		assert.Equal(t, "alpha", newWI.Data.Attributes["fooBar"]) // First value of enum for field foobar
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "workitem_type.res.payload.golden.json"), newWI)
+	})
+
+	s.T().Run("disallow update of field along with type", func(t *testing.T) {
+		u.Data.Attributes[workitem.SystemTitle] = "xyz"
+		// TODO (ibrahim) - Check type of error once error 422 has been added.
+		//https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r210184092
+		test.UpdateWorkitemConflict(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
+	})
+
+	s.T().Run("unauthorized", func(t *testing.T) {
+		// Only Space owner and workitem creator is allowed to change type
+		svcNotAuthorized := testsupport.ServiceAsSpaceUser("TypeChange-Service", *fxt.Identities[1], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
+		test.UpdateWorkitemForbidden(t, svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, fxt.WorkItems[0].ID, &u)
 	})
 }
 
@@ -3210,7 +3343,7 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 	for _, templ := range templates {
 		s.T().Run(templ.Name, func(t *testing.T) {
 			if !templ.CanConstruct {
-				t.Skipf("skipping space template \"%s\" because it is marked as: \"cannot construct spaces\"", templ.Name)
+				t.Skipf("skipping space template %q because it is marked as: \"cannot construct spaces\"", templ.Name)
 			}
 			witRepo := workitem.NewWorkItemTypeRepository(s.DB)
 			fxt := tf.NewTestFixture(s.T(), s.DB,
@@ -3225,7 +3358,7 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 			for _, wit := range wits {
 				t.Run(wit.Name, func(t *testing.T) {
 					if !wit.CanConstruct {
-						t.Skipf("skipping WIT \"%s\" because it is marked as: \" cannot construct work items\"", wit.Name)
+						t.Skipf("skipping WIT %q because it is marked as: \" cannot construct work items\"", wit.Name)
 					}
 					var id uuid.UUID
 					c := minimumRequiredCreateWithType(wit.ID)

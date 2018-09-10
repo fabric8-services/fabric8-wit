@@ -19,3 +19,9 @@ type TrackerQuery struct {
 	// SpaceID is a foreign key for a space
 	SpaceID uuid.UUID `gorm:"ForeignKey:Space"`
 }
+
+// TableName overrides the table name settings in Gorm to force a specific table name
+// in the database.
+func (t TrackerQuery) TableName() string {
+	return trackerQueriesTableName
+}

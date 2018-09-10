@@ -15,7 +15,7 @@ import (
 // RevisionRepository encapsulates storage & retrieval of historical versions of work items
 type RevisionRepository interface {
 	// Create stores a new revision for the given work item.
-	Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItemStorage) error
+	Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItemStorage) (Revision, error)
 	// List retrieves all revisions for a given work item
 	List(ctx context.Context, workitemID uuid.UUID) ([]Revision, error)
 }
@@ -32,13 +32,13 @@ type GormRevisionRepository struct {
 }
 
 // Create stores a new revision for the given work item.
-func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItemStorage) error {
+func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItemStorage) (Revision, error) {
 	log.Debug(nil, map[string]interface{}{
 		"modifier_id":   modifierID,
 		"revision_type": revisionType,
 	}, "Storing a revision after operation on work item.")
 	tx := r.db
-	workitemRevision := &Revision{
+	workitemRevision := Revision{
 		ModifierIdentity: modifierID,
 		Time:             time.Now(),
 		Type:             revisionType,
@@ -52,10 +52,10 @@ func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUI
 		workitemRevision.WorkItemFields = Fields{}
 	}
 	if err := tx.Create(&workitemRevision).Error; err != nil {
-		return errors.NewInternalError(ctx, errs.Wrap(err, "failed to create new work item revision"))
+		return Revision{}, errors.NewInternalError(ctx, errs.Wrap(err, "failed to create new work item revision"))
 	}
 	log.Debug(ctx, map[string]interface{}{"wi_id": workitem.ID}, "Work item revision occurrence created")
-	return nil
+	return workitemRevision, nil
 }
 
 // List retrieves all revisions for a given work item
