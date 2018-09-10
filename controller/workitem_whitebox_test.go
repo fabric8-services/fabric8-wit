@@ -311,7 +311,9 @@ func (rest *TestWorkItemREST) TestConvertWorkItems() {
 		for i, converted := range convertedWIs {
 			require.Equal(t, fxt.WorkItems[i].ID, *converted.ID)
 			require.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemTitle], converted.Attributes[workitem.SystemTitle])
-			require.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemDescription], converted.Attributes[workitem.SystemDescription])
+			content, ok := fxt.WorkItems[i].Fields[workitem.SystemDescription].(rendering.MarkupContent.Content)
+			require.True(t, ok, "description is not a rendering.MarkupContent: %+v", fxt.WorkItems[i].Fields[workitem.SystemDescription])			
+			require.Equal(t, content.Content, converted.Attributes[workitem.SystemDescription])
 		}
 	})
 	rest.T().Run("length mismatch", func(t *testing.T) {
