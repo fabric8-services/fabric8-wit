@@ -92,10 +92,10 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) {
 			return value, nil
 		}
-		return nil, errs.Errorf("value %v (%[1]T) should be %s, but is \"%s\"", value, "URL", valueType.Name())
+		return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %q", value, "URL", valueType.Name())
 	case KindFloat:
 		if valueType.Kind() != reflect.Float64 {
-			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is \"%s\"", value, "float64", valueType.Name())
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %q", value, "float64", valueType.Name())
 		}
 		return value, nil
 	case KindInteger, KindDuration: // NOTE: Duration is a typedef of int64

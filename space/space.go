@@ -272,7 +272,7 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		return nil, errors.NewNotFoundError("space template", space.SpaceTemplateID.String())
 	}
 	if !templ.CanConstruct {
-		return nil, errors.NewForbiddenError(fmt.Sprintf("space template \"%s\" (ID: %s) cannot create spaces", templ.Name, templ.ID))
+		return nil, errors.NewForbiddenError(fmt.Sprintf("space template %q (ID: %s) cannot create spaces", templ.Name, templ.ID))
 	}
 
 	tx := r.db.Create(space)

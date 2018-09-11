@@ -115,6 +115,11 @@
           "related": "http:///api/user/services"
         }
       },
+      "user_spaces": {
+        "links": {
+          "related": "http:///api/user/spaces"
+        }
+      },
       "users": {
         "links": {
           "related": "http:///api/users"

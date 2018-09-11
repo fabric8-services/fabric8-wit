@@ -1,0 +1,27 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "name": "space1"
+      },
+      "id": "00000000-0000-0000-0000-000000000001",
+      "links": {
+        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000001"
+      },
+      "type": "resources"
+    },
+    {
+      "attributes": {
+        "name": "space2"
+      },
+      "id": "00000000-0000-0000-0000-000000000002",
+      "links": {
+        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
+      },
+      "type": "resources"
+    }
+  ],
+  "meta": {
+    "totalCount": 2
+  }
+}

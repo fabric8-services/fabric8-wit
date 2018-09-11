@@ -1,0 +1,73 @@
+---
+version: 1
+interactions:
+- request:
+    headers:
+      sub: ["aa8bffab-c505-40b6-8e87-cd8b0fc1a0c4"] # will be compared against the `sub` claim in the incoming request's token
+    url: https://auth/api/user/resources?type=openshift.io%2Fresource%2Fspace
+    method: GET
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+      "data":[]
+    }'
+- request:
+    headers:
+      sub: ["bcdd0b29-123d-11e8-a8bc-b69930b94f5c"] # will be compared against the `sub` claim in the incoming request's token
+    url: https://auth/api/user/resources?type=openshift.io%2Fresource%2Fspace
+    method: GET
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+      "data":[
+        {
+          "id": "6c378ed7-67cf-4e09-b099-c25bf8202617",
+          "links": {
+                "related": "http:///api/resource/6bfa9182-dc81-4bc1-a694-c2e96ec23d3e"
+            },
+          "type": "resources"
+        }
+      ]
+    }'
+- request:
+    headers:
+      sub: ["83fdcae2-634f-4a52-958a-f723cb621700"] # will be compared against the `sub` claim in the incoming request's token
+    url: https://auth/api/user/resources?type=openshift.io%2Fresource%2Fspace
+    method: GET
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+        "data": [{
+            "id": "6bfa9182-dc81-4bc1-a694-c2e96ec23d3e",
+            "links": {
+                "related": "http:///api/resource/6bfa9182-dc81-4bc1-a694-c2e96ec23d3e"
+            },
+            "type": "resources"
+        }, {
+            "id": "2423d75d-ae5d-4bc5-818b-8e3fa4e2167c",
+            "links": {
+                "related": "2423d75d-ae5d-4bc5-818b-8e3fa4e2167c"
+            },
+            "type": "resources"
+        }]
+    }'
+- request:
+    url: https://auth/api/user/resources?type=openshift.io%2Fresource%2Fspace
+    method: GET
+  response:
+    status: 401 Unauthorized
+    code: 401
+    body: '{
+      "errors": [
+        {
+          "id": "IGNORE_ME",
+          "status": "401",
+          "title": "Unauthorized"
+          "code": "jwt_security_error",
+          "detail": "missing header \"Authorization\"",
+        }
+      ]
+    }'

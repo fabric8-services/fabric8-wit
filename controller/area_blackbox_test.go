@@ -19,6 +19,7 @@ import (
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -65,8 +66,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			// when
 			resp, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
 			// then
-			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+			require.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+			require.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.payload.golden.json"), created)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
 
@@ -77,8 +78,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 				// when
 				resp, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ca)
 				// then
-				assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-				assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
+				require.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+				require.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
 				compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.child1_ok.res.payload.golden.json"), created)
 				compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
 			})
@@ -97,8 +98,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			// when
 			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
 			// then
-			assert.Equal(t, *childAreaPayload.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+			require.Equal(t, *childAreaPayload.Data.Attributes.Name, *created.Data.Attributes.Name)
+			require.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 
 			// try creating the same area again
 			resp, errs := test.CreateChildAreaConflict(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
