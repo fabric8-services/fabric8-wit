@@ -1518,14 +1518,16 @@ func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, na
 		return nil, errs.Errorf("containers is missing from deployment config %s: %+v", dcName, containers)
 	}
 
-	noQuotaContainers := 0.0
-	podCPULimit := 0.0
-	podMemLimit := 0.0
+	numContainersMissingCPU := float64(0)
+	numContainersMissingMem := float64(0)
+	podCPULimit := float64(0)
+	podMemLimit := float64(0)
 
 	for _, container := range containers {
 		resources, ok := container.(map[string]interface{})["resources"].(map[string]interface{})
 		if len(resources) == 0 {
-			noQuotaContainers++
+			numContainersMissingCPU++
+			numContainersMissingMem++
 			continue
 		}
 
@@ -1534,63 +1536,83 @@ func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, na
 			return nil, errs.Errorf("limits is missing from deployment config %s: %+v", dcName, resources)
 		}
 
-		cpuQuantity, err := resource.ParseQuantity(limits["cpucores"])
+		cpuLimit, pres := limits["cpucores"]
+		if !pres {
+			numContainersMissingCPU++
+		} else {
+			cpuQuantity, err := resource.ParseQuantity(cpuLimit)
+			if err != nil {
+				return nil, errs.Errorf("could not parse cpu quantity for %+v of %s ", container, dcName)
+			}
 
-		if err != nil {
-			return nil, errs.Errorf("could not parse cpu quantity for %+v of %s ", container, dcName)
+			cpuValue, err := quantityToFloat64(cpuQuantity)
+			if err != nil {
+				return nil, errs.Errorf("could not convert cpu quantity %+v to float64 value", cpuQuantity)
+			}
+			podCPULimit += cpuValue
 		}
 
-		memoryQuantity, err := resource.ParseQuantity(limits["memory"])
+		memLimit, pres := limits["memory"]
+		if !pres {
+			numContainersMissingMem++
+		} else {
+			memoryQuantity, err := resource.ParseQuantity(memLimit)
+			if err != nil {
+				return nil, errs.Errorf("could not parse memory quantity for %+v of %s ", container, dcName)
+			}
 
-		if err != nil {
-			return nil, errs.Errorf("could not parse memory quantity for %+v of %s ", container, dcName)
+			memoryValue, err := quantityToFloat64(memoryQuantity)
+			if err != nil {
+				return nil, errs.Errorf("could not convert memory quantity %+v to float64 value", memoryQuantity)
+			}
+
+			podMemLimit += memoryValue
 		}
-
-		cpuValue, err := quantityToFloat64(cpuQuantity)
-
-		if err != nil {
-			return nil, errs.Errorf("could not convert cpu quantity %+v to float64 value", cpuQuantity)
-		}
-
-		memoryValue, err := quantityToFloat64(memoryQuantity)
-
-		if err != nil {
-			return nil, errs.Errorf("could not convert memory quantity %+v to float64 value", memoryQuantity)
-		}
-
-		podCPULimit += cpuValue
-		podMemLimit += memoryValue
 	}
 
-	if noQuotaContainers > 0 {
-		// Must use default values
-		opts := metaV1.GetOptions{
-			TypeMeta: metaV1.TypeMeta{ // Normally set automatically by k8s client-go
-				Kind:       "",
-				APIVersion: "",
-			},
-		}
-
-		limitRange, err := kc.LimitRanges(namespace).Get(limitRangeName, opts)
-
+	if numContainersMissingCPU > 0 || numContainersMissingMem > 0 {
+		// Look up default resource limits using LimitRanges API
+		limitRange, err := kc.LimitRanges(namespace).Get(limitRangeName, metaV1.GetOptions{})
 		if err != nil {
-			return nil, errs.Errorf("could not retrieve limitRange info for namespace %s", namespace)
+			return nil, errs.Errorf("could not retrieve LimitRange info for namespace %s", namespace)
 		}
 
-		defaultCPULimit := 0.0
-		defaultMemLimit := 0.0
+		defaultCPULimit := float64(0)
+		defaultMemLimit := float64(0)
+		var cpuQty, memQty *resource.Quantity
 		for _, limit := range limitRange.Spec.Limits {
 			if limit.Type == "Container" {
-				defaultCPULimit, _ = quantityToFloat64(*limit.Default.Cpu())
-				defaultMemLimit, _ = quantityToFloat64(*limit.Default.Memory())
+				qty, pres := limit.Default[v1.ResourceCPU]
+				if pres {
+					cpuQty = &qty
+				}
+				qty, pres = limit.Default[v1.ResourceMemory]
+				if pres {
+					memQty = &qty
+				}
 			}
 		}
 
-		additionalCPUUsage := defaultCPULimit * noQuotaContainers
-		additionalMEMUsage := defaultMemLimit * noQuotaContainers
+		if cpuQty == nil || memQty == nil {
+			log.Error(nil, map[string]interface{}{
+				"limit_range": limitRange,
+				"namespace":   namespace,
+			}, "CPU or memory container limit missing from LimitRange")
+			return nil, errs.Errorf("CPU or memory container limit missing from LimitRange for namespace %s", namespace)
+		}
 
-		podCPULimit += additionalCPUUsage
-		podMemLimit += additionalMEMUsage
+		defaultCPULimit, err = quantityToFloat64(*cpuQty)
+		if err != nil {
+			return nil, errs.Errorf("could not convert cpu quantity %+v to float64 value", *cpuQty)
+		}
+		defaultMemLimit, err = quantityToFloat64(*memQty)
+		if err != nil {
+			return nil, errs.Errorf("could not convert memory quantity %+v to float64 value", *memQty)
+		}
+
+		// Apply default limit for each container that didn't specify CPU/memory limits
+		podCPULimit += defaultCPULimit * numContainersMissingCPU
+		podMemLimit += defaultMemLimit * numContainersMissingMem
 	}
 
 	return &app.SimpleDeploymentPodLimitRange{
