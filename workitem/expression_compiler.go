@@ -273,15 +273,6 @@ func (c *expressionCompiler) expressionRefersToJoinedData(e criteria.Expression)
 	return nil, false
 }
 
-// ensureJoinTable make sure the table is joined in the query
-func (c *expressionCompiler) ensureJoinTable(tableName string) {
-	for _, j := range c.joins {
-		if j.TableName == tableName {
-			j.Active = true
-		}
-	}
-}
-
 // Ensure expressionCompiler implements the ExpressionVisitor interface
 var _ criteria.ExpressionVisitor = &expressionCompiler{}
 var _ criteria.ExpressionVisitor = (*expressionCompiler)(nil)
@@ -477,7 +468,7 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 		return nil
 	}
 
-	c.ensureJoinTable(tblName)
+	c.joins[tblName].Active = true
 	c.parameters = append(c.parameters, r)
 
 	return fmt.Sprintf(`(uuid("work_items".fields->>'%[1]s') IN (
