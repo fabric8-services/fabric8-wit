@@ -1,6 +1,6 @@
 package criteria
 
-// ChildExpression represents the negation operator
+// ChildExpression represents the child operator
 type ChildExpression struct {
 	binaryExpression
 }
