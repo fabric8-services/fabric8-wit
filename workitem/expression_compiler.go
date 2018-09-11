@@ -465,10 +465,13 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 	}
 
 	var tblName string
+	var tblAlias string
 	if left.FieldName == SystemIteration {
 		tblName = "iterations"
+		tblAlias = "iter"
 	} else if left.FieldName == SystemArea {
 		tblName = "areas"
+		tblAlias = "ar"
 	} else {
 		c.err = append(c.err, errs.Errorf("invalid field name: %+v", left.FieldName))
 		return nil
@@ -484,7 +487,7 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 							FROM %[3]s j
 							WHERE j.id = ?
 						) @> %[2]s.path
-							  ))`, left.FieldName, "iter", tblName)
+							  ))`, left.FieldName, tblAlias, tblName)
 
 }
 
