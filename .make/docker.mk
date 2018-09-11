@@ -115,6 +115,18 @@ ifeq ($(strip $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}'
 endif
 	$(eval F8_POSTGRES_HOST := $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null))
 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -ec 'export F8_POSTGRES_HOST=$(F8_POSTGRES_HOST); make $(makecommand)'
+	@echo	
+	@echo "Check that no unexpected left-over spaces exist after running tests:"
+	@echo
+	@docker exec \
+		-t $(DOCKER_RUN_INTERACTIVE_SWITCH) \
+		"$(DOCKER_CONTAINER_NAME)" \
+		bash -ec 'PGPASSWORD=mysecretpassword \
+			psql -h $(F8_POSTGRES_HOST) \
+			-U postgres \
+			-c "SELECT id, name, description FROM spaces;" \
+			-x \
+			-P pager=off'
 
 # This is a wildcard target to let you call any make target from the normal makefile
 # but it will run inside the docker container. This target will only get executed if
