@@ -1050,7 +1050,7 @@ func (s *searchControllerTestSuite) TestSearchByJoinedData() {
 	})
 }
 
-// TestSearchWorkItemsWithChildIterationsOption verifies the Included list of parents
+// TestSearchWorkItemsWithChildIterationsOption verifies the child work item search for iteration
 func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption() {
 	s.T().Run("iterations", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
