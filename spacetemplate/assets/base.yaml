@@ -158,9 +158,9 @@ work_item_link_types:
   name: Blocker
   description: One work item item blocks another one
   forward_name: blocks
-  forward_description: Link the work item that is blocked by this one.
+  forward_description: Select the work item that is blocked by this one.
   reverse_name: is blocked by
-  reverse_description: Link the work item that blocks this one.
+  reverse_description: Select the work item that blocks this one.
   topology: network
 
 - id: "9B631885-83B1-4ABB-A340-3A9EDE8493FA"
@@ -168,12 +168,12 @@ work_item_link_types:
   description: One work item relates to another one.
   forward_name: relates to
   forward_description: |
-    Link the work item that this one relates to.
+    Select the work item that this one relates to.
     Theoretically there's no difference between "relates to" and "is related to";
     we just haven't finished the implementation yet.
   reverse_name: is related to
   reverse_description: |
-    Link the work item that is related to this one.
+    Select the work item that is related to this one.
     Theoretically there's no difference between "relates to" and "is related to";
     we just haven't finished the implementation yet.
   topology: network
@@ -183,10 +183,10 @@ work_item_link_types:
   description: One work item is the parent of another one.
   forward_name: is parent of
   forward_description: |
-    Link the work item that is the parent of this one.
+    Select the work item that is the parent of this one.
     A work item can only have one parent.
   reverse_name: is child of
   reverse_description: |
-    Link the work item that is a child of this one.
+    Select the work item that is a child of this one.
     A work item can have multiple children.
   topology: tree
