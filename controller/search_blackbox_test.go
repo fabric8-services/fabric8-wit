@@ -1080,7 +1080,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 				require.True(t, ok, "unknown work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("with one child iteration", func(t *testing.T) {
 			filter := fmt.Sprintf(`{"iteration": "%s/**"}`, fxt.Iterations[1].ID)
@@ -1100,7 +1100,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 				require.True(t, ok, "unknown work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("with two child iteration", func(t *testing.T) {
 			filter := fmt.Sprintf(`{"iteration": "%s/**"}`, fxt.Iterations[0].ID)
@@ -1123,7 +1123,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 				require.True(t, ok, "unknown work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 
 		t.Run("without child iteration - implicit", func(t *testing.T) {
@@ -1142,7 +1142,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 				require.True(t, ok, "unknown work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("without child iteration - no /** suffix", func(t *testing.T) {
 			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[2].ID)
@@ -1160,7 +1160,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 				require.True(t, ok, "unknown work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("with one child iteration - no /** suffix", func(t *testing.T) {
 			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[1].ID)
@@ -1176,7 +1176,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 				require.True(t, ok, "unknown work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
-			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("with two child iteration - no /** suffix", func(t *testing.T) {
 			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[0].ID)
