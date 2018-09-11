@@ -48,8 +48,6 @@ type KubeClientConfig struct {
 	MetricsGetter
 	// Provides access to the OpenShift REST API, uses default implementation if not set
 	OpenShiftRESTAPIGetter
-	// if true, query k8s for access rights
-	QueryPermissions bool
 }
 
 // KubeRESTAPIGetter has a method to access the KubeRESTAPI interface
