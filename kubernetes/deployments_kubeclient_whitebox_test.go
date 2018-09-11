@@ -306,3 +306,7 @@ func (up *testURLProvider) GetEnvironmentMapping() map[string]string {
 		"stage": "my-stage",
 	}
 }
+
+func (up *testURLProvider) CanDeploy(envType string) bool {
+	return true
+}

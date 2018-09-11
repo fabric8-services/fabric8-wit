@@ -3,6 +3,9 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
+        "system.description": "`(see function github.com/fabric8-services/fabric8-wit/controller_test.(*workItemChildSuite).TestChildren.func1 in controller/work_item_children_blackbox_test.go)`",
+        "system.description.markup": "Markdown",
+        "system.description.rendered": "\u003cp\u003e\u003ccode\u003e(see function github.com/fabric8-services/fabric8-wit/controller_test.(*workItemChildSuite).TestChildren.func1 in controller/work_item_children_blackbox_test.go)\u003c/code\u003e\u003c/p\u003e\n",
         "system.metastate": "mNew",
         "system.number": 3,
         "system.order": 3000,
@@ -86,6 +89,9 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
+        "system.description": "`(see function github.com/fabric8-services/fabric8-wit/controller_test.(*workItemChildSuite).TestChildren.func1 in controller/work_item_children_blackbox_test.go)`",
+        "system.description.markup": "Markdown",
+        "system.description.rendered": "\u003cp\u003e\u003ccode\u003e(see function github.com/fabric8-services/fabric8-wit/controller_test.(*workItemChildSuite).TestChildren.func1 in controller/work_item_children_blackbox_test.go)\u003c/code\u003e\u003c/p\u003e\n",
         "system.metastate": "mNew",
         "system.number": 2,
         "system.order": 2000,

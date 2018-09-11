@@ -7,11 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"strings"
 	"testing"
 	"time"
-
-	"github.com/fabric8-services/fabric8-wit/spacetemplate"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/davecgh/go-spew/spew"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
@@ -20,6 +18,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -153,6 +153,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration101", testMigration101TypeGroupHasDescriptionField)
 	t.Run("TestMigration102", testMigration102LinkTypeDescriptionFields)
 	t.Run("TestMigration103", testMigration103NotNullNotEmptyonEmail)
+	t.Run("TestMirgraion104", testMigration104IndexOnWIRevisionTable)
+	t.Run("TestMirgraion105", testMigration105UpdateRootIterationAreaPathField)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1225,6 +1227,97 @@ func testMigration104IndexOnWIRevisionTable(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:105], 105)
 
 	assert.True(t, dialect.HasIndex("work_item_revisions", "ix_workitem_id"))
+}
+
+// test that root iterations are no longer empty and containt he converted id
+func testMigration105UpdateRootIterationAreaPathField(t *testing.T) {
+	t.Run("migrate to previous version", func(t *testing.T) {
+		migrateToVersion(t, sqlDB, migrations[:105], 105)
+	})
+
+	spaceID := uuid.NewV4()
+	iterRootEmptyPathID := uuid.NewV4()
+	iterRootNullPathID := uuid.NewV4()
+	iterChildOfEmptyPathID := uuid.NewV4()
+	iterChildOfNullPathID := uuid.NewV4()
+	areaRootEmptyPathID := uuid.NewV4()
+	areaRootNullPathID := uuid.NewV4()
+	areaChildOfEmptyPathID := uuid.NewV4()
+	areaChildOfNullPathID := uuid.NewV4()
+
+	t.Run("setup test data to migrate", func(t *testing.T) {
+		require.Nil(t, runSQLscript(sqlDB, "105-insert-test-root-iteration.sql",
+			spaceID.String(),
+			iterRootEmptyPathID.String(),
+			iterRootNullPathID.String(),
+			iterChildOfEmptyPathID.String(),
+			iterChildOfNullPathID.String(),
+			areaRootEmptyPathID.String(),
+			areaRootNullPathID.String(),
+			areaChildOfEmptyPathID.String(),
+			areaChildOfNullPathID.String(),
+		))
+	})
+
+	// Helper functions
+
+	getPathOf := func(t *testing.T, table string, id uuid.UUID) string {
+		q := fmt.Sprintf("SELECT path FROM %s WHERE id = '%s'", table, id)
+		row := sqlDB.QueryRow(q)
+		require.NotNil(t, row)
+		// we have to scan the path into an interface because it can be nil
+		var p interface{}
+		err := row.Scan(&p)
+		require.NoError(t, err, "%+v", err)
+		if p == nil {
+			return ""
+		}
+		return string(p.([]byte))
+	}
+
+	getPathOfIteration := func(t *testing.T, iterID uuid.UUID) string { return getPathOf(t, "iterations", iterID) }
+
+	getPathOfArea := func(t *testing.T, areaID uuid.UUID) string { return getPathOf(t, "areas", areaID) }
+
+	// UUIDsToLtreePath mimics path.Path struct functionality but we don't want
+	// to rely on code in migrations
+	UUIDsToLtreePath := func(arr ...uuid.UUID) string {
+		strArr := make([]string, len(arr))
+		for i, u := range arr {
+			strArr[i] = strings.Replace(u.String(), "-", "_", -1)
+		}
+		return strings.Join(strArr, ".")
+	}
+
+	t.Run("check iterations before migration", func(t *testing.T) {
+		require.Equal(t, "", getPathOfIteration(t, iterRootEmptyPathID))
+		require.Equal(t, "", getPathOfIteration(t, iterRootNullPathID))
+		require.Equal(t, UUIDsToLtreePath(iterRootEmptyPathID), getPathOfIteration(t, iterChildOfEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(iterRootNullPathID), getPathOfIteration(t, iterChildOfNullPathID))
+	})
+	t.Run("check areas before migration", func(t *testing.T) {
+		require.Equal(t, "", getPathOfArea(t, areaRootEmptyPathID))
+		require.Equal(t, "", getPathOfArea(t, areaRootNullPathID))
+		require.Equal(t, UUIDsToLtreePath(areaRootEmptyPathID), getPathOfArea(t, areaChildOfEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(areaRootNullPathID), getPathOfArea(t, areaChildOfNullPathID))
+	})
+
+	t.Run("migrate to current version", func(t *testing.T) {
+		migrateToVersion(t, sqlDB, migrations[:106], 106)
+	})
+
+	t.Run("check iterations after migration", func(t *testing.T) {
+		require.Equal(t, UUIDsToLtreePath(iterRootEmptyPathID), getPathOfIteration(t, iterRootEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(iterRootNullPathID), getPathOfIteration(t, iterRootNullPathID))
+		require.Equal(t, UUIDsToLtreePath(iterRootEmptyPathID, iterChildOfEmptyPathID), getPathOfIteration(t, iterChildOfEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(iterRootNullPathID, iterChildOfNullPathID), getPathOfIteration(t, iterChildOfNullPathID))
+	})
+	t.Run("check areas after migration", func(t *testing.T) {
+		require.Equal(t, UUIDsToLtreePath(areaRootEmptyPathID), getPathOfArea(t, areaRootEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(areaRootNullPathID), getPathOfArea(t, areaRootNullPathID))
+		require.Equal(t, UUIDsToLtreePath(areaRootEmptyPathID, areaChildOfEmptyPathID), getPathOfArea(t, areaChildOfEmptyPathID))
+		require.Equal(t, UUIDsToLtreePath(areaRootNullPathID, areaChildOfNullPathID), getPathOfArea(t, areaChildOfNullPathID))
+	})
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

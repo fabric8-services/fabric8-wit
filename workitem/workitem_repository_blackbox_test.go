@@ -264,7 +264,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				workitem.SystemTitle: "Some title",
 			}, fxt.Identities[0].ID)
 		require.EqualError(t, err, fmt.Sprintf(
-			"Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wiType.Name, wiType.ID),
+			"Workitem Type %q (ID: %s) does not belong to the current space template", wiType.Name, wiType.ID),
 		)
 		require.Nil(t, rev)
 		require.IsType(t, errors.BadParameterError{}, err)
