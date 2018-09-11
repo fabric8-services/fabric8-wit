@@ -26,7 +26,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -615,7 +614,7 @@ func (s *WorkItemSuite) TestListByFields() {
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
-	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
+	filter = fmt.Sprintf("{\"system.creator\":%q}", s.testIdentity.ID.String())
 	// then
 	_, result = test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	require.NotNil(s.T(), result)
@@ -873,12 +872,13 @@ func minimumRequiredCreatePayload(spaceIDOptional ...uuid.UUID) app.CreateWorkit
 func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iteration.Iteration) *iteration.Iteration {
 	iterationRepo := iteration.NewIterationRepository(db)
 
-	parentPath := append(parentIteration.Path, parentIteration.ID)
 	itr := iteration.Iteration{
+		ID:      uuid.NewV4(),
 		Name:    "Sprint 101",
 		SpaceID: parentIteration.SpaceID,
-		Path:    parentPath,
 	}
+	itr.MakeChildOf(*parentIteration)
+
 	err := iterationRepo.Create(ctx, &itr)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -2436,10 +2436,12 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	rootArea := fxt.Areas[0]
 	log.Info(nil, nil, "creating child area...")
 	childArea := area.Area{
+		ID:      uuid.NewV4(),
 		Name:    "Child Area of " + rootArea.Name,
 		SpaceID: testSpace.ID,
-		Path:    path.Path{rootArea.ID},
 	}
+	childArea.MakeChildOf(*rootArea)
+
 	areaRepo := area.NewAreaRepository(s.DB)
 	err := areaRepo.Create(s.Ctx, &childArea)
 	require.NoError(s.T(), err)
@@ -3373,7 +3375,7 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 	for _, templ := range templates {
 		s.T().Run(templ.Name, func(t *testing.T) {
 			if !templ.CanConstruct {
-				t.Skipf("skipping space template \"%s\" because it is marked as: \"cannot construct spaces\"", templ.Name)
+				t.Skipf("skipping space template %q because it is marked as: \"cannot construct spaces\"", templ.Name)
 			}
 			witRepo := workitem.NewWorkItemTypeRepository(s.DB)
 			fxt := tf.NewTestFixture(s.T(), s.DB,
@@ -3388,7 +3390,7 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 			for _, wit := range wits {
 				t.Run(wit.Name, func(t *testing.T) {
 					if !wit.CanConstruct {
-						t.Skipf("skipping WIT \"%s\" because it is marked as: \" cannot construct work items\"", wit.Name)
+						t.Skipf("skipping WIT %q because it is marked as: \" cannot construct work items\"", wit.Name)
 					}
 					var id uuid.UUID
 					c := minimumRequiredCreateWithType(wit.ID)

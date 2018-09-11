@@ -79,23 +79,23 @@ func (s *TestAuthzSuite) TestAuthorizeOK() {
 	ctx, identityID, tokenString, reqID := token.ContextWithTokenAndRequestID(s.T())
 
 	// One admin
-	responsePayload := fmt.Sprintf("{\"data\":[{\"role_name\":\"admin\",\"assignee_id\":\"%s\"}]}", identityID.String())
+	responsePayload := fmt.Sprintf("{\"data\":[{\"role_name\":\"admin\",\"assignee_id\":%q}]}", identityID.String())
 	s.checkAuthorize(ctx, tokenString, reqID, responsePayload, true)
 
 	// One contributor
-	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"contributor\",\"assignee_id\":\"%s\"}]}", identityID.String())
+	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"contributor\",\"assignee_id\":%q}]}", identityID.String())
 	s.checkAuthorize(ctx, tokenString, reqID, responsePayload, true)
 
 	// Multiple users and the expected one is among them
-	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"admin\",\"assignee_id\":\"%s\"},{\"role_name\":\"contributor\",\"assignee_id\":\"%s\"}]}", uuid.NewV4().String(), identityID.String())
+	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"admin\",\"assignee_id\":%q},{\"role_name\":\"contributor\",\"assignee_id\":%q}]}", uuid.NewV4().String(), identityID.String())
 	s.checkAuthorize(ctx, tokenString, reqID, responsePayload, true)
 
 	// Viewer is forbidden
-	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"viewer\",\"assignee_id\":\"%s\"}]}", identityID.String())
+	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"viewer\",\"assignee_id\":%q}]}", identityID.String())
 	s.checkAuthorize(ctx, tokenString, reqID, responsePayload, false)
 
 	// If the user is not among the roles then it's forbidden too
-	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"admin\",\"assignee_id\":\"%s\"},{\"role_name\":\"contributor\",\"assignee_id\":\"%s\"}]}", uuid.NewV4().String(), uuid.NewV4().String())
+	responsePayload = fmt.Sprintf("{\"data\":[{\"role_name\":\"admin\",\"assignee_id\":%q},{\"role_name\":\"contributor\",\"assignee_id\":%q}]}", uuid.NewV4().String(), uuid.NewV4().String())
 	s.checkAuthorize(ctx, tokenString, reqID, responsePayload, false)
 }
 
