@@ -109,6 +109,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	wi := &workitem.WorkItem{
 		Fields: make(map[string]interface{}),
 	}
+	var rev *workitem.Revision
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
@@ -123,7 +124,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 			return errs.Wrap(err, fmt.Sprintf("Error creating work item"))
 		}
 
-		wi, err = appl.WorkItems().Create(ctx, ctx.SpaceID, *wit, wi.Fields, *currentUserIdentityID)
+		wi, rev, err = appl.WorkItems().Create(ctx, ctx.SpaceID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return errs.Wrap(err, fmt.Sprintf("Error creating work item"))
 		}
@@ -149,7 +150,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	}
 	ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
 	ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.ID))
-	c.notification.Send(ctx, notification.NewWorkItemCreated(wi.ID.String()))
+	c.notification.Send(ctx, notification.NewWorkItemCreated(wi.ID.String(), rev.ID))
 	return ctx.Created(resp)
 }
 
@@ -225,9 +226,14 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	var workitems []workitem.WorkItem
 	var count int
+	sort, err := workitem.ParseSortWorkItemsBy(ctx.Sort)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
 	err = application.Transactional(c.db, func(tx application.Application) error {
 		var err error
-		workitems, count, err = tx.WorkItems().List(ctx.Context, ctx.SpaceID, exp, ctx.FilterParentexists, &offset, &limit)
+		workitems, count, err = tx.WorkItems().List(ctx.Context, ctx.SpaceID, exp, ctx.FilterParentexists, &offset, &limit, sort)
 		if err != nil {
 			return errs.Wrap(err, "Error listing work items")
 		}

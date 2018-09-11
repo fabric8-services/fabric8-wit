@@ -101,7 +101,7 @@ func (rest *BenchPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (tes
 			workitem.SystemState:     "closed",
 			workitem.SystemIteration: childIteration.ID.String(),
 		}
-		createdWI, err = app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields2, rest.testIdentity.ID)
+		createdWI, _, err = app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields2, rest.testIdentity.ID)
 		if err != nil {
 			rest.B().Fail()
 		}

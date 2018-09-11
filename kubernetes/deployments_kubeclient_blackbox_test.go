@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/errors"
+
 	"github.com/dnaeon/go-vcr/cassette"
 	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/stretchr/testify/require"
@@ -20,7 +22,10 @@ import (
 
 	errs "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 // Used for equality comparisons between float64s
@@ -195,25 +200,19 @@ func TestGetMetrics(t *testing.T) {
 		name          string
 		clusterURL    string
 		expectedURL   string
-		cassetteName  string
 		shouldSucceed bool
 	}{
-		{"Basic", "https://api.myCluster.url:443/cluster", "https://metrics.myCluster.url", "newkubeclient-withport", true},
-		{"Bad URL", "https://myCluster.url:443/cluster", "", "newkubeclient-badurl", false},
+		{"Basic", "https://api.myCluster.url:443/cluster", "https://metrics.myCluster.url", true},
+		{"Bad URL", "https://myCluster.url:443/cluster", "", false},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
-			require.NoError(t, err, "Failed to open cassette")
-			defer r.Stop()
-
 			fixture := &testFixture{}
 			config := &kubernetes.KubeClientConfig{
 				BaseURLProvider: getDefaultURLProvider(testCase.clusterURL, token),
 				UserNamespace:   "myNamespace",
 				MetricsGetter:   fixture,
-				Transport:       r.Transport,
 			}
 			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldSucceed {
@@ -240,12 +239,8 @@ var _ kubernetes.MetricsGetter = &testFixture{}
 var _ kubernetes.MetricsGetter = (*testFixture)(nil)
 
 func TestClose(t *testing.T) {
-	r, err := recorder.New(pathToTestJSON + "newkubeclient")
-	require.NoError(t, err, "Failed to open cassette")
-	defer r.Stop()
-
 	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, r.Transport, t)
+	kc := getDefaultKubeClient(fixture, nil, t)
 
 	mm, err := kc.GetMetricsClient("myNamespace")
 	require.NoError(t, err)
@@ -257,69 +252,23 @@ func TestClose(t *testing.T) {
 	require.True(t, fixture.metrics.closed, "Metrics client not closed")
 }
 
-func TestConfigMapEnvironments(t *testing.T) {
-	testCases := []struct {
-		name         string
-		cassetteName string
-		shouldFail   bool
-	}{
-		{
-			name:         "Basic",
-			cassetteName: "newkubeclient",
-		},
-		{
-			name:         "Empty Data",
-			cassetteName: "newkubeclient-empty",
-		},
-		{
-			name:         "Missing Colon",
-			cassetteName: "newkubeclient-nocolon",
-			shouldFail:   true,
-		},
-		{
-			name:         "Missing Namespace",
-			cassetteName: "newkubeclient-nonamespace",
-			shouldFail:   true,
-		},
-		{
-			name:         "No Provider",
-			cassetteName: "newkubeclient-noprovider",
-			shouldFail:   true,
-		},
-	}
-	fixture := &testFixture{}
-	userNamespace := "myNamespace"
-	config := &kubernetes.KubeClientConfig{
-		BaseURLProvider: getDefaultURLProvider("http://api.myCluster", "myToken"),
-		UserNamespace:   userNamespace,
-		MetricsGetter:   fixture,
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
-			require.NoError(t, err, "Failed to open cassette")
-			defer r.Stop()
-
-			config.Transport = r.Transport
-
-			kc, err := kubernetes.NewKubeClient(config)
-			if testCase.shouldFail {
-				require.Error(t, err, "Expected an error")
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, kc, "KubeClient must not be nil")
-			}
-		})
-	}
-}
-
 type envTestData struct {
 	envName string
-	cpuUsed float64
-	cpuHard float64
-	memUsed float64
-	memHard float64
+	cpu     *quotaData
+	mem     *quotaData
+	pod     *quotaData
+	rc      *quotaData
+	quota   *quotaData
+	svc     *quotaData
+	secret  *quotaData
+	cm      *quotaData
+	pvc     *quotaData
+	is      *quotaData
+}
+
+type quotaData struct {
+	used  float64
+	limit float64
 }
 
 func TestGetEnvironments(t *testing.T) {
@@ -327,6 +276,7 @@ func TestGetEnvironments(t *testing.T) {
 		testName     string
 		cassetteName string
 		shouldFail   bool
+		errorChecker func(error) (bool, error)
 		data         map[string]*envTestData
 	}{
 		{
@@ -335,31 +285,38 @@ func TestGetEnvironments(t *testing.T) {
 			data: map[string]*envTestData{
 				"run": {
 					envName: "run",
-					cpuUsed: 0.488,
-					cpuHard: 2.0,
-					memUsed: 262144000.0,
-					memHard: 1073741824.0,
+					cpu:     &quotaData{0.488, 2.0},
+					mem:     &quotaData{262144000.0, 1073741824.0},
+					rc:      &quotaData{2, 20},
+					pvc:     &quotaData{1, 1},
+					secret:  &quotaData{11, 20},
+					svc:     &quotaData{2, 5},
 				},
 				"stage": {
 					envName: "stage",
-					cpuUsed: 1.488,
-					cpuHard: 2.0,
-					memUsed: 799014912.0,
-					memHard: 1073741824.0,
+					cpu:     &quotaData{1.488, 2.0},
+					mem:     &quotaData{799014912.0, 1073741824.0},
+					rc:      &quotaData{5, 20},
+					pvc:     &quotaData{0, 1},
+					secret:  &quotaData{9, 20},
+					svc:     &quotaData{2, 5},
 				},
 				"test": {
 					envName: "test",
-					cpuUsed: 0.0,
-					cpuHard: 2.0,
-					memUsed: 0.0,
-					memHard: 1073741824.0,
+					cpu:     &quotaData{0.0, 2.0},
+					mem:     &quotaData{0.0, 1073741824.0},
+					rc:      &quotaData{1, 20},
+					pvc:     &quotaData{0, 1},
+					secret:  &quotaData{12, 20},
+					svc:     &quotaData{1, 5},
 				},
 			},
 		},
 		{
-			testName:     "Missing Quota",
-			cassetteName: "getenvironments-missingquota",
+			testName:     "Kubernetes Error",
+			cassetteName: "getenvironments-rq-error",
 			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
 		},
 	}
 
@@ -375,6 +332,10 @@ func TestGetEnvironments(t *testing.T) {
 			envs, err := kc.GetEnvironments()
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 
@@ -400,6 +361,7 @@ func TestGetEnvironment(t *testing.T) {
 		testName     string
 		cassetteName string
 		shouldFail   bool
+		errorChecker func(error) (bool, error)
 		envTestData
 	}{
 		{
@@ -407,10 +369,29 @@ func TestGetEnvironment(t *testing.T) {
 			cassetteName: "getenvironments",
 			envTestData: envTestData{
 				envName: "run",
-				cpuUsed: 0.488,
-				cpuHard: 2.0,
-				memUsed: 262144000.0,
-				memHard: 1073741824.0,
+				cpu:     &quotaData{0.488, 2.0},
+				mem:     &quotaData{262144000.0, 1073741824.0},
+				rc:      &quotaData{2, 20},
+				pvc:     &quotaData{1, 1},
+				secret:  &quotaData{11, 20},
+				svc:     &quotaData{2, 5},
+			},
+		},
+		{
+			testName:     "All Objects",
+			cassetteName: "getenvironment-all-objects",
+			envTestData: envTestData{
+				envName: "run",
+				cpu:     &quotaData{0.488, 2.0},
+				mem:     &quotaData{262144000.0, 1073741824.0},
+				pod:     &quotaData{31, 40},
+				rc:      &quotaData{19, 25},
+				quota:   &quotaData{2, 3},
+				svc:     &quotaData{4, 5},
+				secret:  &quotaData{17, 20},
+				cm:      &quotaData{9, 10},
+				pvc:     &quotaData{0, 1},
+				is:      &quotaData{14, 15},
 			},
 		},
 		{
@@ -422,12 +403,49 @@ func TestGetEnvironment(t *testing.T) {
 			shouldFail: true,
 		},
 		{
-			testName:     "Missing Quota",
-			cassetteName: "getenvironments-missingquota",
+			testName:     "Kubernetes Error",
+			cassetteName: "getenvironments-rq-error",
 			envTestData: envTestData{
 				envName: "run",
 			},
-			shouldFail: true,
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Compute Resources Missing",
+			cassetteName: "getenvironment-no-compute",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Object Counts Missing",
+			cassetteName: "getenvironment-no-objects",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "CPU Missing",
+			cassetteName: "getenvironment-no-cpu",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Memory Missing",
+			cassetteName: "getenvironment-no-mem",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
 		},
 	}
 
@@ -443,6 +461,10 @@ func TestGetEnvironment(t *testing.T) {
 			env, err := kc.GetEnvironment(testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 
@@ -459,13 +481,38 @@ func TestGetEnvironment(t *testing.T) {
 func verifyEnvironment(env *app.SimpleEnvironment, testCase *envTestData, t *testing.T) {
 	require.Equal(t, testCase.envName, *env.Attributes.Name, "Wrong environment name")
 
-	cpuQuota := env.Attributes.Quota.Cpucores
-	require.InDelta(t, testCase.cpuHard, *cpuQuota.Quota, fltDelta, "Incorrect CPU quota for %s", testCase.envName)
-	require.InDelta(t, testCase.cpuUsed, *cpuQuota.Used, fltDelta, "Incorrect CPU usage for %s", testCase.envName)
+	quotas := env.Attributes.Quota
+	require.NotNil(t, quotas, "Expected non-nil Quota attribute")
 
-	memQuota := env.Attributes.Quota.Memory
-	require.InDelta(t, testCase.memHard, *memQuota.Quota, fltDelta, "Incorrect memory quota for %s", testCase.envName)
-	require.InDelta(t, testCase.memUsed, *memQuota.Used, fltDelta, "Incorrect memory usage for %s", testCase.envName)
+	cpuQuota := quotas.Cpucores
+	require.NotNil(t, cpuQuota, "Expected CPU usage/limit in response")
+	require.InDelta(t, testCase.cpu.limit, *cpuQuota.Quota, fltDelta, "Incorrect CPU quota for %s", testCase.envName)
+	require.InDelta(t, testCase.cpu.used, *cpuQuota.Used, fltDelta, "Incorrect CPU usage for %s", testCase.envName)
+
+	memQuota := quotas.Memory
+	require.NotNil(t, cpuQuota, "Expected memory usage/limit in response")
+	require.InDelta(t, testCase.mem.limit, *memQuota.Quota, fltDelta, "Incorrect memory quota for %s", testCase.envName)
+	require.InDelta(t, testCase.mem.used, *memQuota.Used, fltDelta, "Incorrect memory usage for %s", testCase.envName)
+
+	verifyObjectQuota(quotas.Pods, testCase.pod, "pod", testCase.envName, t)
+	verifyObjectQuota(quotas.ReplicationControllers, testCase.rc, "replication controller", testCase.envName, t)
+	verifyObjectQuota(quotas.ResourceQuotas, testCase.quota, "resource quota", testCase.envName, t)
+	verifyObjectQuota(quotas.Services, testCase.svc, "service", testCase.envName, t)
+	verifyObjectQuota(quotas.Secrets, testCase.secret, "secret", testCase.envName, t)
+	verifyObjectQuota(quotas.ConfigMaps, testCase.cm, "config map", testCase.envName, t)
+	verifyObjectQuota(quotas.PersistentVolumeClaims, testCase.pvc, "persistent volume claim", testCase.envName, t)
+	verifyObjectQuota(quotas.ImageStreams, testCase.is, "image stream", testCase.envName, t)
+}
+
+func verifyObjectQuota(quota *app.EnvStatQuota, expected *quotaData, resourceName string,
+	envName string, t *testing.T) {
+	if expected == nil {
+		require.Nil(t, quota, "Unexpected %s usage/limit in response", resourceName)
+	} else {
+		require.NotNil(t, quota, "Expected %s usage/limit in response", resourceName)
+		require.InDelta(t, expected.limit, *quota.Quota, fltDelta, "Incorrect %s quota for %s", resourceName, envName)
+		require.InDelta(t, expected.used, *quota.Used, fltDelta, "Incorrect %s usage for %s", resourceName, envName)
+	}
 }
 
 type spaceTestData struct {
@@ -474,6 +521,7 @@ type spaceTestData struct {
 	shouldFail   bool
 	appTestData  map[string]*appTestData // Keys are app names
 	cassetteName string
+	errorChecker func(error) (bool, error)
 }
 
 var defaultSpaceTestData = &spaceTestData{
@@ -514,6 +562,7 @@ type deployTestData struct {
 	expectLogURL            string
 	expectAppURL            string
 	shouldFail              bool
+	errorChecker            func(error) (bool, error)
 	cassetteName            string
 }
 
@@ -689,6 +738,13 @@ func TestGetSpace(t *testing.T) {
 				},
 			},
 		},
+		{
+			testName:     "BC List Error",
+			spaceName:    "mySpace",
+			cassetteName: "getspace-bc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -703,6 +759,10 @@ func TestGetSpace(t *testing.T) {
 			space, err := kc.GetSpace(testCase.spaceName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.NotNil(t, space, "Space is nil")
@@ -836,14 +896,79 @@ func TestGetDeployment(t *testing.T) {
 			cassetteName:            "getdeployment-nospace",
 		},
 		{
-			// Tests that we don't accept deployment configs with a space
-			// label different from the argument passed to GetDeployment
-			testName:     "Wrong Space Label",
-			spaceName:    "myWrongSpace",
+			// Tests handling of a deployment config with a space label
+			// different from the argument passed to GetDeployment
+			// FIXME When our workaround is no longer needed, we should expect
+			// an error
+			testName:      "Wrong Space Label",
+			spaceName:     "myWrongSpace",
+			appName:       "myApp",
+			envName:       "run",
+			expectVersion: "1.0.2",
+			expectPodStatus: [][]string{
+				{"Running", "2"},
+			},
+			expectPodsTotal:         2,
+			expectPodsQuotaCpucores: 0.976,
+			expectPodsQuotaMemory:   524288000,
+			expectConsoleURL:        "http://console.myCluster/console/project/my-run",
+			expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myDeploy-1?tab=logs",
+			expectAppURL:            "http://myDeploy-my-run.example.com",
+			cassetteName:            "getdeployment-wrongspace",
+		},
+		{
+			testName:     "Build List Error",
+			spaceName:    "mySpace",
 			appName:      "myApp",
 			envName:      "run",
-			cassetteName: "getdeployment-wrongspace",
+			cassetteName: "getdeployment-build-error",
 			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "DC Get Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-dc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "RC List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-rc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Pod List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-pod-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Service List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-svc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Route List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-route-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
 		},
 	}
 
@@ -859,6 +984,10 @@ func TestGetDeployment(t *testing.T) {
 			dep, err := kc.GetDeployment(testCase.spaceName, testCase.appName, testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				verifyDeployment(dep, testCase, t)
@@ -878,6 +1007,7 @@ func TestScaleDeployment(t *testing.T) {
 		newReplicas   int
 		oldReplicas   int
 		shouldFail    bool
+		errorChecker  func(error) (bool, error)
 	}{
 		{
 			testName:     "Basic",
@@ -902,6 +1032,28 @@ func TestScaleDeployment(t *testing.T) {
 			},
 			newReplicas: 1,
 			oldReplicas: 0,
+		},
+		{
+			testName:      "Scale Get Error",
+			spaceName:     "mySpace",
+			appName:       "myApp",
+			envName:       "run",
+			cassetteName:  "scaledeployment-get-error",
+			expectPutURLs: map[string]struct{}{},
+			shouldFail:    true,
+			errorChecker:  errors.IsBadParameterError,
+		},
+		{
+			testName:     "Scale Put Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "scaledeployment-put-error",
+			expectPutURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy/scale": {},
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
 		},
 	}
 
@@ -950,6 +1102,10 @@ func TestScaleDeployment(t *testing.T) {
 			old, err := kc.ScaleDeployment(testCase.spaceName, testCase.appName, testCase.envName, testCase.newReplicas)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.NotNil(t, old, "Previous replicas are nil")
@@ -981,6 +1137,7 @@ func TestDeleteDeployment(t *testing.T) {
 		cassetteName     string
 		expectDeleteURLs map[string]struct{}
 		shouldFail       bool
+		errorChecker     func(error) (bool, error)
 	}{
 		{
 			testName:     "Basic",
@@ -1004,16 +1161,18 @@ func TestDeleteDeployment(t *testing.T) {
 			shouldFail:       true,
 		},
 		{
+			// FIXME When our workaround is no longer needed, we should expect
+			// an error
 			testName:     "Wrong Space",
 			spaceName:    "otherSpace",
 			appName:      "myApp",
 			envName:      "run",
 			cassetteName: "deletedeployment-wrongspace",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
 			},
-			shouldFail: true,
 		},
 		{
 			testName:     "No Routes",
@@ -1027,7 +1186,18 @@ func TestDeleteDeployment(t *testing.T) {
 			},
 		},
 		{
-			testName:     "Bad Routes",
+			testName:     "List Routes Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-get-routes-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
+			},
+		},
+		{
+			testName:     "Delete Routes Error",
 			spaceName:    "mySpace",
 			appName:      "myApp",
 			envName:      "run",
@@ -1050,7 +1220,18 @@ func TestDeleteDeployment(t *testing.T) {
 			},
 		},
 		{
-			testName:     "Bad Services",
+			testName:     "List Services Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-get-svc-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+			},
+		},
+		{
+			testName:     "Delete Services Error",
 			spaceName:    "mySpace",
 			appName:      "myApp",
 			envName:      "run",
@@ -1071,7 +1252,35 @@ func TestDeleteDeployment(t *testing.T) {
 				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
 				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
 			},
-			shouldFail: true,
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Get DC Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-get-dc-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Delete DC Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-delete-dc-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
 		},
 		{
 			// Tests failure to map application name to OpenShift resources
@@ -1130,6 +1339,10 @@ func TestDeleteDeployment(t *testing.T) {
 			err = kc.DeleteDeployment(testCase.spaceName, testCase.appName, testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 			}
@@ -1373,6 +1586,14 @@ func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
 	return &mu, nil
 }
 
+func (up *testURLProvider) GetEnvironmentMapping() map[string]string {
+	return map[string]string{
+		"test":  "myNamespace",
+		"run":   "my-run",
+		"stage": "my-stage",
+	}
+}
+
 func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
 	// Parse as URL to give us easy access to the hostname
 	apiURL, err := url.Parse(apiURLStr)
@@ -1393,4 +1614,292 @@ func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
 		Path:   path,
 	}
 	return newURL, nil
+}
+
+type testKube struct {
+	kubernetes.KubeRESTAPI // Allows us to only implement methods we'll use
+	getter                 *testKubeGetter
+	eventsHolder           *testEvents
+	configMapHolder        *testConfigMap
+}
+
+type testKubeGetter struct {
+	result      *testKube
+	eventsInput *eventsInput
+}
+
+func (getter *testKubeGetter) GetKubeRESTAPI(config *kubernetes.KubeClientConfig) (kubernetes.KubeRESTAPI, error) {
+	mock := new(testKube)
+	// Doubly-linked for access by tests
+	mock.getter = getter
+	getter.result = mock
+	return mock, nil
+}
+
+type eventsInput struct {
+	listInput  *v1.EventList
+	watchInput *v1.EventList
+}
+
+type testEvents struct {
+	corev1.EventInterface
+	namespace  string
+	listInput  *v1.EventList
+	watchInput *v1.EventList
+	watcher    *watch.FakeWatcher
+}
+
+func (tk *testKube) Events(ns string) corev1.EventInterface {
+	result := &testEvents{
+		namespace:  ns,
+		listInput:  tk.getter.eventsInput.listInput,
+		watchInput: tk.getter.eventsInput.watchInput,
+	}
+	tk.eventsHolder = result
+	return result
+}
+
+func (ev *testEvents) List(options metav1.ListOptions) (*v1.EventList, error) {
+	result := ev.listInput
+	return result, nil
+}
+
+func (ev *testEvents) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	result := watch.NewFake()
+	ev.watcher = result
+
+	go func(watcher *watch.FakeWatcher) {
+		for _, item := range ev.watchInput.Items {
+			// Add is blocking so run in a go routine
+			go func(item v1.Event) {
+				watcher.Add(&item)
+			}(item)
+		}
+	}(result)
+
+	return result, nil
+}
+
+type testConfigMap struct {
+	corev1.ConfigMapInterface
+	input     *configMapInput
+	namespace string
+	configMap *v1.ConfigMap
+}
+
+type configMapInput struct {
+	data   map[string]string
+	labels map[string]string
+}
+
+func (tk *testKube) ConfigMaps(ns string) corev1.ConfigMapInterface {
+	input := defaultConfigMapInput
+	result := &testConfigMap{
+		input:     input,
+		namespace: ns,
+	}
+	tk.configMapHolder = result
+	return result
+}
+
+var defaultConfigMapInput *configMapInput = &configMapInput{
+	labels: map[string]string{"provider": "fabric8"},
+	data: map[string]string{
+		"run":   "name: Run\nnamespace: my-run\norder: 1",
+		"stage": "name: Stage\nnamespace: my-stage\norder: 0",
+	},
+}
+
+func (cm *testConfigMap) Get(name string, options metav1.GetOptions) (*v1.ConfigMap, error) {
+	result := &v1.ConfigMap{
+		Data: cm.input.data,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: cm.input.labels,
+		},
+	}
+	cm.configMap = result
+	return result, nil
+}
+
+func TestWatchEventsInNamespace(t *testing.T) {
+	testCases := []struct {
+		testName    string
+		eventsInput *eventsInput
+	}{
+		{
+			testName: "List Events",
+			eventsInput: &eventsInput{
+				listInput: &v1.EventList{
+					Items: []v1.Event{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-one",
+								ResourceVersion: "0",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-two",
+								ResourceVersion: "1",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-three",
+								ResourceVersion: "2",
+							},
+						},
+					},
+				},
+				watchInput: &v1.EventList{
+					Items: []v1.Event{},
+				},
+			},
+		},
+		{
+			testName: "Watch Events",
+			eventsInput: &eventsInput{
+				listInput: &v1.EventList{
+					Items: []v1.Event{},
+				},
+				watchInput: &v1.EventList{
+					Items: []v1.Event{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-one",
+								ResourceVersion: "3",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-two",
+								ResourceVersion: "4",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-three",
+								ResourceVersion: "5",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "List and Watch Events",
+			eventsInput: &eventsInput{
+				listInput: &v1.EventList{
+					Items: []v1.Event{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-one",
+								ResourceVersion: "0",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-two",
+								ResourceVersion: "1",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-three",
+								ResourceVersion: "2",
+							},
+						},
+					},
+				},
+				watchInput: &v1.EventList{
+					Items: []v1.Event{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-one",
+								ResourceVersion: "3",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-two",
+								ResourceVersion: "4",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-three",
+								ResourceVersion: "5",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			kubeGetter := &testKubeGetter{}
+			kubeGetter.eventsInput = testCase.eventsInput
+
+			config := &kubernetes.KubeClientConfig{
+				BaseURLProvider:   getDefaultURLProvider("http://api.myCluster", "myToken"),
+				UserNamespace:     "myNamespace",
+				KubeRESTAPIGetter: kubeGetter,
+			}
+
+			kc, err := kubernetes.NewKubeClient(config)
+
+			require.NoError(t, err)
+
+			store, stopCh := kc.WatchEventsInNamespace("test-namespace")
+			defer close(stopCh)
+
+			validateEventsItems(t, testCase.eventsInput.listInput, store)
+			validateEventsItems(t, testCase.eventsInput.watchInput, store)
+		})
+	}
+}
+
+func checkEventItems(t *testing.T, eventList *v1.EventList, store *cache.FIFO) {
+	for _, item := range eventList.Items {
+		_, exists, _ := store.Get(item)
+		if !exists {
+			t.Fatalf("Expected %s but did not exist", item.ObjectMeta.Name)
+		}
+	}
+}
+
+func validateEventsItems(t *testing.T, eventList *v1.EventList, store *cache.FIFO) {
+	// The kubernetes Reflector uses Store.Replace to set the list
+	// The kubernetes FIFO implementation does not guarantee the
+	// order of the results when using Replace
+	// For validation, just check that the recieved item exists in the list
+	// of expected items
+
+	for range eventList.Items {
+		actualItem, err := store.Pop(cache.PopProcessFunc(func(item interface{}) error {
+			return nil
+		}))
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		item, ok := actualItem.(*v1.Event)
+
+		if !ok {
+			t.Fatalf("Expected object of type *v1.Event but was %T", actualItem)
+		}
+
+		found := false
+		for _, expectedItem := range eventList.Items {
+			if expectedItem.ObjectMeta.Name == item.ObjectMeta.Name {
+				found = true
+			}
+		}
+
+		if !found {
+			t.Fatalf("Recieved %s but was not in the list of expected items", item.ObjectMeta.Name)
+		}
+	}
 }

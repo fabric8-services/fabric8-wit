@@ -3,44 +3,37 @@
     {
       "attributes": {
         "name": "system.area",
-        "newValue": null,
-        "oldValue": null,
+        "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },
-      "id": "00000000-0000-0000-0000-000000000001",
+      "id": "00000000-0000-0000-0000-000000000002",
       "relationships": {
         "modifier": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
-            "links": {
-              "related": "http:///api/users/00000000-0000-0000-0000-000000000002"
-            },
-            "type": "identities"
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "users"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000003"
           }
         },
         "newValue": {
           "data": [
             {
-              "id": "00000000-0000-0000-0000-000000000003",
-              "links": {
-                "related": "http:///api/areas/00000000-0000-0000-0000-000000000003",
-                "self": "http:///api/areas/00000000-0000-0000-0000-000000000003"
-              },
+              "id": "00000000-0000-0000-0000-000000000004",
               "type": "areas"
             }
           ]
         },
-        "oldValue": {
-          "data": [
-            {
-              "id": "",
-              "links": {
-                "related": "http:///api/areas/",
-                "self": "http:///api/areas/"
-              },
-              "type": "areas"
-            }
-          ]
+        "workItemType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000005",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000005"
+          }
         }
       },
       "type": "events"

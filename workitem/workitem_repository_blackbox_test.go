@@ -3,6 +3,7 @@ package workitem_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -11,6 +12,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
+	"github.com/fabric8-services/fabric8-wit/ptr"
+	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -30,7 +34,7 @@ type workItemRepoBlackBoxTest struct {
 
 func TestRunWorkItemRepoBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *workItemRepoBlackBoxTest) SetupTest() {
@@ -45,8 +49,9 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
 			return nil
 		}))
-		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 0)
 		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 0)
 	})
@@ -56,9 +61,10 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
 		// when
 		fxt.WorkItems[0].Number = 0
-		_, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		_, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		// then
 		assert.IsType(t, errors.NotFoundError{}, errs.Cause(err))
+		require.Nil(t, rev)
 	})
 
 	s.T().Run("ok - save for unchanged created date", func(t *testing.T) {
@@ -66,7 +72,9 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
 		oldDate, ok := fxt.WorkItems[0].Fields[workitem.SystemCreatedAt].(time.Time)
 		require.True(t, ok, "failed to convert interface{} to time.Time")
-		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		wiNew, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.NotNil(t, rev)
 		newTime, ok := wiNew.Fields[workitem.SystemCreatedAt].(time.Time)
 		require.True(t, ok, "failed to convert interface{} to time.Time")
 		// then
@@ -91,9 +99,10 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		updatedWI.Fields[workitem.SystemOrder] = float64(6543)  // this is a read-only field, changes should be ignored
 		updatedWI.Fields[workitem.SystemNumber] = 1234          // this is a read-only field, changes should be ignored
 		// when
-		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, updatedWI, fxt.Identities[0].ID)
+		wiNew, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, updatedWI, fxt.Identities[0].ID)
 		// then
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.NotPanics(t, func() {
 			require.Equal(t, origCreatedAt.UTC(), wiNew.Fields[workitem.SystemCreatedAt].(time.Time).UTC(), "created-at should not have changed")
 			require.Equal(t, origOrder, wiNew.Fields[workitem.SystemOrder].(float64), "order should not have changed")
@@ -105,16 +114,107 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 	})
 
 	s.T().Run("change is not prohibited", func(t *testing.T) {
-		// tests that you can change the type of a work item. NOTE: This
-		// functionality only works on the DB layer and is not exposed to REST.
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
 		// when
 		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
-		newWi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		newWi, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		// then
-		require.NoError(s.T(), err)
-		assert.Equal(s.T(), fxt.WorkItemTypes[1].ID, newWi.Type)
+		require.NoError(t, err)
+		require.NotNil(t, rev)
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWi.Type)
+	})
+
+	s.T().Run("change of type along with field is not prohibited", func(t *testing.T) {
+		// tests that you can change the type of a work item and its fields at the same time.
+		// NOTE: This functionality only works on the DB layer and is not exposed to REST.
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "foo"
+			return nil
+		}), tf.WorkItemTypes(2))
+		// when
+		fxt.WorkItems[0].Fields[workitem.SystemTitle] = "bar"
+		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
+		newWi, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		// then
+		require.NoError(t, err)
+		require.NotNil(t, rev)
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, newWi.Type)
+		assert.Equal(t, "bar", newWi.Fields[workitem.SystemTitle])
+	})
+
+	s.T().Run("type change", func(t *testing.T) {
+		for _, d := range getFieldTypeConversionTestData() {
+			t.Run(d.name, func(t *testing.T) {
+				fieldName := d.name
+
+				fxt := tf.NewTestFixture(t, s.DB,
+					tf.WorkItemTypes(2, func(fxt *tf.TestFixture, idx int) error {
+						wit := fxt.WorkItemTypes[idx]
+						switch idx {
+						case 0:
+							wit.Fields = workitem.FieldDefinitions{
+								fieldName: workitem.FieldDefinition{
+									Label:    "source field",
+									Required: false,
+									Type:     d.initialFieldType,
+								},
+							}
+						case 1:
+							wit.Fields = workitem.FieldDefinitions{
+								fieldName: workitem.FieldDefinition{
+									Label:    "target field",
+									Required: false,
+									Type:     d.targetFieldType,
+								},
+							}
+						}
+						return nil
+					}),
+					tf.WorkItems(1, tf.SetWorkItemField(fieldName, d.initialValue)),
+				)
+
+				// Load the work item from the DB and check that the
+				// initial value was set correctly. We have some special
+				// treatment for lists here.
+				loadedWorkItem, err := s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
+				require.NoError(t, err)
+				require.Equal(t, d.initialValue, loadedWorkItem.Fields[fieldName])
+
+				// when we update the work item type
+				loadedWorkItem.Type = fxt.WorkItemTypes[1].ID
+				updatedWorkItem, rev, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *loadedWorkItem, fxt.Identities[0].ID)
+				require.NoError(t, err)
+				require.NotNil(t, rev)
+
+				// then check that the error is as expected or that the
+				// value in the new field type is what we expected.
+				if !d.fieldConvertible {
+					rendered := d.initialValue
+					if d.initialFieldType.GetKind() == workitem.KindList {
+						ifArr := d.initialValue.(interface{}).([]interface{})
+						strArr := make([]string, len(ifArr))
+						for i := range ifArr {
+							strArr[i] = ifArr[i].(string)
+						}
+						rendered = strings.Join(strArr, ", ")
+					}
+					require.Contains(t, updatedWorkItem.Fields[workitem.SystemDescription].(rendering.MarkupContent).Content, fmt.Sprintf("source field : %+v", rendered))
+				} else {
+					require.NotNil(t, updatedWorkItem)
+					require.Equal(t, fxt.WorkItemTypes[1].ID, updatedWorkItem.Type)
+					require.Equal(t, d.targetValue, updatedWorkItem.Fields[fieldName])
+				}
+
+				// also check if the values are the same when work item is
+				// loaded
+				loadedWorkItem, err = s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
+				require.NoError(t, err)
+				require.Equal(t, fxt.WorkItemTypes[1].ID, loadedWorkItem.Type)
+				require.Equal(t, d.targetValue, loadedWorkItem.Fields[fieldName])
+			})
+		}
 	})
 }
 
@@ -135,26 +235,52 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				return nil
 			}),
 		)
-		wi, err := s.repo.Create(
+		wi, rev, err := s.repo.Create(
 			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle: "some title",
 				workitem.SystemState: workitem.SystemStateNew,
 			}, fxt.Identities[0].ID)
 		require.Error(t, err)
+		require.Nil(t, rev)
 		require.IsType(t, errors.ForbiddenError{}, err)
+		require.Nil(t, wi)
+	})
+
+	s.T().Run("disallow creation if WIT belongs to different spacetemplate", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.SpaceTemplates(2),
+			tf.Spaces(1),
+			tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypes[idx].SpaceTemplateID = fxt.SpaceTemplates[1].ID
+				return nil
+			}),
+		)
+		wiType := fxt.WorkItemTypes[0]
+		// Space belongs to spaceTemplate1 and workitem type belongs to spaceTemplate2
+		wi, rev, err := s.repo.Create(
+			s.Ctx, fxt.Spaces[0].ID, wiType.ID,
+			map[string]interface{}{
+				workitem.SystemTitle: "Some title",
+			}, fxt.Identities[0].ID)
+		require.EqualError(t, err, fmt.Sprintf(
+			"Workitem Type %q (ID: %s) does not belong to the current space template", wiType.Name, wiType.ID),
+		)
+		require.Nil(t, rev)
+		require.IsType(t, errors.BadParameterError{}, err)
 		require.Nil(t, wi)
 	})
 
 	s.T().Run("create work item without assignees & labels", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1), tf.Spaces(1))
-		wi, err := s.repo.Create(
+		wi, rev, err := s.repo.Create(
 			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle: "some title",
 				workitem.SystemState: workitem.SystemStateNew,
 			}, fxt.Identities[0].ID)
 		require.NoError(t, err)
+		require.NotNil(t, rev)
 		require.Len(t, wi.Fields[workitem.SystemAssignees].([]interface{}), 0)
 		require.Len(t, wi.Fields[workitem.SystemLabels].([]interface{}), 0)
 
@@ -247,7 +373,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 			LineNumber: line,
 		}
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1), tf.Spaces(1))
-		_, err := s.repo.Create(
+		_, rev, err := s.repo.Create(
 			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
 				workitem.SystemTitle:    title,
@@ -255,6 +381,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				workitem.SystemCodebase: cbase,
 			}, fxt.Identities[0].ID)
 		require.Error(t, err)
+		require.Nil(t, rev)
 	})
 
 	s.T().Run("field types", func(t *testing.T) {
@@ -289,7 +416,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				t.Run("legal", func(t *testing.T) {
 					for _, expected := range iv.Valid {
 						t.Run(spew.Sdump(expected), func(t *testing.T) {
-							wi, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
+							wi, _, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
 							require.NoError(t, err, "expected no error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
 							loadedWi, err := s.repo.LoadByID(s.Ctx, wi.ID)
 							require.NoError(t, err)
@@ -306,8 +433,8 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 					// Handle cases where the conversion is supposed to NOT work
 					for _, expected := range iv.Invalid {
 						t.Run(spew.Sdump(expected), func(t *testing.T) {
-							_, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
-							assert.NotNil(t, err, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+							_, _, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
+							require.Error(t, err, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
 						})
 					}
 				})
@@ -492,7 +619,7 @@ func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 					workitem.SystemTitle: uuid.NewV4().String(),
 					workitem.SystemState: workitem.SystemStateNew,
 				}
-				if _, err := s.repo.Create(context.Background(), fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID, fields, fxt.Identities[0].ID); err != nil {
+				if _, _, err := s.repo.Create(context.Background(), fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID, fields, fxt.Identities[0].ID); err != nil {
 					s.T().Logf("Creation failed: %s", err.Error())
 					report.failures++
 				}
@@ -509,4 +636,136 @@ func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 		assert.Equal(s.T(), itemsPerRoutine, report.total)
 		assert.Equal(s.T(), 0, report.failures)
 	}
+}
+
+func (s *workItemRepoBlackBoxTest) TestList() {
+	s.T().Run("list with explicit order", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Iterations(1),
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2, 3, 4, 5, 6:
+					fxt.WorkItems[idx].Fields[workitem.SystemState] = "open"
+				default:
+					fxt.WorkItems[idx].Fields[workitem.SystemState] = "new"
+				}
+				return nil
+			}),
+		)
+		t.Run("by created descending", func(t *testing.T) {
+			// when
+			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-created"))
+			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for i := 0; i <= 6; i++ {
+				require.Equal(t, fxt.WorkItems[i].ID, res[6-i].ID)
+			}
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("by created ascending", func(t *testing.T) {
+			// when
+			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("created"))
+			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for i := 0; i <= 6; i++ {
+				require.Equal(t, fxt.WorkItems[i].ID, res[i].ID)
+			}
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("by updated descending", func(t *testing.T) {
+			// when
+			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+			}
+			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-updated"))
+			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for i, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				require.Equal(t, fxt.WorkItems[v].ID, res[6-i].ID)
+			}
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("by updated ascending", func(t *testing.T) {
+			// when
+			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+			}
+			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("updated"))
+			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for i, v := range []int{3, 2, 0, 1, 6, 5, 4} {
+				require.Equal(t, fxt.WorkItems[v].ID, res[i].ID)
+			}
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+
+	})
 }

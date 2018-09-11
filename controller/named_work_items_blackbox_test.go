@@ -6,7 +6,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -21,14 +20,14 @@ type TestNamedWorkItemsSuite struct {
 }
 
 func TestNamedWorkItems(t *testing.T) {
-	suite.Run(t, &TestNamedWorkItemsSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestNamedWorkItemsSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *TestNamedWorkItemsSuite) TestShowNamedWorkItems() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-	namedWorkItemsCtrl := NewNamedWorkItemsController(svc, gormapplication.NewGormDB(s.DB))
+	namedWorkItemsCtrl := NewNamedWorkItemsController(svc, s.GormDB)
 
 	s.T().Run("ok", func(t *testing.T) {
 		// when

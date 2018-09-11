@@ -2,6 +2,7 @@
   "data": {
     "attributes": {
       "system.created_at": "0001-01-01T00:00:00Z",
+      "system.metastate": null,
       "system.number": 2,
       "system.order": 2000,
       "system.remote_item_id": null,
@@ -19,11 +20,11 @@
       "area": {
         "data": {
           "id": "00000000-0000-0000-0000-000000000002",
-          "links": {
-            "related": "http:///api/areas/00000000-0000-0000-0000-000000000002",
-            "self": "http:///api/areas/00000000-0000-0000-0000-000000000002"
-          },
           "type": "areas"
+        },
+        "links": {
+          "related": "http:///api/areas/00000000-0000-0000-0000-000000000002",
+          "self": "http:///api/areas/00000000-0000-0000-0000-000000000002"
         }
       },
       "assignees": {},
@@ -53,11 +54,11 @@
       "creator": {
         "data": {
           "id": "00000000-0000-0000-0000-000000000004",
-          "links": {
-            "related": "http:///api/users/00000000-0000-0000-0000-000000000004",
-            "self": "http:///api/users/00000000-0000-0000-0000-000000000004"
-          },
           "type": "users"
+        },
+        "links": {
+          "related": "http:///api/users/00000000-0000-0000-0000-000000000004",
+          "self": "http:///api/users/00000000-0000-0000-0000-000000000004"
         }
       },
       "events": {
@@ -68,11 +69,11 @@
       "iteration": {
         "data": {
           "id": "00000000-0000-0000-0000-000000000005",
-          "links": {
-            "related": "http:///api/iterations/00000000-0000-0000-0000-000000000005",
-            "self": "http:///api/iterations/00000000-0000-0000-0000-000000000005"
-          },
           "type": "iterations"
+        },
+        "links": {
+          "related": "http:///api/iterations/00000000-0000-0000-0000-000000000005",
+          "self": "http:///api/iterations/00000000-0000-0000-0000-000000000005"
         }
       },
       "labels": {
@@ -90,6 +91,7 @@
           "self": "http:///api/spaces/00000000-0000-0000-0000-000000000006"
         }
       },
+      "system.boardcolumns": {},
       "workItemLinks": {
         "links": {
           "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/links"

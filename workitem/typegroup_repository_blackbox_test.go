@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -24,7 +25,7 @@ type workItemTypeGroupRepoTest struct {
 }
 
 func TestWorkItemTypeGroupRepository(t *testing.T) {
-	suite.Run(t, &workItemTypeGroupRepoTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemTypeGroupRepoTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *workItemTypeGroupRepoTest) SetupTest() {
@@ -71,6 +72,7 @@ func (s *workItemTypeGroupRepoTest) TestCreate() {
 		SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		Bucket:          workitem.BucketIteration,
 		Name:            "work item type group " + ID.String(),
+		Description:     ptr.String("description for type group"),
 		Icon:            "a world on the back of a turtle",
 		Position:        42,
 		TypeList: []uuid.UUID{
@@ -160,6 +162,7 @@ func TestWorkItemTypeGroup_Equal(t *testing.T) {
 		ID:              uuid.NewV4(),
 		SpaceTemplateID: uuid.NewV4(),
 		Name:            "foo",
+		Description:     ptr.String("Description for foo"),
 		Bucket:          workitem.BucketRequirement,
 		Position:        42,
 		Icon:            "bar",
@@ -189,6 +192,12 @@ func TestWorkItemTypeGroup_Equal(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Name = "bar"
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("Description", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Description = ptr.String("bar")
 		assert.False(t, a.Equal(b))
 	})
 	t.Run("SpaceTemplateID", func(t *testing.T) {

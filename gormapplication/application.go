@@ -47,9 +47,9 @@ const (
 	TXIsoLevelSerializable
 )
 
-var x application.Application = &GormDB{}
+var _ application.Application = &GormDB{}
 
-var y application.Application = &GormTransaction{}
+var _ application.Application = &GormTransaction{}
 
 func NewGormDB(db *gorm.DB) *GormDB {
 	return &GormDB{GormBase{db}, ""}
@@ -160,6 +160,11 @@ func (g *GormBase) SpaceTemplates() spacetemplate.Repository {
 // WorkItemTypeGroups returns a work item type group repository
 func (g *GormBase) WorkItemTypeGroups() workitem.WorkItemTypeGroupRepository {
 	return workitem.NewWorkItemTypeGroupRepository(g.db)
+}
+
+// Boards returns a work item type group repository
+func (g *GormBase) Boards() workitem.BoardRepository {
+	return workitem.NewBoardRepository(g.db)
 }
 
 func (g *GormBase) DB() *gorm.DB {

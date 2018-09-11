@@ -205,20 +205,11 @@ func TestGetDeploymentConfigNameForApp(t *testing.T) {
 			expectedDCName: "myDeploy2",
 		},
 		{
-			testName:   "Missing Status",
-			appName:    "noStatus",
-			shouldFail: true,
-		},
-		{
-			testName: "Missing Phase",
-			appName:  "noPhase",
-		},
-		{
-			testName: "Missing Completion Timestamp",
+			testName: "Missing Creation Timestamp",
 			appName:  "noDate",
 		},
 		{
-			testName:   "Completion Timestamp Not Date",
+			testName:   "Creation Timestamp Not Date",
 			appName:    "badDate",
 			shouldFail: true,
 		},
@@ -306,4 +297,12 @@ func (up *testURLProvider) GetLoggingURL(envNS string, deployName string) (*stri
 
 func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
 	return &up.apiURL, nil
+}
+
+func (up *testURLProvider) GetEnvironmentMapping() map[string]string {
+	return map[string]string{
+		"test":  "myNamespace",
+		"run":   "my-run",
+		"stage": "my-stage",
+	}
 }

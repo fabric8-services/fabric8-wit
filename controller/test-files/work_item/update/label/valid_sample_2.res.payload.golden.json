@@ -3,8 +3,9 @@
     "attributes": {
       "label_field": "",
       "system.created_at": "0001-01-01T00:00:00Z",
-      "system.number": 9,
-      "system.order": 9000,
+      "system.metastate": null,
+      "system.number": 10,
+      "system.order": 10000,
       "system.remote_item_id": null,
       "system.state": "new",
       "system.title": "label_wi",
@@ -45,11 +46,11 @@
       "creator": {
         "data": {
           "id": "00000000-0000-0000-0000-000000000003",
-          "links": {
-            "related": "http:///api/users/00000000-0000-0000-0000-000000000003",
-            "self": "http:///api/users/00000000-0000-0000-0000-000000000003"
-          },
           "type": "users"
+        },
+        "links": {
+          "related": "http:///api/users/00000000-0000-0000-0000-000000000003",
+          "self": "http:///api/users/00000000-0000-0000-0000-000000000003"
         }
       },
       "events": {
@@ -73,6 +74,7 @@
           "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
         }
       },
+      "system.boardcolumns": {},
       "workItemLinks": {
         "links": {
           "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/links"

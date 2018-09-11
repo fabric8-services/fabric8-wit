@@ -12,12 +12,20 @@ set -e
 # See https://github.com/openshiftio/openshiftio-cico-jobs/pull/186 for an approach
 # using "declare -p" on the site that creates the .jenkins-env file.
 function load_jenkins_vars() {
-  if [ -e "jenkins-env" ]; then
-    cat jenkins-env \
-      | grep -E "(DEVSHIFT_TAG_LEN|DEVSHIFT_USERNAME|DEVSHIFT_PASSWORD|JENKINS_URL|GIT_BRANCH|GIT_COMMIT|BUILD_NUMBER|ghprbSourceBranch|ghprbActualCommit|BUILD_URL|ghprbPullId)=" \
-      | sed 's/^/export /g' \
-      > ~/.jenkins-env
-    source ~/.jenkins-env
+  if [ -e "jenkins-env.json" ]; then
+    eval "$(./env-toolkit load -f jenkins-env.json \
+              DEVSHIFT_TAG_LEN \
+              QUAY_USERNAME \
+              QUAY_PASSWORD \
+              JENKINS_URL \
+              GIT_BRANCH \
+              GIT_COMMIT \
+              BUILD_NUMBER \
+              BUILD_TAG \
+              ghprbSourceBranch \
+              ghprbActualCommit \
+              BUILD_URL \
+              ghprbPullId)"
   fi
 }
 
@@ -30,7 +38,8 @@ function install_deps() {
     docker \
     make \
     git \
-    curl
+    curl \
+    nc
 
   service docker start
 
@@ -134,10 +143,10 @@ function tag_push() {
 function deploy() {
   local tag=$1
   local push_latest=$2
-  local registry="push.registry.devshift.net"
+  local registry="quay.io"
 
-  if [ -n "${DEVSHIFT_USERNAME}" -a -n "${DEVSHIFT_PASSWORD}" ]; then
-    docker login -u ${DEVSHIFT_USERNAME} -p ${DEVSHIFT_PASSWORD} ${registry}
+  if [ -n "${QUAY_USERNAME}" -a -n "${QUAY_PASSWORD}" ]; then
+    docker login -u ${QUAY_USERNAME} -p ${QUAY_PASSWORD} ${registry}
   else
     echo "Could not login, missing credentials for the registry"
     exit 1
@@ -147,15 +156,14 @@ function deploy() {
   make docker-image-deploy
 
   if [ "$TARGET" = "rhel" ]; then
-    base_registry_url="${registry}/osio-prod"
+    image_url="${registry}/openshiftio/rhel-fabric8-services-fabric8-wit"
   else
-    base_registry_url="${registry}"
+    image_url="${registry}/openshiftio/fabric8-services-fabric8-wit"
   fi
 
-  tag_push ${base_registry_url}/fabric8-services/fabric8-wit:${tag}
-  if ( ${push_latest} ); then
-    tag_push ${base_registry_url}/fabric8-services/fabric8-wit:latest
-  fi
+  tag_push "${image_url}:${tag}"
+  [ -n "${push_latest}" ] && tag_push "${image_url}:latest"
+
   echo 'CICO: Image pushed, ready to update deployed app'
 }
 

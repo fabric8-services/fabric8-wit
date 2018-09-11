@@ -1,6 +1,7 @@
 package link
 
 import (
+	"reflect"
 	"time"
 
 	convert "github.com/fabric8-services/fabric8-wit/convert"
@@ -18,22 +19,6 @@ var (
 	SystemWorkItemLinkTypeParentChildID    = uuid.FromStringOrNil("25C326A7-6D03-4F5A-B23B-86A9EE4171E9")
 )
 
-// returns true if the left hand and right hand side string
-// pointers either both point to nil or reference the same
-// content; otherwise false is returned.
-func strPtrIsNilOrContentIsEqual(l, r *string) bool {
-	if l == nil && r != nil {
-		return false
-	}
-	if l != nil && r == nil {
-		return false
-	}
-	if l == nil && r == nil {
-		return true
-	}
-	return *l == *r
-}
-
 // WorkItemLinkType represents the type of a work item link as it is stored in
 // the db
 type WorkItemLinkType struct {
@@ -44,7 +29,9 @@ type WorkItemLinkType struct {
 	Version               int       `json:"version"`               // Version for optimistic concurrency control
 	Topology              Topology  `json:"topology"`              // Valid values: network, directed_network, dependency, tree
 	ForwardName           string    `json:"forward_name"`
+	ForwardDescription    *string   `json:"forward_description,omitempty"`
 	ReverseName           string    `json:"reverse_name"`
+	ReverseDescription    *string   `json:"reverse_description,omitempty"`
 	LinkCategoryID        uuid.UUID `sql:"type:uuid" json:"link_category_id"`
 	SpaceTemplateID       uuid.UUID `sql:"type:uuid" json:"space_template_id"` // Reference to a space template
 }
@@ -59,9 +46,6 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !t.Lifecycle.Equal(other.Lifecycle) {
-		return false
-	}
 	if !uuid.Equal(t.ID, other.ID) {
 		return false
 	}
@@ -71,7 +55,13 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.Version != other.Version {
 		return false
 	}
-	if !strPtrIsNilOrContentIsEqual(t.Description, other.Description) {
+	if !reflect.DeepEqual(t.Description, other.Description) {
+		return false
+	}
+	if !reflect.DeepEqual(t.ForwardDescription, other.ForwardDescription) {
+		return false
+	}
+	if !reflect.DeepEqual(t.ReverseDescription, other.ReverseDescription) {
 		return false
 	}
 	if t.Topology != other.Topology {

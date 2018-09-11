@@ -1,13 +1,14 @@
 package workitem
 
 import (
+	"reflect"
 	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -35,6 +36,10 @@ const (
 	SystemArea                = "system.area"
 	SystemCodebase            = "system.codebase"
 	SystemLabels              = "system.labels"
+	SystemBoardcolumns        = "system.boardcolumns"
+	SystemMetaState           = "system.metastate"
+
+	SystemBoard = "Board"
 
 	SystemStateOpen       = "open"
 	SystemStateNew        = "new"
@@ -108,6 +113,18 @@ type WorkItemType struct {
 	ChildTypeIDs []uuid.UUID `gorm:"-" json:"child_types,omitempty"`
 }
 
+// Validate runs some checks on the work item type to ensure the field
+// definitions make sense.
+func (wit WorkItemType) Validate() error {
+	if strings.TrimSpace(wit.Name) == "" {
+		return errs.Errorf(`work item type name "%s" when trimmed has a zero-length`, wit.Name)
+	}
+	if err := wit.Fields.Validate(); err != nil {
+		return errs.Wrapf(err, "failed to validate work item type's fields")
+	}
+	return nil
+}
+
 // GetTypePathSeparator returns the work item type's path separator "."
 func GetTypePathSeparator() string {
 	return pathSep
@@ -174,7 +191,7 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	if wit.CanConstruct != other.CanConstruct {
 		return false
 	}
-	if !strPtrIsNilOrContentIsEqual(wit.Description, other.Description) {
+	if !reflect.DeepEqual(wit.Description, other.Description) {
 		return false
 	}
 	if wit.Icon != other.Icon {
@@ -228,7 +245,7 @@ func (wit WorkItemType) ConvertWorkItemStorageToModel(workItem WorkItemStorage) 
 		}
 		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errs.WithStack(err)
 		}
 		result.Fields[SystemOrder] = workItem.ExecutionOrder
 	}

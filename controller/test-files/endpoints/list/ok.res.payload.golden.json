@@ -1,0 +1,141 @@
+{
+  "data": {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "links": {
+      "self": "http:///api"
+    },
+    "relationships": {
+      "codebases_che_start": {
+        "links": {
+          "related": "http:///api/codebases/che/start"
+        }
+      },
+      "codebases_che_state": {
+        "links": {
+          "related": "http:///api/codebases/che/state"
+        }
+      },
+      "current_user": {
+        "links": {
+          "related": "http:///api/user"
+        }
+      },
+      "deployments_environments": {
+        "links": {
+          "related": "http:///api/deployments/environments"
+        }
+      },
+      "endpoints": {
+        "links": {
+          "related": "http:///api/endpoints"
+        }
+      },
+      "features": {
+        "links": {
+          "related": "http:///api/features"
+        }
+      },
+      "filters": {
+        "links": {
+          "related": "http:///api/filters"
+        }
+      },
+      "login_authorize": {
+        "links": {
+          "related": "http:///api/login/authorize"
+        }
+      },
+      "login_generate": {
+        "links": {
+          "related": "http:///api/login/generate"
+        }
+      },
+      "login_refresh": {
+        "links": {
+          "related": "http:///api/login/refresh"
+        }
+      },
+      "logout": {
+        "links": {
+          "related": "http:///api/logout"
+        }
+      },
+      "render": {
+        "links": {
+          "related": "http:///api/render"
+        }
+      },
+      "search": {
+        "links": {
+          "related": "http:///api/search"
+        }
+      },
+      "search_codebases": {
+        "links": {
+          "related": "http:///api/search/codebases"
+        }
+      },
+      "search_spaces": {
+        "links": {
+          "related": "http:///api/search/spaces"
+        }
+      },
+      "search_users": {
+        "links": {
+          "related": "http:///api/search/users"
+        }
+      },
+      "spaces": {
+        "links": {
+          "related": "http:///api/spaces"
+        }
+      },
+      "spacetemplates": {
+        "links": {
+          "related": "http:///api/spacetemplates"
+        }
+      },
+      "status": {
+        "links": {
+          "related": "http:///api/status"
+        }
+      },
+      "trackerqueries": {
+        "links": {
+          "related": "http:///api/trackerqueries"
+        }
+      },
+      "trackers": {
+        "links": {
+          "related": "http:///api/trackers"
+        }
+      },
+      "user_services": {
+        "links": {
+          "related": "http:///api/user/services"
+        }
+      },
+      "user_spaces": {
+        "links": {
+          "related": "http:///api/user/spaces"
+        }
+      },
+      "users": {
+        "links": {
+          "related": "http:///api/users"
+        }
+      },
+      "workitemlinkcategories": {
+        "links": {
+          "related": "http:///api/workitemlinkcategories"
+        }
+      },
+      "workitemlinks": {
+        "links": {
+          "related": "http:///api/workitemlinks"
+        }
+      }
+    },
+    "type": "endpoints"
+  }
+}

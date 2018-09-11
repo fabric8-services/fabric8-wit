@@ -3,10 +3,11 @@
     {
       "attributes": {
         "createdAt": "0001-01-01T00:00:00Z",
+        "cve-scan": true,
         "last_used_workspace": "my-used-last-workspace",
         "stackId": "golang-default",
         "type": "git",
-        "url": "http://foo.com/multi/0"
+        "url": "https://foo.com/multi/0"
       },
       "id": "00000000-0000-0000-0000-000000000001",
       "links": {
@@ -37,10 +38,11 @@
     {
       "attributes": {
         "createdAt": "0001-01-01T00:00:00Z",
+        "cve-scan": true,
         "last_used_workspace": "my-used-last-workspace",
         "stackId": "golang-default",
         "type": "git",
-        "url": "http://foo.com/multi/0"
+        "url": "https://foo.com/multi/0"
       },
       "id": "00000000-0000-0000-0000-000000000003",
       "links": {
@@ -71,10 +73,11 @@
     {
       "attributes": {
         "createdAt": "0001-01-01T00:00:00Z",
+        "cve-scan": true,
         "last_used_workspace": "my-used-last-workspace",
         "stackId": "golang-default",
         "type": "git",
-        "url": "http://foo.com/multi/0"
+        "url": "https://foo.com/multi/0"
       },
       "id": "00000000-0000-0000-0000-000000000005",
       "links": {
@@ -105,10 +108,11 @@
     {
       "attributes": {
         "createdAt": "0001-01-01T00:00:00Z",
+        "cve-scan": true,
         "last_used_workspace": "my-used-last-workspace",
         "stackId": "golang-default",
         "type": "git",
-        "url": "http://foo.com/multi/0"
+        "url": "https://foo.com/multi/0"
       },
       "id": "00000000-0000-0000-0000-000000000007",
       "links": {
@@ -139,10 +143,11 @@
     {
       "attributes": {
         "createdAt": "0001-01-01T00:00:00Z",
+        "cve-scan": true,
         "last_used_workspace": "my-used-last-workspace",
         "stackId": "golang-default",
         "type": "git",
-        "url": "http://foo.com/multi/0"
+        "url": "https://foo.com/multi/0"
       },
       "id": "00000000-0000-0000-0000-000000000009",
       "links": {
@@ -175,7 +180,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "Some description",
+        "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
         "name": "space 00000000-0000-0000-0000-000000000011",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
@@ -272,7 +277,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "Some description",
+        "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
         "name": "space 00000000-0000-0000-0000-000000000014",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
@@ -369,7 +374,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "Some description",
+        "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
         "name": "space 00000000-0000-0000-0000-000000000015",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
@@ -466,7 +471,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "Some description",
+        "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
         "name": "space 00000000-0000-0000-0000-000000000016",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
@@ -563,7 +568,7 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "Some description",
+        "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestSearchCodebases.func2 in controller/search_blackbox_test.go)",
         "name": "space 00000000-0000-0000-0000-000000000017",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
@@ -659,8 +664,8 @@
     }
   ],
   "links": {
-    "first": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=http://foo.com/multi/0",
-    "last": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=http://foo.com/multi/0"
+    "first": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=https://foo.com/multi/0",
+    "last": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=https://foo.com/multi/0"
   },
   "meta": {
     "totalCount": 5

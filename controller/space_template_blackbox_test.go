@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -13,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
@@ -29,29 +27,23 @@ import (
 
 type testSpaceTemplateSuite struct {
 	gormtestsupport.DBTestSuite
-	db      *gormapplication.GormDB
 	ctx     context.Context
 	testDir string
 }
 
 func TestSpaceTemplateSuite(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pwd, err := os.Getwd()
-	if err != nil {
-		require.Nil(t, err)
-	}
-	suite.Run(t, &testSpaceTemplateSuite{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &testSpaceTemplateSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *testSpaceTemplateSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	s.db = gormapplication.NewGormDB(s.DB)
 	s.testDir = filepath.Join("test-files", "space_templates")
 }
 
 func (s *testSpaceTemplateSuite) SecuredController() (*goa.Service, *SpaceTemplateController) {
 	svc := testsupport.ServiceAsUser("SpaceTemplate-Service", testsupport.TestIdentity)
-	return svc, NewSpaceTemplateController(svc, s.db, s.Configuration)
+	return svc, NewSpaceTemplateController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
@@ -77,6 +69,7 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
 			"scrum_template":     spacetemplate.SystemScrumTemplateID,
 			"base_template":      spacetemplate.SystemBaseTemplateID,
 			"legacy_template":    spacetemplate.SystemLegacyTemplateID,
+			"agile_template":     spacetemplate.SystemAgileTemplateID,
 		}
 		// when
 		for name, spaceTemplateID := range testData {
@@ -145,6 +138,7 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_List() {
 			fxt.SpaceTemplates[0].ID,
 			fxt.SpaceTemplates[1].ID,
 			fxt.SpaceTemplates[2].ID,
+			fxt.SpaceTemplates[3].ID,
 		})
 		for _, st := range spaceTemplateList.Data {
 			delete(toBeFound, *st.ID)
@@ -154,7 +148,7 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_List() {
 
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(3))
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(4))
 		// when
 		res, spaceTemplateList := test.ListSpaceTemplateOK(t, svc.Context, svc, ctrl, nil, nil)
 		// then
@@ -164,7 +158,7 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_List() {
 
 	s.T().Run("not modified (using expired If-Modified-Since header)", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(3))
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(4))
 		ifModifiedSince := app.ToHTTPTime(fxt.SpaceTemplates[0].UpdatedAt.Add(-1 * time.Hour))
 		// when
 		res, spaceTemplateList := test.ListSpaceTemplateOK(t, svc.Context, svc, ctrl, &ifModifiedSince, nil)
@@ -175,7 +169,7 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_List() {
 
 	s.T().Run("not modified (using If-Modified-Since header)", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(3))
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(4))
 		ifModifiedSince := app.ToHTTPTime(fxt.SpaceTemplates[0].UpdatedAt)
 		// when
 		res := test.ListSpaceTemplateNotModified(t, svc.Context, svc, ctrl, &ifModifiedSince, nil)
@@ -185,7 +179,7 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_List() {
 
 	s.T().Run("not modified (using If-None-Match header)", func(t *testing.T) {
 		// given
-		_ = tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(3))
+		_ = tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(4))
 		_, spaceTemplateList := test.ListSpaceTemplateOK(t, svc.Context, svc, ctrl, nil, nil)
 		arr := make([]app.ConditionalRequestEntity, len(spaceTemplateList.Data))
 		for i, v := range spaceTemplateList.Data {

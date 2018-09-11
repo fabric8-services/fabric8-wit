@@ -24,7 +24,7 @@ import (
 
 func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type searchRepositoryBlackboxTest struct {
@@ -142,6 +142,281 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 				delete(toBeFound, wi.ID)
 			}
 			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+	})
+	s.T().Run("join labels", func(t *testing.T) {
+		labelNames := []string{"A", "B", "A", "B"}
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(2),
+			tf.Labels(4, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1:
+					fxt.Labels[idx].SpaceID = fxt.Spaces[0].ID
+					fxt.Labels[idx].Name = labelNames[idx]
+				case 2, 3:
+					fxt.Labels[idx].SpaceID = fxt.Spaces[1].ID
+					fxt.Labels[idx].Name = labelNames[idx]
+				}
+				return nil
+			}),
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2, 3, 4, 5, 6:
+					fxt.WorkItems[idx].Fields[workitem.SystemLabels] = []string{fxt.Labels[0].ID.String(), fxt.Labels[1].ID.String()}
+				default:
+					fxt.WorkItems[idx].Fields[workitem.SystemLabels] = []string{fxt.Labels[2].ID.String(), fxt.Labels[3].ID.String()}
+				}
+				return nil
+			}),
+		)
+		t.Run("matching name", func(t *testing.T) {
+			// when
+			filter := fmt.Sprintf(`{"label.name": "%s"}`, fxt.Labels[0].Name)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 7, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+	})
+
+}
+
+func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {
+	s.T().Run("boardcolumn", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.WorkItemBoards(2),
+			tf.WorkItems(3, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0:
+					fxt.WorkItems[idx].Fields[workitem.SystemBoardcolumns] = [2]string{
+						fxt.WorkItemBoards[0].Columns[0].ID.String(),
+						fxt.WorkItemBoards[1].Columns[1].ID.String(),
+					}
+				case 1:
+					fxt.WorkItems[idx].Fields[workitem.SystemBoardcolumns] = [2]string{
+						fxt.WorkItemBoards[0].Columns[0].ID.String(),
+						fxt.WorkItemBoards[1].Columns[1].ID.String(),
+					}
+				default:
+					fxt.WorkItems[idx].Fields[workitem.SystemBoardcolumns] = [2]string{
+						fxt.WorkItemBoards[1].Columns[0].ID.String(),
+						fxt.WorkItemBoards[0].Columns[1].ID.String(),
+					}
+				}
+				return nil
+			}),
+		)
+		t.Run("single match", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"boardcolumn": "%s"}`, fxt.WorkItemBoards[1].Columns[0].ID.String())
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			require.Equal(t, 1, count)
+			require.Len(t, res, count)
+			assert.Equal(t, fxt.WorkItems[2].ID, res[0].ID)
+		})
+		t.Run("multiple match, atomic expression", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"boardcolumn": "%s"}`, fxt.WorkItemBoards[1].Columns[1].ID.String())
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			require.Equal(t, 2, count)
+			require.Len(t, res, count)
+			mustHave := map[string]struct{}{
+				fxt.WorkItems[0].ID.String(): {},
+				fxt.WorkItems[1].ID.String(): {},
+			}
+			for _, workItem := range res {
+				delete(mustHave, workItem.ID.String())
+			}
+			require.Empty(t, mustHave)
+		})
+		t.Run("single match, boolean expression", func(t *testing.T) {
+			filter := fmt.Sprintf(`
+				{ "$OR": [ {"boardcolumn": "%s"}, {"boardcolumn": "%s"} ] }`,
+				fxt.WorkItemBoards[1].Columns[0].ID.String(),
+				fxt.WorkItemBoards[0].Columns[1].ID.String(),
+			)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			require.Equal(t, 1, count)
+			require.Len(t, res, count)
+			assert.Equal(t, fxt.WorkItems[2].ID, res[0].ID)
+		})
+		t.Run("multiple match, boolean expression", func(t *testing.T) {
+			filter := fmt.Sprintf(`
+				{ "$OR": [ {"boardcolumn": "%s"}, {"boardcolumn": "%s"} ] }`,
+				fxt.WorkItemBoards[0].Columns[0].ID.String(),
+				fxt.WorkItemBoards[1].Columns[1].ID.String(),
+			)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			require.Equal(t, 2, count)
+			require.Len(t, res, count)
+			mustHave := map[string]struct{}{
+				fxt.WorkItems[0].ID.String(): {},
+				fxt.WorkItems[1].ID.String(): {},
+			}
+			for _, workItem := range res {
+				delete(mustHave, workItem.ID.String())
+			}
+			require.Empty(t, mustHave)
+		})
+		// regression test for https://github.com/fabric8-services/fabric8-wit/issues/2267
+		t.Run("work item created without board column set to null", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.WorkItemBoards(1),
+				tf.WorkItems(1),
+			)
+			// Set the work board columns field to null
+			db := s.DB.Exec(
+				fmt.Sprintf(
+					`UPDATE %[1]s SET fields = fields || '{"%[2]s": null}'::jsonb WHERE id=?`,
+					workitem.WorkItemStorage{}.TableName(),
+					workitem.SystemBoardcolumns,
+				),
+				fxt.WorkItems[0].ID,
+			)
+			require.NoError(t, db.Error)
+			require.Equal(t, int64(1), db.RowsAffected)
+			// when
+			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}, {"board.id":{"$EQ":"%s"}}]}`, fxt.Spaces[0].ID, fxt.WorkItemBoards[0].ID)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// then
+			require.NoError(t, err)
+			require.Equal(t, 0, count)
+			require.Empty(t, res)
+		})
+	})
+}
+
+func (s *searchRepositoryBlackboxTest) TestSearchByParent() {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItems(4, tf.SetWorkItemTitles("grandparent", "parent", "child1", "child2")),
+		tf.WorkItemLinksCustom(3,
+			func(fxt *tf.TestFixture, idx int) error {
+				l := fxt.WorkItemLinks[idx]
+				l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+				switch idx {
+				case 0:
+					l.SourceID = fxt.WorkItemByTitle("grandparent").ID
+					l.TargetID = fxt.WorkItemByTitle("parent").ID
+				case 1:
+					l.SourceID = fxt.WorkItemByTitle("parent").ID
+					l.TargetID = fxt.WorkItemByTitle("child1").ID
+				case 2:
+					l.SourceID = fxt.WorkItemByTitle("parent").ID
+					l.TargetID = fxt.WorkItemByTitle("child2").ID
+				}
+				return nil
+			}),
+	)
+	s.T().Run("search for children of grandparent by ID", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.id": "%s"}`, fxt.WorkItemByTitle("grandparent").ID)
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, count)
+		require.Len(t, res, count)
+		assert.Equal(t, fxt.WorkItemByTitle("parent").ID, res[0].ID)
+	})
+	s.T().Run("search for children of parent by ID", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.id": "%s"}`, fxt.WorkItemByTitle("parent").ID)
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 2, count)
+		require.Len(t, res, count)
+		assert.Equal(t, fxt.WorkItemByTitle("child1").ID, res[1].ID)
+		assert.Equal(t, fxt.WorkItemByTitle("child2").ID, res[0].ID)
+	})
+	s.T().Run("search for children of grandparent by number", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.number": "%d"}`, fxt.WorkItemByTitle("grandparent").Number)
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, count)
+		require.Len(t, res, count)
+		assert.Equal(t, fxt.WorkItemByTitle("parent").ID, res[0].ID)
+	})
+	s.T().Run("search for children of parent by number", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.number": "%d"}`, fxt.WorkItemByTitle("parent").Number)
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 2, count)
+		require.Len(t, res, count)
+		assert.Equal(t, fxt.WorkItemByTitle("child1").ID, res[1].ID)
+		assert.Equal(t, fxt.WorkItemByTitle("child2").ID, res[0].ID)
+	})
+	s.T().Run("search for children of not existing item by ID", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.id": "%s"}`, uuid.NewV4())
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, count)
+		require.Len(t, res, count)
+		require.Empty(t, res)
+	})
+	s.T().Run("search for children of not existing item by number", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"parent.number": "%d"}`, 12334)
+		res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, count)
+		require.Len(t, res, count)
+		require.Empty(t, res)
+	})
+}
+
+func (s *searchRepositoryBlackboxTest) TestSearchBoardID() {
+	s.T().Run("board", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.WorkItemBoards(2),
+			tf.WorkItems(3, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0:
+					fxt.WorkItems[idx].Fields[workitem.SystemBoardcolumns] = [2]string{
+						fxt.WorkItemBoards[0].Columns[0].ID.String(),
+					}
+				case 1:
+					fxt.WorkItems[idx].Fields[workitem.SystemBoardcolumns] = [2]string{
+						fxt.WorkItemBoards[1].Columns[0].ID.String(),
+					}
+				default:
+					fxt.WorkItems[idx].Fields[workitem.SystemBoardcolumns] = [2]string{
+						fxt.WorkItemBoards[1].Columns[0].ID.String(),
+						fxt.WorkItemBoards[0].Columns[0].ID.String(),
+					}
+				}
+				return nil
+			}),
+		)
+		t.Run("multiple match, atomic expression", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"board.id": "%s"}`, fxt.WorkItemBoards[0].ID.String())
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			require.Equal(t, 2, count)
+			require.Len(t, res, count)
+			mustHave := map[string]struct{}{
+				fxt.WorkItems[0].ID.String(): {},
+				fxt.WorkItems[2].ID.String(): {},
+			}
+			for _, workItem := range res {
+				delete(mustHave, workItem.ID.String())
+			}
+			require.Empty(t, mustHave)
 		})
 	})
 }

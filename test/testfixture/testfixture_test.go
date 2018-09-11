@@ -17,7 +17,7 @@ import (
 
 func TestRunTestFixtureSuite(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &testFixtureSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../../config.yaml")})
+	suite.Run(t, &testFixtureSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type testFixtureSuite struct {
@@ -98,13 +98,13 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		}
 	}
 
-	// identity and work item link categories will always work
-
-	t.Run("identities", func(t *testing.T) {
+	// user and work item link categories will always work
+	t.Run("users", func(t *testing.T) {
 		// given
-		c, err := fxtCtor(db, tf.Identities(n))
+		c, err := fxtCtor(db, tf.Users(n))
 		// then
 		require.NoError(t, err)
+		require.NotNil(t, c)
 		require.Nil(t, c.Check())
 		// manual checking
 		require.Len(t, c.Identities, n)
@@ -117,6 +117,19 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		require.Nil(t, c.Check())
 		// manual checking
 		require.Len(t, c.WorkItemLinkCategories, n)
+	})
+
+	t.Run("identities", func(t *testing.T) {
+		// given
+		c, err := fxtCtor(db, tf.Identities(n))
+		// then
+		require.NoError(t, err)
+		require.Nil(t, c.Check())
+		// manual checking
+		require.Len(t, c.Identities, n)
+		if !isolated {
+			require.Len(t, c.Users, 1)
+		}
 	})
 	t.Run("space_templates", func(t *testing.T) {
 		// given
@@ -426,4 +439,17 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			require.Empty(t, expectedLinks, "failed to find all expected links: %+v", expectedLinks)
 		})
 	})
+}
+
+func TestGetGetTestFileAndFunc(t *testing.T) {
+	var s string
+	func() {
+		func() {
+			func() {}()
+			func() {
+				s = tf.GetTestFileAndFunc()
+			}()
+		}()
+	}()
+	require.Equal(t, "(see function github.com/fabric8-services/fabric8-wit/test/testfixture_test.TestGetGetTestFileAndFunc.func1.1.2 in test/testfixture/testfixture_test.go)", s)
 }

@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -11,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/area"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -27,36 +25,32 @@ import (
 
 type TestAreaREST struct {
 	gormtestsupport.DBTestSuite
-	db      *gormapplication.GormDB
 	testDir string
 }
 
 func TestRunAreaREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pwd, err := os.Getwd()
-	require.NoError(t, err)
-	suite.Run(t, &TestAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestAreaREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.testDir = filepath.Join("test-files", "area")
 }
 
 func (rest *TestAreaREST) SecuredController() (*goa.Service, *AreaController) {
 	svc := testsupport.ServiceAsUser("Area-Service", testsupport.TestIdentity)
-	return svc, NewAreaController(svc, rest.db, rest.Configuration)
+	return svc, NewAreaController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestAreaREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *AreaController) {
 	svc := testsupport.ServiceAsUser("Area-Service", *idn)
-	return svc, NewAreaController(svc, rest.db, rest.Configuration)
+	return svc, NewAreaController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestAreaREST) UnSecuredController() (*goa.Service, *AreaController) {
 	svc := goa.New("Area-Service")
-	return svc, NewAreaController(svc, rest.db, rest.Configuration)
+	return svc, NewAreaController(svc, rest.GormDB, rest.Configuration)
 }
 
 func (rest *TestAreaREST) TestCreateChildArea() {
@@ -72,8 +66,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			// when
 			resp, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
 			// then
-			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+			require.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+			require.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.payload.golden.json"), created)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
 
@@ -84,8 +78,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 				// when
 				resp, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ca)
 				// then
-				assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-				assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
+				require.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+				require.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
 				compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.child1_ok.res.payload.golden.json"), created)
 				compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
 			})
@@ -104,8 +98,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			// when
 			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
 			// then
-			assert.Equal(t, *childAreaPayload.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+			require.Equal(t, *childAreaPayload.Data.Attributes.Name, *created.Data.Attributes.Name)
+			require.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 
 			// try creating the same area again
 			resp, errs := test.CreateChildAreaConflict(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)

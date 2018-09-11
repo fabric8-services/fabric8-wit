@@ -99,21 +99,22 @@ var simpleEnvironmentAttributes = a.Type("SimpleEnvironmentAttributes", func() {
 
 var envStats = a.Type("EnvStats", func() {
 	a.Description("resource usage and quotas for an environment")
-	a.Attribute("cpucores", envStatCores)
-	a.Attribute("memory", envStatMemory)
+	a.Attribute("cpucores", envStatQuota)
+	a.Attribute("memory", envStatQuota)
+	a.Attribute("pods", envStatQuota)
+	a.Attribute("replication_controllers", envStatQuota)
+	a.Attribute("resource_quotas", envStatQuota)
+	a.Attribute("services", envStatQuota)
+	a.Attribute("secrets", envStatQuota)
+	a.Attribute("config_maps", envStatQuota)
+	a.Attribute("persistent_volume_claims", envStatQuota)
+	a.Attribute("image_streams", envStatQuota)
 })
 
-var envStatCores = a.Type("EnvStatCores", func() {
-	a.Description(`CPU core stats`)
+var envStatQuota = a.Type("EnvStatQuota", func() {
+	a.Description(`environment object counts`)
 	a.Attribute("used", d.Number)
 	a.Attribute("quota", d.Number)
-})
-
-var envStatMemory = a.Type("EnvStatMemory", func() {
-	a.Description(`memory stats`)
-	a.Attribute("used", d.Number)
-	a.Attribute("quota", d.Number)
-	a.Attribute("units", d.String)
 })
 
 var timedNumberTuple = a.Type("TimedNumberTuple", func() {
@@ -189,6 +190,7 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("showDeploymentStats", func() {
@@ -206,6 +208,7 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("showDeploymentStatSeries", func() {
@@ -225,6 +228,7 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("setDeployment", func() {
@@ -242,6 +246,7 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("deleteDeployment", func() {
@@ -258,6 +263,7 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("showSpaceEnvironments", func() {
@@ -272,5 +278,32 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+	})
+
+	a.Action("showAllEnvironments", func() {
+		a.Routing(
+			a.GET("/environments"),
+		)
+		a.Description("list all environments")
+		a.Response(d.OK, simpleEnvironmentMultiple)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+	})
+
+	a.Action("watchEnvironmentEvents", func() {
+		a.Security("jwt-query-param")
+		a.Routing(
+			a.GET("/environments/:envName/events/watch"),
+		)
+		a.Params(func() {
+			a.Param("envName", d.String, "Name of the environment")
+		})
+		a.Description("watch events for an environment")
+		a.Scheme("wss")
+		a.Response(d.SwitchingProtocols)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })

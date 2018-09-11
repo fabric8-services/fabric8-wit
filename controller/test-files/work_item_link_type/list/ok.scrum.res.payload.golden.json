@@ -1,0 +1,163 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "One work item item blocks another one",
+        "forward_description": "(TODO) write a forward description for \"blocks\"",
+        "forward_name": "blocks",
+        "name": "Blocker",
+        "reverse_description": "(TODO) write a reverse description for \"is blocked by\"",
+        "reverse_name": "is blocked by",
+        "topology": "network",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000001",
+      "links": {
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000001",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000001"
+      },
+      "relationships": {
+        "link_category": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "workitemlinkcategories"
+          },
+          "links": {
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+          }
+        },
+        "space_template": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "spacetemplates"
+          },
+          "links": {
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
+          }
+        }
+      },
+      "type": "workitemlinktypes"
+    },
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "One work item is the parent of another one.",
+        "forward_description": "(TODO) write a forward description for \"is parent of\"",
+        "forward_name": "is parent of",
+        "name": "Parenting",
+        "reverse_description": "(TODO) write a reverse description for \"is child of\"",
+        "reverse_name": "is child of",
+        "topology": "tree",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000005",
+      "links": {
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000005",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000005"
+      },
+      "relationships": {
+        "link_category": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "workitemlinkcategories"
+          },
+          "links": {
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+          }
+        },
+        "space_template": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "spacetemplates"
+          },
+          "links": {
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
+          }
+        }
+      },
+      "type": "workitemlinktypes"
+    },
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "One work item relates to another one.",
+        "forward_description": "(TODO) write a forward description for \"relates to\"",
+        "forward_name": "relates to",
+        "name": "Related",
+        "reverse_description": "(TODO) write a reverse description for \"is related to\"",
+        "reverse_name": "is related to",
+        "topology": "network",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000006",
+      "links": {
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000006",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000006"
+      },
+      "relationships": {
+        "link_category": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "workitemlinkcategories"
+          },
+          "links": {
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+          }
+        },
+        "space_template": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "spacetemplates"
+          },
+          "links": {
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
+          }
+        }
+      },
+      "type": "workitemlinktypes"
+    }
+  ],
+  "meta": {
+    "totalCount": 3
+  }
+}

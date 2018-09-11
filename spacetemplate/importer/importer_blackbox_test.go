@@ -134,7 +134,7 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			templ, err := importer.ScrumTemplate()
 			// then
 			require.NoError(t, err)
-			require.True(t, templ.Template.CanConstruct)
+			require.False(t, templ.Template.CanConstruct)
 			require.Equal(t, spacetemplate.SystemScrumTemplateID, templ.Template.ID)
 			witsToBeFound := map[string]struct{}{
 				"Scrum Common Type":    {},
@@ -164,6 +164,40 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			require.NoError(t, templ.Validate())
 		})
 
+		t.Run("agile template", func(t *testing.T) {
+			t.Parallel()
+			// given
+			templ, err := importer.AgileTemplate()
+			// then
+			require.NoError(t, err)
+			require.True(t, templ.Template.CanConstruct)
+			require.Equal(t, spacetemplate.SystemAgileTemplateID, templ.Template.ID)
+			witsToBeFound := map[string]struct{}{
+				"Agile Common Type": {},
+				"Impediment":        {},
+				"Theme":             {},
+				"Epic":              {},
+				"Story":             {},
+				"Task":              {},
+				"Defect":            {},
+			}
+			for _, wit := range templ.WITs {
+				_, ok := witsToBeFound[wit.Name]
+				require.True(t, ok, "found unexpected work item type: %s", wit.Name)
+				delete(witsToBeFound, wit.Name)
+			}
+			require.Len(t, witsToBeFound, 0, "these work item types where not found in the scrum template: %+v", witsToBeFound)
+			witgsToBeFound := map[string]struct{}{
+				"Work Items": {},
+				"Execution":  {},
+			}
+			for _, witg := range templ.WITGs {
+				delete(witgsToBeFound, witg.Name)
+			}
+			require.Len(t, witgsToBeFound, 0, "these work item type groups where not found in the scrum template: %+v", witgsToBeFound)
+			require.NoError(t, templ.Validate())
+		})
+
 		t.Run("test template", func(t *testing.T) {
 			t.Parallel()
 			// given
@@ -171,8 +205,9 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			witID := uuid.NewV4()
 			wiltID := uuid.NewV4()
 			witgID := uuid.NewV4()
+			wibID := uuid.NewV4()
 
-			yaml := getValidTestTemplate(spaceTemplateID, witID, wiltID, witgID)
+			yaml := getValidTestTemplate(spaceTemplateID, witID, wiltID, witgID, wibID)
 			// when
 			actual, err := importer.FromString(yaml)
 			// then
@@ -180,7 +215,7 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			require.True(t, actual.Template.CanConstruct)
 			require.Equal(t, spaceTemplateID, actual.Template.ID)
 			require.NoError(t, actual.Validate())
-			expected := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			expected := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
 			assert.True(t, expected.Equal(*actual))
 			assert.Equal(t, expected.String(), actual.String())
 			checkDiff(t, expected, *actual)
@@ -191,7 +226,7 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			t.Parallel()
 			// given: valid empty template
 			spaceTemplateID := uuid.NewV4()
-			templ := getValidTestTemplateParsed(t, spaceTemplateID, uuid.NewV4(), uuid.NewV4(), uuid.NewV4())
+			templ := getValidTestTemplateParsed(t, spaceTemplateID, uuid.NewV4(), uuid.NewV4(), uuid.NewV4(), uuid.NewV4())
 			// when
 			templ.WITs[0].SpaceTemplateID = uuid.NewV4()
 			// then
@@ -202,7 +237,7 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			t.Parallel()
 			// given: valid empty template
 			spaceTemplateID := uuid.NewV4()
-			templ := getValidTestTemplateParsed(t, spaceTemplateID, uuid.NewV4(), uuid.NewV4(), uuid.NewV4())
+			templ := getValidTestTemplateParsed(t, spaceTemplateID, uuid.NewV4(), uuid.NewV4(), uuid.NewV4(), uuid.NewV4())
 			// when
 			templ.WILTs[0].SpaceTemplateID = uuid.NewV4()
 			// then
@@ -223,7 +258,10 @@ func checkDiff(t *testing.T, expected, actual importer.ImportHelper) {
 
 // getValidTestTemplate returns a test template in unparsed format. See
 // getValidTestTemplateParsed() for the parsed representation of this template
-func getValidTestTemplate(spaceTemplateID, witID, wiltID, witgID uuid.UUID) string {
+func getValidTestTemplate(spaceTemplateID, witID, wiltID, witgID uuid.UUID, wibID uuid.UUID) string {
+	boardIDStr := wibID.String()
+	colID1 := boardIDStr[:len(boardIDStr)-1] + "1"
+	colID2 := boardIDStr[:len(boardIDStr)-1] + "2"
 	return `
 space_template:
   id: "` + spaceTemplateID.String() + `"
@@ -245,6 +283,7 @@ work_item_types:
       required: yes
       type:
         kind: string
+        default_value: "foobar"
     state:
       label: State
       description: The state of the bug
@@ -257,6 +296,7 @@ work_item_types:
         values:
           - new
           - closed
+        default_value: closed
     priority:
       label: Priority
       description: The priority of the bug
@@ -265,28 +305,54 @@ work_item_types:
         simple_type:
           kind: list
         component_type:
-          kind: integer
+          kind: float
+        default_value: 42.0
 work_item_link_types:
 - id: "` + wiltID.String() + `"
   name: Blocker
   description: work item blocks another one
   forward_name: blocks
+  forward_description: description for blocks
   reverse_name: blocked by
+  reverse_description: description for blocked by
   topology: tree
   link_category_id: "2F24724F-797C-4073-8B16-4BB8CE9E84A6"
 work_item_type_groups:
 - name: Scenarios
   id: "` + witgID.String() + `"
+  description: "description for scenarios"
   type_list:
     - "` + witID.String() + `"
   bucket: portfolio
   icon: fa fa-suitcase
+work_item_boards:
+- id: "` + wibID.String() + `"
+  name: "Some Board Name"
+  description: "Some Board Description"
+  context: "` + witgID.String() + `"
+  context_type: "TypeLevelContext"
+  columns:
+    - id: "` + colID1 + `"
+      board_id: "` + wibID.String() + `"
+      name: "New"
+      order: 0
+      trans_rule_key: "updateStateFromColumnMove"
+      trans_rule_argument: "{ 'metastate': 'mNew' }"
+    - id: "` + colID2 + `"
+      board_id: "` + wibID.String() + `"
+      name: "Done"
+      order: 1
+      trans_rule_key: "updateStateFromColumnMove"
+      trans_rule_argument: "{ 'metastate': 'mDone' }"
 `
 }
 
 // getValidTestTemplateParsed returns the expected parsed representation of the
 // getValidTestTemplate string
-func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uuid.UUID, witgID uuid.UUID) importer.ImportHelper {
+func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uuid.UUID, witgID uuid.UUID, wibID uuid.UUID) importer.ImportHelper {
+	boardIDStr := wibID.String()
+	colID1 := boardIDStr[:len(boardIDStr)-1] + "1"
+	colID2 := boardIDStr[:len(boardIDStr)-1] + "2"
 	expected := importer.ImportHelper{
 		Template: spacetemplate.SpaceTemplate{
 			ID:           spaceTemplateID,
@@ -312,7 +378,8 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 						Description: "The title of the bug",
 						Required:    true,
 						Type: workitem.SimpleType{
-							Kind: workitem.KindString,
+							Kind:         workitem.KindString,
+							DefaultValue: "foobar",
 						},
 					},
 					"state": {
@@ -327,6 +394,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 								"new",
 								"closed",
 							},
+							DefaultValue: "closed",
 						},
 					},
 					"priority": {
@@ -335,7 +403,8 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 						Required:    false,
 						Type: workitem.ListType{
 							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-							ComponentType: workitem.SimpleType{Kind: workitem.KindInteger},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindFloat},
+							DefaultValue:  42.0,
 						},
 					},
 				},
@@ -343,25 +412,56 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 		},
 		WILTs: []*link.WorkItemLinkType{
 			{
-				ID:              wiltID,
-				SpaceTemplateID: spaceTemplateID,
-				Name:            "Blocker",
-				Description:     ptr.String("work item blocks another one"),
-				ForwardName:     "blocks",
-				ReverseName:     "blocked by",
-				Topology:        "tree",
-				LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
+				ID:                 wiltID,
+				SpaceTemplateID:    spaceTemplateID,
+				Name:               "Blocker",
+				Description:        ptr.String("work item blocks another one"),
+				ForwardName:        "blocks",
+				ForwardDescription: ptr.String("description for blocks"),
+				ReverseName:        "blocked by",
+				ReverseDescription: ptr.String("description for blocked by"),
+				Topology:           "tree",
+				LinkCategoryID:     link.SystemWorkItemLinkCategoryUserID,
 			},
 		},
 		WITGs: []*workitem.WorkItemTypeGroup{
 			{
 				ID:              witgID,
 				Name:            "Scenarios",
+				Description:     ptr.String("description for scenarios"),
 				Bucket:          workitem.BucketPortfolio,
 				Icon:            "fa fa-suitcase",
 				SpaceTemplateID: spaceTemplateID,
 				TypeList: []uuid.UUID{
 					witID,
+				},
+			},
+		},
+		WIBs: []*workitem.Board{
+			{
+				ID:              wibID,
+				SpaceTemplateID: spaceTemplateID,
+				Name:            "Some Board Name",
+				Description:     "Some Board Description",
+				ContextType:     "TypeLevelContext",
+				Context:         witgID.String(),
+				Columns: []workitem.BoardColumn{
+					{
+						ID:                uuid.FromStringOrNil(colID1),
+						Name:              "New",
+						Order:             0,
+						TransRuleKey:      "updateStateFromColumnMove",
+						TransRuleArgument: "{ 'metastate': 'mNew' }",
+						BoardID:           wibID,
+					},
+					{
+						ID:                uuid.FromStringOrNil(colID2),
+						Name:              "Done",
+						Order:             1,
+						TransRuleKey:      "updateStateFromColumnMove",
+						TransRuleArgument: "{ 'metastate': 'mDone' }",
+						BoardID:           wibID,
+					},
 				},
 			},
 		},

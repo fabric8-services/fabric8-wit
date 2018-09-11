@@ -3,6 +3,7 @@ package testfixture
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -25,6 +26,56 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// GetTestFileAndFunc returns the file and function of the first _test.go file
+// to appear in the stack and returns it in this schema (without the line
+// breaks)
+//
+// (see function
+// github.com/fabric8-services/fabric8-wit/test/testfixture_test.TestGetGetTestFileAndFunc
+// in test/testfixture/testfixture_test.go)
+//
+// The result can be used to augment entities so that we always can tell which
+// test created an entity that is a left-over and not cleaned up for example.
+func GetTestFileAndFunc() string {
+	// Get filename and line of the function that sits at the top of the call stack
+	skip := 0
+	pc, file, _, ok := runtime.Caller(skip)
+	prefix := strings.Replace(file, "test/testfixture/make_functions.go", "", -1)
+	var found bool
+	for skip := 1; !found && ok; skip++ {
+		if strings.Contains(file, "_test.go") {
+			found = true
+		} else {
+			pc, file, _, ok = runtime.Caller(skip)
+		}
+	}
+	return fmt.Sprintf("(see function %s in %s)", runtime.FuncForPC(pc).Name(), strings.Replace(file, prefix, "", -1))
+}
+
+func makeUsers(fxt *TestFixture) error {
+	if fxt.info[kindUsers] == nil {
+		return nil
+	}
+	userRepo := account.NewUserRepository(fxt.db)
+	fxt.Users = make([]*account.User, fxt.info[kindUsers].numInstances)
+	for i := range fxt.Users {
+		id := uuid.NewV4()
+		fxt.Users[i] = &account.User{
+			ID:       id,
+			Email:    fmt.Sprintf("%s@example.com", id),
+			FullName: testsupport.CreateRandomValidTestName("user"),
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindUsers); err != nil {
+			return errs.WithStack(err)
+		}
+		err := userRepo.Create(fxt.ctx, fxt.Users[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create user: %+v", fxt.Users[i])
+		}
+	}
+	return nil
+}
+
 func makeIdentities(fxt *TestFixture) error {
 	if fxt.info[kindIdentities] == nil {
 		return nil
@@ -34,6 +85,7 @@ func makeIdentities(fxt *TestFixture) error {
 		fxt.Identities[i] = &account.Identity{
 			Username:     testsupport.CreateRandomValidTestName("John Doe "),
 			ProviderType: account.KeycloakIDP,
+			User:         *fxt.Users[0],
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindIdentities); err != nil {
 			return errs.WithStack(err)
@@ -61,10 +113,11 @@ func makeWorkItemLinkCategories(fxt *TestFixture) error {
 		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemLinkCategories); err != nil {
 			return errs.WithStack(err)
 		}
-		_, err := wilcRepo.Create(fxt.ctx, fxt.WorkItemLinkCategories[i])
+		cat, err := wilcRepo.Create(fxt.ctx, *fxt.WorkItemLinkCategories[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item link category: %+v", fxt.WorkItemLinkCategories[i])
 		}
+		fxt.WorkItemLinkCategories[i] = cat
 	}
 	return nil
 }
@@ -103,7 +156,7 @@ func makeSpaces(fxt *TestFixture) error {
 	for i := range fxt.Spaces {
 		fxt.Spaces[i] = &space.Space{
 			Name:        testsupport.CreateRandomValidTestName("space "),
-			Description: "Some description",
+			Description: GetTestFileAndFunc(),
 		}
 		if !fxt.isolatedCreation {
 			fxt.Spaces[i].OwnerID = fxt.Identities[0].ID
@@ -158,10 +211,11 @@ func makeWorkItemLinkTypes(fxt *TestFixture) error {
 				return errs.New("you must specify a link category for each work item link type")
 			}
 		}
-		_, err := wiltRepo.Create(fxt.ctx, fxt.WorkItemLinkTypes[i])
+		typ, err := wiltRepo.Create(fxt.ctx, *fxt.WorkItemLinkTypes[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item link type: %+v", fxt.WorkItemLinkTypes[i])
 		}
+		fxt.WorkItemLinkTypes[i] = typ
 	}
 	return nil
 }
@@ -239,6 +293,7 @@ func makeCodebases(fxt *TestFixture) error {
 			StackID:           &stackID,
 			LastUsedWorkspace: "my-used-last-workspace",
 			URL:               "git@github.com:fabric8-services/fabric8-wit.git",
+			CVEScan:           true,
 		}
 		if !fxt.isolatedCreation {
 			fxt.Codebases[i].SpaceID = fxt.Spaces[0].ID
@@ -286,8 +341,7 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 				return errs.New("you must specify a space template ID for each work item type")
 			}
 		}
-		m := fxt.WorkItemTypes[i]
-		wit, err := witRepo.Create(fxt.ctx, m.SpaceTemplateID, &m.ID, &m.Extends, m.Name, m.Description, m.Icon, m.Fields, m.CanConstruct)
+		wit, err := witRepo.CreateFromModel(fxt.ctx, *fxt.WorkItemTypes[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item type %+v", fxt.WorkItemTypes[i])
 		}
@@ -318,7 +372,7 @@ func makeWorkItemTypeGroups(fxt *TestFixture) error {
 			return errs.WithStack(err)
 		}
 		if fxt.isolatedCreation {
-			if fxt.WorkItemTypes[i].SpaceTemplateID == uuid.Nil {
+			if fxt.WorkItemTypeGroups[i].SpaceTemplateID == uuid.Nil {
 				return errs.New("you must specify a space template ID for each work item type group")
 			}
 		}
@@ -327,6 +381,82 @@ func makeWorkItemTypeGroups(fxt *TestFixture) error {
 			return errs.Wrapf(err, "failed to create work item type group %+v", fxt.WorkItemTypeGroups[i])
 		}
 		fxt.WorkItemTypeGroups[i] = witg
+	}
+	return nil
+}
+
+func makeWorkItemBoards(fxt *TestFixture) error {
+	if fxt.info[kindWorkItemBoards] == nil {
+		return nil
+	}
+	fxt.WorkItemBoards = make([]*workitem.Board, fxt.info[kindWorkItemBoards].numInstances)
+	wibRepo := workitem.NewBoardRepository(fxt.db)
+	for i := range fxt.WorkItemBoards {
+		fxt.WorkItemBoards[i] = &workitem.Board{
+			ID:          uuid.NewV4(),
+			Name:        testsupport.CreateRandomValidTestName(fmt.Sprintf("work item board %d ", i)),
+			Description: testsupport.CreateRandomValidTestName("work item board description "),
+			// we only support this context for now.
+			ContextType: "TypeLevelContext",
+		}
+		if !fxt.isolatedCreation {
+			fxt.WorkItemBoards[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
+			// each board is attached to exactly one work item type group.
+			// the type groups are provided as a receipe dependency.
+			fxt.WorkItemBoards[i].Context = fxt.WorkItemTypeGroups[i].ID.String()
+			// create a set of columns
+			fxt.WorkItemBoards[i].Columns = []workitem.BoardColumn{
+				// we create a pre-defined fixed set of columns here to cover edge cases.
+				{
+					ID:                uuid.NewV4(),
+					Name:              testsupport.CreateRandomValidTestName("New"),
+					Order:             0,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mNew' }",
+					BoardID:           fxt.WorkItemBoards[i].ID,
+				},
+				{
+					ID:                uuid.NewV4(),
+					Name:              testsupport.CreateRandomValidTestName("In Progress"),
+					Order:             1,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mInprogress' }",
+					BoardID:           fxt.WorkItemBoards[i].ID,
+				},
+				{
+					ID:                uuid.NewV4(),
+					Name:              testsupport.CreateRandomValidTestName("Resolved"),
+					Order:             2,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mResolved' }",
+					BoardID:           fxt.WorkItemBoards[i].ID,
+				},
+				{
+					ID:                uuid.NewV4(),
+					Name:              testsupport.CreateRandomValidTestName("Approved"),
+					Order:             3,
+					TransRuleKey:      "updateStateFromColumnMove",
+					TransRuleArgument: "{ 'metastate': 'mResolved' }",
+					BoardID:           fxt.WorkItemBoards[i].ID,
+				},
+			}
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemBoards); err != nil {
+			return errs.WithStack(err)
+		}
+		if fxt.isolatedCreation {
+			if fxt.WorkItemBoards[i].SpaceTemplateID == uuid.Nil {
+				return errs.New("you must specify a space template ID for each work item board")
+			}
+			if fxt.WorkItemBoards[i].Context == "" {
+				return errs.New("you must specify a context ID for each work item board")
+			}
+		}
+		wib, err := wibRepo.Create(fxt.ctx, *fxt.WorkItemBoards[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create work item board %+v", fxt.WorkItemBoards[i])
+		}
+		fxt.WorkItemBoards[i] = wib
 	}
 	return nil
 }
@@ -361,19 +491,19 @@ func makeWorkItems(fxt *TestFixture) error {
 			}
 			_, ok := fxt.WorkItems[i].Fields[workitem.SystemCreator]
 			if !ok {
-				return errs.Errorf("you must specify a work creator ID for the \"%s\" field in %+v", workitem.SystemCreator, fxt.WorkItems[i].Fields)
+				return errs.Errorf("you must specify a work creator ID for the %q field in %+v", workitem.SystemCreator, fxt.WorkItems[i].Fields)
 			}
 		}
 		creatorIDStr, ok := fxt.WorkItems[i].Fields[workitem.SystemCreator].(string)
 		if !ok {
-			return errs.Errorf("failed to convert \"%s\" field to string in %+v: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields, fxt.WorkItems[i].Fields[workitem.SystemCreator])
+			return errs.Errorf("failed to convert %q field to string in %+v: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 		creatorID, err := uuid.FromString(creatorIDStr)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert \"%s\" field to uuid.UUID: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields[workitem.SystemCreator])
+			return errs.Wrapf(err, "failed to convert %q field to uuid.UUID: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 
-		wi, err := wiRepo.Create(fxt.ctx, fxt.WorkItems[i].SpaceID, fxt.WorkItems[i].Type, fxt.WorkItems[i].Fields, creatorID)
+		wi, _, err := wiRepo.Create(fxt.ctx, fxt.WorkItems[i].SpaceID, fxt.WorkItems[i].Type, fxt.WorkItems[i].Fields, creatorID)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item: %+v", fxt.WorkItems[i])
 		}
@@ -424,7 +554,7 @@ func makeWorkItemLinks(fxt *TestFixture) error {
 		}
 		creatorID, err := uuid.FromString(creatorIDStr)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert the string \"%s\" to a uuid.UUID object", creatorIDStr)
+			return errs.Wrapf(err, "failed to convert the string %q to a uuid.UUID object", creatorIDStr)
 		}
 
 		wilt, err := wilRepo.Create(fxt.ctx, fxt.WorkItemLinks[i].SourceID, fxt.WorkItemLinks[i].TargetID, fxt.WorkItemLinks[i].LinkTypeID, creatorID)

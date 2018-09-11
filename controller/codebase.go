@@ -10,7 +10,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
+	gemini "github.com/fabric8-services/fabric8-wit/codebase/analytics-gemini"
 	"github.com/fabric8-services/fabric8-wit/codebase/che"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
@@ -39,18 +41,26 @@ type codebaseConfiguration interface {
 // CodebaseCheClientProvider the function that provides a `cheClient`
 type CodebaseCheClientProvider func(ctx context.Context, ns string) (che.Client, error)
 
+// AnalyticsGeminiClientProvider the function that provides a ScanRepoClient
+type AnalyticsGeminiClientProvider func() *gemini.ScanRepoClient
+
 // CodebaseController implements the codebase resource.
 type CodebaseController struct {
 	*goa.Controller
-	db           application.DB
-	config       codebaseConfiguration
-	ShowTenant   account.CodebaseInitTenantProvider
-	NewCheClient CodebaseCheClientProvider
+	db                    application.DB
+	config                codebaseConfiguration
+	ShowTenant            account.CodebaseInitTenantProvider
+	NewCheClient          CodebaseCheClientProvider
+	AnalyticsGeminiClient AnalyticsGeminiClientProvider
 }
 
 // NewCodebaseController creates a codebase controller.
 func NewCodebaseController(service *goa.Service, db application.DB, config codebaseConfiguration) *CodebaseController {
-	return &CodebaseController{Controller: service.NewController("CodebaseController"), db: db, config: config}
+	return &CodebaseController{
+		Controller: service.NewController("CodebaseController"),
+		db:         db,
+		config:     config,
+	}
 }
 
 // Show runs the show action.
@@ -68,6 +78,63 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 		Data: ConvertCodebase(ctx.Request, *cdb),
 	})
 
+}
+
+// Update can be used to update the codebase entries to change things like
+// the cve-scan, stackID, codebase type, rest of the attributes of codebase
+// will remain same
+func (c *CodebaseController) Update(ctx *app.UpdateCodebaseContext) error {
+	codebaseID, err := uuid.FromString(ctx.CodebaseID)
+	if err != nil {
+		return err
+	}
+	// see if the user is allowed to update this codebase
+	cb, err := c.verifyCodebaseOwner(ctx, codebaseID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	// set only allowed fields
+	reqAttributes := ctx.Payload.Data.Attributes
+	if reqAttributes.CveScan != nil {
+		cb.CVEScan = *reqAttributes.CveScan
+	}
+	if reqAttributes.StackID != nil {
+		cb.StackID = reqAttributes.StackID
+	}
+	if reqAttributes.Type != nil {
+		cb.Type = *reqAttributes.Type
+	}
+
+	var updatedCb *codebase.Codebase
+	// now save the object back into the database
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		updatedCb, err = appl.Codebases().Save(ctx, cb)
+		return err
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	// depending on the update we call the analytics service to enable
+	// or disable the scan for this codebase, calling only after the
+	// CveScan attribute is passed with some value
+	if reqAttributes.CveScan != nil && updatedCb.CVEScan {
+		if err = c.registerCodebaseToGeminiForScan(ctx, updatedCb.URL); err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+	} else if reqAttributes.CveScan != nil {
+		if err = c.deRegisterCodebaseFromGeminiForScan(ctx, updatedCb.URL); err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+	}
+
+	res := &app.CodebaseSingle{
+		Data: ConvertCodebase(ctx.Request, *updatedCb),
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.CodebaseHref(res.Data.ID)))
+
+	return ctx.OK(res)
 }
 
 // Edit Deprecated: ListWorkspaces action should be used instead.
@@ -150,33 +217,64 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 	return ctx.OK(resp)
 }
 
-// Delete deletes the given codebase if the user is authenticated and authorized
-func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
+// verifyCodebaseOwner makes sure that the users making changes are the ones who own it
+// this can be called in the update and delete to verify that, if the verification is successful
+// this function also returns the codebase object corresponding to the codebase id that was passed
+func (c *CodebaseController) verifyCodebaseOwner(ctx context.Context, codebaseID uuid.UUID) (*codebase.Codebase, error) {
 	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+		return nil, goa.ErrUnauthorized(err.Error())
 	}
 	var cb *codebase.Codebase
 	var cbSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		cb, err = appl.Codebases().Load(ctx.Context, ctx.CodebaseID)
+		cb, err = appl.Codebases().Load(ctx, codebaseID)
 		if err != nil {
 			return err
 		}
-		cbSpace, err = appl.Spaces().Load(ctx.Context, cb.SpaceID)
+		cbSpace, err = appl.Spaces().Load(ctx, cb.SpaceID)
 		return err
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
+		return nil, err
 	}
 	if !uuid.Equal(*currentUser, cbSpace.OwnerID) {
 		log.Warn(ctx, map[string]interface{}{
-			"codebase_id":  ctx.CodebaseID,
+			"codebase_id":  codebaseID,
 			"space_id":     cbSpace.ID,
 			"space_owner":  cbSpace.OwnerID,
 			"current_user": *currentUser,
 		}, "user is not the space owner")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+		return nil, errors.NewForbiddenError("user is not the space owner")
+	}
+	return cb, nil
+}
+
+// registerCodebaseToGeminiForScan when given the codebase URL, subscribes this codebase
+// to enable code scanning to find CVEs with the analytics gemini service
+func (c *CodebaseController) registerCodebaseToGeminiForScan(
+	ctx context.Context,
+	repoURL string,
+) error {
+	scanClient := c.AnalyticsGeminiClient()
+	req := gemini.NewScanRepoRequest(repoURL)
+	return scanClient.Register(ctx, req)
+}
+
+// deRegisterCodebaseFromGeminiForScan when given the codebase URL, unsubscibes
+// this codebase from scanning
+func (c *CodebaseController) deRegisterCodebaseFromGeminiForScan(ctx context.Context, repoURL string) error {
+	scanClient := c.AnalyticsGeminiClient()
+	req := gemini.NewScanRepoRequest(repoURL)
+	return scanClient.DeRegister(ctx, req)
+}
+
+// Delete deletes the given codebase if the user is authenticated and authorized
+func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
+	// see if the user is allowed to delete this codebase
+	cb, err := c.verifyCodebaseOwner(ctx, ctx.CodebaseID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	// attempt to remotely delete the Che workspaces
 	ns, err := c.getCheNamespace(ctx)
@@ -220,6 +318,12 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+
+	// the codebase is deleted only then deregister from the analytics service
+	if err = c.deRegisterCodebaseFromGeminiForScan(ctx, cb.URL); err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
 	return ctx.NoContent()
 }
 
@@ -281,7 +385,6 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-
 	ideURL := workspaceResp.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
@@ -371,6 +474,21 @@ func getBranch(projects []che.WorkspaceProject, codebaseURL string) string {
 	return ""
 }
 
+// ConvertCodebaseSimple converts a simple codebase ID into a Generic Relationship
+func ConvertCodebaseSimple(request *http.Request, id interface{}) (*app.GenericData, *app.GenericLinks) {
+	i := fmt.Sprint(id)
+	data := &app.GenericData{
+		Type: ptr.String(APIStringTypeCodebase),
+		ID:   &i,
+	}
+	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(i))
+	links := &app.GenericLinks{
+		Self:    &relatedURL,
+		Related: &relatedURL,
+	}
+	return data, links
+}
+
 // ConvertCodebase converts between internal and external REST representation
 func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options ...CodebaseConvertFunc) *app.Codebase {
 	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
@@ -386,6 +504,7 @@ func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options 
 			URL:               &codebase.URL,
 			StackID:           codebase.StackID,
 			LastUsedWorkspace: &codebase.LastUsedWorkspace,
+			CveScan:           &codebase.CVEScan,
 		},
 		Relationships: &app.CodebaseRelations{
 			Space: &app.RelationGeneric{
@@ -518,6 +637,22 @@ func NewDefaultCheClient(config codebaseConfiguration) CodebaseCheClientProvider
 	return func(ctx context.Context, ns string) (che.Client, error) {
 		cheClient := che.NewStarterClient(config.GetCheStarterURL(), config.GetOpenshiftTenantMasterURL(), ns, http.DefaultClient)
 		return cheClient, nil
+	}
+}
+
+// NewDefaultAnalyticsGeminiClient returns the default function to initialize a new Analytics
+// Gemini Client. As an attribute it takes in the Registry object.
+func NewDefaultAnalyticsGeminiClient(config *configuration.Registry) AnalyticsGeminiClientProvider {
+	return func() *gemini.ScanRepoClient {
+		return gemini.NewScanRepoClient(
+			config.GetAnalyticsGeminiServiceURL(),
+			&http.Client{},
+			config.GetCodebaseServiceURL(),
+			&http.Client{},
+			// this method is used in general to find out if the
+			// developer mode is enabled
+			config.IsPostgresDeveloperModeEnabled(),
+		)
 	}
 }
 

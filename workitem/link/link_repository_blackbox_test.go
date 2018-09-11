@@ -28,7 +28,7 @@ type linkRepoBlackBoxTest struct {
 
 func TestRunLinkRepoBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &linkRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../../config.yaml")})
+	suite.Run(t, &linkRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *linkRepoBlackBoxTest) SetupTest() {
@@ -637,7 +637,7 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 		require.Empty(t, toBeFound, "failed to find these expected ancestors: %s", func() string {
 			titles := []string{}
 			for ancestor := range toBeFound {
-				titles = append(titles, fmt.Sprintf("\"%s\" (%s)", fxt.WorkItemByID(ancestor.ID).Fields[workitem.SystemTitle].(string), ancestor.ID))
+				titles = append(titles, fmt.Sprintf("%q (%s)", fxt.WorkItemByID(ancestor.ID).Fields[workitem.SystemTitle].(string), ancestor.ID))
 			}
 			return strings.Join(titles, ", ")
 		}())

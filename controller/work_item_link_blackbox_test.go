@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -15,12 +14,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/rest"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
@@ -62,47 +58,6 @@ func newCreateWorkItemLinkCategoryPayload(name string) *app.CreateWorkItemLinkCa
 	}
 }
 
-// CreateWorkItem defines a work item link
-func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemsPayload {
-	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(workItemType))
-	payload := app.CreateWorkitemsPayload{
-		Data: &app.WorkItem{
-			Attributes: map[string]interface{}{
-				workitem.SystemTitle: title,
-				workitem.SystemState: workitem.SystemStateClosed,
-			},
-			Relationships: &app.WorkItemRelationships{
-				BaseType: &app.RelationBaseType{
-					Data: &app.BaseTypeData{
-						ID:   workItemType,
-						Type: "workitemtypes",
-					},
-					Links: &app.GenericLinks{
-						Self:    &witRelatedURL,
-						Related: &witRelatedURL,
-					},
-				},
-				Space: app.NewSpaceRelation(spaceID, spaceRelatedURL),
-			},
-			Type: "workitems",
-		},
-	}
-	return &payload
-}
-
-// createWorkItemType calls createPersonWIT
-func createWorkItemType(t *testing.T, db application.DB, id, spaceTemplateID uuid.UUID) *workitem.WorkItemType {
-	wit, err := db.WorkItemTypes().Create(context.Background(), spaceTemplateID, &id, nil, "person", ptr.String("Description for 'person'"), "fa-user", workitem.FieldDefinitions{
-		"test": {
-			Required: false,
-			Type:     &workitem.SimpleType{Kind: "string"},
-		},
-	}, true)
-	require.Nil(t, err)
-	return wit
-}
-
 // createWorkItemLinkType creates a workitem link type
 func createWorkItemLinkType(t *testing.T, db application.DB, name string, categoryID, spaceTemplateID uuid.UUID) *link.WorkItemLinkType {
 	description := "Specify that one bug blocks another one."
@@ -116,12 +71,6 @@ func createWorkItemLinkType(t *testing.T, db application.DB, name string, catego
 		SpaceTemplateID: spaceTemplateID,
 	}
 	return &lt
-	// reqLong := &http.Request{Host: "api.service.domain.org"}
-	// payload := ConvertWorkItemLinkTypeFromModel(reqLong, lt)
-	// // The create payload is required during creation. Simply copy data over.
-	// return &app.CreateWorkItemLinkTypePayload{
-	// 	Data: payload.Data,
-	// }
 }
 
 // newCreateWorkItemLinkPayload returns the payload to create a work item link
@@ -155,7 +104,7 @@ func newUpdateWorkItemLinkPayload(linkID, sourceID, targetID, linkTypeID uuid.UU
 
 func (s *workItemLinkSuite) SecuredController(identity account.Identity) (*goa.Service, *WorkItemLinkController) {
 	svc := testsupport.ServiceAsUser("WorkItemLink-Service", identity)
-	return svc, NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	return svc, NewWorkItemLinkController(svc, s.GormDB, s.Configuration)
 }
 
 func (s *workItemLinkSuite) TestCreate() {
@@ -212,13 +161,13 @@ func (s *workItemLinkSuite) TestCreate() {
 		t.Run("as space collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(4), tf.WorkItemLinkTypes(1), tf.Identities(2, tf.SetIdentityUsernames("owner", "collaborator")))
 			svc := testsupport.ServiceAsSpaceUser("TestWorkItem-Service", *fxt.IdentityByUsername("collaborator"), &TestSpaceAuthzService{*fxt.IdentityByUsername("collaborator"), ""})
-			ctrl := NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+			ctrl := NewWorkItemLinkController(svc, s.GormDB, s.Configuration)
 			createOK(t, fxt, svc, ctrl)
 		})
 		t.Run("as non-owner and non-collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(4), tf.WorkItemLinkTypes(1), tf.Identities(2, tf.SetIdentityUsernames("alice", "bob")))
 			svc := testsupport.ServiceAsUser("TestWorkItem-Service", *fxt.IdentityByUsername("bob"))
-			ctrl := NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+			ctrl := NewWorkItemLinkController(svc, s.GormDB, s.Configuration)
 			createOK(t, fxt, svc, ctrl)
 		})
 	})
@@ -227,7 +176,7 @@ func (s *workItemLinkSuite) TestCreate() {
 			// given
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(4), tf.WorkItemLinkTypes(1))
 			svc := goa.New("TestUnauthorizedCreateWorkItemLink-Service")
-			ctrl := NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+			ctrl := NewWorkItemLinkController(svc, s.GormDB, s.Configuration)
 			// when/then
 			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, fxt.WorkItems[1].ID, fxt.WorkItemLinkTypes[0].ID)
 			_, _ = test.CreateWorkItemLinkUnauthorized(t, svc.Context, svc, ctrl, createPayload)
@@ -306,7 +255,7 @@ func (s *workItemLinkSuite) TestDelete() {
 		t.Run("as space collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1), tf.Identities(2, tf.SetIdentityUsernames("owner", "collaborator")))
 			svc := testsupport.ServiceAsSpaceUser("TestWorkItem-Service", *fxt.IdentityByUsername("collaborator"), &TestSpaceAuthzService{*fxt.IdentityByUsername("collaborator"), ""})
-			ctrl := NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+			ctrl := NewWorkItemLinkController(svc, s.GormDB, s.Configuration)
 			// when
 			test.DeleteWorkItemLinkOK(s.T(), svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID)
 			// then verify that the link really was deleted
@@ -318,7 +267,7 @@ func (s *workItemLinkSuite) TestDelete() {
 			// given
 			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1), tf.Identities(2, tf.SetIdentityUsernames("owner", "collaborator")))
 			svc := testsupport.ServiceAsSpaceUser("svc", *fxt.IdentityByUsername("collaborator"), &TestSpaceAuthzService{*fxt.IdentityByUsername("owner"), ""})
-			ctrl := NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+			ctrl := NewWorkItemLinkController(svc, s.GormDB, s.Configuration)
 			// when
 			test.DeleteWorkItemLinkForbidden(t, svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID)
 			// then verify the link still exists
@@ -330,7 +279,7 @@ func (s *workItemLinkSuite) TestDelete() {
 			// given
 			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1))
 			svc := goa.New("TestUnauthorizedDeleteWorkItemLink-Service")
-			ctrl := NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+			ctrl := NewWorkItemLinkController(svc, s.GormDB, s.Configuration)
 			// when/then
 			_, _ = test.DeleteWorkItemLinkUnauthorized(t, svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID)
 		})
@@ -436,7 +385,7 @@ func (s *workItemLinkSuite) TestList() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemLinks(1))
 	svc, _ := s.SecuredController(*fxt.Identities[0])
-	relCtrl := NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	relCtrl := NewWorkItemRelationshipsLinksController(svc, s.GormDB, s.Configuration)
 
 	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
 		t.Run("for /api/workitems/:id/relationships/links", func(t *testing.T) {
@@ -579,7 +528,7 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemLinkTestDataFunc(), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemLink-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkItemLinkController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
+		controller := NewWorkItemLinkController(service, s.GormDB, s.Configuration)
 		app.MountWorkItemLinkController(service, controller)
 		return nil
 	})
@@ -607,7 +556,7 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemRelationshipsLinksCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemRelationshipLinksTestData(), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemRelationshipsLinks-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkItemRelationshipsLinksController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
+		controller := NewWorkItemRelationshipsLinksController(service, s.GormDB, s.Configuration)
 		app.MountWorkItemRelationshipsLinksController(service, controller)
 		return nil
 	})

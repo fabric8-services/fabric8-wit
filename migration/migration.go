@@ -416,6 +416,45 @@ func GetMigrations() Migrations {
 	// Version 92
 	m = append(m, steps{ExecuteSQLFile("092-comment-revisions-child-comments.sql")})
 
+	// Version 93
+	m = append(m, steps{ExecuteSQLFile("093-codebase-add-cve-scan.sql")})
+
+	// Version 94
+	m = append(m, steps{ExecuteSQLFile("094-changes-to-agile-template.sql")})
+
+	// Version 95
+	m = append(m, steps{ExecuteSQLFile("095-remove-resolution-field-from-impediment.sql")})
+
+	// Version 96
+	m = append(m, steps{ExecuteSQLFile("096-changes-to-agile-template.sql")})
+
+	// Version 97
+	m = append(m, steps{ExecuteSQLFile("097-remove-resolution-field-from-impediment.sql")})
+
+	// Version 98
+	m = append(m, steps{ExecuteSQLFile("098-boards.sql")})
+
+	// Version 99
+	m = append(m, steps{ExecuteSQLFile("099-codebase-cve-scan-default-false.sql")})
+
+	// Version 100
+	m = append(m, steps{ExecuteSQLFile("100-drop-userspace-data.sql")})
+
+	// Version 101
+	m = append(m, steps{ExecuteSQLFile("101-add-description-to-witg.sql")})
+
+	// Version 102
+	m = append(m, steps{ExecuteSQLFile("102-add-forward-and-reverse-link-type-descriptions.sql")})
+
+	// Version 103
+	m = append(m, steps{ExecuteSQLFile("103-user-email-notnull-notempty.sql")})
+
+	// Version 104
+	m = append(m, steps{ExecuteSQLFile("104-add-index-wi-revision.sql")})
+
+	// Version 105
+	m = append(m, steps{ExecuteSQLFile("105-update-root-area-and-iteration-path-field.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -516,12 +555,12 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 	// Apply all the updates of the next version
 	for j := range m[*nextVersion] {
 		if err := m[*nextVersion][j](tx); err != nil {
-			return errs.Errorf("Failed to execute migration of step %d of version %d: %s\n", j, *nextVersion, err)
+			return errs.Errorf("failed to execute migration of step %d of version %d: %s\n", j, *nextVersion, err)
 		}
 	}
 
 	if _, err := tx.Exec("INSERT INTO version(version) VALUES($1)", *nextVersion); err != nil {
-		return errs.Errorf("Failed to update DB to version %d: %s\n", *nextVersion, err)
+		return errs.Errorf("failed to update DB to version %d: %s\n", *nextVersion, err)
 	}
 
 	log.Info(nil, map[string]interface{}{
@@ -547,7 +586,7 @@ func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
 
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
-		return -1, errs.Errorf("Failed to scan if table \"version\" exists: %s\n", err)
+		return -1, errs.Errorf(`failed to scan if table "version" exists: %s\n`, err)
 	}
 
 	if !exists {
@@ -559,7 +598,7 @@ func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
 
 	var current int64 = -1
 	if err := row.Scan(&current); err != nil {
-		return -1, errs.Errorf("Failed to scan max version in table \"version\": %s\n", err)
+		return -1, errs.Errorf(`failed to scan max version in table "version": %s\n`, err)
 	}
 
 	return current, nil
@@ -581,7 +620,7 @@ func NewMigrationContext(ctx context.Context) context.Context {
 	return ctx
 }
 
-func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkCat *link.WorkItemLinkCategory) (*link.WorkItemLinkCategory, error) {
+func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkCat link.WorkItemLinkCategory) (*link.WorkItemLinkCategory, error) {
 	cat, err := linkCatRepo.Load(ctx, linkCat.ID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
@@ -624,7 +663,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 		Description: ptr.String("The user category is reserved for link types that can to be manipulated by the user."),
 	}}
 	for _, linkCat := range linkCategories {
-		_, err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, &linkCat)
+		_, err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, linkCat)
 		if err != nil {
 			return errs.WithStack(err)
 		}
@@ -635,6 +674,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 		importer.BaseTemplate,
 		importer.LegacyTemplate,
 		importer.ScrumTemplate,
+		importer.AgileTemplate,
 	}
 	importRepo := importer.NewRepository(db)
 	for idx, loadFunction := range templateFunctions {
@@ -650,7 +690,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 				"id":   t.Template.ID,
 				"name": t.Template.Name,
 			}, `failed to import space template #%d with name "%s" and ID %s`, idx, t.Template.Name, t.Template.ID)
-			return errs.Wrapf(err, `failed to import space #%d template with name "%s" ID %s`, idx, t.Template.Name, t.Template.ID)
+			return errs.Wrapf(err, `failed to import space template #%d with name "%s" and ID %s`, idx, t.Template.Name, t.Template.ID)
 		}
 		log.Debug(ctx, nil, `imported space template #%d "%s"`, idx, t.Template.Name)
 	}

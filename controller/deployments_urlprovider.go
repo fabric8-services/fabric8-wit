@@ -18,6 +18,7 @@ import (
 type tenantURLProvider struct {
 	apiURL   string
 	apiToken string
+	kubernetes.BaseURLProvider
 }
 
 // ensure tenantURLProvider implements BaseURLProvider
@@ -103,7 +104,7 @@ func modifyPath(apiURLStr string, path string) (*url.URL, error) {
 	// Parse as URL to give us easy access to the hostname
 	apiURL, err := url.Parse(apiURLStr)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Construct URL using just scheme from API URL, modified hostname and supplied path

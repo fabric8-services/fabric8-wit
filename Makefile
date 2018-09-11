@@ -24,6 +24,9 @@ DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
 MINIMOCK_BIN=$(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock/minimock
 
+# Define and get the vakue for UNAME_S variable from shell
+UNAME_S := $(shell uname -s)
+
 # This is a fix for a non-existing user in passwd file when running in a docker
 # container and trying to clone repos of dependencies
 GIT_COMMITTER_NAME ?= "user"
@@ -188,6 +191,14 @@ spacetemplate/template_assets.go: $(GO_BINDATA_BIN) $(wildcard spacetemplate/ass
 		-nocompress \
 		spacetemplate/assets
 
+swagger/swagger_assets.go: $(GO_BINDATA_BIN) $(wildcard swagger/*.json)
+	$(GO_BINDATA_BIN) \
+		-o swagger/swagger_assets.go \
+		-pkg swagger \
+		-prefix swagger \
+		-nocompress \
+		swagger
+
 # These are binary tools from our vendored packages
 $(GOAGEN_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
@@ -221,6 +232,7 @@ clean-generated:
 	-rm -f ./migration/sqlbindata.go
 	-rm -f ./migration/sqlbindata_test.go
 	-rm -rf ./account/tenant
+	-rm -rf ./notification/client
 	-rm -rf ./auth/authservice
 	-rm -f ./spacetemplate/template_assets.go
 
@@ -248,7 +260,7 @@ $(DEP_BIN):
 ifeq ($(UNAME_S),Darwin)
 	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-darwin-amd64 -o $(DEP_BIN) 
 	@cd $(DEP_BIN_DIR) && \
-	echo "f170008e2bf8b196779c361a4eaece1b03450d23bbf32d1a0beaa9b00b6a5ab4  dep" > dep-darwin-amd64.sha256 && \
+	echo "1544afdd4d543574ef8eabed343d683f7211202a65380f8b32035d07ce0c45ef  dep" > dep-darwin-amd64.sha256 && \
 	shasum -a 256 --check dep-darwin-amd64.sha256
 else
 	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-linux-amd64 -o $(DEP_BIN)
@@ -295,7 +307,7 @@ migrate-database: $(BINARY_SERVER_BIN)
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: app/controllers.go migration/sqlbindata.go spacetemplate/template_assets.go generate-minimock 
+generate: app/controllers.go migration/sqlbindata.go spacetemplate/template_assets.go generate-minimock swagger/swagger_assets.go
 
 .PHONY: regenerate
 ## Runs the "clean-generated" and the "generate" target
@@ -309,10 +321,10 @@ dev: prebuild-check deps generate $(FRESH_BIN) docker-compose-up
 docker-compose-up:
 ifeq ($(UNAME_S),Darwin)
 	@echo "Running docker-compose with macOS network settings"
-	docker-compose -f docker-compose.macos.yml up -d db auth
+	docker-compose -f docker-compose.macos.yml up -d db auth swagger_ui
 else
 	@echo "Running docker-compose with Linux network settings"
-	docker-compose up -d db auth
+	docker-compose up -d db auth swagger_ui
 endif
 
 MINISHIFT_IP = `minishift ip`
@@ -321,7 +333,7 @@ MINISHIFT_URL = http://$(MINISHIFT_IP)
 MINISHIFT_HOSTS_ENTRY = http://minishift.local
 
 # Setup AUTH image URL, use default image path and default tag if not provided
-AUTH_IMAGE_DEFAULT=docker.io/fabric8/fabric8-auth
+AUTH_IMAGE_DEFAULT=quay.io/openshiftio/fabric8-services-fabric8-auth
 AUTH_IMAGE_TAG ?= latest
 AUTH_IMAGE_URL=$(AUTH_IMAGE_DEFAULT):$(AUTH_IMAGE_TAG)
 

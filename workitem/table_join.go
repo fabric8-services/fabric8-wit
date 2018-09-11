@@ -24,7 +24,8 @@ import (
 type TableJoin struct {
 	Active bool // true if this table join is used
 
-	// TableName specifies the foreign table upon which to join
+	// TableName specifies the foreign table upon which to join. This can also
+	// be subselect on its own.
 	TableName string // e.g. "iterations"
 
 	// TableAlias allows us to specify an alias for the table to be used in the
@@ -35,19 +36,19 @@ type TableJoin struct {
 	On string // e.g. `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`
 
 	// Where defines what condition to place in the main WHERE clause of the
-	// query final query.
+	// final query.
 	Where string
 
 	// PrefixActivators can hold a number of prefix strings that cause this join
 	// object to be activated.
 	PrefixActivators []string // e.g. []string{"iteration."}
 
-	// disallowedColumns specified all fields that are allowed to be queried
-	// from the foreign table. When empty all columns are allowed.
+	// AllowedColumns specified all fields that are allowed to be queried from
+	// the foreign table. When empty, all columns are allowed.
 	AllowedColumns []string // e.g. ["name"].
 
 	// DisallowedColumns specified all fields that are not allowed to be queried
-	// from the foreign table. When empty all columns are allowed.
+	// from the foreign table. When empty, all columns are allowed.
 	DisallowedColumns []string // e.g. ["created_at"].
 
 	// HandledFields contains those fields that were found to reference this
@@ -76,8 +77,16 @@ func (j TableJoin) Validate(db *gorm.DB) error {
 	dialect.SetDB(db.CommonDB())
 	if j.Active {
 		for _, f := range j.HandledFields {
-			if !dialect.HasColumn(j.TableName, f) {
-				return errs.Errorf(`table "%s" has no column "%s"`, j.TableName, f)
+			var allowed bool
+			for _, allowedColumn := range j.AllowedColumns {
+				if allowedColumn == f {
+					allowed = true
+				}
+			}
+			if !allowed {
+				if !dialect.HasColumn(j.TableName, f) {
+					return errs.Errorf(`table "%s" has no column "%s"`, j.TableName, f)
+				}
 			}
 		}
 	}
@@ -91,7 +100,7 @@ func JoinOnJSONField(jsonField, foreignCol string) string {
 
 // GetJoinExpression returns the SQL JOIN expression for this table join.
 func (j TableJoin) GetJoinExpression() string {
-	return fmt.Sprintf(`LEFT JOIN "%s" "%s" ON %s`, j.TableName, j.TableAlias, j.On)
+	return fmt.Sprintf(`LEFT JOIN %s "%s" ON %s`, j.TableName, j.TableAlias, j.On)
 }
 
 // HandlesFieldName returns true if the given field name should be handled by

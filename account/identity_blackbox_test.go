@@ -7,26 +7,58 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
-type identityBlackBoxTest struct {
+type IdentityRepositoryTestSuite struct {
 	gormtestsupport.DBTestSuite
 	repo account.IdentityRepository
 }
 
-func TestRunIdentityBlackBoxTest(t *testing.T) {
-	suite.Run(t, &identityBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+func TestIdentityRepository(t *testing.T) {
+	suite.Run(t, &IdentityRepositoryTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
-func (s *identityBlackBoxTest) SetupTest() {
+func (s *IdentityRepositoryTestSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.repo = account.NewIdentityRepository(s.DB)
 }
 
-func (s *identityBlackBoxTest) TestOKToDelete() {
+func (s *IdentityRepositoryTestSuite) TestQuery() {
+
+	s.T().Run("without preload of user", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1))
+		id := fxt.Identities[0].ID
+		// when
+		ids, err := s.repo.Query(account.IdentityFilterByID(id))
+		// then
+		require.NoError(t, err)
+		require.Len(t, ids, 1)
+		assert.Equal(t, ids[0].ID, id)
+		assert.Equal(t, uuid.Nil, ids[0].User.ID) // UUID will be `0000000-0000-0000-000000000000`
+	})
+
+	s.T().Run("with preload of user", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1))
+		id := fxt.Identities[0].ID
+		// when
+		ids, err := s.repo.Query(account.IdentityFilterByID(id), account.IdentityWithUser())
+		// then
+		require.NoError(t, err)
+		require.Len(t, ids, 1)
+		assert.Equal(t, ids[0].ID, id)
+		assert.NotEqual(t, uuid.Nil, ids[0].User.ID)     // UUID will be set with the ID of the user
+		assert.Equal(t, fxt.Users[0].ID, ids[0].User.ID) // UUID will be set with the ID of the user
+	})
+}
+
+func (s *IdentityRepositoryTestSuite) TestOKToDelete() {
 	// given
 	identity := &account.Identity{
 		ID:           uuid.NewV4(),
@@ -54,11 +86,11 @@ func (s *identityBlackBoxTest) TestOKToDelete() {
 	}
 }
 
-func (s *identityBlackBoxTest) TestOKToLoad() {
+func (s *IdentityRepositoryTestSuite) TestOKToLoad() {
 	createAndLoad(s)
 }
 
-func (s *identityBlackBoxTest) TestExistsIdentity() {
+func (s *IdentityRepositoryTestSuite) TestExistsIdentity() {
 	t := s.T()
 	resource.Require(t, resource.Database)
 
@@ -82,7 +114,7 @@ func (s *identityBlackBoxTest) TestExistsIdentity() {
 
 }
 
-func (s *identityBlackBoxTest) TestOKToSave() {
+func (s *IdentityRepositoryTestSuite) TestOKToSave() {
 	// given
 	identity := createAndLoad(s)
 	// when
@@ -92,7 +124,7 @@ func (s *identityBlackBoxTest) TestOKToSave() {
 	require.NoError(s.T(), err, "Could not update identity")
 }
 
-func createAndLoad(s *identityBlackBoxTest) *account.Identity {
+func createAndLoad(s *IdentityRepositoryTestSuite) *account.Identity {
 	identity := &account.Identity{
 		ID:           uuid.NewV4(),
 		Username:     "someuserTestIdentity2",

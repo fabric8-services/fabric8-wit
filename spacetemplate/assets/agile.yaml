@@ -1,0 +1,452 @@
+space_template:
+
+  id: "f405fa41-a8bb-46db-8800-2dbe13da1418"
+  name: Agile
+  description: >
+    An agile software development framework for managing development.
+  can_construct: yes
+
+work_item_types:
+
+- id: &agileCommonTypeID "719beee7-07cb-489c-9a4b-9618d45df35a"
+  extends: "86af5178-9b41-469b-9096-57e5155c3f31"
+  name: Agile Common Type
+  can_construct: no
+  description: >
+    This is the work item type that defines the common fields that are shared
+    among all for all work item types of the agile template. It extends the
+    planner item type and thereby already provides a great deal of common
+    fields.
+  icon: fa fa-question
+
+- id: &impedimentID "03b9bb64-4f65-4fa7-b165-494cd4f01401"
+  extends: *agileCommonTypeID
+  name: Impediment
+  can_construct: yes
+  description: >
+    Any issue or blocker that slows down the velocity of a team and affects
+    team performance or progress.
+  icon: fa fa-stumbleupon
+  fields:
+    "system.state":
+      label: State
+      description: The state of the impediment.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - Open
+        - In Progress
+        - Resolved
+        - Closed
+    "resolution":
+      label: Resolution
+      description: >
+        The reason why this work item's state was last changed.
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - None
+        - Done
+        - Duplicate
+        - Incomplete Description
+        - Can not Reproduce
+        - Deferred
+        - Won't Fix
+        - Out of Date
+        - Verified
+
+
+- id: &defectID "fce0921f-ea70-4513-bb91-31d3aa8017f1"
+  extends: *agileCommonTypeID
+  name: Defect
+  can_construct: yes
+  description: >
+    A bug that causes unexpected behavior in the software.
+  icon: fa fa-bug
+  fields:
+    "system.state":
+      label: State
+      description: The state of the defect.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - Open
+        - In Progress
+        - Resolved
+        - Closed
+    "effort":
+      label: Effort
+      description: >
+        The effort needed to fix this defect.
+      required: no
+      type:
+        kind: float
+    "environment":
+      label: Environment
+      description: >
+        The environment where this defect appears.
+      required: no
+      type:
+        kind: markup
+    "repro_steps":
+      label: Steps to reproduce
+      description: >
+        Steps to reproduce the defect.
+      required: no
+      type:
+        kind: markup
+    "severity":
+      label: Severity
+      description: The degree of impact that a defect has on the operation of the product or impact on security.
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - SEV1 - Urgent
+        - SEV2 - High
+        - SEV3 - Medium
+        - SEV4 - Low
+        default_value: SEV3 - Medium
+    "priority":
+      label: Priority
+      description: The order in which the developer should resolve a defect.
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - P1 - Critical
+        - P2 - High
+        - P3 - Medium
+        - P4 - Low
+        default_value: P3 - Medium
+    "resolution":
+      label: Resolution
+      description: >
+        The reason why this defect's state was last changed.
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - Done
+        - Duplicate
+        - Incomplete Description
+        - Can not Reproduce
+        - Deferred
+        - Won't Fix
+        - Out of Date
+        - Verified
+
+- id: &taskID "2853459d-60ef-4fbe-aaf4-eccb9f554b34"
+  extends: *agileCommonTypeID
+  name: Task
+  can_construct: yes
+  description: >
+    Work assigned to team members to implement a story. They are generally
+    measured in units of 0.5 days, for example, four hours, eight hours, sixteen
+    hours.
+  icon: fa fa-tasks
+  fields:
+    "system.state":
+      label: State
+      description: The state of the Task.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - Open
+        - In Progress
+        - Resolved
+        - Closed
+    "effort":
+      label: Effort
+      description: >
+        The effort needed to implement this user story.
+      required: no
+      type:
+        kind: float
+
+- id: &storyID "6ff83406-caa7-47a9-9200-4ca796be11bb"
+  extends: *agileCommonTypeID
+  name: Story
+  can_construct: yes
+  description: >
+    Incremental work or requirements identified to deliver a product feature.
+    Typically, it is expressed from the user's perspective in the following
+    format - As a user, I want to achieve an objective, so that this purpose is
+    met.
+  icon: pficon pficon-image
+  fields:
+    "system.state":
+      label: State
+      description: The state of the story item.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - Open
+        - In Progress
+        - Deferred
+        - Resolved
+        - Closed
+    "storypoints":
+      label: Storypoints
+      description: >
+        The effort needed to implement this user story.
+      required: no
+      type:
+        kind: float
+    "acceptance_criteria":
+      label: Acceptance criteria
+      description: >
+        The acceptance criteria describes rules for checking
+        if a chunk of work is completed.
+      required: no
+      type:
+        kind: markup
+    "component":
+      label: Component
+      description: >
+        The component for this area of work.
+      required: no
+      type:
+        kind: string
+  child_types:
+  - *taskID
+  - *defectID
+  - *impedimentID
+
+- id: &epicID "2c169431-a55d-49eb-af74-cc19e895356f"
+  extends: *agileCommonTypeID
+  name: Epic
+  can_construct: yes
+  description: >
+    A large user story, with a focused goal, that may need to be split into
+    multiple user stories spanning over multiple iterations to be realized. It
+    could comprise a short statement or phrase, a coherent aggregation of user
+    stories and requirements, or an idea.
+  icon: fa fa-bullseye
+  fields:
+    "system.state":
+      label: State
+      description: The state of the Epic.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - Open
+        - In Progress
+        - Resolved
+        - Deferred
+        - No Plan to Implement
+        - Closed
+    "storypoints":
+      label: Storypoints
+      description: >
+        The effort needed to implement the epic.
+      required: no
+      type:
+        kind: float
+    "acceptance_criteria":
+      label: Acceptance criteria
+      description: >
+        The acceptance criteria describes rules for checking
+        if a chunk of work is completed.
+      required: no
+      type:
+        kind: markup
+  child_types:
+  - *storyID
+  - *defectID
+  - *impedimentID
+
+- id: &themeID "5182fc8c-b1d6-4c3d-83ca-6a3c781fa18a"
+  extends: *agileCommonTypeID
+  name: Theme
+  can_construct: yes
+  description: >
+    A group of user stories with a common underlying thread. They have a broad
+    organization-level focus and are used to track related user stories.
+  icon: fa fa-puzzle-piece
+  fields:
+    "system.state":
+      label: State
+      description: The state of the theme.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        # TODO(michaelkleinhenz): remove New and Resolved
+        values:
+        - New
+        - Open
+        - In Progress
+        - Deferred
+        - No Plan to Implement
+        - Resolved
+        - Closed
+    "business_value":
+      label: Business Value
+      description: >
+        Business value for this theme.
+      required: no
+      type:
+        kind: string
+    "target_date":
+      label: Target date
+      description: >
+        The target completion date of the theme.
+      required: no
+      type:
+        kind: instant
+    "acceptance_criteria":
+      label: Acceptance criteria
+      description: >
+        The acceptance criteria describes rules for checking
+        if a chunk of work is completed.
+      required: no
+      type:
+        kind: markup
+  child_types:
+  - *epicID
+  - *defectID
+  - *impedimentID
+
+work_item_boards:
+
+- id: "f5c2a471-8eb7-4d28-9248-582a3c868faa"
+  name: Backlog Items Board
+  description: This is the default board config for the Agile template (Backlog Items).
+  context: "1c21af72-59ab-43d7-a84c-e76ee8ed3342"
+  context_type: "TypeLevelContext"
+  columns:
+  - id: "7389fa7d-39c8-4865-8094-eda9a7836161"
+    name: "New"
+    order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
+  - id: "7063ae46-994d-49e8-99f9-2ad867dd340e"
+    name: "Open"
+    order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
+  - id: "f7243e68-1d2b-4256-b6e7-3c657c944ff1"
+    name: "In Progress"
+    order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "9f780106-4d71-41bf-b017-001ca7e19162"
+    name: "Done"
+    order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+  - id: "b454daf3-d7f4-44d2-a8fb-c767984ecd9d"
+    name: "Verified"
+    order: 4
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+
+- id: "0331cca0-0c6c-48fb-b2cd-002f957f9e31"
+  name: Execution Board
+  description: This is the default board config for the Agile template (Execution).
+  context: "49d1a19f-02b4-4a10-a774-5723299f8944"
+  context_type: "TypeLevelContext"
+  columns:
+  - id: "7e3bbf09-44c4-419e-8d43-10e00400ca80"
+    name: "New"
+    order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
+  - id: "29124ef0-d651-47c4-84a7-28acb7a4ab7a"
+    name: "Open"
+    order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
+  - id: "a30fc0e0-bfa9-43b1-a83d-b62ae2d5d0f7"
+    name: "In Progress"
+    order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "ca1ea842-1650-4435-88b3-560e5bf47d42"
+    name: "Done"
+    order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+  - id: "c3589823-203c-4890-b548-f003ba77af53"
+    name: "Verified"
+    order: 4
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+
+work_item_type_groups:
+
+- name: Work Items
+  id: "1c21af72-59ab-43d7-a84c-e76ee8ed3342"
+  type_list:
+  - *themeID
+  - *epicID
+  - *storyID
+  - *taskID
+  - *defectID
+  - *impedimentID
+  bucket: portfolio
+  icon: fa fa-bullseye
+
+- name: Execution
+  id: "49d1a19f-02b4-4a10-a774-5723299f8944"
+  type_list:
+  - *themeID
+  - *epicID
+  - *storyID
+  - *taskID
+  - *defectID
+  - *impedimentID
+  bucket: iteration
+  icon: fa fa-repeat
+
+work_item_link_types:
+
+- id: "48b1b953-ddf3-473d-8527-e705f7c5f943"
+  name: Impedes
+  description: One work item item impedes another one
+  forward_name: impedes
+  forward_description: (TODO) write a forward description for "impedes"
+  reverse_name: is impeded by
+  reverse_description: (TODO) write a reverse description for "is impeded by"
+  topology: dependency

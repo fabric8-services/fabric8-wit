@@ -12,20 +12,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/search"
-	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -40,15 +39,12 @@ import (
 
 func TestSearchController(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 type searchControllerTestSuite struct {
 	gormtestsupport.DBTestSuite
-	db                             *gormapplication.GormDB
 	svc                            *goa.Service
-	testIdentity                   account.Identity
-	wiRepo                         *workitem.GormWorkItemRepository
 	controller                     *SearchController
 	spaceBlackBoxTestConfiguration *config.Registry
 	testDir                        string
@@ -57,18 +53,14 @@ type searchControllerTestSuite struct {
 func (s *searchControllerTestSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.testDir = filepath.Join("test-files", "search")
-	s.db = gormapplication.NewGormDB(s.DB)
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "searchControllerTestSuite user", "test provider")
 	require.NoError(s.T(), err)
-	s.testIdentity = *testIdentity
 
-	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
 	spaceBlackBoxTestConfiguration, err := config.Get()
 	require.NoError(s.T(), err)
-	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
-	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", s.testIdentity)
-	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
+	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", *testIdentity)
+	s.controller = NewSearchController(s.svc, s.GormDB, spaceBlackBoxTestConfiguration)
 }
 
 func (s *searchControllerTestSuite) TestSearchWorkItems() {
@@ -209,34 +201,6 @@ func (s *searchControllerTestSuite) TestUnwantedCharactersRelatedToSearchLogic()
 	assert.Empty(s.T(), sr.Data)
 }
 
-func (s *searchControllerTestSuite) getWICreatePayload() *app.CreateWorkitemsPayload {
-	spaceID := space.SystemSpace
-	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(workitem.SystemTask.String()))
-	c := app.CreateWorkitemsPayload{
-		Data: &app.WorkItem{
-			Type:       APIStringTypeWorkItem,
-			Attributes: map[string]interface{}{},
-			Relationships: &app.WorkItemRelationships{
-				BaseType: &app.RelationBaseType{
-					Data: &app.BaseTypeData{
-						Type: APIStringTypeWorkItemType,
-						ID:   workitem.SystemTask,
-					},
-					Links: &app.GenericLinks{
-						Self:    &witRelatedURL,
-						Related: &witRelatedURL,
-					},
-				},
-				Space: app.NewSpaceRelation(spaceID, spaceRelatedURL),
-			},
-		},
-	}
-	c.Data.Attributes[workitem.SystemTitle] = "Title"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	return &c
-}
-
 func getServiceAsUser(testIdentity account.Identity) *goa.Service {
 	return testsupport.ServiceAsUser("TestSearch-Service", testIdentity)
 }
@@ -274,10 +238,10 @@ func (s *searchControllerTestSuite) searchByURL(customHost, queryString string) 
 }
 
 // verifySearchByKnownURLs performs actual tests on search result and knwonURL map
-func (s *searchControllerTestSuite) verifySearchByKnownURLs(wi *app.WorkItemSingle, host, searchQuery string) {
+func (s *searchControllerTestSuite) verifySearchByKnownURLs(wi *workitem.WorkItem, host, searchQuery string) {
 	result := s.searchByURL(host, searchQuery)
 	assert.NotEmpty(s.T(), result.Data)
-	assert.Equal(s.T(), *wi.Data.ID, *result.Data[0].ID)
+	assert.Equal(s.T(), wi.ID, *result.Data[0].ID)
 
 	known := search.GetAllRegisteredURLs()
 	require.NotNil(s.T(), known)
@@ -287,22 +251,17 @@ func (s *searchControllerTestSuite) verifySearchByKnownURLs(wi *app.WorkItemSing
 }
 
 // TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
-// Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
+// Uses helper functions verifySearchByKnownURLs, searchByURL
 func (s *searchControllerTestSuite) TestAutoRegisterHostURL() {
-	wiCtrl := NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	// create a WI, search by `list view URL` of newly created item
-	//fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
-	newWI := s.getWICreatePayload()
-	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, wiCtrl, space.SystemSpace, newWI)
-	require.NotNil(s.T(), wi)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 	customHost := "own.domain.one"
-	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%d", customHost, wi.Data.Attributes[workitem.SystemNumber])
-	s.verifySearchByKnownURLs(wi, customHost, queryString)
+	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%d", customHost, fxt.WorkItems[0].Fields[workitem.SystemNumber])
+	s.verifySearchByKnownURLs(fxt.WorkItems[0], customHost, queryString)
 
 	// Search by `board view URL` of newly created item
 	customHost2 := "own.domain.two"
-	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%d", customHost2, wi.Data.Attributes[workitem.SystemNumber])
-	s.verifySearchByKnownURLs(wi, customHost2, queryString2)
+	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%d", customHost2, fxt.WorkItems[0].Fields[workitem.SystemNumber])
+	s.verifySearchByKnownURLs(fxt.WorkItems[0], customHost2, queryString2)
 }
 
 func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {
@@ -409,72 +368,40 @@ func (s *searchControllerTestSuite) TestSearchFilter() {
 
 func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
-		// given
-		fxt := tf.NewTestFixture(t, s.DB,
-			tf.CreateWorkItemEnvironment(),
-			// TODO(kwk): Decide if these type groups should go to CreateWorkItemEnvironment()
-			tf.WorkItemTypeGroups(4, func(fxt *tf.TestFixture, idx int) error {
-				witg := fxt.WorkItemTypeGroups[idx]
-				switch idx {
-				case 0:
-					witg.Name = "Scenarios"
-					witg.TypeList = []uuid.UUID{
-						workitem.SystemScenario,
-						workitem.SystemFundamental,
-						workitem.SystemPapercuts,
-					}
-				case 1:
-					witg.Name = "Experiences"
-					witg.TypeList = []uuid.UUID{
-						workitem.SystemExperience,
-						workitem.SystemValueProposition,
-					}
-				case 2:
-					witg.Name = "Requirements"
-					witg.TypeList = []uuid.UUID{
-						workitem.SystemFeature,
-						workitem.SystemBug,
-					}
-				case 3:
-					witg.Name = "Execution"
-					witg.TypeList = []uuid.UUID{
-						workitem.SystemTask,
-						workitem.SystemBug,
-						workitem.SystemFeature,
-					}
-				}
-				return nil
-			}),
-		)
-		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
-		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 		// given work items of different types and in different states
 		type testWI struct {
 			Title          string
 			WorkItemTypeID uuid.UUID
 			State          string
-			SpaceID        uuid.UUID
 		}
 		testWIs := []testWI{
-			{"closed feature", workitem.SystemFeature, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-			{"open feature", workitem.SystemFeature, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-			{"closed bug", workitem.SystemBug, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-			{"open bug", workitem.SystemBug, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-			{"open experience", workitem.SystemExperience, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-			{"closed experience", workitem.SystemExperience, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-			{"open task", workitem.SystemTask, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-			{"closed task", workitem.SystemTask, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-			{"open scenario", workitem.SystemScenario, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-			{"closed scenario", workitem.SystemScenario, workitem.SystemStateClosed, fxt.Spaces[0].ID},
-			{"open fundamental", workitem.SystemFundamental, workitem.SystemStateOpen, fxt.Spaces[0].ID},
-			{"closed fundamental", workitem.SystemFundamental, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"closed feature", workitem.SystemFeature, workitem.SystemStateClosed},
+			{"open feature", workitem.SystemFeature, workitem.SystemStateOpen},
+			{"closed bug", workitem.SystemBug, workitem.SystemStateClosed},
+			{"open bug", workitem.SystemBug, workitem.SystemStateOpen},
+			{"open experience", workitem.SystemExperience, workitem.SystemStateOpen},
+			{"closed experience", workitem.SystemExperience, workitem.SystemStateClosed},
+			{"open task", workitem.SystemTask, workitem.SystemStateOpen},
+			{"closed task", workitem.SystemTask, workitem.SystemStateClosed},
+			{"open scenario", workitem.SystemScenario, workitem.SystemStateOpen},
+			{"closed scenario", workitem.SystemScenario, workitem.SystemStateClosed},
+			{"open fundamental", workitem.SystemFundamental, workitem.SystemStateOpen},
+			{"closed fundamental", workitem.SystemFundamental, workitem.SystemStateClosed},
 		}
-		for _, wi := range testWIs {
-			payload := minimumRequiredCreateWithTypeAndSpace(wi.WorkItemTypeID, wi.SpaceID)
-			payload.Data.Attributes[workitem.SystemTitle] = wi.Title
-			payload.Data.Attributes[workitem.SystemState] = wi.State
-			_, _ = test.CreateWorkitemsCreated(t, svc.Context, svc, workitemsCtrl, wi.SpaceID, &payload)
-		}
+
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[idx].SpaceTemplateID = spacetemplate.SystemLegacyTemplateID
+				return nil
+			}),
+			tf.CreateWorkItemEnvironment(),
+			tf.WorkItems(len(testWIs), func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItems[idx].Type = testWIs[idx].WorkItemTypeID
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = testWIs[idx].Title
+				fxt.WorkItems[idx].Fields[workitem.SystemState] = testWIs[idx].State
+				return nil
+			}),
+		)
 
 		// helper function that checks if the given to be found work item titles
 		// exist in the result list that originate from a search query.
@@ -843,8 +770,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 					]}
 				]}`,
 			spaceIDStr, workitem.SystemStateOpen, fakeIterationID)
-		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-		assert.Empty(t, result.Data)
+		test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	})
 
 	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID) using NE", func(t *testing.T) {
@@ -1042,7 +968,6 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotNil(s.T(), result)
 		require.NotEmpty(t, result.Data)
-		assert.Len(t, result.Data, 1)
 	})
 
 	s.T().Run("assignee=null after WI creation (top-level)", func(t *testing.T) {
@@ -1051,7 +976,6 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 		)
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(t, result.Data)
-		assert.Len(t, result.Data, 1)
 	})
 
 	s.T().Run("assignee=null with negate", func(t *testing.T) {
@@ -1411,7 +1335,7 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 
 			t.Run("assignee should be nil if assignee field is not touched during update", func(t *testing.T) {
 				wi := result.Data[0]
-				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+				workitemCtrl := NewWorkitemController(s.svc, s.GormDB, s.Configuration)
 
 				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
 				payload2 := app.UpdateWorkitemPayload{Data: wi}
@@ -1450,7 +1374,7 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 
 			t.Run("assignee should be nil if label field is not touched during update", func(t *testing.T) {
 				wi := result.Data[0]
-				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+				workitemCtrl := NewWorkitemController(s.svc, s.GormDB, s.Configuration)
 				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
 				payload2 := app.UpdateWorkitemPayload{Data: wi}
 				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
@@ -1471,11 +1395,11 @@ func (s *searchControllerTestSuite) TestSearchCodebases() {
 		tf.NewTestFixture(s.T(), s.DB,
 			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
 			tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
-				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/single/%d", idx)
+				fxt.Codebases[idx].URL = fmt.Sprintf("https://foo.com/single/%d", idx)
 				return nil
 			}),
 		) // when
-		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "http://foo.com/single/0")
+		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "https://foo.com/single/0")
 		// then
 		require.NotNil(t, codebaseList)
 		require.NotNil(t, codebaseList.Data)
@@ -1490,12 +1414,12 @@ func (s *searchControllerTestSuite) TestSearchCodebases() {
 			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
 			tf.Spaces(count),
 			tf.Codebases(count, func(fxt *tf.TestFixture, idx int) error {
-				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/multi/0") // both codebases have the same URL...
-				fxt.Codebases[idx].SpaceID = fxt.Spaces[idx].ID                // ... but they belong to different spaces
+				fxt.Codebases[idx].URL = fmt.Sprintf("https://foo.com/multi/0") // both codebases have the same URL...
+				fxt.Codebases[idx].SpaceID = fxt.Spaces[idx].ID                 // ... but they belong to different spaces
 				return nil
 			}),
 		) // when
-		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "http://foo.com/multi/0")
+		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "https://foo.com/multi/0")
 		// then
 		require.NotNil(t, codebaseList)
 		require.NotNil(t, codebaseList.Data)
@@ -1507,6 +1431,27 @@ func (s *searchControllerTestSuite) TestSearchCodebases() {
 		// for included spaces, we must sort the spaces by their ID
 		sort.Sort(SortableIncludedSpacesByID(codebaseList.Included))
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_multi_match.json"), codebaseList)
+	})
+
+	s.T().Run("codebase with git@github.com", func(t *testing.T) {
+		// this is saved in database
+		savedURL := "https://github.com/USERNAME/REPOSITORY.git"
+		tf.NewTestFixture(t, s.DB,
+			tf.Codebases(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Codebases[idx].URL = savedURL
+				return nil
+			}),
+		)
+
+		// when this URL is queried we should get what is in database
+		queryURL := "git@github.com:USERNAME/REPOSITORY.git"
+		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, queryURL)
+		// then
+		require.NotNil(t, codebaseList)
+		require.NotNil(t, codebaseList.Data)
+		require.Len(t, codebaseList.Data, 1)
+		require.Equal(t, savedURL, *codebaseList.Data[0].Attributes.URL)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "search_codebase_git_url.json"), codebaseList)
 	})
 }
 

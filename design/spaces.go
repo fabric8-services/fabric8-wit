@@ -28,6 +28,7 @@ var genericLinksForSpace = a.Type("GenericLinksForSpace", func() {
 	a.Attribute("collaborators", d.String, `URL to the list of the space collaborators`)
 	a.Attribute("filters", d.String, `URL to the list of available filters`)
 	a.Attribute("workitemtypegroups", d.String, "URL to the list all work item type groups")
+	a.Attribute("workitemboards", d.String, "URL to the list all work item boards")
 })
 
 var backlogGenericLinkType = a.Type("BacklogGenericLink", func() {
@@ -174,6 +175,8 @@ var _ = a.Resource("space", func() {
 		a.Description("Delete a space with the given ID.")
 		a.Params(func() {
 			a.Param("spaceID", d.UUID, "ID of the space to delete")
+			a.Param("skipCluster", d.Boolean,
+				"If true, skip deleting OpenShift objects belonging to the space")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)

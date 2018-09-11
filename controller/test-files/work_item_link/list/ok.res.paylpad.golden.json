@@ -92,6 +92,7 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
+        "system.metastate": null,
         "system.number": 1,
         "system.order": 1,
         "system.remote_item_id": null,
@@ -131,11 +132,11 @@
         "creator": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000011",
-            "links": {
-              "related": "http:///api/users/00000000-0000-0000-0000-000000000011",
-              "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
-            },
             "type": "users"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000011",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
           }
         },
         "events": {
@@ -159,6 +160,7 @@
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000012"
           }
         },
+        "system.boardcolumns": {},
         "workItemLinks": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/links"
@@ -170,6 +172,7 @@
     {
       "attributes": {
         "system.created_at": "0001-01-01T00:00:00Z",
+        "system.metastate": null,
         "system.number": 2,
         "system.order": 2,
         "system.remote_item_id": null,
@@ -209,11 +212,11 @@
         "creator": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000011",
-            "links": {
-              "related": "http:///api/users/00000000-0000-0000-0000-000000000011",
-              "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
-            },
             "type": "users"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000011",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
           }
         },
         "events": {
@@ -237,6 +240,7 @@
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000012"
           }
         },
+        "system.boardcolumns": {},
         "workItemLinks": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/links"

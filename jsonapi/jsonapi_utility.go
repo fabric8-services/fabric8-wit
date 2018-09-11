@@ -4,7 +4,9 @@ import (
 	"context"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -174,4 +176,17 @@ func JSONErrorResponse(ctx InternalServerErrorContext, err error) error {
 	}
 	sentry.Sentry().CaptureError(ctx, err)
 	return ctx.InternalServerError(jsonErr)
+}
+
+// FormatMemberName formats any given input string to conform to the JSONAPI
+// member names (see http://jsonapi.org/format/#document-member-names) by
+// replacing everything that is not a letter, a digit, or an underscore with an
+// underscore. Then any leading or trailing underscores are removed.
+func FormatMemberName(name string) string {
+	re := regexp.MustCompile(`[^a-zA-Z0-9_]+`)
+	name = re.ReplaceAllString(name, "_")
+	name = strings.TrimFunc(name, func(r rune) bool {
+		return r == '_'
+	})
+	return name
 }

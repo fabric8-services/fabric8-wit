@@ -8,11 +8,15 @@ import (
 )
 
 // NewJWTContext creates a context with a JWT having the given `subject`
-func NewJWTContext(subject string) (context.Context, error) {
+// using the private key that is located in the 'privateKeyPath'
+func NewJWTContext(subject, privateKeyPath string) (context.Context, error) {
 	claims := jwt.MapClaims{}
 	claims["sub"] = subject
 	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
-	key, err := PrivateKey("../test/jwt/private_key.pem")
+	if privateKeyPath == "" {
+		privateKeyPath = "../test/jwt/private_key.pem"
+	}
+	key, err := PrivateKey(privateKeyPath)
 	if err != nil {
 		return nil, err
 	}

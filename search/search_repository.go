@@ -392,6 +392,7 @@ var searchKeyMap = map[string]string{
 	"creator":      workitem.SystemCreator,
 	"label":        workitem.SystemLabels,
 	"state":        workitem.SystemState,
+	"boardcolumn":  workitem.SystemBoardcolumns,
 	"type":         "Type",
 	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
 	"space":        "SpaceID",
@@ -400,7 +401,7 @@ var searchKeyMap = map[string]string{
 
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
 	switch key {
-	case workitem.SystemAssignees, workitem.SystemLabels:
+	case workitem.SystemAssignees, workitem.SystemLabels, workitem.SystemBoardcolumns, workitem.SystemBoard:
 		return criteria.Literal([]string{val})
 	default:
 		return criteria.Literal(val)
@@ -577,7 +578,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		db = db.Where(query, workItemTypes)
 	}
 
-	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
+	db = db.Select("count(*) over () as cnt2 , *").Order(workitem.Column(workitem.WorkItemStorage{}.TableName(), "execution_order") + " desc")
 	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
 	if spaceID != nil {
 		db = db.Where("space_id=?", *spaceID)
@@ -716,7 +717,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 		db = db.Limit(*limit)
 	}
 
-	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
+	db = db.Select("count(*) over () as cnt2 , *").Order(workitem.Column(workitem.WorkItemStorage{}.TableName(), "execution_order") + " desc")
 
 	rows, err := db.Rows()
 	defer closeable.Close(ctx, rows)

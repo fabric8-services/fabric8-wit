@@ -35,6 +35,7 @@ var workItem = a.Type("WorkItem", func() {
 var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("assignees", relationGenericList, "This defines assignees of the Work Item")
 	a.Attribute("labels", relationGenericList, "List of labels attached to the Work Item")
+	a.Attribute("system.boardcolumns", relationGenericList, "List of board columns this Work Item is attached to")
 	a.Attribute("creator", relationGeneric, "This defines creator of the Work Item")
 	a.Attribute("baseType", relationBaseType, "This defines type of Work Item")
 	a.Attribute("comments", relationGeneric, "This defines comments on the Work Item")
@@ -203,6 +204,10 @@ var _ = a.Resource("workitems", func() {
 			a.Param("filter[parentexists]", d.Boolean, "if false list work items without any parent")
 			a.Param("filter[expression]", d.String, "accepts query in JSON format and redirects to /api/search? API", func() {
 				a.Example(`{$AND: [{"space": "f73988a2-1916-4572-910b-2df23df4dcc3"}, {"state": "NEW"}]}`)
+			})
+			a.Param("sort", d.String, func() {
+				a.Enum("execution", "created", "updated",
+					"-execution", "-created", "-updated")
 			})
 		})
 		a.UseTrait("conditional")

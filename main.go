@@ -4,17 +4,18 @@ import (
 	"context"
 	"flag"
 	"net/http"
+	"net/url"
 	"os"
 	"os/user"
 	"runtime"
+	"strings"
 	"time"
-
-	"github.com/fabric8-services/fabric8-wit/closeable"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/closeable"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
 	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"
@@ -27,8 +28,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/sentry"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
+	"github.com/fabric8-services/fabric8-wit/swagger"
 	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/logging/logrus"
@@ -196,7 +199,9 @@ func main() {
 
 	service.Use(login.InjectTokenManager(tokenManager))
 	service.Use(log.LogRequest(config.IsPostgresDeveloperModeEnabled()))
+
 	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
+	app.UseJWTQueryParamMiddleware(service, witmiddleware.New(tokenManager.PublicKeys(), nil, app.NewJWTQueryParamSecurity()))
 
 	spaceAuthzService := authz.NewAuthzService(config)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
@@ -296,7 +301,7 @@ func main() {
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controller.NewUserController(service, config)
+	userCtrl := controller.NewUserController(service, appDB, config)
 	if config.GetTenantServiceURL() != "" {
 		log.Logger().Infof("Enabling Init Tenant service %v", config.GetTenantServiceURL())
 		userCtrl.InitTenant = account.NewInitTenant(config)
@@ -325,6 +330,10 @@ func main() {
 	labelCtrl := controller.NewLabelController(service, appDB, config)
 	app.MountLabelController(service, labelCtrl)
 
+	// Mount "endpoints" controller
+	endpointsCtrl := controller.NewEndpointsController(service)
+	app.MountEndpointsController(service, endpointsCtrl)
+
 	// Mount "iterations" controller
 	iterationCtrl := controller.NewIterationController(service, appDB, config)
 	app.MountIterationController(service, iterationCtrl)
@@ -332,10 +341,6 @@ func main() {
 	// Mount "spaceiterations" controller
 	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB, config)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
-
-	// Mount "userspace" controller
-	userspaceCtrl := controller.NewUserspaceController(service, db)
-	app.MountUserspaceController(service, userspaceCtrl)
 
 	// Mount "render" controller
 	renderCtrl := controller.NewRenderController(service)
@@ -363,6 +368,7 @@ func main() {
 	codebaseCtrl := controller.NewCodebaseController(service, appDB, config)
 	codebaseCtrl.ShowTenant = account.NewShowTenant(config)
 	codebaseCtrl.NewCheClient = controller.NewDefaultCheClient(config)
+	codebaseCtrl.AnalyticsGeminiClient = controller.NewDefaultAnalyticsGeminiClient(config)
 
 	app.MountCodebaseController(service, codebaseCtrl)
 
@@ -386,6 +392,14 @@ func main() {
 	workItemTypeGroupsCtrl := controller.NewWorkItemTypeGroupsController(service, appDB)
 	app.MountWorkItemTypeGroupsController(service, workItemTypeGroupsCtrl)
 
+	// Mount "board" controller with "show" action
+	workItemBoardCtrl := controller.NewWorkItemBoardController(service, appDB)
+	app.MountWorkItemBoardController(service, workItemBoardCtrl)
+
+	// Mount "boards" controller with "list" action
+	workItemBoardsCtrl := controller.NewWorkItemBoardsController(service, appDB)
+	app.MountWorkItemBoardsController(service, workItemBoardsCtrl)
+
 	// Mount "queries" controller
 	queriesCtrl := controller.NewQueryController(service, appDB, config)
 	app.MountQueryController(service, queriesCtrl)
@@ -394,12 +408,42 @@ func main() {
 	featuresCtrl := controller.NewFeaturesController(service, config)
 	app.MountFeaturesController(service, featuresCtrl)
 
+	// serve the swagger.json modified to the current host
+	service.Mux.Handle("GET", "/api/swagger.json",
+		func(res http.ResponseWriter, req *http.Request, url url.Values) {
+			b, err := swagger.Asset("swagger.json")
+			if err != nil {
+				res.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			s := string(b)
+			// replace swagger host with host from request
+			u, err := rest.AbsoluteURLAsURL(req, "")
+			if err != nil {
+				res.WriteHeader(http.StatusInternalServerError)
+				res.Write([]byte(err.Error()))
+				return
+			}
+			s = strings.Replace(s, `"host":"openshift.io"`, `"host":"`+u.Host+`"`, -1)
+			s = strings.Replace(s, `"schemes":["http"]`, `"schemes":["`+u.Scheme+`"]`, -1)
+
+			res.Header().Set("Access-Control-Allow-Origin", "*")
+			res.Header().Set("Access-Control-Allow-Methods", "GET")
+
+			res.Write([]byte(s))
+		},
+	)
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
 	log.Logger().Infoln("Dev mode:       ", config.IsPostgresDeveloperModeEnabled())
 	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
 	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
+
+	// Make the endpoints available under /api as well
+	http.Handle("/api", http.RedirectHandler("/api/endpoints", http.StatusTemporaryRedirect))
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/favicon.ico", http.NotFoundHandler())

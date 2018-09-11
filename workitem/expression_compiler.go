@@ -125,21 +125,21 @@ var DefaultTableJoins = func() TableJoinMap {
 		"iteration": {
 			TableName:        "iterations",
 			TableAlias:       "iter",
-			On:               JoinOnJSONField(SystemIteration, "iter.id"),
+			On:               JoinOnJSONField(SystemIteration, "iter.id") + " AND " + Column("iter", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id"),
 			PrefixActivators: []string{"iteration."},
 			AllowedColumns:   []string{"name", "created_at"},
 		},
 		"area": {
 			TableName:        "areas",
 			TableAlias:       "ar",
-			On:               JoinOnJSONField(SystemArea, "ar.id"),
+			On:               JoinOnJSONField(SystemArea, "ar.id") + " AND " + Column("ar", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id"),
 			PrefixActivators: []string{"area."},
 			AllowedColumns:   []string{"name"},
 		},
 		"codebase": {
 			TableName:        "codebases",
 			TableAlias:       "cb",
-			On:               JoinOnJSONField(SystemCodebase, "cb.id"),
+			On:               JoinOnJSONField(SystemCodebase, "cb.id") + " AND " + Column("cb", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id"),
 			PrefixActivators: []string{"codebase."},
 			AllowedColumns:   []string{"url"},
 		},
@@ -164,6 +164,15 @@ var DefaultTableJoins = func() TableJoinMap {
 			PrefixActivators: []string{"space."},
 			AllowedColumns:   []string{"name"},
 		},
+		"boardcolumns": {
+			TableName:  `(SELECT id colid, board_id id, jsonb_agg(id::text) AS colids FROM ` + BoardColumn{}.TableName() + ` GROUP BY 1,2)`,
+			TableAlias: "boardcolumns",
+			On: fmt.Sprintf(Column("boardcolumns", "colid")+`::text IN (
+				SELECT jsonb_array_elements_text(jsonb_strip_nulls(`+Column(WorkItemStorage{}.TableName(), "fields")+`)->'%s')
+			)`, SystemBoardcolumns),
+			PrefixActivators: []string{"board."},
+			AllowedColumns:   []string{"id"},
+		},
 		"typegroup": {
 			TableName:  "work_item_type_groups",
 			TableAlias: "witg",
@@ -182,6 +191,17 @@ var DefaultTableJoins = func() TableJoinMap {
 			AllowedColumns:     []string{"name"},
 			ActivateOtherJoins: []string{"space"},
 		},
+		"label": {
+			TableName:  "labels",
+			TableAlias: "lbl",
+			On: Column("lbl", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id") + `
+		                    AND lbl.id::text IN (
+		                        SELECT
+						jsonb_array_elements_text(` + Column(WorkItemStorage{}.TableName(), "fields") + `->'system.labels')
+					FROM labels)`,
+			PrefixActivators: []string{"label."},
+			AllowedColumns:   []string{"name"},
+		},
 	}
 
 	res["typegroup_members"] = &TableJoin{
@@ -197,6 +217,24 @@ var DefaultTableJoins = func() TableJoinMap {
 			"typegroup.": res["typegroup"],
 		},
 	}
+
+	// Filter by parent's ID or human-readable Number
+	res["parent_link"] = &TableJoin{
+		TableName:  "work_item_links",
+		TableAlias: "parent_link",
+		// importing the link package here to get the link type is currently not
+		// possible because of an import cycle
+		On: Column("parent_link", "link_type_id") + "= '25C326A7-6D03-4F5A-B23B-86A9EE4171E9' AND " + Column("parent_link", "target_id") + "=" + Column(WorkItemStorage{}.TableName(), "id"),
+	}
+	res["parent"] = &TableJoin{
+		TableName:          WorkItemStorage{}.TableName(),
+		TableAlias:         "parent",
+		On:                 Column("parent_link", "source_id") + "=" + Column("parent", "id"),
+		AllowedColumns:     []string{"id", "number"},
+		PrefixActivators:   []string{"parent."},
+		ActivateOtherJoins: []string{"parent_link"},
+	}
+
 	return res
 }
 

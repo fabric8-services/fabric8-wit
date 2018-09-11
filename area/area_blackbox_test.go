@@ -24,7 +24,7 @@ type TestAreaRepository struct {
 
 func TestRunAreaRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestAreaRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestAreaRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (s *TestAreaRepository) TestCreateAreaWithSameNameFail() {
@@ -46,8 +46,7 @@ func (s *TestAreaRepository) TestCreateAreaWithSameNameFail() {
 	// then
 	require.Error(s.T(), err)
 	// In case of unique constrain error, a DataConflictError is returned.
-	_, ok := errs.Cause(err).(errors.DataConflictError)
-	assert.True(s.T(), ok)
+	assert.IsType(s.T(), errors.DataConflictError{}, errs.Cause(err))
 }
 
 func (s *TestAreaRepository) TestCreateArea() {
@@ -75,7 +74,7 @@ func (s *TestAreaRepository) TestExistsArea() {
 
 	t.Run("area exists", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Areas(1))
 		// when
 		err := repo.CheckExists(context.Background(), fxt.Areas[0].ID)
 		// then
@@ -92,17 +91,15 @@ func (s *TestAreaRepository) TestExistsArea() {
 
 func (s *TestAreaRepository) TestCreateChildArea() {
 	// given
-	var expectedPath path.Path
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.Areas(2, func(fxt *tf.TestFixture, idx int) error {
 			a := fxt.Areas[idx]
 			switch idx {
 			case 0:
 				a.Name = "TestCreateChildArea"
-				expectedPath = path.Path{a.ID}
 			case 1:
 				a.Name = "TestCreateChildArea.1"
-				a.Path = expectedPath
+				a.MakeChildOf(*fxt.Areas[0])
 			}
 			return nil
 		}),
@@ -112,33 +109,7 @@ func (s *TestAreaRepository) TestCreateChildArea() {
 	actualPath := actualArea.Path
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), actualArea)
-	assert.Equal(s.T(), expectedPath, actualPath)
-}
-
-func (s *TestAreaRepository) TestGetAreaBySpaceIDAndNameAndPath() {
-	// given a space and area with the same name.
-	name := "space name " + uuid.NewV4().String()
-	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Spaces[idx].Name = name
-			return nil
-		}),
-		tf.Areas(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Areas[idx].Name = name
-			fxt.Areas[idx].Path = path.Path{}
-			return nil
-		}),
-	)
-	// when
-	repo := area.NewAreaRepository(s.DB)
-	areaList, err := repo.Query(area.FilterBySpaceID(fxt.Spaces[0].ID), area.FilterByPath(path.Path{}), area.FilterByName(name))
-	// then
-	require.NoError(s.T(), err)
-	// there must be ONLY 1 result, because of the space,name,path unique constraint
-	require.Len(s.T(), areaList, 1)
-	rootArea := areaList[0]
-	assert.Equal(s.T(), name, rootArea.Name)
-	assert.Equal(s.T(), fxt.Spaces[0].ID, rootArea.SpaceID)
+	assert.Equal(s.T(), path.Path{fxt.Areas[0].ID, fxt.Areas[1].ID}, actualPath)
 }
 
 func (s *TestAreaRepository) TestListAreaBySpace() {
@@ -180,10 +151,8 @@ func (s *TestAreaRepository) TestListChildrenOfParents() {
 		tf.Areas(3, func(fxt *tf.TestFixture, idx int) error {
 			a := fxt.Areas[idx]
 			switch idx {
-			case 1:
-				a.Path = path.Path{fxt.Areas[0].ID}
-			case 2:
-				a.Path = path.Path{fxt.Areas[0].ID}
+			case 1, 2:
+				a.MakeChildOf(*fxt.Areas[0])
 			}
 			return nil
 		}),
@@ -198,12 +167,12 @@ func (s *TestAreaRepository) TestListChildrenOfParents() {
 		actualArea, err := repo.Load(context.Background(), fxt.Areas[1].ID)
 		require.NoError(t, err)
 		assert.NotEqual(t, uuid.Nil, fxt.Areas[1].Path)
-		assert.Equal(t, expectedPath, actualArea.Path) // check that path ( an ltree field ) was populated.
+		assert.Contains(t, actualArea.Path.Convert(), expectedPath.Convert()) // check that path ( an ltree field ) was populated.
 
 		actualArea, err = repo.Load(context.Background(), fxt.Areas[2].ID)
 		require.NoError(t, err)
 		assert.NotEqual(t, uuid.Nil, fxt.Areas[2].Path)
-		assert.Equal(t, expectedPath, actualArea.Path) // check that path ( an ltree field ) was populated.
+		assert.Contains(t, actualArea.Path.Convert(), expectedPath.Convert()) // check that path ( an ltree field ) was populated.
 	})
 
 	s.T().Run("check that we have two child areas", func(t *testing.T) {
@@ -229,12 +198,9 @@ func (s *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.Areas(3, func(fxt *tf.TestFixture, idx int) error {
-			a := fxt.Areas[idx]
 			switch idx {
-			case 1:
-				a.Path = path.Path{fxt.Areas[0].ID}
-			case 2:
-				a.Path = path.Path{fxt.Areas[0].ID, fxt.Areas[1].ID}
+			case 1, 2:
+				fxt.Areas[idx].MakeChildOf(*fxt.Areas[idx-1])
 			}
 			return nil
 		}),
@@ -274,10 +240,9 @@ func (s *TestAreaRepository) TestListParentTree() {
 	// given 2 areas (one is the parent, the other the child)
 
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Areas(2, func(fxt *tf.TestFixture, idx int) error {
-		a := fxt.Areas[idx]
 		switch idx {
 		case 1:
-			a.Path = path.Path{fxt.Areas[idx-1].ID}
+			fxt.Areas[idx].MakeChildOf(*fxt.Areas[idx-1])
 		}
 		return nil
 	}))

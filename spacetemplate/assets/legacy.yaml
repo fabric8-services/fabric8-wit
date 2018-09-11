@@ -4,9 +4,9 @@ space_template:
   name: Scenario Driven Development
   description: >
     An agile development methodology focused on real-world problems, or
-    Scenarios, described in the language and from the viewpoint of the user.
-    Scenarios deliver particular Value Propositions and are realized via
-    Experiences.
+    scenarios that are described in the language and from the viewpoint of the
+    user. Scenarios deliver particular value propositions and are realized
+    through experiences.
   can_construct: yes
 
 work_item_types:
@@ -15,14 +15,19 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Task
   can_construct: yes
-  description: TBD
+  description: >
+    Work assigned to various team members to implement a feature. They are
+    generally measured in units of 0.5 days, for example, four hours, eight
+    hours, sixteen hours.
   icon: fa fa-tasks
 
 - id: &bugID "26787039-b68f-4e28-8814-c2f93be1ef4e"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Bug
   can_construct: yes
-  description: TBD
+  description: >
+    A defect that causes unexpected behavior in the software and that needs to
+    be fixed.
   icon: fa fa-bug
   child_types:
   - *taskID
@@ -31,7 +36,10 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Feature
   can_construct: yes
-  description: TBD
+  description: >
+    Features, often expressed as user stories, are required to actualize parent
+    experiences or epics. They are scoped so that they are generally achievable
+    within a sprint.
   icon: fa fa-puzzle-piece
   child_types:
   - *taskID
@@ -41,7 +49,11 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Experience
   can_construct: yes
-  description: TBD
+  description: >
+    An experience is a way to address a scenario, fundamental, or a set of
+    papercuts, each of which often have multiple realizing experiences. Often
+    written as a demonstration script, it describes the ideal end-user work flow
+    for realizing one or more of the associated value propositions.
   icon: pficon pficon-infrastructure
   child_types:
   - *featureID
@@ -51,7 +63,10 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Value Proposition
   can_construct: yes
-  description: TBD
+  description: >
+    A statement of the value provided to the user by addressing a scenario,
+    fundamental, or papercut. Each of which can have multiple value
+    propositions.
   icon: fa fa-diamond
   child_types:
   - *featureID
@@ -61,7 +76,10 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Scenario
   can_construct: yes
-  description: TBD
+  description: >
+    A scenario identifies a real-world user problem to resolve. Addressing the
+    scenario provides tangible user value. Prioritize scenarios that deliver
+    maximum user value by evaluating their associated value propositions.
   icon: fa fa-bullseye
   child_types:
   - *experienceID
@@ -71,7 +89,10 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Fundamental
   can_construct: yes
-  description: TBD
+  description: >
+    A fundamental describes the basic essentials of a software product, such as
+    quality and performance standards. It is a non-negotiable aspect of a
+    product and its absence reduces the value provided to the user.
   icon: fa fa-university
   child_types:
   - *experienceID
@@ -81,21 +102,146 @@ work_item_types:
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Papercuts
   can_construct: yes
-  description: TBD
+  description: >
+    A papercut is a minor issue, often too small to be individually prioritized
+    to be addressed; collectively, papercuts degrade the perception of the
+    product. Grouped together, they receive higher priority and can be tackled
+    together within a development cycle.
   icon: fa fa-scissors
   child_types:
   - *experienceID
   - *valuePropositionID
 
+work_item_boards:
+
+- id: "24181b5c-713f-4bef-a19f-45240875da92"
+  name: Scenarios Board
+  description: This is the default board config for the SDD template (Scenarios).
+  context: "679a563c-ac9b-4478-9f3e-4187f708dd30"
+  context_type: "TypeLevelContext"
+  columns:
+  - id: "b4edad70-1d77-4e5a-b973-0f0d599fd20d"
+    name: "New"
+    order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
+  - id: "ce5cd7bd-1eb3-4945-821f-ebfedebf5958"
+    name: "Approved"
+    order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
+  - id: "42120527-5a99-4913-9917-58450008b770"
+    name: "Committed"
+    order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "b7ef0df4-2253-47ee-9e60-4f768a5d7c81"
+    name: "Done"
+    order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+
+- id: "56d62801-798a-4bb0-9c97-89f136f3d539"
+  name: Experiences Board
+  description: This is the default board config for the SDD template (Experiences).
+  context: "6d254168-6937-447f-a093-0c38404bd072"
+  context_type: "TypeLevelContext"
+  columns:
+  - id: "8faebb8a-3748-44c6-a691-27633dde571c"
+    name: "New"
+    order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
+  - id: "907dad6c-f117-4ad6-b6dd-e21fb198e56d"
+    name: "Approved"
+    order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
+  - id: "90a0a0b1-3e9c-4921-8430-25ff56fd1996"
+    name: "Committed"
+    order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "86a2aaaa-4a80-433b-b390-b8f42eec2d32"
+    name: "Done"
+    order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+
+- id: "29493abe-02eb-4e4b-ac3b-a4c1390fa5cd"
+  name: Requirements Board
+  description: This is the default board config for the SDD template (Requirements).
+  context: "44795662-db7a-44f7-a4e7-c6d41d3eff27"
+  context_type: "TypeLevelContext"
+  columns:
+  - id: "6c314706-f562-494d-91b9-b7d2c36672ba"
+    name: "New"
+    order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
+  - id: "6b06a763-cdef-400e-98d3-8db46e633c92"
+    name: "Approved"
+    order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
+  - id: "92f48297-062b-4605-9f30-2e546af4d898"
+    name: "Committed"
+    order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "572c67ef-c550-4084-bd8a-a6d722a3278a"
+    name: "Done"
+    order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+
+- id: "0e842bef-ac2a-4071-b97a-b07a6b29965d"
+  name: Execution Board
+  description: This is the default board config for the SDD template (Execution).
+  context: "5c3ee317-3cdd-4ee6-a27f-85965f777ee3"
+  context_type: "TypeLevelContext"
+  columns:
+  - id: "4953fd3a-32dd-4943-8dcf-4b4c9bfcfef1"
+    name: "New"
+    order: 0
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mNew\" }"
+  - id: "eea309e2-8caf-4dc0-98cd-8bb5de3dedb3"
+    name: "Committed"
+    order: 1
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mOpen\" }"
+  - id: "616e8d49-09a9-4ffa-903f-61f215862ee2"
+    name: "In Progress"
+    order: 2
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "c3c4a46e-13d6-4dbb-b82d-bcec22e76275"
+    name: "Completed"
+    order: 3
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mInprogress\" }"
+  - id: "0defb62a-863d-4040-9650-a6e05f744e81"
+    name: "Verified"
+    order: 4
+    trans_rule_key: "updateStateFromColumnMove"
+    trans_rule_argument: "{ \"metaState\": \"mResolved\" }"
+
 work_item_type_groups:
 
 - name: Scenarios
   id: "679a563c-ac9b-4478-9f3e-4187f708dd30"
+  description: >
+    Work item type group that focuses on the planning-oriented work item types,
+    such as scenario, fundamental, and papercuts.
   type_list:
   - *scenarioID
   - *fundamentalID
   - *papercutsID
   bucket: portfolio
+  description: >
+    Work item type group that focuses on the planning-oriented work item types,
+    such as scenario, fundamental, and papercuts.
   icon: fa fa-bullseye
 
 - name: Experiences
@@ -104,6 +250,9 @@ work_item_type_groups:
   - *experienceID
   - *valuePropositionID
   bucket: portfolio
+  description: >
+    Work item type group that focuses on the experience and value proposition
+    work item types that address the scenarios.
   icon: pficon pficon-infrastructure
 
 - name: Requirements
@@ -112,6 +261,9 @@ work_item_type_groups:
   - *featureID
   - *bugID
   bucket: requirement
+  description: >
+    Work item type group that focuses on execution-oriented work item types such
+    as feature, task, and bug.
   icon: fa fa-list-ul
 
 - name: Execution

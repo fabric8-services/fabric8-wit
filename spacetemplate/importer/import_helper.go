@@ -18,6 +18,7 @@ type ImportHelper struct {
 	WITs     []*workitem.WorkItemType      `gorm:"-" json:"work_item_types,omitempty"`
 	WILTs    []*link.WorkItemLinkType      `gorm:"-" json:"work_item_link_types,omitempty"`
 	WITGs    []*workitem.WorkItemTypeGroup `gorm:"-" json:"work_item_type_groups,omitempty"`
+	WIBs     []*workitem.Board             `gorm:"-" json:"work_item_boards,omitempty"`
 }
 
 // Validate ensures that all inner-document references of the given space
@@ -28,10 +29,14 @@ func (s *ImportHelper) Validate() error {
 		return errs.Wrap(err, "failed to validate space template")
 	}
 
-	// Ensure all artifacts have the correct space template ID set
+	// Ensure all artifacts have the correct space template ID set and are
+	// valid
 	for _, wit := range s.WITs {
 		if wit.SpaceTemplateID != s.Template.ID {
 			return errors.NewBadParameterError("work item types's space template ID", wit.SpaceTemplateID.String()).Expected(s.Template.ID.String())
+		}
+		if err := wit.Validate(); err != nil {
+			return errs.Wrapf(err, `failed to validate work item type "%s" (ID=%s)`, wit.Name, wit.ID)
 		}
 	}
 	for _, wilt := range s.WILTs {
@@ -42,6 +47,11 @@ func (s *ImportHelper) Validate() error {
 	for _, witg := range s.WITGs {
 		if witg.SpaceTemplateID != s.Template.ID {
 			return errors.NewBadParameterError("work item type group's space template ID", witg.SpaceTemplateID.String()).Expected(s.Template.ID.String())
+		}
+	}
+	for _, wibs := range s.WIBs {
+		if wibs.SpaceTemplateID != s.Template.ID {
+			return errors.NewBadParameterError("work item board's space template ID", wibs.SpaceTemplateID.String()).Expected(s.Template.ID.String())
 		}
 	}
 
@@ -96,6 +106,9 @@ func (s *ImportHelper) SetID(id uuid.UUID) {
 	for _, witg := range s.WITGs {
 		witg.SpaceTemplateID = s.Template.ID
 	}
+	for _, wib := range s.WIBs {
+		wib.SpaceTemplateID = s.Template.ID
+	}
 }
 
 // Ensure ImportHelper implements the Equaler interface
@@ -146,6 +159,17 @@ func (s ImportHelper) Equal(u convert.Equaler) bool {
 			return false
 		}
 	}
+	if len(s.WIBs) != len(other.WIBs) {
+		return false
+	}
+	for k := range s.WIBs {
+		if other.WIBs[k] == nil {
+			return false
+		}
+		if !s.WIBs[k].Equal(*other.WIBs[k]) {
+			return false
+		}
+	}
 	return true
 }
 
@@ -188,5 +212,19 @@ func ScrumTemplate() (*ImportHelper, error) {
 		return nil, errs.WithStack(err)
 	}
 	s.SetID(spacetemplate.SystemScrumTemplateID)
+	return s, nil
+}
+
+// AgileTemplate returns the agile template as it is known to the system
+func AgileTemplate() (*ImportHelper, error) {
+	bs, err := spacetemplate.Asset("agile.yaml")
+	if err != nil {
+		return nil, errs.Wrap(err, "failed to load agile template")
+	}
+	s, err := FromString(string(bs))
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+	s.SetID(spacetemplate.SystemAgileTemplateID)
 	return s, nil
 }

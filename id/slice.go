@@ -105,6 +105,17 @@ func (s Slice) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
+// Contains returns true if the slice contains the given ID; otherwise false is
+// returned.
+func (s Slice) Contains(v uuid.UUID) bool {
+	for _, i := range s {
+		if i == v {
+			return true
+		}
+	}
+	return false
+}
+
 // Ensure Slice implements the sort.Interface
 var _ sort.Interface = Slice{}
 var _ sort.Interface = (*Slice)(nil)

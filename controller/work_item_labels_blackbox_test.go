@@ -11,8 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -27,20 +25,17 @@ import (
 
 type TestWorkItemLabelREST struct {
 	gormtestsupport.DBTestSuite
-	db           *gormapplication.GormDB
 	ctx          context.Context
-	clean        func()
 	testIdentity account.Identity
 }
 
 func TestRunWorkItemLabelREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestWorkItemLabelREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestWorkItemLabelREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (l *TestWorkItemLabelREST) SetupTest() {
-	l.db = gormapplication.NewGormDB(l.DB)
-	l.clean = cleaner.DeleteCreatedEntities(l.DB)
+	l.DBTestSuite.SetupTest()
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	l.ctx = goa.NewContext(context.Background(), nil, req, params)
@@ -50,18 +45,14 @@ func (l *TestWorkItemLabelREST) SetupTest() {
 	l.testIdentity = *fixture.Identities[0]
 }
 
-func (l *TestWorkItemLabelREST) TearDownTest() {
-	l.clean()
-}
-
 func (l *TestWorkItemLabelREST) SecuredController() (*goa.Service, app.WorkitemController) {
 	svc := testsupport.ServiceAsUser("WorkItemLabel-Service", l.testIdentity)
-	return svc, NewWorkitemController(svc, l.db, l.Configuration)
+	return svc, NewWorkitemController(svc, l.GormDB, l.Configuration)
 }
 
 func (l *TestWorkItemLabelREST) UnSecuredController() (*goa.Service, app.WorkitemController) {
 	svc := goa.New("WorkItemLabel-Service")
-	return svc, NewWorkitemController(svc, l.db, l.Configuration)
+	return svc, NewWorkitemController(svc, l.GormDB, l.Configuration)
 }
 
 func (l *TestWorkItemLabelREST) TestAttachLabelToWI() {

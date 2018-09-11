@@ -56,12 +56,14 @@ See also see http://jsonapi.org/format/#document-resource-object-attributes`)
 For example, if a bug blocks a user story, the forward name is "blocks". See also reverse name.`, func() {
 		a.Example("test-workitemtype")
 	})
+	a.Attribute("forward_description", d.String, "Description of forward name of the link type (optional)")
 	a.Attribute("reverse_name", d.String, `The backwards oriented path from target to source is described with the reverse name.
 For example, if a bug blocks a user story, the reverse name name is "blocked by" as in: a user story is blocked by a bug. See also forward name.`, func() {
 		a.Example("tested by")
 	})
+	a.Attribute("reverse_description", d.String, "Description of reverse name of the link type (optional)")
 	a.Attribute("topology", d.String, `The topology determines the restrictions placed on the usage of each work item link type.`, func() {
-		a.Enum("network", "tree")
+		a.Enum("network", "tree", "dependency")
 	})
 
 	// IMPORTANT: We cannot require any field here because these "attributes" will be used

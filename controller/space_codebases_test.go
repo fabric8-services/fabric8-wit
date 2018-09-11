@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"context"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -12,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -29,35 +27,61 @@ import (
 
 type TestSpaceCodebaseREST struct {
 	gormtestsupport.DBTestSuite
-	db *gormapplication.GormDB
 }
 
 func TestRunSpaceCodebaseREST(t *testing.T) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		require.NoError(t, err)
-	}
-	suite.Run(t, &TestSpaceCodebaseREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestSpaceCodebaseREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
 func (rest *TestSpaceCodebaseREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
 }
 
-func (rest *TestSpaceCodebaseREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *SpaceCodebasesController) {
+// ConfigureSpaceCodebaseController is a function which takes in the
+// SpaceCodebasesController object, which can be used to update the
+// object in the form of closure with values coming from scope of the
+// closure definition
+type ConfigureSpaceCodebaseController func(spaceCdb *SpaceCodebasesController)
+
+// SecuredControllerWithIdentity takes the identity object and then
+// variable list of the ConfigureSpaceCodebaseController which can
+// be used to customize the SpaceCodebasesController object
+func (rest *TestSpaceCodebaseREST) SecuredControllerWithIdentity(
+	idn *account.Identity,
+	settings ...ConfigureSpaceCodebaseController,
+) (*goa.Service, *SpaceCodebasesController) {
 	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", *idn)
-	return svc, NewSpaceCodebasesController(svc, rest.db)
+	spcdbCtrl := NewSpaceCodebasesController(svc, rest.GormDB)
+	for _, set := range settings {
+		set(spcdbCtrl)
+	}
+	return svc, spcdbCtrl
 }
 
-func (rest *TestSpaceCodebaseREST) SecuredController() (*goa.Service, *SpaceCodebasesController) {
+// SecuredController takes variable list of ConfigureSpaceCodebaseController
+// which can be used to customize the SpaceCodebasesController object
+func (rest *TestSpaceCodebaseREST) SecuredController(
+	settings ...ConfigureSpaceCodebaseController,
+) (*goa.Service, *SpaceCodebasesController) {
 	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", testsupport.TestIdentity)
-	return svc, NewSpaceCodebasesController(svc, rest.db)
+	spcdbCtrl := NewSpaceCodebasesController(svc, rest.GormDB)
+	for _, set := range settings {
+		set(spcdbCtrl)
+	}
+	return svc, spcdbCtrl
 }
 
-func (rest *TestSpaceCodebaseREST) UnSecuredController() (*goa.Service, *SpaceCodebasesController) {
+// UnSecuredController takes variable list of ConfigureSpaceCodebaseController
+// which can be used to customize the SpaceCodebasesController object
+func (rest *TestSpaceCodebaseREST) UnSecuredController(
+	settings ...ConfigureSpaceCodebaseController,
+) (*goa.Service, *SpaceCodebasesController) {
 	svc := goa.New("SpaceCodebase-Service")
-	return svc, NewSpaceCodebasesController(svc, rest.db)
+	spcdbCtrl := NewSpaceCodebasesController(svc, rest.GormDB)
+	for _, set := range settings {
+		set(spcdbCtrl)
+	}
+	return svc, spcdbCtrl
 }
 
 func (rest *TestSpaceCodebaseREST) TestCreateCodebaseCreated() {
@@ -65,26 +89,30 @@ func (rest *TestSpaceCodebaseREST) TestCreateCodebaseCreated() {
 	stackId := "stackId"
 	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", &stackId)
 
+	t := rest.T()
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateSpaceCodebasesCreated(rest.T(), svc.Context, svc, ctrl, sp.ID, ci)
-	require.NotNil(rest.T(), c.Data.ID)
-	require.NotNil(rest.T(), c.Data.Relationships.Space)
-	assert.Equal(rest.T(), sp.ID.String(), *c.Data.Relationships.Space.Data.ID)
-	assert.Equal(rest.T(), "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
-	assert.Equal(rest.T(), "stackId", *c.Data.Attributes.StackID)
+	_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, sp.ID, ci)
+	require.NotNil(t, c.Data.ID)
+	require.NotNil(t, c.Data.Relationships.Space)
+	assert.Equal(t, sp.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	require.NotNil(t, c.Data.Attributes.CveScan)
+	assert.False(t, *c.Data.Attributes.CveScan)
+	assert.Equal(t, "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
+	assert.Equal(t, "stackId", *c.Data.Attributes.StackID)
 }
 
 func (rest *TestSpaceCodebaseREST) TestCreateCodebaseWithNoStackIdCreated() {
 	sp := rest.createSpace(testsupport.TestIdentity.ID)
 	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", nil)
 
+	t := rest.T()
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateSpaceCodebasesCreated(rest.T(), svc.Context, svc, ctrl, sp.ID, ci)
-	require.NotNil(rest.T(), c.Data.ID)
-	require.NotNil(rest.T(), c.Data.Relationships.Space)
-	assert.Equal(rest.T(), sp.ID.String(), *c.Data.Relationships.Space.Data.ID)
-	assert.Equal(rest.T(), "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
-	assert.Nil(rest.T(), c.Data.Attributes.StackID)
+	_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, sp.ID, ci)
+	require.NotNil(t, c.Data.ID)
+	require.NotNil(t, c.Data.Relationships.Space)
+	assert.Equal(t, sp.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	assert.Equal(t, "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
+	assert.Nil(t, c.Data.Attributes.StackID)
 }
 
 func (rest *TestSpaceCodebaseREST) TestCreateCodebaseForbidden() {
@@ -221,7 +249,7 @@ func createSpaceCodebase(url string, stackId *string) *app.CreateSpaceCodebasesP
 func (rest *TestSpaceCodebaseREST) createSpace(ownerID uuid.UUID) *space.Space {
 	var sp *space.Space
 	var err error
-	err = application.Transactional(rest.db, func(app application.Application) error {
+	err = application.Transactional(rest.GormDB, func(app application.Application) error {
 		repo := app.Spaces()
 		newSpace := &space.Space{
 			Name:            "TestSpaceCodebase " + uuid.NewV4().String(),
