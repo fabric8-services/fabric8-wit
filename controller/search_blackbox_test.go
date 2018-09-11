@@ -311,6 +311,26 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {
 	assert.Len(s.T(), sr.Data, 8)
 }
 
+func (s *searchControllerTestSuite) TestFullTextSearch() {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.WorkItems(3, tf.SetWorkItemTitles("foo", "work item with 'single quotes' in title", "bar")),
+	)
+	// regression test for:
+	// https://github.com/openshiftio/openshift.io/issues/4288
+	// https://github.com/fabric8-services/fabric8-wit/issues/2273
+	s.T().Run("search for work item with single quotes in name", func(t *testing.T) {
+		// when
+		q := "with 'single"
+		spaceIDStr := fxt.Spaces[0].ID.String()
+		_, sr := test.ShowSearchOK(t, nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
+		// then
+		require.NotNil(t, sr)
+		require.Len(t, sr.Data, 1)
+		require.Equal(t, fxt.WorkItems[1].ID, *sr.Data[0].ID)
+	})
+}
+
 func (s *searchControllerTestSuite) TestSearchWorkItemsWithoutSpaceContext() {
 	// given 2 spaces with 10 workitems in the first and 5 in the second space
 	// random title used in work items
