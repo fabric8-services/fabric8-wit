@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
-
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -47,7 +46,10 @@ type Iteration struct {
 // MakeChildOf does all the path magic to make the current iteration a child of
 // the given parent iteration.
 func (m *Iteration) MakeChildOf(parent Iteration) {
-	m.Path = append(parent.Path, parent.ID)
+	if m.ID == uuid.Nil {
+		m.ID = uuid.NewV4()
+	}
+	m.Path = append(parent.Path, m.ID)
 }
 
 // FullPath returns the Path by appending self ID to it.
@@ -75,13 +77,13 @@ func (m Iteration) GetLastModified() time.Time {
 
 // IsRoot Checks if given iteration is a root iteration or not
 func (m Iteration) IsRoot(spaceID uuid.UUID) bool {
-	return (m.SpaceID == spaceID && m.Path.String() == path.SepInService)
+	return m.SpaceID == spaceID && len(m.Path) == 1 && m.Path[0] == m.ID
 }
 
 // Parent returns UUID of parent iteration or uuid.Nil
 // handle root itearion case, leaf node case, intermediate case
 func (m Iteration) Parent() uuid.UUID {
-	return m.Path.Parent().This()
+	return m.Path.ParentID()
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -137,7 +139,16 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
+		u.Path = path.Path{u.ID}
 	}
+	if u.Path == nil || len(u.Path) == 0 {
+		u.Path = path.Path{u.ID}
+	} else {
+		if u.Path.This() != u.ID {
+			return errs.Errorf("iteration path has to end with iteration ID %s", u.ID)
+		}
+	}
+
 	if !u.State.IsSet() {
 		u.State = StateNew
 	}
@@ -151,7 +162,7 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 			"path":     u.Path,
 			"space_id": u.SpaceID,
 		}, "unable to create child iteration because an iteration in the same path already exists")
-		return errors.NewDataConflictError(fmt.Sprintf("iteration already exists with name = %s , space_id = %s , path = %s ", u.Name, u.SpaceID.String(), u.Path.String()))
+		return errors.NewDataConflictError(fmt.Sprintf("iteration already exists with name = %s , space_id = %s , path = %s ", u.Name, u.SpaceID.String(), u.Path.ParentPath().String()))
 	}
 
 	if err != nil {
@@ -186,7 +197,7 @@ func (m *GormIterationRepository) Root(ctx context.Context, spaceID uuid.UUID) (
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "query"}, time.Now())
 	var itr Iteration
 
-	tx := m.db.Where("space_id = ? and path = ?", spaceID, "").First(&itr)
+	tx := m.db.Where("space_id = ? AND nlevel(path)=1", spaceID).First(&itr)
 	if tx.Error != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
@@ -310,14 +321,8 @@ func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterat
 		return nil, errors.NewNotFoundError("iteration", parentIterationID.String())
 	}
 	var objs []Iteration
-	selfPath := parentIteration.Path.Convert()
-	var query string
-	if selfPath != "" {
-		query = parentIteration.Path.Convert() + path.SepInDatabase + path.ConvertToLtree(parentIteration.ID)
-	} else {
-		query = path.ConvertToLtree(parentIteration.ID)
-	}
-	err = m.db.Where("path <@ ?", query).Order("updated_at").Find(&objs).Error
+
+	err = m.db.Where(fmt.Sprintf("path ~ '%s.*{1,}'", parentIteration.Path.Convert())).Order("updated_at").Find(&objs).Error
 	if err != nil {
 		return nil, err
 	}
