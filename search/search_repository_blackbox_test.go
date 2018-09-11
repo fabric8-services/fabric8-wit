@@ -118,19 +118,19 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithChildIterationWorkItems() {
 			require.NoError(t, err)
 			assert.Equal(t, 9, count)
 		})
-		t.Run("without child iteration - false option", func(t *testing.T) {
+		t.Run("without child iteration - no /** suffix", func(t *testing.T) {
 			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[2].ID)
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
 			assert.Equal(t, 4, count)
 		})
-		t.Run("with one child iteration - false option", func(t *testing.T) {
+		t.Run("with one child iteration - no /** suffix", func(t *testing.T) {
 			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[1].ID)
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
 			assert.Equal(t, 2, count)
 		})
-		t.Run("with two child iteration - false option", func(t *testing.T) {
+		t.Run("with two child iteration - no /** suffix", func(t *testing.T) {
 			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[0].ID)
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			require.NoError(t, err)
