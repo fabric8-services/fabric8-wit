@@ -273,7 +273,7 @@ func (c *expressionCompiler) expressionRefersToJoinedData(e criteria.Expression)
 	return nil, false
 }
 
-// ensureJoinTable make sure the table is joned in the query
+// ensureJoinTable make sure the table is joined in the query
 func (c *expressionCompiler) ensureJoinTable(tableName string) {
 	for _, j := range c.joins {
 		if j.TableName == tableName {
