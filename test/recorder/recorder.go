@@ -60,7 +60,14 @@ func newJWTMatcher(publicKey string) cassette.Matcher {
 		token, err := jwtrequest.ParseFromRequest(httpRequest, jwtrequest.AuthorizationHeaderExtractor, func(*jwt.Token) (interface{}, error) {
 			return testjwt.PublicKey(publicKey)
 		})
-		if err != nil {
+		//
+		if err == jwtrequest.ErrNoTokenInRequest {
+			// no token in request, but that may be expected, after all
+			if _, found := cassetteRequest.Headers["sub"]; !found {
+				return true
+			}
+			return false
+		} else if err != nil {
 			log.Error(nil, map[string]interface{}{
 				"error":                err.Error(),
 				"request_method":       cassetteRequest.Method,

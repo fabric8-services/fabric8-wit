@@ -661,7 +661,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 func (r *GormWorkItemRepository) CheckTypeAndSpaceShareTemplate(ctx context.Context, wit *WorkItemType, spaceID uuid.UUID) (bool, error) {
 	// Prohibit creation of work items from a base type.
 	if !wit.CanConstruct {
-		return false, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from \"%s\" (%s)", wit.Name, wit.ID))
+		return false, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from %q (%s)", wit.Name, wit.ID))
 	}
 	var exists bool
 	// Prohibit creation of work items from a type that doesn't belong to current space template
@@ -674,7 +674,7 @@ func (r *GormWorkItemRepository) CheckTypeAndSpaceShareTemplate(ctx context.Cont
 	err := r.db.Raw(query, wit.ID, spaceID).Row().Scan(&exists)
 	if err == nil && !exists {
 		return false, errors.NewBadParameterErrorFromString(
-			fmt.Sprintf("Workitem Type \"%s\" (ID: %s) does not belong to the current space template", wit.Name, wit.ID),
+			fmt.Sprintf("Workitem Type %q (ID: %s) does not belong to the current space template", wit.Name, wit.ID),
 		)
 	}
 	if err != nil {
@@ -997,24 +997,21 @@ func (r *GormWorkItemRepository) getFinalCountAddingChild(ctx context.Context, d
 	}
 	var itrChildren []IterationHavingChildrenID
 	queryIterationWithChildren := fmt.Sprintf(`
-	WITH PathResolver AS
-	(SELECT CASE
-				WHEN path = '' THEN replace(id::text, '-', '_')::ltree
-				ELSE concat(path::text, '.', REPLACE(id::text, '-', '_'))::ltree
-			END AS pathself,
-			id
-	FROM %[1]s
-	WHERE space_id = ?)
-	SELECT array_agg(iterations.id)::text AS children,
-		PathResolver.id::text AS iterationid
-	FROM %[1]s,
-		PathResolver
-	WHERE path <@ PathResolver.pathself
-	AND space_id = ?
-	GROUP BY (PathResolver.pathself,
-		PathResolver.id)`,
+	SELECT
+		array_agg(iter1.id)::text AS children,
+		iter2.id::text AS iterationid
+	FROM
+		%[1]s iter1,
+		%[1]s iter2
+	WHERE
+		iter1.path <@ iter2.path
+		AND iter1.space_id = $1
+		AND iter2.space_id = $1
+		AND iter1.path <> iter2.path
+	GROUP BY
+		(iter2.path, iter2.id)`,
 		iterationTableName)
-	db = r.db.Raw(queryIterationWithChildren, spaceID.String(), spaceID.String())
+	db = r.db.Raw(queryIterationWithChildren, spaceID)
 	db.Scan(&itrChildren)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -1085,17 +1082,16 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountsForIteration"}, time.Now())
 	var res WICountsPerIteration
-	pathOfIteration := append(itr.Path, itr.ID)
 	// get child IDs of the iteration
 	var childIDs []uuid.UUID
 	iterationTable := iteration.Iteration{}
 	iterationTableName := iterationTable.TableName()
 	getIterationsOfSpace := fmt.Sprintf(`SELECT id FROM %s WHERE path <@ ? and space_id = ?`, iterationTableName)
-	db := r.db.Raw(getIterationsOfSpace, pathOfIteration.Convert(), itr.SpaceID.String())
+	db := r.db.Raw(getIterationsOfSpace, itr.Path.Convert(), itr.SpaceID.String())
 	db.Pluck("id", &childIDs)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"path": pathOfIteration.Convert(),
+			"path": itr.Path.Convert(),
 			"err":  db.Error,
 		}, "unable to fetch children for path")
 		return nil, errors.NewInternalError(ctx, db.Error)
@@ -1184,7 +1180,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 	}
 	var fieldDiff = Fields{}
 	// Loop through old workitem type
-	for oldFieldName := range oldWIType.Fields {
+	for oldFieldName, oldFieldDef := range oldWIType.Fields {
 		// Temporary workaround to not add metastates to the field diff. We need
 		// to have a special handling for fields that shouldn't be set by user
 		// (or affected by type change) MetaState is a system level detail and
@@ -1197,33 +1193,9 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 		}
 		// The field exists in old type and new type
 		if newField, ok := newWIType.Fields[oldFieldName]; ok {
-			// Try to assign the old value to the new field
-			_, err := newField.Type.ConvertToModel(wiStorage.Fields[oldFieldName])
-			if err != nil {
-				// if the new type is a list, stuff the old value in a list and
-				// try to assign it
-				if newField.Type.GetKind() == KindList {
-					var convertedValue interface{}
-					convertedValue, err = newField.Type.ConvertToModel([]interface{}{wiStorage.Fields[oldFieldName]})
-					if err == nil {
-						wiStorage.Fields[oldFieldName] = convertedValue
-					}
-				}
-				// if the old type is a list but the new one isn't check that
-				// the list contains only one element and assign that
-				if oldWIType.Fields[oldFieldName].Type.GetKind() == KindList && newField.Type.GetKind() != KindList {
-					ifArr, ok := wiStorage.Fields[oldFieldName].([]interface{})
-					if !ok {
-						return errs.Errorf("failed to convert field \"%s\" to interface array: %+v", oldFieldName, wiStorage.Fields[oldFieldName])
-					}
-					if len(ifArr) == 1 {
-						var convertedValue interface{}
-						convertedValue, err = newField.Type.ConvertToModel(ifArr[0])
-						if err == nil {
-							wiStorage.Fields[oldFieldName] = convertedValue
-						}
-					}
-				}
+			newVal, err := oldFieldDef.Type.ConvertToModelWithType(newField.Type, wiStorage.Fields[oldFieldName])
+			if err == nil {
+				wiStorage.Fields[oldFieldName] = newVal
 			}
 			// Failed to assign the old value to the new field. Add the field to
 			// the diff and remove it from the old workitem.
@@ -1273,7 +1245,7 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 			if oldKind == KindEnum {
 				enumType, ok := fieldDef.Type.(EnumType)
 				if !ok {
-					return errs.Errorf("failed to convert field \"%s\" to enum type: %+v", fieldName, fieldDef)
+					return errs.Errorf("failed to convert field %q to enum type: %+v", fieldName, fieldDef)
 				}
 				oldKind = enumType.BaseType.GetKind()
 			}
@@ -1296,12 +1268,12 @@ func (r *GormWorkItemRepository) ChangeWorkItemType(ctx context.Context, wiStora
 			// Deal with multi value field (KindList)
 			listType, ok := fieldDef.Type.(ListType)
 			if !ok {
-				return errs.Errorf("failed to convert field \"%s\" to list type: %+v", fieldName, fieldDef)
+				return errs.Errorf("failed to convert field %q to list type: %+v", fieldName, fieldDef)
 			}
 			oldKind = listType.ComponentType.GetKind()
 			valList, ok := fieldDiff[fieldName].([]interface{})
 			if !ok {
-				return errs.Errorf("failed to convert list value of field \"%s\" to []interface{}: %+v", fieldName, fieldDiff[fieldName])
+				return errs.Errorf("failed to convert list value of field %q to []interface{}: %+v", fieldName, fieldDiff[fieldName])
 			}
 
 			var tempList []string
@@ -1343,7 +1315,7 @@ Missing fields in workitem type: {{ .NewTypeName }}
 		// Assign default only if fieldValue is nil
 		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert field \"%s\"", fieldName)
+			return errs.Wrapf(err, "failed to convert field %q", fieldName)
 		}
 	}
 	wiStorage.Type = newWIType.ID

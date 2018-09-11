@@ -1588,9 +1588,12 @@ func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
 
 func (up *testURLProvider) GetEnvironmentMapping() map[string]string {
 	return map[string]string{
-		"test":  "myNamespace",
-		"run":   "my-run",
-		"stage": "my-stage",
+		"user":    "myNamespace",
+		"test":    "myNamespace",
+		"run":     "my-run",
+		"stage":   "my-stage",
+		"che":     "my-che",
+		"jenkins": "my-jenkins",
 	}
 }
 
@@ -1614,6 +1617,15 @@ func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
 		Path:   path,
 	}
 	return newURL, nil
+}
+
+// Types of namespaces where the user does not deploy applications
+var internalNamespaceTypes = map[string]struct{}{"user": {}, "che": {}, "jenkins": {}}
+
+// CanDeploy returns true if the environment type provided can be deployed to as part of a pipeline
+func (up *testURLProvider) CanDeploy(envType string) bool {
+	_, pres := internalNamespaceTypes[envType]
+	return !pres
 }
 
 type testKube struct {
