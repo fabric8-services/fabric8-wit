@@ -457,18 +457,20 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 
 	var tblName string
 	var tblAlias string
+	var tblJoin string
 	if left.FieldName == SystemIteration {
 		tblName = "iterations"
 		tblAlias = "iter"
+		tblJoin = "iteration"
 	} else if left.FieldName == SystemArea {
 		tblName = "areas"
 		tblAlias = "ar"
+		tblJoin = "area"
 	} else {
 		c.err = append(c.err, errs.Errorf("invalid field name: %+v", left.FieldName))
 		return nil
 	}
-
-	c.joins[tblName].Active = true
+	c.joins[tblJoin].Active = true
 	c.parameters = append(c.parameters, r)
 
 	return fmt.Sprintf(`(uuid("work_items".fields->>'%[1]s') IN (
