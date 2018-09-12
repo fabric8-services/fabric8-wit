@@ -287,7 +287,7 @@ func (c *DeploymentsController) ShowDeploymentStatSeries(ctx *app.ShowDeployment
 
 // ShowDeploymentPodLimitRange runs the showDeploymentPodLimitRange action.
 func (c *DeploymentsController) ShowDeploymentPodLimitRange(ctx *app.ShowDeploymentPodLimitRangeDeploymentsContext) error {
-	// Inputs : appName, envName, spaceId
+	// Inputs : spaceId, appName, deployName
 	kc, err := c.GetKubeClient(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -297,7 +297,7 @@ func (c *DeploymentsController) ShowDeploymentPodLimitRange(ctx *app.ShowDeploym
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	quotas, err := kc.GetDeploymentPodQuota(*spaceName, ctx.AppName, ctx.EnvName)
+	quotas, err := kc.GetDeploymentPodQuota(*spaceName, ctx.AppName, ctx.DeployName)
 
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)

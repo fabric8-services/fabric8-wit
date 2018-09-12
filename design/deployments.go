@@ -243,13 +243,13 @@ var _ = a.Resource("deployments", func() {
 
 	a.Action("showDeploymentPodLimitRange", func() {
 		a.Routing(
-			a.GET("/spaces/:spaceID/environments/:envName/applications/:appName/podlimits"),
+			a.GET("/spaces/:spaceID/applications/:appName/deployments/:deployName/podlimits"),
 		)
 		a.Description("get pod resource limit range")
 		a.Params(func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 			a.Param("appName", d.String, "Name of the application")
-			a.Param("envName", d.String, "Name of the environment")
+			a.Param("deployName", d.String, "Name of the deployment")
 		})
 		a.Response(d.OK, simpleDeploymentPodLimitRangeSingle)
 		a.Response(d.Unauthorized, JSONAPIErrors)

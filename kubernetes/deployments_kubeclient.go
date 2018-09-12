@@ -80,7 +80,7 @@ type KubeClientInterface interface {
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
 	GetMetricsClient(envNS string) (Metrics, error)
 	WatchEventsInNamespace(nameSpace string) (*cache.FIFO, chan struct{})
-	GetDeploymentPodQuota(namespace string, appName string, spaceName string) (*app.SimpleDeploymentPodLimitRange, error)
+	GetDeploymentPodQuota(spaceName string, appName string, envName string) (*app.SimpleDeploymentPodLimitRange, error)
 	Close()
 	KubeAccessControl
 }
@@ -1485,8 +1485,12 @@ func (kc *kubeClient) getPodsQuota(pods []*v1.Pod) (*app.PodsQuota, error) {
 	return result, nil
 }
 
-func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, namespace string) (*app.SimpleDeploymentPodLimitRange, error) {
-	// Inputs: namespace (environment), appname, spacename
+func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, envName string) (*app.SimpleDeploymentPodLimitRange, error) {
+	// Find namespace for environment name
+	namespace, err := kc.getDeployableEnvironmentNamespace(envName)
+	if err != nil {
+		return nil, err
+	}
 	dcName, err := kc.getDeploymentConfigNameForApp(namespace, appName, spaceName)
 	if err != nil {
 		return nil, errs.Errorf("could not retrieve deployment with the given namespace %s, app name %s and space name %s", namespace, appName, spaceName)
@@ -1523,21 +1527,37 @@ func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, na
 	podCPULimit := float64(0)
 	podMemLimit := float64(0)
 
-	for _, container := range containers {
-		resources, ok := container.(map[string]interface{})["resources"].(map[string]interface{})
+	for _, containerItem := range containers {
+		container, ok := containerItem.(map[string]interface{})
+		if !ok {
+			return nil, errs.Errorf("containers array contains invalid container: %v", containerItem)
+		}
+		resourcesItem, pres := container["resources"]
+		if !pres {
+			numContainersMissingCPU++
+			numContainersMissingMem++
+			continue
+		}
+		resources, ok := resourcesItem.(map[string]interface{})
+		if !ok {
+			return nil, errs.Errorf("resources spec in pod template is invalid: %v", resourcesItem)
+		}
 		if len(resources) == 0 {
 			numContainersMissingCPU++
 			numContainersMissingMem++
 			continue
 		}
 
-		limits, ok := resources["limits"].(map[string]string)
+		limits, ok := resources["limits"].(map[string]interface{})
 		if !ok {
 			return nil, errs.Errorf("limits is missing from deployment config %s: %+v", dcName, resources)
 		}
 
-		cpuLimit, pres := limits["cpucores"]
-		if !pres {
+		cpuLimit, err := getOptionalStringValue(limits, "cpucores")
+		if err != nil {
+			return nil, err
+		}
+		if len(cpuLimit) == 0 {
 			numContainersMissingCPU++
 		} else {
 			cpuQuantity, err := resource.ParseQuantity(cpuLimit)
@@ -1552,8 +1572,11 @@ func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, na
 			podCPULimit += cpuValue
 		}
 
-		memLimit, pres := limits["memory"]
-		if !pres {
+		memLimit, err := getOptionalStringValue(limits, "memory")
+		if err != nil {
+			return nil, err
+		}
+		if len(memLimit) == 0 {
 			numContainersMissingMem++
 		} else {
 			memoryQuantity, err := resource.ParseQuantity(memLimit)
@@ -1574,26 +1597,31 @@ func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, na
 		// Look up default resource limits using LimitRanges API
 		limitRange, err := kc.LimitRanges(namespace).Get(limitRangeName, metaV1.GetOptions{})
 		if err != nil {
-			return nil, errs.Errorf("could not retrieve LimitRange info for namespace %s", namespace)
+			log.Error(nil, map[string]interface{}{
+				"err":              err,
+				"namespace":        namespace,
+				"limit_range_name": limitRangeName,
+			}, "failed to get limit range")
+			return nil, convertError(errs.WithStack(err), "failed to get limit range %s in %s", limitRangeName, namespace)
 		}
 
 		defaultCPULimit := float64(0)
 		defaultMemLimit := float64(0)
-		var cpuQty, memQty *resource.Quantity
+		var containerCPULimit, containerMemLimit *resource.Quantity
 		for _, limit := range limitRange.Spec.Limits {
 			if limit.Type == "Container" {
-				qty, pres := limit.Default[v1.ResourceCPU]
+				cpuQty, pres := limit.Default[v1.ResourceCPU]
 				if pres {
-					cpuQty = &qty
+					containerCPULimit = &cpuQty
 				}
-				qty, pres = limit.Default[v1.ResourceMemory]
+				memQty, pres := limit.Default[v1.ResourceMemory]
 				if pres {
-					memQty = &qty
+					containerMemLimit = &memQty
 				}
 			}
 		}
 
-		if cpuQty == nil || memQty == nil {
+		if containerCPULimit == nil || containerMemLimit == nil {
 			log.Error(nil, map[string]interface{}{
 				"limit_range": limitRange,
 				"namespace":   namespace,
@@ -1601,13 +1629,13 @@ func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, na
 			return nil, errs.Errorf("CPU or memory container limit missing from LimitRange for namespace %s", namespace)
 		}
 
-		defaultCPULimit, err = quantityToFloat64(*cpuQty)
+		defaultCPULimit, err = quantityToFloat64(*containerCPULimit)
 		if err != nil {
-			return nil, errs.Errorf("could not convert cpu quantity %+v to float64 value", *cpuQty)
+			return nil, errs.Errorf("could not convert cpu quantity %+v to float64 value", *containerCPULimit)
 		}
-		defaultMemLimit, err = quantityToFloat64(*memQty)
+		defaultMemLimit, err = quantityToFloat64(*containerMemLimit)
 		if err != nil {
-			return nil, errs.Errorf("could not convert memory quantity %+v to float64 value", *memQty)
+			return nil, errs.Errorf("could not convert memory quantity %+v to float64 value", *containerMemLimit)
 		}
 
 		// Apply default limit for each container that didn't specify CPU/memory limits
