@@ -626,18 +626,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		// This will be used by the ConvertWorkItemStorageToModel function
 		wiType = newWiType
 	}
-	// Change of Work Item Type
-	if wiStorage.Type != updatedWorkItem.Type {
-		newWiType, err := r.witr.Load(ctx, updatedWorkItem.Type)
-		if err != nil {
-			return nil, nil, errs.Wrapf(err, "failed to load workitemtype: %s ", updatedWorkItem.Type)
-		}
-		if err := r.ChangeWorkItemType(ctx, wiStorage, wiType, newWiType, spaceID); err != nil {
-			return nil, nil, errs.Wrapf(err, "unable to change workitem type from %s (ID: %s) to %s (ID: %s)", wiType.Name, wiType.ID, newWiType.Name, newWiType.ID)
-		}
-		// This will be used by the ConvertWorkItemStorageToModel function
-		wiType = newWiType
-	}
 	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{

@@ -471,12 +471,8 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 
 // Show runs the show action.
 func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
-	var s *space.Space
-	s = &space.Space{
-		Name: "fakespacename",
-	}
 
-	/**
+	var s *space.Space
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		s, err = appl.Spaces().Load(ctx.Context, ctx.SpaceID)
@@ -491,7 +487,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	***/
+
 	var methods []string
 	if ctx.Qp != nil && *ctx.Qp {
 		// 'qp' (QueryPerms query parameter) is true:
@@ -527,7 +523,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 		var spaceData *app.Space
 		var err error
 		if ctx.Qp != nil && *ctx.Qp {
-			spaceData, err = ConvertSpaceFromModel(ctx.Request, *s /*IncludeBacklogTotalCount(ctx.Context, c.db),*/, IncludeMethodAccess(ctx.Context, ctx.Request, methods))
+			spaceData, err = ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db), IncludeMethodAccess(ctx.Context, ctx.Request, methods))
 		} else {
 			spaceData, err = ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
 		}
