@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	// APIStringTypeCodebase contains the JSON API type for codebases
+	// APIStringTypeSpace contains the JSON API type for codebases
 	APIStringTypeSpace = "spaces"
 )
 

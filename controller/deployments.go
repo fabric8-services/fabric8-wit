@@ -335,7 +335,7 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 // ShowSpace runs the showSpace action.
 func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) error {
 
-	// should we ask k8s for permissions on select objects?
+	// should we ask k8s for permissions on select objects? default is no
 	checkPerms := ctx.Qp != nil && *ctx.Qp
 
 	kc, err := c.GetKubeClient(ctx)
@@ -344,36 +344,6 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	/****
-
-
-		if checkPerms {
-			canRead, err := kc.CanGetSpace()
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
-			if !canRead {
-				// return a non-space with empty permissions
-				emptySpace := &app.SimpleSpace{
-					ID:   ctx.SpaceID,
-					Type: "space",
-					Links: &app.SimpleSpaceLinks{
-						Space: &app.LinkWithAccess{
-							Href: &spaceURLStr,
-							Meta: &app.EndpointAccess{
-								Methods: []string{},
-							},
-						},
-					},
-				}
-				res := &app.SimpleSpaceSingle{
-					Data: emptySpace,
-				}
-
-				return ctx.OK(res)
-			}
-		}
-	**/
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
 	if err != nil || kubeSpaceName == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("osio space", ctx.SpaceID.String()))
