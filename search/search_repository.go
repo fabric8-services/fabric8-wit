@@ -284,9 +284,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			}
 		case bool:
 			s := concreteVal
-			if key == "negate" {
-				q.Negate = s
-			}
+			q.Negate = s
 		case nil:
 			q.Name = key
 			q.Value = nil
