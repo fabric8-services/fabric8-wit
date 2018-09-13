@@ -433,8 +433,6 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 	}
 
 	if strings.Contains(left.FieldName, "'") {
-		// beware of injection, it's a reasonable restriction for field names,
-		// make sure it's not allowed when creating wi types
 		c.err = append(c.err, errs.Errorf("single quote not allowed in field name: %s", left.FieldName))
 		return nil
 	}
