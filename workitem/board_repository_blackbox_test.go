@@ -175,7 +175,7 @@ func (s *workItemBoardRepoTest) TestList() {
 	})
 }
 
-func TestWorkItemBoard_Equal(t *testing.T) {
+func TestWorkItemBoard_EqualAndEqualValue(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// given
@@ -210,23 +210,27 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 		t.Parallel()
 		b := a
 		require.True(t, a.Equal(b))
+		require.True(t, a.EqualValue(b))
 	})
 	t.Run("types", func(t *testing.T) {
 		t.Parallel()
 		b := convert.DummyEqualer{}
 		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
 	})
 	t.Run("name", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Name = "bar"
 		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
 	})
 	t.Run("space template ID", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.SpaceTemplateID = uuid.NewV4()
 		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
 	})
 	t.Run("columns", func(t *testing.T) {
 		t.Parallel()
@@ -252,6 +256,7 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 				},
 			}
 			require.False(t, a.Equal(b))
+			require.False(t, a.EqualValue(b))
 		})
 		t.Run("different length (shorter)", func(t *testing.T) {
 			t.Parallel()
@@ -267,6 +272,7 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 				},
 			}
 			require.False(t, a.Equal(b))
+			require.False(t, a.EqualValue(b))
 		})
 		t.Run("different length (longer)", func(t *testing.T) {
 			t.Parallel()
@@ -280,6 +286,7 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 				BoardID:           ID,
 			})
 			require.False(t, a.Equal(b))
+			require.False(t, a.EqualValue(b))
 		})
 		t.Run("column lifecycle", func(t *testing.T) {
 			t.Parallel()
@@ -288,12 +295,14 @@ func TestWorkItemBoard_Equal(t *testing.T) {
 			a := workitem.Board{Columns: []workitem.BoardColumn{col1}}
 			b := workitem.Board{Columns: []workitem.BoardColumn{col1}}
 			require.True(t, a.Equal(b))
+			require.True(t, a.EqualValue(b))
 			// when changing the creation date of a column
 			col2 := col1
 			col2.Lifecycle.CreatedAt = time.Now().Add(time.Hour)
 			b.Columns[0] = col2
 			// then expect the board comparison to fail
-			require.True(t, a.Equal(b))
+			require.False(t, a.Equal(b))
+			require.True(t, a.EqualValue(b))
 		})
 	})
 }

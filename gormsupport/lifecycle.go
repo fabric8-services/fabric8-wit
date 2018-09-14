@@ -1,6 +1,7 @@
 package gormsupport
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
@@ -39,12 +40,13 @@ func (lc Lifecycle) Equal(u convert.Equaler) bool {
 	if !lc.UpdatedAt.Equal(other.UpdatedAt) {
 		return false
 	}
-	// DeletedAt can be nil so we need to do a special check here.
-	if lc.DeletedAt == nil && other.DeletedAt == nil {
-		return true
+	if !reflect.DeepEqual(lc.DeletedAt, other.DeletedAt) {
+		return false
 	}
-	if lc.DeletedAt != nil && other.DeletedAt != nil {
-		return lc.DeletedAt.Equal(*other.DeletedAt)
-	}
-	return false
+	return true
+}
+
+// EqualValue implements convert.Equaler
+func (lc Lifecycle) EqualValue(u convert.Equaler) bool {
+	return lc.Equal(u)
 }

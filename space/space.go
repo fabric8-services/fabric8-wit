@@ -47,8 +47,10 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	lfEqual := p.Lifecycle.Equal(other.Lifecycle)
-	if !lfEqual {
+	if !p.Lifecycle.Equal(other.Lifecycle) {
+		return false
+	}
+	if p.ID != other.ID {
 		return false
 	}
 	if p.Version != other.Version {
@@ -67,6 +69,17 @@ func (p Space) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler
+func (p Space) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(Space)
+	if !ok {
+		return false
+	}
+	p.Version = other.Version
+	p.Lifecycle = other.Lifecycle
+	return p.Equal(u)
 }
 
 // GetETagData returns the field values to use to generate the ETag

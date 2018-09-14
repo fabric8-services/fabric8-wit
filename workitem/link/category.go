@@ -46,10 +46,24 @@ func (c WorkItemLinkCategory) Equal(u convert.Equaler) bool {
 	if c.Version != other.Version {
 		return false
 	}
+	if !convert.CascadeEqual(c.Lifecycle, other.Lifecycle) {
+		return false
+	}
 	if !reflect.DeepEqual(c.Description, other.Description) {
 		return false
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler interface
+func (c WorkItemLinkCategory) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(WorkItemLinkCategory)
+	if !ok {
+		return false
+	}
+	c.Version = other.Version
+	c.Lifecycle = other.Lifecycle
+	return c.Equal(u)
 }
 
 // TableName implements gorm.tabler
