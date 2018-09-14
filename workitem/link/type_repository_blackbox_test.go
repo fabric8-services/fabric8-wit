@@ -170,11 +170,11 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 		require.NoError(t, err)
 		require.NotNil(t, createdType)
 		require.Equal(t, id, createdType.ID)
-		require.True(t, typ.Equal(*createdType))
+		require.True(t, typ.EqualValue(*createdType))
 		// check that loaded type is equal as well
 		loadedType, err := s.typeRepo.Load(s.Ctx, createdType.ID)
 		require.NoError(t, err)
-		require.True(t, typ.Equal(*loadedType))
+		require.True(t, typ.EqualValue(*loadedType))
 	})
 	s.T().Run("unknown topology (bad parameter error)", func(t *testing.T) {
 		// given
