@@ -465,18 +465,19 @@ func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
 		tblAlias = "ar"
 		tblJoin = "area"
 	} else {
-		c.err = append(c.err, errs.Errorf("invalid field name: %+v", left.FieldName))
+		c.err = append(c.err, errs.Errorf("invalid field name for child expression: %+v", left.FieldName))
 		return nil
 	}
 	c.joins[tblJoin].Active = true
 	c.parameters = append(c.parameters, r)
 
-	return fmt.Sprintf(`(uuid("work_items".fields->>'%[1]s') IN (
+	// Find all iteration/area which is a child of the given iteration/area
+	return fmt.Sprintf(`(uuid("`+WorkItemStorage{}.TableName()+`".fields->>'%[1]s') IN (
 				SELECT %[2]s.id
 					WHERE
 						(SELECT j.path
 							FROM %[3]s j
-							WHERE j.id = ?
+							WHERE j.space_id = "`+WorkItemStorage{}.TableName()+`"."space_id" AND j.id = ? 
 						) @> %[2]s.path
 							  ))`, left.FieldName, tblAlias, tblName)
 
