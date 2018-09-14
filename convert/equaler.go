@@ -53,13 +53,13 @@ type DummyEqualer struct {
 var _ Equaler = DummyEqualer{}
 var _ Equaler = (*DummyEqualer)(nil)
 
-// Equal implementes Equaler
+// Equal implements Equaler
 func (d DummyEqualer) Equal(u Equaler) bool {
 	_, ok := u.(DummyEqualer)
 	return ok
 }
 
-// EqualValue implementes Equaler
+// EqualValue implements Equaler
 func (d DummyEqualer) EqualValue(u Equaler) bool {
 	_, ok := u.(DummyEqualer)
 	return ok
