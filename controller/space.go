@@ -212,7 +212,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			"error":    err,
 		}, "could not delete codebases")
 		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
+			ctx, errors.NewInternalError(ctx, errs.Wrapf(err, "failed to delete codebases associated with space %s", spaceID)))
 	}
 
 	// now delete the OpenShift resources associated with this space on an
@@ -278,14 +278,22 @@ func deleteCodebases(
 	path := client.ListSpaceCodebasesPath(spaceID)
 	resp, err := cl.ListSpaceCodebases(ctx, path, nil, nil)
 	if err != nil {
-		return errors.NewInternalError(ctx,
-			fmt.Errorf("could not list codebases: %v", err))
+		log.Error(ctx, map[string]interface{}{
+			"space_id": spaceID,
+			"path":     path,
+			"error":    err,
+		}, "failed to list codebases")
+		return errs.Wrapf(err, "could not list codebases for space: %s", spaceID)
 	}
 	defer resp.Body.Close()
 
 	if 200 < resp.StatusCode && resp.StatusCode >= 300 {
 		formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"error":    err,
+				"response": resp,
+			}, "failed to decode JSON formatted errors returned while listing codebases")
 			return errors.NewInternalError(ctx,
 				fmt.Errorf("could not decode JSON formatted errors returned while listing codebases: %v", err))
 		}
