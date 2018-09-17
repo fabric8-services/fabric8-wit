@@ -295,7 +295,7 @@ func (rest *TestIterationREST) TestShow() {
 		require.NotNil(t, i.Data.Relationships.Workitems.Meta)
 		assert.Equal(t, 0, i.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 		assert.Equal(t, 0, i.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok-root-iteration.res.iteration.golden.json"), i)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok-root-iteration.res.payload.golden.json"), i)
 	})
 	rest.T().Run("child iteration", func(t *testing.T) {
 		// when
@@ -305,7 +305,7 @@ func (rest *TestIterationREST) TestShow() {
 		require.NotNil(t, i.Data.Relationships.Workitems.Meta)
 		assert.Equal(t, 0, i.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 		assert.Equal(t, 0, i.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok-child-iteration.res.iteration.golden.json"), i)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok-child-iteration.res.payload.golden.json"), i)
 	})
 }
 
