@@ -1429,12 +1429,21 @@ func testMigration106NumberSequences(t *testing.T) {
 		require.True(t, dialect.HasTable(newTable), "the new number sequences table %q has to exist", newTable)
 
 		type NumberSequence struct {
-			SpaceID   uuid.UUID `json:"space_id"`
-			TableName string    `json:"table_name"`
-			Number    int       `json:"number"`
+			SpaceID    uuid.UUID `json:"space_id"`
+			TableName  string    `json:"table_name"`
+			CurrentVal int       `json:"current_val"`
 		}
+		// rows, err := sqlDB.Query("SELECT space_id, table_name, current_val FROM number_sequences WHERE space_id IN ($1, $2)", space1ID, space2ID)
+		// require.NoError(t, err)
+		// defer rows.Close()
+		// for rows.Next() {
+		// 	seq := NumberSequence{}
+		// 	err := rows.Scan(seq.SpaceID)
+		// 	require.NoError(t, err)
+		// 	spew.Dump(seq)
+		// }
 		sequences := []NumberSequence{}
-		db := gormDB.Model(&NumberSequence{}).Find(&sequences)
+		db := gormDB.Debug().Where("space_id IN ($1, $2)", space1ID, space2ID).Find(&sequences)
 		require.NoError(t, db.Error)
 
 		toBeFound := map[NumberSequence]struct{}{
@@ -1446,11 +1455,9 @@ func testMigration106NumberSequences(t *testing.T) {
 			{space2ID, "areas", 2}:      {},
 		}
 		for _, s := range sequences {
-			_, ok := toBeFound[s]
-			require.True(t, ok, "found expected number sequence: %+v", s)
 			delete(toBeFound, s)
 		}
-		require.Empty(t, toBeFound, "failed to find these number sequences: %+v", toBeFound)
+		require.Empty(t, toBeFound, "failed to find these number sequences: %+v", spew.Sdump(toBeFound))
 	})
 }
 

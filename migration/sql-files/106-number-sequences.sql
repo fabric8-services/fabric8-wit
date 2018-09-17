@@ -37,13 +37,19 @@ ALTER TABLE areas ALTER COLUMN number SET NOT NULL;
 -- Update the number_sequences table with the maximum for each table type
 
 INSERT INTO number_sequences (space_id, table_name, current_val)
-SELECT space_id, 'work_items', MAX(number) FROM work_items GROUP BY 1,2
-ON CONFLICT DO NOTHING;
+    SELECT space_id, 'work_items' "table_name", MAX(number) 
+    FROM work_items 
+    WHERE number IS NOT NULL 
+    GROUP BY 1,2;
 
 INSERT INTO number_sequences (space_id, table_name, current_val)
-SELECT space_id, 'iterations', MAX(number) FROM iterations GROUP BY 1,2
-ON CONFLICT DO NOTHING;
+    SELECT space_id, 'iterations' "table_name", MAX(number)
+    FROM iterations
+    WHERE number IS NOT NULL
+    GROUP BY 1,2;
 
 INSERT INTO number_sequences (space_id, table_name, current_val)
-SELECT space_id, 'areas', MAX(number) FROM areas GROUP BY 1,2
-ON CONFLICT DO NOTHING;
+    SELECT space_id, 'areas' "table_name", MAX(number)
+    FROM areas
+    WHERE number IS NOT NULL
+    GROUP BY 1,2;
