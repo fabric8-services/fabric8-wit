@@ -155,6 +155,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration103", testMigration103NotNullNotEmptyonEmail)
 	t.Run("TestMirgraion104", testMigration104IndexOnWIRevisionTable)
 	t.Run("TestMirgraion105", testMigration105UpdateRootIterationAreaPathField)
+	t.Run("TestMirgraion106", testMigration106NumberSequences)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1317,6 +1318,139 @@ func testMigration105UpdateRootIterationAreaPathField(t *testing.T) {
 		require.Equal(t, UUIDsToLtreePath(areaRootNullPathID), getPathOfArea(t, areaRootNullPathID))
 		require.Equal(t, UUIDsToLtreePath(areaRootEmptyPathID, areaChildOfEmptyPathID), getPathOfArea(t, areaChildOfEmptyPathID))
 		require.Equal(t, UUIDsToLtreePath(areaRootNullPathID, areaChildOfNullPathID), getPathOfArea(t, areaChildOfNullPathID))
+	})
+}
+
+// test that root iterations are no longer empty and containt he converted id
+func testMigration106NumberSequences(t *testing.T) {
+	t.Run("migrate to previous version", func(t *testing.T) {
+		migrateToVersion(t, sqlDB, migrations[:106], 106)
+	})
+
+	spaceTemplateID := uuid.NewV4()
+	space1ID := uuid.NewV4()
+	space2ID := uuid.NewV4()
+	witID := uuid.NewV4()
+	// two work items in space 1
+	wi1ID := uuid.NewV4()
+	wi2ID := uuid.NewV4()
+	// two work items in space 2
+	wi3ID := uuid.NewV4()
+	wi4ID := uuid.NewV4()
+	// two iterations in space 1
+	iter1ID := uuid.NewV4()
+	iter2ID := uuid.NewV4()
+	// two iterations in space 2
+	iter3ID := uuid.NewV4()
+	iter4ID := uuid.NewV4()
+	// two areas in space 1
+	area1ID := uuid.NewV4()
+	area2ID := uuid.NewV4()
+	// two areas in space 2
+	area3ID := uuid.NewV4()
+	area4ID := uuid.NewV4()
+
+	t.Run("setup test data to migrate", func(t *testing.T) {
+		require.Nil(t, runSQLscript(sqlDB, "106-number-sequences.sql",
+			spaceTemplateID.String(),
+			space1ID.String(),
+			space2ID.String(),
+			witID.String(),
+			wi1ID.String(),
+			wi2ID.String(),
+			wi3ID.String(),
+			wi4ID.String(),
+			iter1ID.String(),
+			iter2ID.String(),
+			iter3ID.String(),
+			iter4ID.String(),
+			area1ID.String(),
+			area2ID.String(),
+			area3ID.String(),
+			area4ID.String(),
+		))
+	})
+
+	// // Helper functions
+
+	getNumberOf := func(t *testing.T, table string, id uuid.UUID) int {
+		q := fmt.Sprintf("SELECT number FROM %s WHERE id = '%s'", table, id)
+		row := sqlDB.QueryRow(q)
+		require.NotNil(t, row)
+		var p int32
+		err := row.Scan(&p)
+		require.NoError(t, err, "%+v", err)
+		return int(p)
+	}
+	getNumberOfWorkItem := func(t *testing.T, wiID uuid.UUID) int { return getNumberOf(t, "work_items", wiID) }
+	getNumberOfIteration := func(t *testing.T, iterID uuid.UUID) int { return getNumberOf(t, "iterations", iterID) }
+	getNumberOfArea := func(t *testing.T, areaID uuid.UUID) int { return getNumberOf(t, "areas", areaID) }
+
+	t.Run("checks before migration", func(t *testing.T) {
+		require.Equal(t, 1, getNumberOfWorkItem(t, wi1ID))
+		require.Equal(t, 2, getNumberOfWorkItem(t, wi2ID))
+		require.Equal(t, 1, getNumberOfWorkItem(t, wi3ID))
+		require.Equal(t, 2, getNumberOfWorkItem(t, wi4ID))
+	})
+
+	t.Run("migrate to current version", func(t *testing.T) {
+		migrateToVersion(t, sqlDB, migrations[:107], 107)
+	})
+
+	t.Run("checks after migration", func(t *testing.T) {
+		oldTable := "work_item_number_sequences"
+		require.False(t, dialect.HasTable(oldTable), "the old number sequences table %q should be deleted", oldTable)
+
+		// work item numbering must not be touched
+		assert.Equal(t, 1, getNumberOfWorkItem(t, wi1ID))
+		assert.Equal(t, 2, getNumberOfWorkItem(t, wi2ID))
+		assert.Equal(t, 1, getNumberOfWorkItem(t, wi3ID))
+		assert.Equal(t, 2, getNumberOfWorkItem(t, wi4ID))
+
+		// check for (newly added) "number" columns
+		assert.True(t, dialect.HasColumn("work_items", "number"), "work_items table should still have the number column")
+		assert.True(t, dialect.HasColumn("iterations", "number"))
+		assert.True(t, dialect.HasColumn("areas", "number"))
+
+		// check that the newest iteration/area has the smaller number and that
+		// the numbering is partitioned by space_id
+		assert.Equal(t, 2, getNumberOfIteration(t, iter1ID))
+		assert.Equal(t, 1, getNumberOfIteration(t, iter2ID))
+		assert.Equal(t, 2, getNumberOfIteration(t, iter3ID))
+		assert.Equal(t, 1, getNumberOfIteration(t, iter4ID))
+
+		assert.Equal(t, 2, getNumberOfArea(t, area1ID))
+		assert.Equal(t, 1, getNumberOfArea(t, area2ID))
+		assert.Equal(t, 2, getNumberOfArea(t, area3ID))
+		assert.Equal(t, 1, getNumberOfArea(t, area4ID))
+
+		// check that the new sequences table exists and has the expected values
+		newTable := "number_sequences"
+		require.True(t, dialect.HasTable(newTable), "the new number sequences table %q has to exist", newTable)
+
+		type NumberSequence struct {
+			SpaceID   uuid.UUID `json:"space_id"`
+			TableName string    `json:"table_name"`
+			Number    int       `json:"number"`
+		}
+		sequences := []NumberSequence{}
+		db := gormDB.Model(&NumberSequence{}).Find(&sequences)
+		require.NoError(t, db.Error)
+
+		toBeFound := map[NumberSequence]struct{}{
+			{space1ID, "work_items", 2}: {},
+			{space2ID, "work_items", 2}: {},
+			{space1ID, "iterations", 2}: {},
+			{space2ID, "iterations", 2}: {},
+			{space1ID, "areas", 2}:      {},
+			{space2ID, "areas", 2}:      {},
+		}
+		for _, s := range sequences {
+			_, ok := toBeFound[s]
+			require.True(t, ok, "found expected number sequence: %+v", s)
+			delete(toBeFound, s)
+		}
+		require.Empty(t, toBeFound, "failed to find these number sequences: %+v", toBeFound)
 	})
 }
 

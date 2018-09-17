@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -455,6 +456,9 @@ func GetMigrations() Migrations {
 	// Version 105
 	m = append(m, steps{ExecuteSQLFile("105-update-root-area-and-iteration-path-field.sql")})
 
+	// Version 106
+	m = append(m, steps{ExecuteSQLFile("106-number-sequences.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -507,6 +511,7 @@ func ExecuteSQLFile(filename string, args ...string) fn {
 			writer.Flush()
 			_, err = db.Exec(sqlScript.String())
 			if err != nil {
+				fmt.Printf("\n\n%+v\n\n", err)
 				log.Error(context.Background(), map[string]interface{}{"err": err}, "failed to execute this query in file %s: \n\n%s\n\n", filename, sqlScript.String())
 			}
 		} else {
