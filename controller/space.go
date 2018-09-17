@@ -214,7 +214,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			"error":    err,
 		}, "could not delete codebases")
 		return jsonapi.JSONErrorResponse(
-			ctx, errs.Wrapf(err, "failed to delete codebases associated with space %s", spaceID))
+			ctx, errors.NewInternalError(ctx, errs.Wrapf(err, "failed to delete codebases associated with space %s", spaceID)))
 	}
 
 	// now delete the OpenShift resources associated with this space on an
@@ -285,8 +285,7 @@ func deleteCodebases(
 			"path":     path,
 			"error":    err,
 		}, "failed to list codebases")
-		return errors.NewInternalError(ctx,
-			fmt.Errorf("could not list codebases: %v", err))
+		return errs.Wrapf(err, "could not list codebases for space: %s", spaceID)
 	}
 	defer resp.Body.Close()
 
