@@ -9,7 +9,7 @@ import (
 // before they get created.
 type RecipeFunction func(fxt *TestFixture) error
 
-const checkStr = "expected at least %d \"%s\" objects but found only %d"
+const checkStr = "expected at least %d %q objects but found only %d"
 
 func (fxt *TestFixture) deps(fns ...RecipeFunction) error {
 	if !fxt.isolatedCreation {

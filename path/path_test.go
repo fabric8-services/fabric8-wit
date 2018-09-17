@@ -33,6 +33,37 @@ func TestThis(t *testing.T) {
 	require.Equal(t, uuid.Nil, lp2.This())
 }
 
+func TestParentID(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	// given
+	grandParent := uuid.NewV4()
+	parent := uuid.NewV4()
+	this := uuid.NewV4()
+
+	// when/then
+	require.Equal(t, parent, path.Path{grandParent, parent, this}.ParentID())
+	require.Equal(t, grandParent, path.Path{grandParent, parent}.ParentID())
+	require.Equal(t, uuid.Nil, path.Path{grandParent}.ParentID())
+	require.Equal(t, uuid.Nil, path.Path{}.ParentID())
+}
+
+func TestParentPath(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+
+	// given
+	grandParent := uuid.NewV4()
+	parent := uuid.NewV4()
+	this := uuid.NewV4()
+
+	// when/then
+	require.Equal(t, path.Path{grandParent, parent}, path.Path{grandParent, parent, this}.ParentPath())
+	require.Equal(t, path.Path{grandParent}, path.Path{grandParent, parent}.ParentPath())
+	require.Equal(t, path.Path{}, path.Path{grandParent}.ParentPath())
+	require.Equal(t, path.Path{}, path.Path{}.ParentPath())
+}
+
 func TestConvert(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
@@ -70,18 +101,6 @@ func TestRoot(t *testing.T) {
 
 	lp2 := path.Path{}
 	assert.Equal(t, path.Path{uuid.Nil}, lp2.Root())
-}
-
-func TestParent(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-	grandParent := uuid.NewV4()
-	immediateParent := uuid.NewV4()
-	lp := path.Path{grandParent, immediateParent}
-	require.Equal(t, path.Path{immediateParent}, lp.Parent())
-
-	lp2 := path.Path{}
-	require.Equal(t, path.Path{uuid.Nil}, lp2.Parent())
 }
 
 func TestValuerImplementation(t *testing.T) {

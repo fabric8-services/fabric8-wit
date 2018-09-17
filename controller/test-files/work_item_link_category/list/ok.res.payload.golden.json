@@ -28,7 +28,7 @@
     },
     {
       "attributes": {
-        "description": "some description",
+        "description": "some description (see function github.com/fabric8-services/fabric8-wit/controller_test.(*workItemLinkCategorySuite).TestList.func1 in controller/work_item_link_category_blackbox_test.go)",
         "name": "link category 00000000-0000-0000-0000-000000000003",
         "version": 0
       },
@@ -41,7 +41,7 @@
     },
     {
       "attributes": {
-        "description": "some description",
+        "description": "some description (see function github.com/fabric8-services/fabric8-wit/controller_test.(*workItemLinkCategorySuite).TestList.func1 in controller/work_item_link_category_blackbox_test.go)",
         "name": "link category 00000000-0000-0000-0000-000000000005",
         "version": 0
       },
