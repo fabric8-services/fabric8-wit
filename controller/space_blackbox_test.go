@@ -660,6 +660,34 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		)
 		test.DeleteSpaceForbidden(t, svc.Context, svc, ctrl, spaceID, nil)
 	})
+
+	s.T().Run("fail - invalid Space ID", func(t *testing.T) {
+		var err error
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[idx].ID, err = uuid.FromString("788cab16-ba0b-4d48-8587-f187ebc0d9ff")
+				require.NoError(t, err)
+				return nil
+			}),
+			tf.Codebases(1),
+		)
+		spaceID := fxt.Spaces[0].ID
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.ok.yaml")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
+		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.500.yaml")
+		require.NoError(t, err)
+		defer rCodebase.Stop()
+
+		svc, ctrl := s.SecuredController(
+			*fxt.Identities[0],
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
+			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
+		)
+		_, e := test.DeleteSpaceInternalServerError(t, svc.Context, svc, ctrl, spaceID, nil)
+		assert.Contains(t, e.String(), "failed to delete codebases associated with space")
+	})
 }
 
 func checkDeleteURL(httpReq *http.Request, expectedDeleteURLs map[string]struct{}, t *testing.T) bool {
