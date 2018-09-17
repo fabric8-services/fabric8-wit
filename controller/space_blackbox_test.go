@@ -672,8 +672,6 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 			tf.Codebases(1),
 		)
 		spaceID := fxt.Spaces[0].ID
-		identity := testsupport.TestIdentity
-
 		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.ok.yaml")
 		require.NoError(t, err)
 		defer rDeployments.Stop()
@@ -683,7 +681,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		defer rCodebase.Stop()
 
 		svc, ctrl := s.SecuredController(
-			identity,
+			*fxt.Identities[0],
 			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
