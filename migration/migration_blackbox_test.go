@@ -1321,7 +1321,8 @@ func testMigration105UpdateRootIterationAreaPathField(t *testing.T) {
 	})
 }
 
-// test that root iterations are no longer empty and containt he converted id
+// testMigration106NumberSequences tests that we can migrate existing work
+// items, iterations and areas to use the new number_sequences table
 func testMigration106NumberSequences(t *testing.T) {
 	t.Run("migrate to previous version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:106], 106)
@@ -1371,11 +1372,11 @@ func testMigration106NumberSequences(t *testing.T) {
 		))
 	})
 
-	// // Helper functions
+	// Helper functions
 
 	getNumberOf := func(t *testing.T, table string, id uuid.UUID) int {
-		q := fmt.Sprintf("SELECT number FROM %s WHERE id = '%s'", table, id)
-		row := sqlDB.QueryRow(q)
+		q := fmt.Sprintf("SELECT number FROM %s WHERE id = $1", table)
+		row := sqlDB.QueryRow(q, id)
 		require.NotNil(t, row)
 		var p int32
 		err := row.Scan(&p)
@@ -1428,25 +1429,15 @@ func testMigration106NumberSequences(t *testing.T) {
 		newTable := "number_sequences"
 		require.True(t, dialect.HasTable(newTable), "the new number sequences table %q has to exist", newTable)
 
-		type NumberSequence struct {
-			SpaceID    uuid.UUID `json:"space_id"`
-			TableName  string    `json:"table_name"`
-			CurrentVal int       `json:"current_val"`
+		type numberSequence struct {
+			spaceID    uuid.UUID
+			tableName  string
+			currentVal int
 		}
-		// rows, err := sqlDB.Query("SELECT space_id, table_name, current_val FROM number_sequences WHERE space_id IN ($1, $2)", space1ID, space2ID)
-		// require.NoError(t, err)
-		// defer rows.Close()
-		// for rows.Next() {
-		// 	seq := NumberSequence{}
-		// 	err := rows.Scan(seq.SpaceID)
-		// 	require.NoError(t, err)
-		// 	spew.Dump(seq)
-		// }
-		sequences := []NumberSequence{}
-		db := gormDB.Debug().Where("space_id IN ($1, $2)", space1ID, space2ID).Find(&sequences)
-		require.NoError(t, db.Error)
-
-		toBeFound := map[NumberSequence]struct{}{
+		rows, err := sqlDB.Query("SELECT space_id, table_name, current_val FROM number_sequences WHERE space_id IN ($1, $2)", space1ID, space2ID)
+		require.NoError(t, err)
+		defer rows.Close()
+		toBeFound := map[numberSequence]struct{}{
 			{space1ID, "work_items", 2}: {},
 			{space2ID, "work_items", 2}: {},
 			{space1ID, "iterations", 2}: {},
@@ -1454,8 +1445,11 @@ func testMigration106NumberSequences(t *testing.T) {
 			{space1ID, "areas", 2}:      {},
 			{space2ID, "areas", 2}:      {},
 		}
-		for _, s := range sequences {
-			delete(toBeFound, s)
+		for rows.Next() {
+			seq := numberSequence{}
+			err := rows.Scan(&seq.spaceID, &seq.tableName, &seq.currentVal)
+			require.NoError(t, err)
+			delete(toBeFound, seq)
 		}
 		require.Empty(t, toBeFound, "failed to find these number sequences: %+v", spew.Sdump(toBeFound))
 	})

@@ -6,10 +6,6 @@ CREATE TABLE number_sequences (
     PRIMARY KEY (space_id, table_name)
 );
 
--- -- Copy over all numbers from the old table
--- INSERT INTO number_sequences (space_id, table_name, current_val)
---     (SELECT space_id, 'work_items', current_val FROM work_item_number_sequences);
-
 -- Delete old number table
 DROP TABLE work_item_number_sequences;
 
@@ -18,16 +14,12 @@ DROP TABLE work_item_number_sequences;
 ALTER TABLE iterations ADD COLUMN number INTEGER;
 ALTER TABLE areas ADD COLUMN number INTEGER;
 
-UPDATE iterations
-SET number = seq.row_number
-FROM
-    (SELECT id, space_id, created_at, row_number() OVER (PARTITION BY space_id ORDER BY created_at ASC) FROM iterations) AS seq
+UPDATE iterations SET number = seq.row_number
+FROM (SELECT id, space_id, created_at, row_number() OVER (PARTITION BY space_id ORDER BY created_at ASC) FROM iterations) AS seq
 WHERE iterations.id = seq.id;
 
-UPDATE areas
-    SET number = seq.row_number
-FROM
-    (SELECT id, space_id, created_at, row_number() OVER (PARTITION BY space_id ORDER BY created_at ASC) FROM areas) AS seq
+UPDATE areas SET number = seq.row_number
+FROM (SELECT id, space_id, created_at, row_number() OVER (PARTITION BY space_id ORDER BY created_at ASC) FROM areas) AS seq
 WHERE areas.id = seq.id;
 
 -- Make number a required column
