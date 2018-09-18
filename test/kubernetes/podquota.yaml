@@ -328,6 +328,20 @@ interactions:
       - application/json;charset=UTF-8
     status: 200 OK
     code: 200
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/oapi/v1/namespaces/my-stage/deploymentconfigs/myDeploy
+    method: GET
+  response:
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 404 Not Found
+    code: 404
   # Limit Ranges
 - request:
     body: ""

@@ -1499,6 +1499,8 @@ func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, en
 	deploymentConfig, err := kc.GetDeploymentConfig(namespace, dcName)
 	if err != nil {
 		return nil, errs.Errorf("could not retrieve deployment config with name %s for namespace %s", dcName, namespace)
+	} else if deploymentConfig == nil {
+		return nil, errors.NewNotFoundErrorFromString(fmt.Sprintf("no deployment config found named %s in %s", dcName, namespace))
 	}
 
 	spec, ok := deploymentConfig["spec"].(map[string]interface{})

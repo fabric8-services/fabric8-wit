@@ -1552,6 +1552,7 @@ func TestGetDeploymentPodQuota(t *testing.T) {
 		cassetteName string
 		expectedCPU  float64
 		expectedMem  float64
+		errorChecker func(error) (bool, error)
 		shouldFail   bool
 	}{
 		{
@@ -1570,6 +1571,15 @@ func TestGetDeploymentPodQuota(t *testing.T) {
 			envName:      "doesNotExist",
 			cassetteName: "podquota",
 			shouldFail:   true,
+		},
+		{
+			testName:     "Bad Deployment",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "stage",
+			cassetteName: "podquota",
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
 		},
 		{
 			testName:     "Multi Container",
@@ -1621,6 +1631,10 @@ func TestGetDeploymentPodQuota(t *testing.T) {
 			quota, err := kc.GetDeploymentPodQuota(testCase.spaceName, testCase.appName, testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.NotNil(t, quota.Limits.Cpucores, "CPU limits must be non-nil")
