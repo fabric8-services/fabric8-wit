@@ -1085,7 +1085,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 		spaceIDStr := fxt.Spaces[0].ID.String()
 
 		t.Run("without child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[2].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s/**"}`, fxt.Iterations[2].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 4)
