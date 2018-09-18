@@ -1043,7 +1043,7 @@ func (s *searchControllerTestSuite) TestSearchByJoinedData() {
 		})
 		for _, wi := range list.Data {
 			_, ok := toBeFound[*wi.ID]
-			require.True(t, ok, "unknown work item found: %s", *wi.ID)
+			require.True(t, ok, "unexpected work item found: %s", *wi.ID)
 			delete(toBeFound, *wi.ID)
 		}
 		require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
@@ -1097,7 +1097,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			})
 			for _, wi := range result.Data {
 				_, ok := toBeFound[*wi.ID]
-				require.True(t, ok, "unknown work item found: %s", *wi.ID)
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
@@ -1117,7 +1117,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			})
 			for _, wi := range result.Data {
 				_, ok := toBeFound[*wi.ID]
-				require.True(t, ok, "unknown work item found: %s", *wi.ID)
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
@@ -1140,7 +1140,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			})
 			for _, wi := range result.Data {
 				_, ok := toBeFound[*wi.ID]
-				require.True(t, ok, "unknown work item found: %s", *wi.ID)
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
@@ -1159,7 +1159,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			})
 			for _, wi := range result.Data {
 				_, ok := toBeFound[*wi.ID]
-				require.True(t, ok, "unknown work item found: %s", *wi.ID)
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
@@ -1177,7 +1177,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			})
 			for _, wi := range result.Data {
 				_, ok := toBeFound[*wi.ID]
-				require.True(t, ok, "unknown work item found: %s", *wi.ID)
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
@@ -1193,7 +1193,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			})
 			for _, wi := range result.Data {
 				_, ok := toBeFound[*wi.ID]
-				require.True(t, ok, "unknown work item found: %s", *wi.ID)
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
@@ -1210,7 +1210,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			})
 			for _, wi := range result.Data {
 				_, ok := toBeFound[*wi.ID]
-				require.True(t, ok, "unknown work item found: %s", *wi.ID)
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
 				delete(toBeFound, *wi.ID)
 			}
 			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
