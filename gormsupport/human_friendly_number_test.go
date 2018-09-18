@@ -15,7 +15,7 @@ func TestHumanFriendlyNumber_Equal(t *testing.T) {
 		spaceID:   uuid.NewV4(),
 		tableName: "work_items",
 	}
-	t.Run("equality", func(t *testing.T) {
+	t.Run("types", func(t *testing.T) {
 		t.Parallel()
 		b := convert.DummyEqualer{}
 		assert.False(t, a.Equal(b))

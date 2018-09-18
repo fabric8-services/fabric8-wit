@@ -23,6 +23,7 @@ const APIStringTypeAreas = "areas"
 // Area describes a single Area
 type Area struct {
 	gormsupport.Lifecycle
+	gormsupport.HumanFriendlyNumber
 	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID uuid.UUID `sql:"type:uuid"`
 	Path    path.Path
@@ -80,6 +81,8 @@ type GormAreaRepository struct {
 // Create creates a new record.
 func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "create"}, time.Now())
+
+	u.HumanFriendlyNumber = gormsupport.NewHumanFriendlyNumber(u.SpaceID, u.TableName())
 
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()

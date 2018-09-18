@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -14,7 +16,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	"net/http"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -474,6 +475,7 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 			ParentPath:   &pathToTopMostParent,
 			UserActive:   &itr.UserActive,
 			ActiveStatus: &activeStatus,
+			Number:       &itr.Number,
 		},
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{
