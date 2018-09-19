@@ -17,14 +17,13 @@ var (
 // WorkItemLinkCategory represents the category of a work item link as it is stored in the db
 type WorkItemLinkCategory struct {
 	gormsupport.Lifecycle
+	gormsupport.Versioning
 	// ID
 	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// Name is the unique name of this work item link category.
 	Name string
 	// Description is an optional description of the work item link category
 	Description *string
-	// Version for optimistic concurrency control
-	Version int
 }
 
 // Ensure Fields implements the Equaler interface
@@ -43,7 +42,7 @@ func (c WorkItemLinkCategory) Equal(u convert.Equaler) bool {
 	if c.Name != other.Name {
 		return false
 	}
-	if c.Version != other.Version {
+	if !c.Versioning.Equal(other.Versioning) {
 		return false
 	}
 	if !reflect.DeepEqual(c.Description, other.Description) {

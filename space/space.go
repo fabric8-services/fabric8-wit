@@ -29,8 +29,8 @@ var (
 // Space represents a Space on the domain and db layer
 type Space struct {
 	gormsupport.Lifecycle
+	gormsupport.Versioning
 	ID              uuid.UUID
-	Version         int
 	Name            string
 	Description     string
 	OwnerID         uuid.UUID `sql:"type:uuid"` // Belongs To Identity
@@ -51,7 +51,7 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if !lfEqual {
 		return false
 	}
-	if p.Version != other.Version {
+	if !p.Versioning.Equal(other.Versioning) {
 		return false
 	}
 	if p.Name != other.Name {
@@ -219,7 +219,6 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 	pr := Space{}
 	tx := r.db.Where("id=?", p.ID).First(&pr)
 	oldVersion := p.Version
-	p.Version++
 	if tx.RecordNotFound() {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("space", p.ID.String())
@@ -231,7 +230,7 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 		}, "unable to find the space by ID")
 		return nil, errors.NewInternalError(ctx, err)
 	}
-	tx = tx.Where("Version = ?", oldVersion).Save(p)
+	tx = tx.Save(p)
 	if err := tx.Error; err != nil {
 		if gormsupport.IsCheckViolation(tx.Error, "spaces_name_check") {
 			return nil, errors.NewBadParameterError("Name", p.Name).Expected("not empty")

@@ -19,10 +19,9 @@ func TestWorkItem_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	a := workitem.WorkItemStorage{
-		ID:      uuid.NewV4(),
-		Number:  1,
-		Type:    uuid.NewV4(),
-		Version: 0,
+		ID:     uuid.NewV4(),
+		Number: 1,
+		Type:   uuid.NewV4(),
 		Fields: workitem.Fields{
 			"foo": "bar",
 		},
@@ -74,9 +73,8 @@ func TestWorkItem_Equal(t *testing.T) {
 	assert.False(t, a.Equal(j))
 
 	k := workitem.WorkItemStorage{
-		ID:      a.ID,
-		Type:    a.Type,
-		Version: 0,
+		ID:   a.ID,
+		Type: a.Type,
 		Fields: workitem.Fields{
 			"foo": "bar",
 		},

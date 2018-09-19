@@ -13,10 +13,9 @@ import (
 // WorkItemLink represents the connection of two work items as it is stored in the db
 type WorkItemLink struct {
 	gormsupport.Lifecycle
+	gormsupport.Versioning
 	// ID
-	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	// Version for optimistic concurrency control
-	Version    int
+	ID         uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	SourceID   uuid.UUID `sql:"type:uuid"`
 	TargetID   uuid.UUID `sql:"type:uuid"`
 	LinkTypeID uuid.UUID `sql:"type:uuid"`
@@ -35,7 +34,7 @@ func (l WorkItemLink) Equal(u convert.Equaler) bool {
 	if !uuid.Equal(l.ID, other.ID) {
 		return false
 	}
-	if l.Version != other.Version {
+	if !l.Versioning.Equal(other.Versioning) {
 		return false
 	}
 	if l.SourceID != other.SourceID {

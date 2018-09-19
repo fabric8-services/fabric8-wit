@@ -22,13 +22,13 @@ const APIStringTypeLabels = "labels"
 // Label describes a single Label
 type Label struct {
 	gormsupport.Lifecycle
+	gormsupport.Versioning
 	ID              uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID         uuid.UUID `sql:"type:uuid"`
 	Name            string
 	TextColor       string `sql:"DEFAULT:#000000"`
 	BackgroundColor string `sql:"DEFAULT:#FFFFFF"`
 	BorderColor     string `sql:"DEFAULT:#000000"`
-	Version         int
 }
 
 // GetETagData returns the field values to use to generate the ETag
@@ -101,8 +101,6 @@ func (m *GormLabelRepository) Save(ctx context.Context, l Label) (*Label, error)
 	}
 	lbl := Label{}
 	tx := m.db.Where("id = ?", l.ID).First(&lbl)
-	oldVersion := l.Version
-	l.Version = lbl.Version + 1
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"label_id": l.ID,
@@ -116,7 +114,7 @@ func (m *GormLabelRepository) Save(ctx context.Context, l Label) (*Label, error)
 		}, "unknown error happened when searching the label")
 		return nil, errors.NewInternalError(ctx, err)
 	}
-	tx = tx.Where("Version = ?", oldVersion).Save(&l)
+	tx = tx.Save(&l)
 	if err := tx.Error; err != nil {
 		// combination of name and space ID should be unique
 		if gormsupport.IsUniqueViolation(err, "labels_name_space_id_unique_idx") {

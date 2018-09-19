@@ -309,8 +309,8 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 
 func ConvertAreaToModel(appArea app.AreaSingle) area.Area {
 	return area.Area{
-		ID:      *appArea.Data.ID,
-		Version: *appArea.Data.Attributes.Version,
+		ID:         *appArea.Data.ID,
+		Versioning: gormsupport.Versioning{Version: *appArea.Data.Attributes.Version},
 		Lifecycle: gormsupport.Lifecycle{
 			UpdatedAt: *appArea.Data.Attributes.UpdatedAt,
 		},

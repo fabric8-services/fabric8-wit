@@ -24,12 +24,12 @@ const APIStringTypeQuery = "queries"
 // Query describes a single Query
 type Query struct {
 	gormsupport.Lifecycle
+	gormsupport.Versioning
 	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID uuid.UUID `sql:"type:uuid"`
 	Creator uuid.UUID `sql:"type:uuid"`
 	Title   string
 	Fields  string
-	Version int
 }
 
 // QueryTableName constant that holds table name of Queries
@@ -130,8 +130,6 @@ func (r *GormQueryRepository) Save(ctx context.Context, q Query) (*Query, error)
 	}
 	qry := Query{}
 	tx := r.db.Where("id = ?", q.ID).First(&qry)
-	oldVersion := q.Version
-	q.Version = qry.Version + 1
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"query_id": q.ID,
@@ -145,7 +143,7 @@ func (r *GormQueryRepository) Save(ctx context.Context, q Query) (*Query, error)
 		}, "unknown error happened when searching the query")
 		return nil, errors.NewInternalError(ctx, err)
 	}
-	tx = tx.Where("Version = ?", oldVersion).Save(&q)
+	tx = tx.Save(&q)
 	if err := tx.Error; err != nil {
 		// combination of name and space ID should be unique
 		if gormsupport.IsUniqueViolation(err, "queries_title_space_id_creator_unique") {

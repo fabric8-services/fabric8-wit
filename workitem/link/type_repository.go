@@ -181,7 +181,6 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 		}, "cannot update link type's topology to %s", modelToSave.Topology)
 		return nil, errors.NewBadParameterError("topology", modelToSave.Topology)
 	}
-	modelToSave.Version = modelToSave.Version + 1
 	if existingModel.SpaceTemplateID != modelToSave.SpaceTemplateID {
 		return nil, errors.NewForbiddenError("one must not change the space template reference in a work item link")
 	}

@@ -23,17 +23,17 @@ var (
 // the db
 type WorkItemLinkType struct {
 	gormsupport.Lifecycle `json:"lifecycle,inline"`
-	ID                    uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id"`
-	Name                  string    `json:"name"`                  // Name is the unique name of this work item link type.
-	Description           *string   `json:"description,omitempty"` // Description is an optional description of the work item link type
-	Version               int       `json:"version"`               // Version for optimistic concurrency control
-	Topology              Topology  `json:"topology"`              // Valid values: network, directed_network, dependency, tree
-	ForwardName           string    `json:"forward_name"`
-	ForwardDescription    *string   `json:"forward_description,omitempty"`
-	ReverseName           string    `json:"reverse_name"`
-	ReverseDescription    *string   `json:"reverse_description,omitempty"`
-	LinkCategoryID        uuid.UUID `sql:"type:uuid" json:"link_category_id"`
-	SpaceTemplateID       uuid.UUID `sql:"type:uuid" json:"space_template_id"` // Reference to a space template
+	gormsupport.Versioning
+	ID                 uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id"`
+	Name               string    `json:"name"`                  // Name is the unique name of this work item link type.
+	Description        *string   `json:"description,omitempty"` // Description is an optional description of the work item link type
+	Topology           Topology  `json:"topology"`              // Valid values: network, directed_network, dependency, tree
+	ForwardName        string    `json:"forward_name"`
+	ForwardDescription *string   `json:"forward_description,omitempty"`
+	ReverseName        string    `json:"reverse_name"`
+	ReverseDescription *string   `json:"reverse_description,omitempty"`
+	LinkCategoryID     uuid.UUID `sql:"type:uuid" json:"link_category_id"`
+	SpaceTemplateID    uuid.UUID `sql:"type:uuid" json:"space_template_id"` // Reference to a space template
 }
 
 // Ensure WorkItemLinkType implements the Equaler interface
@@ -52,7 +52,7 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.Name != other.Name {
 		return false
 	}
-	if t.Version != other.Version {
+	if !t.Versioning.Equal(other.Versioning) {
 		return false
 	}
 	if !reflect.DeepEqual(t.Description, other.Description) {

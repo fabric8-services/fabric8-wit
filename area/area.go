@@ -23,11 +23,11 @@ const APIStringTypeAreas = "areas"
 // Area describes a single Area
 type Area struct {
 	gormsupport.Lifecycle
+	gormsupport.Versioning
 	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID uuid.UUID `sql:"type:uuid"`
 	Path    path.Path
 	Name    string
-	Version int
 }
 
 // MakeChildOf does all the path magic to make the current area a child of the

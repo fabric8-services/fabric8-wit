@@ -66,6 +66,7 @@ var (
 // WorkItemType represents a work item type as it is stored in the db
 type WorkItemType struct {
 	gormsupport.Lifecycle `json:"lifecycle,omitempty"`
+	gormsupport.Versioning
 
 	// ID is the primary key of a work item type.
 	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id,omitempty"`
@@ -79,10 +80,6 @@ type WorkItemType struct {
 	// Icon contains the CSS icon class(es) to render an icon for the work item
 	// type.
 	Icon string `json:"icon,omitempty"`
-
-	// Version contains the revision number of this work item type and is used
-	// for optimistic concurrency control.
-	Version int `json:"version,omitempty"`
 
 	// Path contains the IDs of the parents, separated with a dot (".")
 	// separator.
@@ -179,7 +176,7 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	if !wit.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-	if wit.Version != other.Version {
+	if !wit.Versioning.Equal(other.Versioning) {
 		return false
 	}
 	if wit.Name != other.Name {

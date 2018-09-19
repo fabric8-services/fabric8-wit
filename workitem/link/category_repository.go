@@ -143,7 +143,6 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat W
 	}
 	newLinkCat := WorkItemLinkCategory{
 		ID:          linkCat.ID,
-		Version:     linkCat.Version + 1,
 		Name:        linkCat.Name,
 		Description: linkCat.Description,
 	}

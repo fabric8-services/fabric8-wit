@@ -14,14 +14,13 @@ import (
 // WorkItemStorage represents a work item as it is stored in the database
 type WorkItemStorage struct {
 	gormsupport.Lifecycle
+	gormsupport.Versioning
 	// unique id per installation (used for references at the DB level)
 	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// unique number per _space_
 	Number int
 	// Id of the type of this work item
 	Type uuid.UUID `sql:"type:uuid"`
-	// Version for optimistic concurrency control
-	Version int
 	// the field values
 	Fields Fields `sql:"type:jsonb"`
 	// the position of workitem
@@ -61,7 +60,7 @@ func (wi WorkItemStorage) Equal(u convert.Equaler) bool {
 	if wi.ID != other.ID {
 		return false
 	}
-	if wi.Version != other.Version {
+	if !wi.Versioning.Equal(other.Versioning) {
 		return false
 	}
 	if wi.ExecutionOrder != other.ExecutionOrder {
