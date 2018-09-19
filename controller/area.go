@@ -212,7 +212,7 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 			UpdatedAt:  &ar.UpdatedAt,
 			Version:    &ar.Version,
 			ParentPath: ptr.String(ar.Path.ParentPath().String()),
-			Number: &ar.Number,
+			Number:     &ar.Number,
 		},
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{

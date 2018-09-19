@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -511,7 +510,6 @@ func ExecuteSQLFile(filename string, args ...string) fn {
 			writer.Flush()
 			_, err = db.Exec(sqlScript.String())
 			if err != nil {
-				fmt.Printf("\n\n%+v\n\n", err)
 				log.Error(context.Background(), map[string]interface{}{"err": err}, "failed to execute this query in file %s: \n\n%s\n\n", filename, sqlScript.String())
 			}
 		} else {
