@@ -31,20 +31,17 @@ func TestHumanFriendlyNumber_Equal(t *testing.T) {
 	})
 	t.Run("number", func(t *testing.T) {
 		t.Parallel()
-		b := a
-		numbersequence.NewHumanFriendlyNumber(spaceID, "work_items", 567)
+		b := numbersequence.NewHumanFriendlyNumber(spaceID, "work_items", 567)
 		assert.False(t, a.Equal(b))
 	})
 	t.Run("table name", func(t *testing.T) {
 		t.Parallel()
-		b := a
-		numbersequence.NewHumanFriendlyNumber(spaceID, "iterations", 1)
+		b := numbersequence.NewHumanFriendlyNumber(spaceID, "iterations", 1)
 		assert.False(t, a.Equal(b))
 	})
 	t.Run("space id", func(t *testing.T) {
 		t.Parallel()
-		b := a
-		numbersequence.NewHumanFriendlyNumber(uuid.NewV4(), "work_items", 1)
+		b := numbersequence.NewHumanFriendlyNumber(uuid.NewV4(), "work_items", 1)
 		assert.False(t, a.Equal(b))
 	})
 }
