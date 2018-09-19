@@ -3,7 +3,7 @@
     "attributes": {
       "can-construct": true,
       "created-at": "0001-01-01T00:00:00Z",
-      "description": "this work item type was automatically generated",
+      "description": "this work item type was automatically generated (see function github.com/fabric8-services/fabric8-wit/controller_test.(*WorkItem2Suite).TestWI2UpdateFieldOfDifferentSimpleTypes.func1 in controller/workitem_blackbox_test.go)",
       "fields": {
         "boardcolumn_field": {
           "description": "This field is used for testing values for the field kind 'boardcolumn'",

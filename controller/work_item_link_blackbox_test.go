@@ -111,10 +111,12 @@ func (s *workItemLinkSuite) TestCreate() {
 
 	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
 		// helper function used in all ok-cases
-		createOK := func(t *testing.T, fxt *tf.TestFixture, svc *goa.Service, ctrl *WorkItemLinkController) {
+		createOK := func(t *testing.T, fxt *tf.TestFixture, svc *goa.Service, ctrl *WorkItemLinkController, compareGoldenFile bool) {
 			// when
 			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, fxt.WorkItems[1].ID, fxt.WorkItemLinkTypes[0].ID)
-			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.req.payload.golden.json"), createPayload)
+			if compareGoldenFile {
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.req.payload.golden.json"), createPayload)
+			}
 			res, workItemLink := test.CreateWorkItemLinkCreated(t, svc.Context, svc, ctrl, createPayload)
 			// then
 			require.NotNil(t, workItemLink)
@@ -148,27 +150,29 @@ func (s *workItemLinkSuite) TestCreate() {
 			}
 			require.Empty(t, 0, expectedIDs, "these elements where missing from the included objects: %+v", expectedIDs)
 
-			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.res.payload.golden.json"), workItemLink)
-			res.Header().Set("Etag", "0icd7ov5CqwDXN6Fx9z18g==") // overwrite Etag to always match
-			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.res.headers.golden.json"), res)
+			if compareGoldenFile {
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.res.payload.golden.json"), workItemLink)
+				res.Header().Set("Etag", "0icd7ov5CqwDXN6Fx9z18g==") // overwrite Etag to always match
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.res.headers.golden.json"), res)
+			}
 		}
 
 		t.Run("as space owner", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(4), tf.WorkItemLinkTypes(1))
 			svc, ctrl := s.SecuredController(*fxt.Identities[0])
-			createOK(t, fxt, svc, ctrl)
+			createOK(t, fxt, svc, ctrl, true)
 		})
 		t.Run("as space collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(4), tf.WorkItemLinkTypes(1), tf.Identities(2, tf.SetIdentityUsernames("owner", "collaborator")))
 			svc := testsupport.ServiceAsSpaceUser("TestWorkItem-Service", *fxt.IdentityByUsername("collaborator"), &TestSpaceAuthzService{*fxt.IdentityByUsername("collaborator"), ""})
 			ctrl := NewWorkItemLinkController(svc, s.GormDB, s.Configuration)
-			createOK(t, fxt, svc, ctrl)
+			createOK(t, fxt, svc, ctrl, false)
 		})
 		t.Run("as non-owner and non-collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(4), tf.WorkItemLinkTypes(1), tf.Identities(2, tf.SetIdentityUsernames("alice", "bob")))
 			svc := testsupport.ServiceAsUser("TestWorkItem-Service", *fxt.IdentityByUsername("bob"))
 			ctrl := NewWorkItemLinkController(svc, s.GormDB, s.Configuration)
-			createOK(t, fxt, svc, ctrl)
+			createOK(t, fxt, svc, ctrl, false)
 		})
 	})
 	s.T().Run(http.StatusText(http.StatusUnauthorized), func(t *testing.T) {

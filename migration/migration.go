@@ -452,6 +452,9 @@ func GetMigrations() Migrations {
 	// Version 104
 	m = append(m, steps{ExecuteSQLFile("104-add-index-wi-revision.sql")})
 
+	// Version 105
+	m = append(m, steps{ExecuteSQLFile("105-update-root-area-and-iteration-path-field.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
