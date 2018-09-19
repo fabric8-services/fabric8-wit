@@ -1,4 +1,4 @@
-package gormsupport
+package numbersequence
 
 import (
 	"github.com/fabric8-services/fabric8-wit/convert"
@@ -51,11 +51,6 @@ func (n HumanFriendlyNumber) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return true
-}
-
-// EqualValue implements convert.Equaler
-func (n HumanFriendlyNumber) EqualValue(u convert.Equaler) bool {
-	return n.Equal(u)
 }
 
 // BeforeCreate is a GORM callback (see http://doc.gorm.io/callbacks.html) that

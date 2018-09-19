@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/numbersequence"
 	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -29,7 +30,7 @@ const (
 // Iteration describes a single iteration
 type Iteration struct {
 	gormsupport.Lifecycle
-	gormsupport.HumanFriendlyNumber
+	numbersequence.HumanFriendlyNumber
 	ID          uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID     uuid.UUID `sql:"type:uuid"`
 	Path        path.Path
@@ -138,7 +139,7 @@ func (m *GormIterationRepository) LoadMultiple(ctx context.Context, ids []uuid.U
 func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) error {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "create"}, time.Now())
 
-	u.HumanFriendlyNumber = gormsupport.NewHumanFriendlyNumber(u.SpaceID, u.TableName())
+	u.HumanFriendlyNumber = numbersequence.NewHumanFriendlyNumber(u.SpaceID, u.TableName())
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
 		u.Path = path.Path{u.ID}

@@ -20,7 +20,6 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	a := workitem.WorkItemStorage{
 		ID:      uuid.NewV4(),
-		Number:  1,
 		Type:    uuid.NewV4(),
 		Version: 0,
 		Fields: workitem.Fields{
@@ -28,6 +27,7 @@ func TestWorkItem_Equal(t *testing.T) {
 		},
 		SpaceID: space.SystemSpace,
 	}
+	a.HumanFriendlyNumber = gormsupport.NewHumanFriendlyNumber(space.SystemSpace, a.TableName(), 1)
 
 	// Test type difference
 	b := convert.DummyEqualer{}
