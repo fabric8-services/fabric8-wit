@@ -499,7 +499,7 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 			Related: &relatedURL,
 		},
 	}
-	if itr.Path.IsEmpty() == false {
+	if !itr.Path.ParentPath().IsEmpty() {
 		parentID := itr.Path.ParentID().String()
 		parentRelatedURL := rest.AbsoluteURL(request, app.IterationHref(parentID))
 		i.Relationships.Parent = &app.RelationGeneric{
