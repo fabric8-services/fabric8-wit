@@ -48,7 +48,7 @@ func (s *TestIterationRepository) TestCreate() {
 		// then
 		require.NoError(t, err)
 		require.NotEqual(t, uuid.Nil, i.ID, "iteration not created, ID is nil")
-		// require.True(t, i.CreatedAt.After(time.Now()), "iteration was not created, CreatedAt after Now()?")
+		require.False(t, i.CreatedAt.After(time.Now()), "iteration was not created, CreatedAt after Now()?")
 		assert.Equal(t, start, *i.StartAt)
 		assert.Equal(t, end, *i.EndAt)
 		assert.Equal(t, name, i.Name)
