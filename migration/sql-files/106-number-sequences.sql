@@ -26,8 +26,8 @@ WHERE areas.id = seq.id;
 ALTER TABLE iterations ALTER COLUMN number SET NOT NULL;
 ALTER TABLE areas ALTER COLUMN number SET NOT NULL;
 
-CREATE UNIQUE INDEX iterations_space_id_number_idx ON iterations USING BTREE (space_id, number);
-CREATE UNIQUE INDEX areas_space_id_number_idx ON areas USING BTREE (space_id, number);
+ALTER TABLE iterations ADD CONSTRAINT iterations_space_id_number_idx UNIQUE (space_id, number);
+ALTER TABLE areas ASS CONSTRAINT areas_space_id_number_idx UNIQUE (space_id, number);
 
 -- Update the number_sequences table with the maximum for each table type
 
