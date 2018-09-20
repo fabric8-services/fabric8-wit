@@ -1,6 +1,8 @@
 package numbersequence
 
 import (
+	"fmt"
+
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/jinzhu/gorm"
@@ -9,9 +11,11 @@ import (
 )
 
 // The HumanFriendlyNumber struct can be embedded in all model structs that want
-// to have an automatically incremented human friendly number (e.g. 1,10,23).
+// to have an automatically incremented human friendly number (1, 2, 3, 4, ...),
 // Such a number is unique within the space and for the given table name (e.g.
-// 'work_items', 'iterations', 'areas').
+// "work_items", "iterations", "areas"). Once a model has received a number
+// during the creation phase (on database INSERT), any followup call to the
+// model's `Save()` function will prohibit changing the number.
 type HumanFriendlyNumber struct {
 	Number    int       `json:"number,omitempty"`
 	spaceID   uuid.UUID `gorm:"-"`
@@ -78,4 +82,21 @@ func (n *HumanFriendlyNumber) BeforeCreate(scope *gorm.Scope) error {
 
 	n.Number = currentVal
 	return scope.SetColumn("number", n.Number)
+}
+
+// BeforeUpdate is a GORM callback (see http://doc.gorm.io/callbacks.html) that
+// will be called before updating the model. We use it to check for number
+// compatibility by adding this condition to the WHERE clause of the UPDATE:
+//
+//    AND number=<NUMBER-OF-THE-MODEL>
+//
+// This guarantees that you cannot change the number on the model when you
+// update it. The UPDATE will affect no rows!
+//
+// NOTE(kwk): We could have used scope.Search.Omit("number") in order to avoid
+// setting the number, but there is practically no way to tell back to the
+// model, that we have ignored the number column.
+func (n *HumanFriendlyNumber) BeforeUpdate(scope *gorm.Scope) error {
+	scope.Search.Where(fmt.Sprintf(`"%s"."number"=?`, scope.TableName()), n.Number)
+	return nil
 }

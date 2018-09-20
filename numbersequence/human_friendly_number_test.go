@@ -57,6 +57,19 @@ func TestHumanFriendlyNumberSuite(t *testing.T) {
 const tableName1 = "human_friendly_number_test1"
 const tableName2 = "human_friendly_number_test2"
 
+// SetupTest implements suite.SetupTest
+func (s *humanFriendlyNumberSuite) SetupTest() {
+	s.DBTestSuite.SetupTest()
+	// Prepare a table for our model test structures to persist their data in.
+	db := s.DB.Exec(fmt.Sprintf(`
+		DROP TABLE IF EXISTS %[1]q;
+		DROP TABLE IF EXISTS %[2]q;
+		CREATE TABLE %[1]q ( id uuid PRIMARY KEY, number int, message text );
+		CREATE TABLE %[2]q ( id uuid PRIMARY KEY, number int, message text );
+	`, tableName1, tableName2))
+	require.NoError(s.T(), db.Error)
+}
+
 type testStruct1 struct {
 	numbersequence.HumanFriendlyNumber
 	ID      uuid.UUID `json:"id" gorm:"primary_key"`
@@ -77,19 +90,13 @@ func (s testStruct2) TableName() string {
 	return tableName2
 }
 
-// TestBeforeCreate tests that two model types (testStruct1 and testStruct2) get
-// numbers upon creation of model. Numbers are partitioned by space and table
-// name.
+// TestBeforeCreate tests that two model types (testStruct1 and
+// testStruct2) get numbers upon creation of model. Numbers are partitioned by
+// space and table name.
 func (s *humanFriendlyNumberSuite) TestBeforeCreate() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(2))
-	db := s.DB.Exec(fmt.Sprintf(`
-		DROP TABLE IF EXISTS %[1]q;
-		DROP TABLE IF EXISTS %[2]q;
-		CREATE TABLE %[1]q ( id uuid PRIMARY KEY, number int, message text );
-		CREATE TABLE %[2]q ( id uuid PRIMARY KEY, number int, message text );
-	`, tableName1, tableName2))
-	require.NoError(s.T(), db.Error)
+	db := s.DB
 
 	// create models of two types in two spaces and check that the numbers are
 	// assigned as expected.
@@ -120,6 +127,36 @@ func (s *humanFriendlyNumberSuite) TestBeforeCreate() {
 		require.NoError(s.T(), db.Error)
 		require.Equal(s.T(), expectedNumbers[i], data2[i].Number, "data2 item #%d should have number %d but has %d", i, expectedNumbers[i], data2[i].Number)
 	}
+}
+
+// TestBeforeUpdate tests that you cannot change an already given number on a
+// model when you update that model.
+func (s *humanFriendlyNumberSuite) TestBeforeUpdate() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+	db := s.DB
+	model := testStruct1{ID: uuid.NewV4(), Message: "first", HumanFriendlyNumber: numbersequence.NewHumanFriendlyNumber(fxt.Spaces[0].ID, tableName1)}
+	db = db.Create(&model)
+	require.NoError(s.T(), db.Error)
+	s.T().Run("update message", func(t *testing.T) {
+		// when updating the message
+		model.Message = "new message"
+		db = db.Save(&model)
+		// then the number should stay the same
+		require.NoError(t, db.Error)
+		require.Equal(t, 1, model.Number)
+		require.Equal(t, "new message", model.Message)
+	})
+	s.T().Run("update number", func(t *testing.T) {
+		// when updating the message and the number
+		model.Message = "new message 2"
+		model.Number = 2
+		db = db.Save(&model)
+		// then there should be no rows affected because we're not supposed to
+		// update the number
+		require.NoError(t, db.Error)
+		require.Equal(t, int64(0), db.RowsAffected)
+	})
 }
 
 func (s *humanFriendlyNumberSuite) TestConcurrentCreate() {
