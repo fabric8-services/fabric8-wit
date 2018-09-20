@@ -30,53 +30,62 @@ func TestWorkItem_Equal(t *testing.T) {
 	}
 
 	t.Run("no equaler", func(t *testing.T) {
+		t.Parallel()
 		b := convert.DummyEqualer{}
 		assert.False(t, a.Equal(b))
 	})
 
 	t.Run("lifecycle", func(t *testing.T) {
+		t.Parallel()
 		b := a
 		b.Lifecycle = gormsupport.Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
 		assert.False(t, a.Equal(b))
 	})
 
 	t.Run("type", func(t *testing.T) {
+		t.Parallel()
 		b := a
 		b.Type = uuid.NewV4()
 		assert.False(t, a.Equal(b))
 	})
 
 	t.Run("version", func(t *testing.T) {
+		t.Parallel()
 		b := a
-		b.Version += 1
+		b.Version++
 		assert.False(t, a.Equal(b))
 	})
 
 	t.Run("id", func(t *testing.T) {
+		t.Parallel()
 		b := a
 		b.ID = uuid.NewV4()
 		assert.False(t, a.Equal(b))
 	})
 
 	t.Run("number", func(t *testing.T) {
+		t.Parallel()
 		b := a
 		b.Number = 42
 		assert.False(t, a.Equal(b))
 	})
 
 	t.Run("fields", func(t *testing.T) {
+		t.Parallel()
 		b := a
 		b.Fields = workitem.Fields{}
 		assert.False(t, a.Equal(b))
 	})
 
 	t.Run("space", func(t *testing.T) {
+		t.Parallel()
 		b := a
 		b.SpaceID = uuid.NewV4()
 		assert.False(t, a.Equal(b))
 	})
 
 	t.Run("equality", func(t *testing.T) {
+		t.Parallel()
 		b := workitem.WorkItemStorage{
 			HumanFriendlyNumber: numbersequence.NewHumanFriendlyNumber(spaceID, workitem.WorkItemStorage{}.TableName(), 1),
 			ID:                  a.ID,
