@@ -1452,6 +1452,9 @@ func testMigration106NumberSequences(t *testing.T) {
 			delete(toBeFound, seq)
 		}
 		require.Empty(t, toBeFound, "failed to find these number sequences: %+v", spew.Sdump(toBeFound))
+
+		require.True(t, dialect.HasIndex("iterations", "iterations_space_id_number_idx"))
+		require.True(t, dialect.HasIndex("areas", "areas_space_id_number_idx"))
 	})
 }
 

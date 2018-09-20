@@ -22,9 +22,12 @@ UPDATE areas SET number = seq.row_number
 FROM (SELECT id, space_id, created_at, row_number() OVER (PARTITION BY space_id ORDER BY created_at ASC) FROM areas) AS seq
 WHERE areas.id = seq.id;
 
--- Make number a required column
+-- Make number a required column and add an index for faster querying over space_id and number
 ALTER TABLE iterations ALTER COLUMN number SET NOT NULL;
 ALTER TABLE areas ALTER COLUMN number SET NOT NULL;
+
+CREATE UNIQUE INDEX iterations_space_id_number_idx ON iterations USING BTREE (space_id, number);
+CREATE UNIQUE INDEX areas_space_id_number_idx ON area USING BTREE (space_id, number);
 
 -- Update the number_sequences table with the maximum for each table type
 
