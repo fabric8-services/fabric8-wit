@@ -947,10 +947,19 @@ func (r *GormWorkItemRepository) getAllIterationWithCounts(ctx context.Context, 
 	var allIterations []uuid.UUID
 	db.Pluck("id", &allIterations)
 	var res []WICountsPerIteration
-	db = r.db.Table(workitemTableName).Select(`iterations.id as IterationId, count(*) as Total,
-			count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed`).Joins(`left join iterations
-			on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb`).Where(`iterations.space_id = ?
-			and work_items.deleted_at IS NULL`, spaceID).Group(`IterationId`).Scan(&res)
+	db = r.db.Table(workitemTableName).Select(`
+		iterations.id AS IterationId,
+		count(*) AS Total,
+		count(1) FILTER (WHERE fields->>'system.state' = 'closed') AS Closed
+	`).Joins(`
+		LEFT JOIN iterations
+		ON
+			iterations.space_id = $1
+			AND fields @> concat('{"system.iteration": "', iterations.id, '"}')::jsonb
+	`).Where(`
+		work_items.space_id = $1
+		AND work_items.deleted_at IS NULL
+	`, spaceID).Group(`IterationId`).Scan(&res)
 	db.Scan(&res)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
