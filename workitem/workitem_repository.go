@@ -952,7 +952,7 @@ func (r *GormWorkItemRepository) getAllIterationWithCounts(ctx context.Context, 
 		count(*) AS Total,
 		count(*) FILTER (WHERE fields->>'system.state' ILIKE 'closed') AS Closed
 	`).Joins(`
-		LEFT JOIN iterations
+		INNER JOIN iterations
 		ON
 			iterations.space_id = $1
 			AND fields @> concat('{"system.iteration": "', iterations.id, '"}')::jsonb
