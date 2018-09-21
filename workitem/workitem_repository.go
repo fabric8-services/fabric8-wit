@@ -950,7 +950,7 @@ func (r *GormWorkItemRepository) getAllIterationWithCounts(ctx context.Context, 
 	db = r.db.Table(workitemTableName).Select(`
 		iterations.id AS IterationId,
 		count(*) AS Total,
-		count(1) FILTER (WHERE fields->>'system.state' = 'closed') AS Closed
+		count(*) FILTER (WHERE fields->>'system.state' ILIKE 'closed') AS Closed
 	`).Joins(`
 		LEFT JOIN iterations
 		ON
