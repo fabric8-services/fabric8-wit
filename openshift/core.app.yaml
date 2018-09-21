@@ -171,7 +171,7 @@ objects:
             successThreshold: 1
             timeoutSeconds: 1
           readinessProbe:
-            failureThreshold: 3
+            failureThreshold: 6
             httpGet:
               path: /api/status
               port: 8080

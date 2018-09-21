@@ -73,17 +73,20 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 	s.T().Run("join iterations", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Iterations(2),
+			tf.Areas(2),
 			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
 				switch idx {
 				case 0, 1, 2, 3, 4, 5, 6:
 					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+					fxt.WorkItems[idx].Fields[workitem.SystemArea] = fxt.Areas[0].ID.String()
 				default:
 					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+					fxt.WorkItems[idx].Fields[workitem.SystemArea] = fxt.Areas[1].ID.String()
 				}
 				return nil
 			}),
 		)
-		t.Run("matching name", func(t *testing.T) {
+		t.Run("iteration name", func(t *testing.T) {
 			// when
 			filter := fmt.Sprintf(`{"iteration.name": "%s"}`, fxt.Iterations[0].Name)
 			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
@@ -98,6 +101,44 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 				fxt.WorkItems[4].ID,
 				fxt.WorkItems[5].ID,
 				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+		t.Run("iteration number", func(t *testing.T) {
+			// when
+			filter := fmt.Sprintf(`{"iteration.number": "%d"}`, fxt.Iterations[1].Number)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 3, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[7].ID,
+				fxt.WorkItems[8].ID,
+				fxt.WorkItems[9].ID,
+			}.ToMap()
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+		t.Run("area number", func(t *testing.T) {
+			// when
+			filter := fmt.Sprintf(`{"area.number": "%d"}`, fxt.Areas[1].Number)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 3, count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[7].ID,
+				fxt.WorkItems[8].ID,
+				fxt.WorkItems[9].ID,
 			}.ToMap()
 			for _, wi := range res {
 				_, ok := toBeFound[wi.ID]

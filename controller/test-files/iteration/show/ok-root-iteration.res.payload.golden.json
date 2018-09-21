@@ -5,6 +5,7 @@
       "created-at": "0001-01-01T00:00:00Z",
       "description": "some description (see function github.com/fabric8-services/fabric8-wit/controller_test.(*TestIterationREST).TestShow in controller/iteration_blackbox_test.go)",
       "name": "root",
+      "number": 1,
       "parent_path": "/",
       "resolved_parent_path": "/",
       "state": "new",
