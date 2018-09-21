@@ -455,6 +455,9 @@ func GetMigrations() Migrations {
 	// Version 105
 	m = append(m, steps{ExecuteSQLFile("105-update-root-area-and-iteration-path-field.sql")})
 
+	// Version 106
+	m = append(m, steps{ExecuteSQLFile("106-number-sequences.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

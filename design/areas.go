@@ -37,6 +37,7 @@ var areaAttributes = a.Type("AreaAttributes", func() {
 	a.Attribute("parent_path_resolved", d.String, "Path to the topmost area specified by area names", func() {
 		a.Example("/devtools/planner/planner-ui")
 	})
+	a.Attribute("number", d.Integer, "Human-friendly number of the area that is unique inside the area's space")
 })
 
 var areaRelationships = a.Type("AreaRelations", func() {
