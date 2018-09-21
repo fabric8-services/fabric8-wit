@@ -1054,20 +1054,14 @@ func (s *searchControllerTestSuite) TestSearchByJoinedData() {
 func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption() {
 	s.T().Run("iterations", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
-			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
-				i := fxt.Iterations[idx]
-				switch idx {
-				case 0:
-					i.Name = "Top level iteration"
-				case 1:
-					i.Name = "Level 1 iteration"
-					i.MakeChildOf(*fxt.Iterations[idx-1])
-				case 2:
-					i.Name = "Level 2 iteration"
-					i.MakeChildOf(*fxt.Iterations[idx-1])
-				}
-				return nil
-			}),
+			tf.Iterations(3,
+				tf.SetIterationNames("Top level iteration", "Level 1 iteration", "Level 2 iteration"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx > 0 {
+						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[idx-1])
+					}
+					return nil
+				}),
 
 			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
 				switch idx {
