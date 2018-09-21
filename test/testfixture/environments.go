@@ -1,7 +1,6 @@
 package testfixture
 
 import (
-	"github.com/fabric8-services/fabric8-wit/path"
 	errs "github.com/pkg/errors"
 )
 
@@ -26,7 +25,6 @@ func CreateWorkItemEnvironment() RecipeFunction {
 				func(fxt *TestFixture, idx int) error {
 					if idx == 0 {
 						fxt.Iterations[idx].Name = fxt.Spaces[0].Name
-						fxt.Iterations[idx].Path = path.Path{}
 					}
 					return nil
 				},
@@ -36,7 +34,6 @@ func CreateWorkItemEnvironment() RecipeFunction {
 				func(fxt *TestFixture, idx int) error {
 					if idx == 0 {
 						fxt.Areas[idx].Name = fxt.Spaces[0].Name
-						fxt.Areas[idx].Path = path.Path{}
 					}
 					return nil
 				},

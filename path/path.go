@@ -29,12 +29,30 @@ func (p Path) IsEmpty() bool {
 	return len(p) == 0
 }
 
-// This returns last UUID of slice
+// This returns last UUID of slice or uuid.Nil if the path is empty.
 func (p Path) This() uuid.UUID {
-	if len(p) > 0 {
+	if !p.IsEmpty() {
 		return p[len(p)-1]
 	}
 	return uuid.Nil
+}
+
+// ParentID returns UUID before the last one or uuid.Nil if this was already the
+// parent.
+func (p Path) ParentID() uuid.UUID {
+	if len(p) > 1 {
+		return p[len(p)-2]
+	}
+	return uuid.Nil
+}
+
+// ParentPath returns the path except this one and an empty path if the path was
+// empty.
+func (p Path) ParentPath() Path {
+	if len(p) > 1 {
+		return p[:len(p)-1]
+	}
+	return Path{}
 }
 
 // Convert returns ltree compatible string of UUID slice
@@ -70,15 +88,6 @@ func (p Path) String() string {
 func (p Path) Root() Path {
 	if len(p) > 0 {
 		return Path{p[0]}
-	}
-	return Path{uuid.Nil}
-}
-
-// Parent returns a Path instance with last element in the UUID slice
-// Similar to `This` but following funtion returns Path instance and not just UUID
-func (p Path) Parent() Path {
-	if len(p) > 0 {
-		return Path{p[len(p)-1]}
 	}
 	return Path{uuid.Nil}
 }

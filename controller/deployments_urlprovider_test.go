@@ -225,22 +225,31 @@ func TestTenantGetEnvironmentMapping(t *testing.T) {
 			testName:  "Basic",
 			inputFile: "user-services.json",
 			expectedMap: map[string]string{
-				"run":   "theuser-run",
-				"stage": "theuser-stage",
+				"user":    "theuser",
+				"run":     "theuser-run",
+				"stage":   "theuser-stage",
+				"che":     "theuser-che",
+				"jenkins": "theuser-jenkins",
 			},
 		},
 		{
 			testName:  "No Type",
 			inputFile: "user-services-no-type.json",
 			expectedMap: map[string]string{
-				"run": "theuser-run",
+				"user":    "theuser",
+				"run":     "theuser-run",
+				"che":     "theuser-che",
+				"jenkins": "theuser-jenkins",
 			},
 		},
 		{
 			testName:  "Empty Type",
 			inputFile: "user-services-empty-type.json",
 			expectedMap: map[string]string{
-				"run": "theuser-run",
+				"user":    "theuser",
+				"run":     "theuser-run",
+				"che":     "theuser-che",
+				"jenkins": "theuser-jenkins",
 			},
 		},
 	}
@@ -255,6 +264,29 @@ func TestTenantGetEnvironmentMapping(t *testing.T) {
 			envMap := provider.GetEnvironmentMapping()
 			require.NotNil(t, envMap)
 			require.Equal(t, testCase.expectedMap, envMap, "GetEnvironmentMapping() did not return the expected environments")
+		})
+	}
+}
+
+func TestTenantCanDeploy(t *testing.T) {
+	testCases := []struct {
+		envType  string
+		expected bool
+	}{
+		{"user", false},
+		{"test", true},
+		{"stage", true},
+		{"run", true},
+		{"che", false},
+		{"jenkins", false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.envType, func(t *testing.T) {
+			provider, err := getDefaultTenantProvider()
+			require.NoError(t, err)
+			result := provider.CanDeploy(testCase.envType)
+			require.Equal(t, testCase.expected, result, "Incorrect result from CanDeploy")
 		})
 	}
 }

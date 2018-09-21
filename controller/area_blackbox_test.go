@@ -19,6 +19,7 @@ import (
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -65,8 +66,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			// when
 			resp, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
 			// then
-			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+			require.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+			require.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.payload.golden.json"), created)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
 
@@ -77,8 +78,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 				// when
 				resp, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ca)
 				// then
-				assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-				assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
+				require.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+				require.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
 				compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.child1_ok.res.payload.golden.json"), created)
 				compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
 			})
@@ -97,8 +98,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			// when
 			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
 			// then
-			assert.Equal(t, *childAreaPayload.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+			require.Equal(t, *childAreaPayload.Data.Attributes.Name, *created.Data.Attributes.Name)
+			require.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 
 			// try creating the same area again
 			resp, errs := test.CreateChildAreaConflict(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
@@ -150,18 +151,22 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 	})
 }
 
-func (rest *TestAreaREST) TestShowArea() {
+func (rest *TestAreaREST) TestShow() {
 	rest.T().Run("Success", func(t *testing.T) {
 		// Setup
-		a := tf.NewTestFixture(t, rest.DB, tf.Areas(1)).Areas[0]
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Areas(1, tf.SetAreaNames("root")),
+		)
+		a := fxt.AreaByName("root")
 		svc, ctrl := rest.SecuredController()
-		t.Run("OK", func(t *testing.T) {
+		t.Run("root", func(t *testing.T) {
 			// when
 			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, nil)
 			safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			//then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.payload.golden.json"), area)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.headers.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok-root-area.res.payload.golden.json"), area)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok-root-area.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Using ExpiredIfModifedSince Header", func(t *testing.T) {

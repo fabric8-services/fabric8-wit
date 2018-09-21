@@ -179,6 +179,19 @@ func SetIterationNames(names ...string) CustomizeIterationFunc {
 	}
 }
 
+// SetAreaNames takes the given names and uses them during creation of areas.
+// The length of requested areas and the number of names must match or the
+// NewFixture call will return an error.
+func SetAreaNames(names ...string) CustomizeAreaFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Areas) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of areas to create (%d)", len(names), len(fxt.Areas))
+		}
+		fxt.Areas[idx].Name = names[idx]
+		return nil
+	}
+}
+
 // PlaceIterationUnderRootIteration when asking for more than one iteration, all
 // but the first one will be placed under the first iteration (aka root
 // iteration).
@@ -186,6 +199,7 @@ func PlaceIterationUnderRootIteration() CustomizeIterationFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if idx > 0 {
 			fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+
 		}
 		return nil
 	}
@@ -208,7 +222,7 @@ func PlaceAreaUnderRootArea() CustomizeAreaFunc {
 func SetWorkItemField(fieldName string, values ...interface{}) CustomizeWorkItemFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.WorkItems) < len(values) {
-			return errs.Errorf("number of \"%s\" fields (%d) must be smaller or equal to number of work items to create (%d)", fieldName, len(values), len(fxt.WorkItems))
+			return errs.Errorf("number of %q fields (%d) must be smaller or equal to number of work items to create (%d)", fieldName, len(values), len(fxt.WorkItems))
 		}
 		// Gracefully return when only a fraction of work items needs to set a
 		// field value.
@@ -222,11 +236,11 @@ func SetWorkItemField(fieldName string, values ...interface{}) CustomizeWorkItem
 		}
 		field, ok := wit.Fields[fieldName]
 		if !ok {
-			return errs.Errorf("failed to find field \"%s\" in work item type %s", fieldName, witID)
+			return errs.Errorf("failed to find field %q in work item type %s", fieldName, witID)
 		}
 		v, err := field.Type.ConvertToModel(values[idx])
 		if err != nil {
-			return errs.Wrapf(err, "failed to set field \"%s\" in work item type %s to: %+v", fieldName, wit.Name, values[idx])
+			return errs.Wrapf(err, "failed to set field %q in work item type %s to: %+v", fieldName, wit.Name, values[idx])
 		}
 		fxt.WorkItems[idx].Fields[fieldName] = v
 		return nil

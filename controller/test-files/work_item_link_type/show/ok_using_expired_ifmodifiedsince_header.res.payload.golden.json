@@ -2,7 +2,7 @@
   "data": {
     "attributes": {
       "created-at": "0001-01-01T00:00:00Z",
-      "description": "some description",
+      "description": "some description (see function github.com/fabric8-services/fabric8-wit/controller_test.(*workItemLinkTypeSuite).TestShow in controller/work_item_link_type_blackbox_test.go)",
       "forward_name": "forward name (e.g. blocks)",
       "name": "work item link type 00000000-0000-0000-0000-000000000001",
       "reverse_name": "reverse name (e.g. blocked by)",

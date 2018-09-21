@@ -3,6 +3,7 @@
     "attributes": {
       "created-at": "0001-01-01T00:00:00Z",
       "name": "TestSuccessCreateChildArea",
+      "number": 2,
       "parent_path": "/00000000-0000-0000-0000-000000000001",
       "parent_path_resolved": "/area 00000000-0000-0000-0000-000000000002",
       "updated-at": "0001-01-01T00:00:00Z",
