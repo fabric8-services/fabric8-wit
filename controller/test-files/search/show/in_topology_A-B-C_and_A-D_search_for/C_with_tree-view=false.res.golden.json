@@ -6,7 +6,7 @@
         "system.description": "`(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestIncludedParents in controller/search_blackbox_test.go)`",
         "system.description.markup": "Markdown",
         "system.description.rendered": "\u003cp\u003e\u003ccode\u003e(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestIncludedParents in controller/search_blackbox_test.go)\u003c/code\u003e\u003c/p\u003e\n",
-        "system.metastate": null,
+        "system.metastate": "mNew",
         "system.number": 3,
         "system.order": 3000,
         "system.remote_item_id": null,
