@@ -283,6 +283,7 @@ work_item_types:
       required: yes
       type:
         kind: string
+        default_value: "foobar"
     state:
       label: State
       description: The state of the bug
@@ -295,6 +296,7 @@ work_item_types:
         values:
           - new
           - closed
+        default_value: closed
     priority:
       label: Priority
       description: The priority of the bug
@@ -303,18 +305,22 @@ work_item_types:
         simple_type:
           kind: list
         component_type:
-          kind: integer
+          kind: float
+        default_value: 42.0
 work_item_link_types:
 - id: "` + wiltID.String() + `"
   name: Blocker
   description: work item blocks another one
   forward_name: blocks
+  forward_description: description for blocks
   reverse_name: blocked by
+  reverse_description: description for blocked by
   topology: tree
   link_category_id: "2F24724F-797C-4073-8B16-4BB8CE9E84A6"
 work_item_type_groups:
 - name: Scenarios
   id: "` + witgID.String() + `"
+  description: "description for scenarios"
   type_list:
     - "` + witID.String() + `"
   bucket: portfolio
@@ -372,7 +378,8 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 						Description: "The title of the bug",
 						Required:    true,
 						Type: workitem.SimpleType{
-							Kind: workitem.KindString,
+							Kind:         workitem.KindString,
+							DefaultValue: "foobar",
 						},
 					},
 					"state": {
@@ -387,6 +394,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 								"new",
 								"closed",
 							},
+							DefaultValue: "closed",
 						},
 					},
 					"priority": {
@@ -395,7 +403,8 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 						Required:    false,
 						Type: workitem.ListType{
 							SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-							ComponentType: workitem.SimpleType{Kind: workitem.KindInteger},
+							ComponentType: workitem.SimpleType{Kind: workitem.KindFloat},
+							DefaultValue:  42.0,
 						},
 					},
 				},
@@ -403,20 +412,23 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 		},
 		WILTs: []*link.WorkItemLinkType{
 			{
-				ID:              wiltID,
-				SpaceTemplateID: spaceTemplateID,
-				Name:            "Blocker",
-				Description:     ptr.String("work item blocks another one"),
-				ForwardName:     "blocks",
-				ReverseName:     "blocked by",
-				Topology:        "tree",
-				LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
+				ID:                 wiltID,
+				SpaceTemplateID:    spaceTemplateID,
+				Name:               "Blocker",
+				Description:        ptr.String("work item blocks another one"),
+				ForwardName:        "blocks",
+				ForwardDescription: ptr.String("description for blocks"),
+				ReverseName:        "blocked by",
+				ReverseDescription: ptr.String("description for blocked by"),
+				Topology:           "tree",
+				LinkCategoryID:     link.SystemWorkItemLinkCategoryUserID,
 			},
 		},
 		WITGs: []*workitem.WorkItemTypeGroup{
 			{
 				ID:              witgID,
 				Name:            "Scenarios",
+				Description:     ptr.String("description for scenarios"),
 				Bucket:          workitem.BucketPortfolio,
 				Icon:            "fa fa-suitcase",
 				SpaceTemplateID: spaceTemplateID,

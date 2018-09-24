@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -126,7 +127,7 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			switch cause.(type) {
 			case errors.NotFoundError:
 				// Create WIT
-				_, err := witRepo.Create(ctx, s.Template.ID, &wit.ID, &wit.Extends, wit.Name, wit.Description, wit.Icon, wit.Fields, wit.CanConstruct)
+				_, err := witRepo.CreateFromModel(ctx, *wit)
 				if err != nil {
 					return errs.Wrapf(err, "failed to create work item type '%s' from space template '%s'", wit.Name, s.Template.ID)
 				}
@@ -145,9 +146,10 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			loadedWIT.Icon = wit.Icon
 			loadedWIT.CanConstruct = wit.CanConstruct
 
-			//--------------------------------------------------------------------------------
-			// Double check all existing fields are still present in new fields with same type
-			//--------------------------------------------------------------------------------
+			//------------------------------------------------------------------
+			// Double check all fields from the old work item type are still
+			// present in new work item type and still have the same field type.
+			//------------------------------------------------------------------
 			// verify that FieldTypes are same as loadedWIT
 			toBeFoundFields := map[string]workitem.FieldType{}
 			for k, fd := range loadedWIT.Fields {
@@ -156,16 +158,28 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			// Remove fields directly defined in WIT
 			for fieldName, fd := range wit.Fields {
 				// verify FieldType with original value
-				if originalType, ok := toBeFoundFields[fieldName]; ok {
-					if equal := fd.Type.Equal(originalType); !equal {
+				if oldFieldType, ok := toBeFoundFields[fieldName]; ok {
+
+					// When comparing the new and old field types we don't want
+					// to compare the default value. That is why we always
+					// overwrite the default value of the old type with the
+					// default value of the new type.
+
+					defVal := fd.Type.GetDefaultValue()
+					oldFieldType, err = oldFieldType.SetDefaultValue(defVal)
+					if err != nil {
+						return errs.Wrapf(err, "failed to overwrite default of old field type with %+v (%[1]T)", defVal)
+					}
+
+					if equal := fd.Type.Equal(oldFieldType); !equal {
 						// Special treatment for EnumType
-						origEnum, ok1 := originalType.(workitem.EnumType)
+						origEnum, ok1 := oldFieldType.(workitem.EnumType)
 						newEnum, ok2 := fd.Type.(workitem.EnumType)
 						if ok1 && ok2 {
 							equal = newEnum.EqualEnclosing(origEnum)
 						}
 						if !equal {
-							return errs.Errorf("type of the field %s changed from %s to %s", fieldName, originalType, fd.Type)
+							return errs.Errorf("type of the field %s changed from %+v to %+v", fieldName, spew.Sdump(oldFieldType), spew.Sdump(fd.Type))
 						}
 					}
 				}
@@ -183,7 +197,7 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 				}
 			}
 			if len(toBeFoundFields) > 0 {
-				return errs.Errorf("you must not remove these fields from the new work item type definition of \"%s\": %+v", wit.Name, toBeFoundFields)
+				return errs.Errorf("you must not remove these fields from the new work item type definition of %q: %+v", wit.Name, toBeFoundFields)
 			}
 
 			// TODO(kwk): Check that fields have not changed types.
@@ -266,16 +280,9 @@ func (r *GormRepository) createOrUpdateWILTs(ctx context.Context, s *ImportHelpe
 				if uuid.Equal(wilt.ID, uuid.Nil) {
 					wilt.ID = uuid.NewV4()
 				}
-				_, err := wiltRepo.Create(ctx, link.WorkItemLinkType{
-					ID:              wilt.ID,
-					Name:            wilt.Name,
-					Description:     wilt.Description,
-					ForwardName:     wilt.ForwardName,
-					ReverseName:     wilt.ReverseName,
-					Topology:        wilt.Topology,
-					LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
-					SpaceTemplateID: s.Template.ID,
-				})
+				wilt.LinkCategoryID = link.SystemWorkItemLinkCategoryUserID
+				wilt.SpaceTemplateID = s.Template.ID
+				_, err := wiltRepo.Create(ctx, *wilt)
 				if err != nil {
 					return errs.Wrapf(err, "failed to create work item link type '%s' from space template '%s'", wilt.Name, s.Template.ID)
 				}
@@ -286,11 +293,7 @@ func (r *GormRepository) createOrUpdateWILTs(ctx context.Context, s *ImportHelpe
 			if loadedWILT.SpaceTemplateID != s.Template.ID {
 				return errs.Errorf("work item link type %s exists and is bound to space template %s instead of the new one %s", loadedWILT.ID, loadedWILT.SpaceTemplateID, s.Template.ID)
 			}
-			loadedWILT.Name = wilt.Name
-			loadedWILT.Description = wilt.Description
-			loadedWILT.ForwardName = wilt.ForwardName
-			loadedWILT.ReverseName = wilt.ReverseName
-			db := r.db.Save(&loadedWILT)
+			db := r.db.Save(&*wilt)
 			if err := db.Error; err != nil {
 				return errs.Wrapf(err, "failed to update work item link type %s", wilt.ID)
 			}

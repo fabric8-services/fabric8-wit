@@ -6,6 +6,7 @@
       "description": "Some description",
       "endAt": "0001-01-01T00:00:00Z",
       "name": "Sprint #21",
+      "number": 3,
       "parent_path": "/00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000002",
       "resolved_parent_path": "/root/child",
       "startAt": "0001-01-01T00:00:00Z",

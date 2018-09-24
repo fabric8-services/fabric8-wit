@@ -69,7 +69,6 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 	resource.Require(t, resource.Database)
 
 	t.Run("tracker query exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}
@@ -90,7 +89,6 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 	})
 
 	t.Run("tracker query doesn't exist", func(t *testing.T) {
-		t.Parallel()
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
@@ -104,7 +102,6 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	t := test.T()
 	resource.Require(t, resource.Database)
-
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
@@ -145,7 +142,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 
 	query.TrackerID = uuid.NewV4()
 	query2, err = test.queryRepo.Save(ctx, *query)
-	assert.IsType(t, remoteworkitem.InternalError{}, err)
+	assert.IsType(t, remoteworkitem.NotFoundError{}, err)
 	assert.Nil(t, query2)
 }
 

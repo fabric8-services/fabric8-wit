@@ -49,6 +49,12 @@ var _ = a.API("wit", func() {
 		a.Header("Authorization")
 	})
 
+	a.JWTSecurity("jwt-query-param", func() {
+		a.Description("JWT Token Query Parameter Auth")
+		a.TokenURL("/api/login/authorize")
+		a.Query("access_token")
+	})
+
 	a.ResponseTemplate(d.OK, func() {
 		a.Description("Resource created")
 		a.Status(200)

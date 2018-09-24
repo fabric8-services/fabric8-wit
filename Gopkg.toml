@@ -52,6 +52,7 @@ required = [
     
 ignored = [
   "github.com/fabric8-services/fabric8-auth/account/tenant",
+  "github.com/fabric8-services/fabric8-auth/client",
 ]
 
 [[constraint]]
@@ -116,7 +117,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-auth"
-  revision = "f717b4f4244a9d6fd31a54e7231a11eff14fa695"
+  revision = "9344288a2c4f9c1d4c070b4f9af46e415e0bf970"
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-notification"

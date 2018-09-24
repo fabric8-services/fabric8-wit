@@ -2,7 +2,6 @@ package event
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
 	"github.com/jinzhu/gorm"
@@ -11,17 +10,19 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
 // APIStringTypeEvents represent the type of event
 const APIStringTypeEvents = "events"
 
+// WorkitemTypeChangeEvent represents the attribute name for type change event
+const WorkitemTypeChangeEvent = "workitemtype"
+
 // Repository encapsulates retrieval of work item events
 type Repository interface {
-	//repository.Exister
-	List(ctx context.Context, wiID uuid.UUID) ([]Event, error)
+	// List returns all events for a work item.
+	List(ctx context.Context, wiID uuid.UUID) (List, error)
 }
 
 // NewEventRepository creates a work item event repository based on gorm
@@ -44,187 +45,140 @@ type GormEventRepository struct {
 	identityRepo     *account.GormIdentityRepository
 }
 
-// List return the events
-func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event, error) {
+// List implements Repository interface
+func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) (List, error) {
 	revisionList, err := r.wiRevisionRepo.List(ctx, wiID)
 	if err != nil {
-		return nil, errs.Wrapf(err, "error during fetching event list")
+		return nil, errs.Wrapf(err, "failed to list revisions for work item %s", wiID)
 	}
 	if revisionList == nil {
-		return []Event{}, nil
+		return List{}, nil
 	}
-	wi, err := r.workItemRepo.LoadByID(ctx, wiID)
-	if err != nil {
-		return nil, errs.Wrapf(err, "error during fetching event list")
-	}
-	wiType, err := r.workItemTypeRepo.Load(ctx, wi.Type)
-	if err != nil {
-		return nil, errs.Wrapf(err, "error during fetching event list")
+	if err = r.workItemRepo.CheckExists(ctx, wiID); err != nil {
+		return nil, errs.Wrapf(err, "failed to find work item: %s", wiID)
 	}
 
-	eventList := []Event{}
+	eventList := List{}
 	for k := 1; k < len(revisionList); k++ {
-		modifierID, err := r.identityRepo.Load(ctx, revisionList[k].ModifierIdentity)
+
+		oldRev := revisionList[k-1]
+		newRev := revisionList[k]
+
+		wit, err := r.workItemTypeRepo.Load(ctx, oldRev.WorkItemTypeID)
 		if err != nil {
-			return nil, errs.Wrapf(err, "error during fetching event list")
+			return nil, errs.Wrapf(err, "failed to load old work item type: %s", oldRev.WorkItemTypeID)
 		}
-		for fieldName, field := range wiType.Fields {
-			switch fieldType := field.Type.(type) {
+
+		modifierID, err := r.identityRepo.Load(ctx, newRev.ModifierIdentity)
+		if err != nil {
+			return nil, errs.Wrapf(err, "failed to load modifier identity %s", newRev.ModifierIdentity)
+		}
+
+		// TODO(kwk): make sure we have a proper "changed work item type"
+		// revision entry in one way or another.
+		// TODO(ibrahim): type change event should have more information than just the new and old type IDs
+		if oldRev.WorkItemTypeID != newRev.WorkItemTypeID {
+			event := Event{
+				RevisionID:     newRev.ID,
+				Name:           WorkitemTypeChangeEvent,
+				WorkItemTypeID: newRev.WorkItemTypeID,
+				Timestamp:      newRev.Time,
+				Modifier:       modifierID.ID,
+				Old:            oldRev.WorkItemTypeID,
+				New:            newRev.WorkItemTypeID,
+			}
+			eventList = append(eventList, event)
+			// We do not compare any of the fields since this is a type change event.
+			continue
+		}
+
+		for fieldName, fieldDef := range wit.Fields {
+
+			oldVal := oldRev.WorkItemFields[fieldName]
+			newVal := newRev.WorkItemFields[fieldName]
+
+			event := Event{
+				RevisionID:     newRev.ID,
+				Name:           fieldName,
+				WorkItemTypeID: newRev.WorkItemTypeID,
+				Timestamp:      newRev.Time,
+				Modifier:       modifierID.ID,
+				Old:            oldVal,
+				New:            newVal,
+			}
+
+			// The enum type can be handled by the simple type since it's just a
+			// single value after all.
+			ft := fieldDef.Type
+			enumType, isEnumType := ft.(workitem.EnumType)
+			if isEnumType {
+				ft = enumType.BaseType
+			}
+
+			switch fieldType := ft.(type) {
 			case workitem.ListType:
-				switch fieldType.ComponentType.Kind {
-				case workitem.KindLabel, workitem.KindUser, workitem.KindBoardColumn:
-					var p []interface{}
-					var n []interface{}
+				var p, n []interface{}
+				var ok bool
 
-					previousValues := revisionList[k-1].WorkItemFields[fieldName]
-					newValues := revisionList[k].WorkItemFields[fieldName]
-					switch previousValues.(type) {
-					case nil:
-						p = []interface{}{}
-					case []interface{}:
-						for _, v := range previousValues.([]interface{}) {
-							p = append(p, v)
-						}
-					}
-
-					switch newValues.(type) {
-					case nil:
-						n = []interface{}{}
-					case []interface{}:
-						for _, v := range newValues.([]interface{}) {
-							n = append(n, v)
-						}
-
-					}
-
-					// Avoid duplicate entries for empty labels or assignees
-					if reflect.DeepEqual(p, n) == false {
-						wie := Event{
-							ID:        revisionList[k].ID,
-							Name:      fieldName,
-							Timestamp: revisionList[k].Time,
-							Modifier:  modifierID.ID,
-							Old:       p,
-							New:       n,
-						}
-						eventList = append(eventList, wie)
-					}
-				default:
-					return nil, errors.NewNotFoundError("Unknown field:", fieldName)
-				}
-			case workitem.EnumType:
-				var p string
-				var n string
-
-				previousValue := revisionList[k-1].WorkItemFields[fieldName]
-				newValue := revisionList[k].WorkItemFields[fieldName]
-
-				switch previousValue.(type) {
+				switch t := oldVal.(type) {
 				case nil:
-					p = ""
-				case interface{}:
-					p, _ = previousValue.(string)
-				}
-
-				switch newValue.(type) {
-				case nil:
-					n = ""
-				case interface{}:
-					n, _ = newValue.(string)
-
-				}
-				if p != n {
-					wie := Event{
-						ID:        revisionList[k].ID,
-						Name:      fieldName,
-						Timestamp: revisionList[k].Time,
-						Modifier:  modifierID.ID,
-						Old:       p,
-						New:       n,
+					p = []interface{}{}
+				case []interface{}:
+					converted, err := fieldType.ConvertFromModel(t)
+					if err != nil {
+						return nil, errs.Wrapf(err, "failed to convert old value for field %s from storage representation: %+v", fieldName, t)
 					}
-					eventList = append(eventList, wie)
+					p, ok = converted.([]interface{})
+					if !ok {
+						return nil, errs.Errorf("failed to convert old value for field %s from to []interface{}: %+v", fieldName, t)
+					}
+				}
+
+				switch t := newVal.(type) {
+				case nil:
+					n = []interface{}{}
+				case []interface{}:
+					converted, err := fieldType.ConvertFromModel(t)
+					if err != nil {
+						return nil, errs.Wrapf(err, "failed to convert new value for field %s from storage representation: %+v", fieldName, t)
+					}
+					n, ok = converted.([]interface{})
+					if !ok {
+						return nil, errs.Errorf("failed to convert new value for field %s from to []interface{}: %+v", fieldName, t)
+					}
+				}
+
+				// Avoid duplicate entries for empty labels or assignees, etc.
+				if !reflect.DeepEqual(p, n) {
+					event.Old = p
+					event.New = n
+					eventList = append(eventList, event)
 				}
 			case workitem.SimpleType:
-				switch fieldType.Kind {
-				case workitem.KindMarkup:
-					var p string
-					var n string
+				// compensate conversion from storage if this really was an enum field
+				converter := fieldType.ConvertFromModel
+				if isEnumType {
+					converter = enumType.ConvertFromModel
+				}
 
-					previousValue := revisionList[k-1].WorkItemFields[fieldName]
-					newValue := revisionList[k].WorkItemFields[fieldName]
-
-					switch previousValue.(type) {
-					case nil:
-						p = ""
-					case map[string]interface{}:
-						pv := rendering.NewMarkupContentFromMap(previousValue.(map[string]interface{}))
-						p = pv.Content
-					}
-
-					switch newValue.(type) {
-					case nil:
-						n = ""
-					case map[string]interface{}:
-						nv := rendering.NewMarkupContentFromMap(newValue.(map[string]interface{}))
-						n = nv.Content
-
-					}
-
-					if p != n {
-						wie := Event{
-							ID:        revisionList[k].ID,
-							Name:      fieldName,
-							Timestamp: revisionList[k].Time,
-							Modifier:  modifierID.ID,
-							Old:       p,
-							New:       n,
-						}
-						eventList = append(eventList, wie)
-					}
-				case workitem.KindString, workitem.KindIteration, workitem.KindArea, workitem.KindFloat, workitem.KindInteger:
-					var p string
-					var n string
-
-					previousValue := revisionList[k-1].WorkItemFields[fieldName]
-					newValue := revisionList[k].WorkItemFields[fieldName]
-
-					switch v := previousValue.(type) {
-					case nil:
-						p = ""
-					case float32, float64, int:
-						p = fmt.Sprintf("%g", previousValue)
-					case string:
-						p = v
-					default:
-						return nil, errors.NewConversionError("Failed to convert")
-					}
-
-					switch v := newValue.(type) {
-					case nil:
-						n = ""
-					case float32, float64, int:
-						n = fmt.Sprintf("%g", newValue)
-					case string:
-						n = v
-					default:
-						return nil, errors.NewConversionError("Failed to convert")
-					}
-					if p != n {
-						wie := Event{
-							ID:        revisionList[k].ID,
-							Name:      fieldName,
-							Timestamp: revisionList[k].Time,
-							Modifier:  modifierID.ID,
-							Old:       p,
-							New:       n,
-						}
-						eventList = append(eventList, wie)
-					}
+				p, err := converter(oldVal)
+				if err != nil {
+					return nil, errs.Wrapf(err, "failed to convert old value for field %s from storage representation: %+v", fieldName, oldVal)
+				}
+				n, err := converter(newVal)
+				if err != nil {
+					return nil, errs.Wrapf(err, "failed to convert new value for field %s from storage representation: %+v", fieldName, newVal)
+				}
+				if !reflect.DeepEqual(p, n) {
+					event.Old = p
+					event.New = n
+					eventList = append(eventList, event)
 				}
 			default:
-				return nil, errors.NewNotFoundError("Unknown field:", fieldName)
+				return nil, errors.NewNotFoundError("unknown field type", fieldType.GetKind().String())
 			}
 		}
 	}
+
 	return eventList, nil
 }

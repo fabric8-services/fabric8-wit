@@ -3,6 +3,7 @@
     "attributes": {
       "bucket": "portfolio",
       "created-at": "0001-01-01T00:00:00Z",
+      "description": "(see function github.com/fabric8-services/fabric8-wit/controller_test.(*workItemTypeGroupSuite).TestShow.func1 in controller/work_item_type_group_blackbox_test.go)",
       "icon": "fa fa-suitcase",
       "name": "work item type group 00000000-0000-0000-0000-000000000001",
       "show-in-sidebar": true,

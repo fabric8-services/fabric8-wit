@@ -13,7 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
-	numbersequence "github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -102,15 +101,13 @@ type Repository interface {
 // NewRepository creates a new space repo
 func NewRepository(db *gorm.DB) *GormRepository {
 	return &GormRepository{
-		db:   db,
-		winr: numbersequence.NewWorkItemNumberSequenceRepository(db),
+		db: db,
 	}
 }
 
 // GormRepository implements SpaceRepository using gorm
 type GormRepository struct {
-	db   *gorm.DB
-	winr numbersequence.WorkItemNumberSequenceRepository
+	db *gorm.DB
 }
 
 // Load returns the space for the given id
@@ -272,7 +269,7 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		return nil, errors.NewNotFoundError("space template", space.SpaceTemplateID.String())
 	}
 	if !templ.CanConstruct {
-		return nil, errors.NewForbiddenError(fmt.Sprintf("space template \"%s\" (ID: %s) cannot create spaces", templ.Name, templ.ID))
+		return nil, errors.NewForbiddenError(fmt.Sprintf("space template %q (ID: %s) cannot create spaces", templ.Name, templ.ID))
 	}
 
 	tx := r.db.Create(space)

@@ -143,13 +143,13 @@ func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*work
 		for key, value := range workItem.Fields {
 			existingWorkItem.Fields[key] = value
 		}
-		resultWorkItem, err = wir.Save(ctx, existingWorkItem.SpaceID, *existingWorkItem, creator)
+		resultWorkItem, _, err = wir.Save(ctx, existingWorkItem.SpaceID, *existingWorkItem, creator)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 	} else {
 		log.Info(nil, nil, "Workitem does not exist, will be created")
-		resultWorkItem, err = wir.Create(ctx, workItem.SpaceID, workitem.SystemBug, workItem.Fields, creator)
+		resultWorkItem, _, err = wir.Create(ctx, workItem.SpaceID, workitem.SystemBug, workItem.Fields, creator)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
