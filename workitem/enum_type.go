@@ -162,5 +162,8 @@ func (t EnumType) ConvertFromModel(value interface{}) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error converting enum value: %s", err.Error())
 	}
+	if !contains(t.Values, converted) {
+		return nil, fmt.Errorf("value: %+v (%[1]T) is not part of allowed enum values: %+v", value, t.Values)
+	}
 	return converted, nil
 }
