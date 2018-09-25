@@ -7,6 +7,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/numbersequence"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -14,10 +15,9 @@ import (
 // WorkItemStorage represents a work item as it is stored in the database
 type WorkItemStorage struct {
 	gormsupport.Lifecycle
+	numbersequence.HumanFriendlyNumber
 	// unique id per installation (used for references at the DB level)
 	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	// unique number per _space_
-	Number int
 	// Id of the type of this work item
 	Type uuid.UUID `sql:"type:uuid"`
 	// Version for optimistic concurrency control
@@ -54,7 +54,9 @@ func (wi WorkItemStorage) Equal(u convert.Equaler) bool {
 	if !wi.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-
+	if !wi.HumanFriendlyNumber.Equal(other.HumanFriendlyNumber) {
+		return false
+	}
 	if !uuid.Equal(wi.Type, other.Type) {
 		return false
 	}

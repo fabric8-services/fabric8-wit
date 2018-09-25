@@ -15,7 +15,6 @@ var (
 	stIteration = SimpleType{Kind: KindIteration}
 	stInt       = SimpleType{Kind: KindInteger}
 	stFloat     = SimpleType{Kind: KindFloat}
-	stDuration  = SimpleType{Kind: KindDuration}
 	stURL       = SimpleType{Kind: KindURL}
 	stList      = SimpleType{Kind: KindList}
 	stMarkup    = SimpleType{Kind: KindMarkup}
@@ -65,10 +64,6 @@ func TestSimpleTypeConversion(t *testing.T) {
 		{stFloat, 1.1, 1.1, false},
 		{stFloat, 1, nil, true},
 		{stFloat, "a", nil, true},
-
-		{stDuration, 0, 0, false},
-		{stDuration, 1.1, nil, true},
-		{stDuration, "duration", nil, true},
 
 		{stURL, "http://www.google.com", "http://www.google.com", false},
 		{stURL, "", nil, true},
