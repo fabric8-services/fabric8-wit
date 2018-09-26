@@ -19,8 +19,8 @@ var createWorkItemLinkCategoryPayload = a.Type("CreateWorkItemLinkCategoryPayloa
 	a.Required("data")
 })
 
-// updateWorkItemLinkCategoryPayload defines the structure of work item link category payload in JSONAPI format during update
-var updateWorkItemLinkCategoryPayload = a.Type("UpdateWorkItemLinkCategoryPayload", func() {
+// UpdateWorkItemLinkCategoryPayload defines the structure of work item link category payload in JSONAPI format during update
+var _ = a.Type("UpdateWorkItemLinkCategoryPayload", func() {
 	a.Attribute("data", workItemLinkCategoryData)
 	a.Required("data")
 })
