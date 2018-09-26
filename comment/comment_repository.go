@@ -175,7 +175,10 @@ func (m *GormCommentRepository) List(ctx context.Context, parentID uuid.UUID, st
 
 	for rows.Next() {
 		value := &Comment{}
-		db.ScanRows(rows, value)
+		err := db.ScanRows(rows, value)
+		if err != nil {
+			return nil, 0, errors.NewInternalError(ctx, err)
+		}
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
