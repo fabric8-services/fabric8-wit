@@ -351,8 +351,7 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUI
 	if err := r.acquireLock(src.SpaceID); err != nil {
 		return errs.Wrap(err, "failed to acquire lock during link deletion")
 	}
-	r.deleteLink(ctx, lnk, suppressorID)
-	return nil
+	return r.deleteLink(ctx, lnk, suppressorID)
 }
 
 // DeleteRelatedLinks deletes all links in which the source or target equals the
