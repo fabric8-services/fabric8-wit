@@ -82,7 +82,8 @@ func (s *TestIterationRepository) TestCreate() {
 			EndAt:   &end,
 		}
 		// when
-		repo.Create(context.Background(), &i)
+		err := repo.Create(context.Background(), &i)
+		require.NoError(t, err)
 		parentPath := append(i.Path, i.ID)
 		require.NotNil(t, parentPath)
 		i2 := iteration.Iteration{
