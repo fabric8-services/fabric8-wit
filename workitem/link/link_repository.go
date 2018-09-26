@@ -377,7 +377,9 @@ func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiI
 			}
 			locked = true
 		}
-		r.deleteLink(ctx, workitemLink, suppressorID)
+		if err := r.deleteLink(ctx, workitemLink, suppressorID); err != nil {
+			return errs.WithStack(err)
+		}
 	}
 	return nil
 }
