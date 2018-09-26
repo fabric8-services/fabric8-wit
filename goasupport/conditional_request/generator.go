@@ -127,7 +127,7 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	var contexts []RequestContext
 	var entities []Entity
 
-	api.IterateResources(func(res *design.ResourceDefinition) error {
+	err := api.IterateResources(func(res *design.ResourceDefinition) error {
 		res.IterateActions(func(act *design.ActionDefinition) error {
 			name := fmt.Sprintf("%v%vContext", codegen.Goify(act.Name, true), codegen.Goify(res.Name, true))
 			// look-up headers for conditional request support
@@ -189,6 +189,10 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 		})
 		return nil
 	})
+
+	if err != nil {
+		panic(err)
+	}
 
 	ctxFile := filepath.Join(outDir, "conditional_requests.go")
 	ctxWr, err := codegen.SourceFileFor(ctxFile)
