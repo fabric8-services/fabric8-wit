@@ -251,8 +251,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// then
 		require.NoError(t, err)
 		assert.Len(t, its, 3)
-		var mustHaveIDs = make(map[uuid.UUID]struct{}, 3)
-		mustHaveIDs = map[uuid.UUID]struct{}{
+		mustHaveIDs := map[uuid.UUID]struct{}{
 			fxt.Iterations[0].ID: {},
 			fxt.Iterations[1].ID: {},
 			fxt.Iterations[2].ID: {},
