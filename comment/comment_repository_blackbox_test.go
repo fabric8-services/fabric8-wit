@@ -66,8 +66,8 @@ func (s *TestCommentRepository) TestCreateCommentWithParentComment() {
 	}
 	// when
 	err = s.repo.Create(s.Ctx, childComment, fxt.Identities[0].ID)
-	require.NoError(s.T(), err)
 	// then
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), childComment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), childComment.CreatedAt, "Comment was not created")
 	require.False(s.T(), childComment.CreatedAt.After(time.Now()), "Comment was not created, CreatedAt after Now()")
@@ -89,8 +89,8 @@ func (s *TestCommentRepository) TestCreateCommentWithMarkup() {
 	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
 	// when
 	err := s.repo.Create(s.Ctx, comment, fxt.Identities[0].ID)
-	require.NoError(s.T(), err)
 	// then
+	require.NoError(s.T(), err)
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), comment.CreatedAt, "Comment was not created?")
 	assert.False(s.T(), comment.CreatedAt.After(time.Now()), "Comment was not created, CreatedAt after Now()?")
@@ -101,8 +101,9 @@ func (s *TestCommentRepository) TestCreateCommentWithoutMarkup() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
 	comment := newComment(uuid.NewV4(), "Test A", "")
 	// when
-	s.repo.Create(s.Ctx, comment, fxt.Identities[0].ID)
+	err := s.repo.Create(s.Ctx, comment, fxt.Identities[0].ID)
 	// then
+	require.NoError(s.T(), err)
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), comment.CreatedAt, "Comment was not created?")
 	assert.False(s.T(), comment.CreatedAt.After(time.Now()), "CreatedAt after Now()?")
