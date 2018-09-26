@@ -134,7 +134,8 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListRawScan() {
 		defer result.Close()
 		for result.Next() {
 			wit := workitem.WorkItemType{}
-			result.Scan(&wit)
+			err := result.Scan(&wit)
+			require.NoError(s.B(), err)
 			rows = append(rows, wit)
 		}
 	}
