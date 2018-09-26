@@ -766,7 +766,9 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 			return nil, 0, errs.WithStack(err)
 		}
 		rows2.Next() // count(*) will always return a row
-		rows2.Scan(&count)
+		if err := rows2.Scan(&count); err != nil {
+			return nil, 0, errs.WithStack(err)
+		}
 	}
 	return result, count, nil
 }
