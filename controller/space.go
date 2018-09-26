@@ -206,7 +206,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	}
 
 	// delete all the codebases associated with this space
-	err = deleteCodebases(c.CodebaseClient, config, ctx.Context, spaceID)
+	err = deleteCodebases(ctx.Context, c.CodebaseClient, config, spaceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
