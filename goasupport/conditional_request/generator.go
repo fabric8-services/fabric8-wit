@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
 	"strings"
 
 	"github.com/goadesign/goa/design"
 	"github.com/goadesign/goa/goagen/codegen"
+	errs "github.com/pkg/errors"
 )
 
 // Generate adds method to support conditional queries
@@ -22,11 +22,13 @@ func Generate() ([]string, error) {
 	set.String("design", "", "") // Consume design argument so Parse doesn't complain
 	set.StringVar(&ver, "version", "", "")
 	set.StringVar(&outDir, "out", "", "")
-	set.Parse(os.Args[2:])
+	if err := set.Parse(os.Args[2:]); err != nil {
+		return nil, errs.WithStack(err)
+	}
 
 	// First check compatibility
 	if err := codegen.CheckVersion(ver); err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	return WriteNames(design.Design, outDir)
