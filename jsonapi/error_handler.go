@@ -57,6 +57,7 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 				if reqID == nil {
 					reqID = shortID()
 					//ctx = context.WithValue(ctx, reqIDKey, reqID)
+					// nolint
 					ctx = context.WithValue(ctx, 1, reqID) // TODO remove this hack
 				}
 				log.Error(ctx, map[string]interface{}{
