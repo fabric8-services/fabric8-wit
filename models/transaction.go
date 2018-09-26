@@ -20,10 +20,10 @@ func Transactional(db *gorm.DB, todo func(tx *gorm.DB) error) error {
 			log.Error(context.Background(), map[string]interface{}{
 				"errRollback": errs.WithStack(tx.Error),
 				"err":         errs.WithStack(err),
-			}, "failed to rollback transaction: %+v", errRollback)
+			}, "failed to rollback transaction: %+v", tx.Error)
 		}
 		return errs.WithStack(err)
 	}
-	tx.Commit()
+	tx = tx.Commit()
 	return tx.Error
 }
