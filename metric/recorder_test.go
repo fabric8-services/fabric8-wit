@@ -15,7 +15,6 @@ import (
 
 var (
 	dummyCtrl  = "DummyController"
-	testCtrl   = "TestController"
 	postMethod = "POST"
 	getMethod  = "GET"
 )
