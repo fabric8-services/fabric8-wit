@@ -32,7 +32,7 @@ func TestDeleteOpenShiftResource(t *testing.T) {
 		}
 
 		// when
-		err = deleteOpenShiftResource(client, config, ctx, spaceID)
+		err = deleteOpenShiftResource(ctx, client, config, spaceID)
 		// then
 		require.NoError(t, err)
 	})
@@ -60,7 +60,7 @@ func TestDeleteOpenShiftResource(t *testing.T) {
 			}
 
 			// when
-			err = deleteOpenShiftResource(client, config, ctx, spaceID)
+			err = deleteOpenShiftResource(ctx, client, config, spaceID)
 			// then
 			require.Error(t, err)
 		})

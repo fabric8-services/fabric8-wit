@@ -219,7 +219,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	// now delete the OpenShift resources associated with this space on an
 	// OpenShift cluster, unless otherwise specified
 	if ctx.SkipCluster == nil || !*ctx.SkipCluster {
-		err = deleteOpenShiftResource(c.DeploymentsClient, config, ctx.Context, spaceID)
+		err = deleteOpenShiftResource(ctx.Context, c.DeploymentsClient, config, spaceID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"space_id": spaceID,
@@ -261,9 +261,9 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 
 // deleteCodebases deletes all the codebases that are associated with this space
 func deleteCodebases(
+	ctx context.Context,
 	httpClient *http.Client,
 	config *configuration.Registry,
-	ctx context.Context,
 	spaceID goauuid.UUID) error {
 
 	u, err := url.Parse(config.GetCodebaseServiceURL())
@@ -349,9 +349,9 @@ func deleteCodebases(
 // OpenShift online cluster corresponding to the given spaceID
 // TODO: fix all the errors, return appropriate errors
 func deleteOpenShiftResource(
+	ctx context.Context,
 	httpClient *http.Client,
 	config *configuration.Registry,
-	ctx context.Context,
 	spaceID goauuid.UUID) error {
 
 	u, err := url.Parse(config.GetDeploymentsServiceURL())

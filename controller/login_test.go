@@ -90,6 +90,6 @@ func validateToken(t *testing.T, token *app.AuthToken, controler *LoginControlle
 
 type TestLoginService struct{}
 
-func (t TestLoginService) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error) {
+func (t TestLoginService) CreateOrUpdateKeycloakUser(ctx context.Context, accessToken string) (*account.Identity, *account.User, error) {
 	return nil, nil, nil
 }
