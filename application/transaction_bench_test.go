@@ -1,7 +1,6 @@
 package application_test
 
 import (
-	"database/sql"
 	"testing"
 
 	_ "github.com/lib/pq"
@@ -17,7 +16,6 @@ type BenchTransactional struct {
 	gormbench.DBBenchSuite
 	repo  space.Repository
 	appDB application.DB
-	dbPq  *sql.DB
 }
 
 func BenchmarkRunTransactional(b *testing.B) {
