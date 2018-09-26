@@ -77,7 +77,7 @@ See also http://jsonapi.org/format/#document-resource-object-relationships`)
 })
 
 // relationWorkItemType is the JSONAPI store for the work item type relationship objects
-var relationWorkItemType = a.Type("RelationWorkItemType", func() {
+var _ = a.Type("RelationWorkItemType", func() {
 	a.Attribute("data", relationWorkItemTypeData)
 	a.Attribute("links", genericLinks)
 })
