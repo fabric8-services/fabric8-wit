@@ -65,7 +65,8 @@ func (s *TestCommentRepository) TestCreateCommentWithParentComment() {
 		Valid: true,
 	}
 	// when
-	s.repo.Create(s.Ctx, childComment, fxt.Identities[0].ID)
+	err = s.repo.Create(s.Ctx, childComment, fxt.Identities[0].ID)
+	require.NoError(s.T(), err)
 	// then
 	require.NotNil(s.T(), childComment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), childComment.CreatedAt, "Comment was not created")
