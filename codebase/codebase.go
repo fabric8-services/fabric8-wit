@@ -303,10 +303,14 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 		rows2, err := orgDB.Rows()
 		defer closeable.Close(ctx, rows2)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, errs.WithStack(err)
 		}
 		rows2.Next() // count(*) will always return a row
-		rows2.Scan(&count)
+		err = rows2.Scan(&count)
+		if err != nil {
+			return nil, 0, errs.WithStack(err)
+		}
+
 	}
 	return result, count, nil
 }
