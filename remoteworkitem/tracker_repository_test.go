@@ -100,7 +100,7 @@ func (test *TestTrackerRepository) TestTrackerSave() {
 		URL:  "random1",
 		Type: remoteworkitem.ProviderJira,
 	}
-	tracker4, err = test.repo.Save(context.Background(), tracker4)
+	_, err = test.repo.Save(context.Background(), tracker4)
 	assert.IsType(t, errors.NotFoundError{}, err)
 
 	tracker5 := &remoteworkitem.Tracker{
