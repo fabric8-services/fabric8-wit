@@ -636,7 +636,7 @@ func ConvertSpaceToModel(appSpace app.Space) space.Space {
 // conversion from internal to API
 type SpaceConvertFunc func(*http.Request, *space.Space, *app.Space) error
 
-// IncludeBacklog returns a SpaceConvertFunc that includes the a link to the backlog
+// IncludeBacklogTotalCount returns a SpaceConvertFunc that includes the a link to the backlog
 // along with the total count of items in the backlog of the current space
 func IncludeBacklogTotalCount(ctx context.Context, db application.DB) SpaceConvertFunc {
 	return func(req *http.Request, modelSpace *space.Space, appSpace *app.Space) error {
