@@ -5,12 +5,6 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
-// createWorkItemLinkTypePayload defines the structure of work item link type payload in JSONAPI format during creation
-var createWorkItemLinkTypePayload = a.Type("CreateWorkItemLinkTypePayload", func() {
-	a.Attribute("data", workItemLinkTypeData)
-	a.Required("data")
-})
-
 // updateWorkItemLinkTypePayload defines the structure of work item link type payload in JSONAPI format during update
 var updateWorkItemLinkTypePayload = a.Type("UpdateWorkItemLinkTypePayload", func() {
 	a.Attribute("data", workItemLinkTypeData)
