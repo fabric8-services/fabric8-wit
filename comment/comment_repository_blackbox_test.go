@@ -120,7 +120,8 @@ func (s *TestCommentRepository) TestSaveCommentWithMarkup() {
 	// when
 	comment.Body = "Test AB"
 	comment.Markup = rendering.SystemMarkupMarkdown
-	s.repo.Save(s.Ctx, comment, comment.Creator)
+	err := s.repo.Save(s.Ctx, comment, comment.Creator)
+	require.NoError(sT(), err)
 	offset := 0
 	limit := 1
 	comments, _, err := s.repo.List(s.Ctx, comment.ParentID, &offset, &limit)
