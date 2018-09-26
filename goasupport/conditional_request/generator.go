@@ -216,7 +216,9 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	for alias, pkg := range packageAliases {
 		imports = append(imports, codegen.NewImport(alias, pkg))
 	}
-	ctxWr.WriteHeader(title, "app", imports)
+	if err := ctxWr.WriteHeader(title, "app", imports); err != nil {
+		return nil, err
+	}
 	if err := ctxWr.ExecuteTemplate("constants", constants, nil, nil); err != nil {
 		return nil, err
 	}
