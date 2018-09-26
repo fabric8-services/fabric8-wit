@@ -12,6 +12,7 @@ import (
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestForwardRequest(t *testing.T) {
@@ -30,7 +31,8 @@ func TestForwardRequest(t *testing.T) {
 		return service.Send(ctx, 200, "ok")
 	}
 	rg := middleware.RequestID()(h)
-	rg(ctx, rw, req)
+	err := rg(ctx, rw, req)
+	require.NoError(t, err)
 
 	assert.Equal(t, middleware.ContextRequestID(newCtx), reqID)
 
