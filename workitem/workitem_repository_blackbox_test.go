@@ -709,7 +709,8 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 		t.Run("by updated descending", func(t *testing.T) {
 			// when
 			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
-				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+				_, err := s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+				require.NoError(t, err)
 			}
 			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-updated"))
