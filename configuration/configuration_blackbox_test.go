@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"testing"
 
 	"net/http"
@@ -181,10 +180,6 @@ func TestGetMaxHeaderSizeSetByEnvVaribaleOK(t *testing.T) {
 	viperValue := config.GetHeaderMaxLength()
 	require.NotNil(t, viperValue)
 	assert.Equal(t, envValue, viperValue)
-}
-
-func generateEnvKey(yamlKey string) string {
-	return "F8_" + strings.ToUpper(strings.Replace(yamlKey, ".", "_", -1))
 }
 
 func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, getEndpoint func(req *http.Request) (string, error)) {
