@@ -43,7 +43,9 @@ func writeFunctions(api *design.APIDefinition, outDir string) ([]string, error) 
 		codegen.SimpleImport("fmt"),
 		codegen.SimpleImport("github.com/davecgh/go-spew/spew"),
 	}
-	ctxWr.WriteHeader(title, "app", imports)
+	if err := ctxWr.WriteHeader(title, "app", imports); err != nil {
+		return nil, errs.WithStack(err)
+	}
 	if err := ctxWr.ExecuteTemplate("jsonAPIErrorsStringer", jsonAPIErrorsStringer, nil, nil); err != nil {
 		return nil, err
 	}
