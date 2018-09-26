@@ -88,7 +88,8 @@ func (s *TestCommentRepository) TestCreateCommentWithMarkup() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
 	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
 	// when
-	s.repo.Create(s.Ctx, comment, fxt.Identities[0].ID)
+	err := s.repo.Create(s.Ctx, comment, fxt.Identities[0].ID)
+	require.NoError(s.T(), err)
 	// then
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), comment.CreatedAt, "Comment was not created?")
