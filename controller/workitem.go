@@ -529,6 +529,9 @@ func setupCodebase(appl application.Application, cb *codebase.Content, spaceID u
 			//TODO: Think of making stackID dynamic value (from analyzer)
 		}
 		existingCB, err := appl.Codebases().LoadByRepo(context.Background(), spaceID, cb.Repository)
+		if err != nil {
+			return errs.WithStack(err)
+		}
 		if existingCB != nil {
 			cb.CodebaseID = existingCB.ID.String()
 			return nil
