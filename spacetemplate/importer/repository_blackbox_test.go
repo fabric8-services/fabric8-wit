@@ -15,7 +15,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	uuid "github.com/satori/go.uuid"
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -45,12 +44,6 @@ func (s *repoSuite) SetupSuite() {
 	s.wiltRepo = link.NewWorkItemLinkTypeRepository(s.DB)
 	s.witgRepo = workitem.NewWorkItemTypeGroupRepository(s.DB)
 	s.wibRepo = workitem.NewBoardRepository(s.DB)
-}
-
-func diff(expectedStr, actualStr string) string {
-	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(expectedStr, actualStr, false)
-	return dmp.DiffPrettyText(diffs)
 }
 
 func (s *repoSuite) TestImport() {
