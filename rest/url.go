@@ -43,7 +43,9 @@ func ReplaceDomainPrefix(host string, replaceBy string) (string, error) {
 // ReadBody reads body from a ReadCloser and returns it as a string
 func ReadBody(body io.ReadCloser) string {
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(body)
+	if _, err := buf.ReadFrom(body); err != nil {
+		panic(err)
+	}
 	return buf.String()
 }
 
