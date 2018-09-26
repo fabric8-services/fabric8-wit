@@ -40,7 +40,7 @@ var filterList = JSONList(
 	pagingLinks, // pagingLinks would eventually remain nil.
 	meta)        // again, this being a pointer gets auto-assigned nil.
 
-var filterSingle = JSONSingle(
+var _ = JSONSingle(
 	"filter", "Holds filter information",
 	filter,
 	nil)
