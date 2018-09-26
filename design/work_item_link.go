@@ -19,12 +19,6 @@ var createWorkItemLinkPayload = a.Type("CreateWorkItemLinkPayload", func() {
 	a.Required("data")
 })
 
-// updateWorkItemLinkPayload defines the structure of work item link payload in JSONAPI format during update
-var updateWorkItemLinkPayload = a.Type("UpdateWorkItemLinkPayload", func() {
-	a.Attribute("data", workItemLinkData)
-	a.Required("data")
-})
-
 // workItemLinkListMeta holds meta information for a work item link array response
 var workItemLinkListMeta = a.Type("WorkItemLinkListMeta", func() {
 	a.Attribute("totalCount", d.Integer, func() {
