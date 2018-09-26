@@ -5,12 +5,6 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
-// updateWorkItemLinkTypePayload defines the structure of work item link type payload in JSONAPI format during update
-var updateWorkItemLinkTypePayload = a.Type("UpdateWorkItemLinkTypePayload", func() {
-	a.Attribute("data", workItemLinkTypeData)
-	a.Required("data")
-})
-
 // workItemLinkTypeListMeta holds meta information for a work item link type array response
 var workItemLinkTypeListMeta = a.Type("WorkItemLinkTypeListMeta", func() {
 	a.Attribute("totalCount", d.Integer, func() {
