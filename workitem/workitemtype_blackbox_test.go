@@ -46,7 +46,8 @@ func TestJsonMarshalListType(t *testing.T) {
 	}
 
 	var parsedWIT workitem.WorkItemType
-	json.Unmarshal(bytes, &parsedWIT)
+	err := json.Unmarshal(bytes, &parsedWIT)
+	require.NoError(t, err)
 
 	if !expectedWIT.Equal(parsedWIT) {
 		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", parsedWIT, expectedWIT)
