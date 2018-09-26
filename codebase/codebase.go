@@ -391,7 +391,10 @@ func (m *GormCodebaseRepository) SearchByURL(ctx context.Context, url string, st
 	first := true
 	for rows.Next() {
 		value := Codebase{}
-		db.ScanRows(rows, &value)
+		err := db.ScanRows(rows, &value)
+		if err != nil {
+			return nil, 0, errors.NewInternalError(ctx, err)
+		}
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
