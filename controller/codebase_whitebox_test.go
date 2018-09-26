@@ -31,7 +31,7 @@ func TestWorkspaceLinks(t *testing.T) {
 		Status: "RUNNING",
 		Links:  []che.WorkspaceLink{workspaceIdeLink, workspaceSelfLink}}
 
-	ideLink := workspaceResponse.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
+	ideLink := workspaceResponse.GetHrefByRelOfWorkspaceLink(che.IdeURLRel)
 	selfLink := workspaceResponse.GetHrefByRelOfWorkspaceLink(che.SelfLinkRel)
 
 	assert.Equal(t, hrefIde, ideLink)
