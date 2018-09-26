@@ -171,7 +171,9 @@ func generateGravatarURL(email string) (string, error) {
 		return "", errs.WithStack(err)
 	}
 	hash := md5.New()
-	hash.Write([]byte(email))
+	if _, err := hash.Write([]byte(email)); err != nil {
+		return "", errs.WithStack(err)
+	}
 	grURL.Path += fmt.Sprintf("%v", hex.EncodeToString(hash.Sum(nil))) + ".jpg"
 
 	// We can use our own default image if there is no gravatar available for this email
