@@ -28,7 +28,10 @@ func TestRegister(t *testing.T) {
 			testrecorder.WithJWTMatcher("../../test/jwt/public_key.pem"),
 		)
 		require.NoError(t, err)
-		defer r.Stop()
+		defer func() {
+			err := r.Stop()
+			require.NoError(t, err)
+		}()
 
 		httpClient := &http.Client{
 			Transport: r.Transport,
@@ -50,7 +53,10 @@ func TestRegister(t *testing.T) {
 			"../../test/data/gemini-scan/register-401",
 		)
 		require.NoError(t, err)
-		defer r.Stop()
+		defer func() {
+			err := r.Stop()
+			require.NoError(t, err)
+		}()
 
 		httpClient := &http.Client{
 			Transport: r.Transport,
@@ -102,7 +108,10 @@ func TestRegister(t *testing.T) {
 			testrecorder.WithJWTMatcher("../../test/jwt/public_key.pem"),
 		)
 		require.NoError(t, err)
-		defer r.Stop()
+		defer func() {
+			err := r.Stop()
+			require.NoError(t, err)
+		}()
 
 		httpClient := &http.Client{
 			Transport: r.Transport,
@@ -128,7 +137,10 @@ func TestRegister(t *testing.T) {
 			testrecorder.WithJWTMatcher("../../test/jwt/public_key.pem"),
 		)
 		require.NoError(t, err)
-		defer r.Stop()
+		defer func() {
+			err := r.Stop()
+			require.NoError(t, err)
+		}()
 
 		httpClient := &http.Client{
 			Transport: r.Transport,
@@ -165,7 +177,10 @@ func TestDeRegister(t *testing.T) {
 			"../../test/data/gemini-scan/deregister-200",
 		)
 		require.NoError(t, err)
-		defer r.Stop()
+		defer func() {
+			err := r.Stop()
+			require.NoError(t, err)
+		}()
 
 		httpClient := &http.Client{Transport: r.Transport}
 		cli := gemini.NewScanRepoClient(geminiURL, httpClient, codebaseURL, httpClient, false)
@@ -242,7 +257,10 @@ func TestDeRegister(t *testing.T) {
 			"../../test/data/gemini-scan/deregister-400",
 		)
 		require.NoError(t, err)
-		defer r.Stop()
+		defer func() {
+			err := r.Stop()
+			require.NoError(t, err)
+		}()
 
 		httpClient := &http.Client{Transport: r.Transport}
 		cli := gemini.NewScanRepoClient(geminiURL, httpClient, codebaseURL, httpClient, false)
@@ -263,7 +281,10 @@ func TestDeRegister(t *testing.T) {
 			"../../test/data/gemini-scan/deregister-bad-output",
 		)
 		require.NoError(t, err)
-		defer r.Stop()
+		defer func() {
+			err := r.Stop()
+			require.NoError(t, err)
+		}()
 
 		httpClient := &http.Client{Transport: r.Transport}
 		cli := gemini.NewScanRepoClient(geminiURL, httpClient, codebaseURL, httpClient, false)
