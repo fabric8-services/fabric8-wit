@@ -56,7 +56,8 @@ func (s *TestCommentRepository) TestCreateCommentWithParentComment() {
 	// parent comment
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
 	parentComment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
-	s.repo.Create(s.Ctx, parentComment, fxt.Identities[0].ID)
+	err := s.repo.Create(s.Ctx, parentComment, fxt.Identities[0].ID)
+	require.NoError(s.T(), err)
 	// child comments
 	childComment := newComment(uuid.NewV4(), "Test Child A", rendering.SystemMarkupMarkdown)
 	childComment.ParentCommentID = id.NullUUID{
