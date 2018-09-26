@@ -56,10 +56,6 @@ func NewGormSearchRepository(db *gorm.DB) *GormSearchRepository {
 	return &GormSearchRepository{db, workitem.NewWorkItemTypeRepository(db)}
 }
 
-func generateSearchQuery(q string) (string, error) {
-	return q, nil
-}
-
 //searchKeyword defines how a decomposed raw search query will look like
 type searchKeyword struct {
 	workItemTypes []uuid.UUID
