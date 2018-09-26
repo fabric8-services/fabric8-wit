@@ -82,6 +82,6 @@ func TestDeleteCodebases(t *testing.T) {
 		Transport: r.Transport,
 	}
 
-	err = deleteCodebases(client, config, ctx, spaceID)
+	err = deleteCodebases(ctx, client, config, spaceID)
 	require.NoError(t, err)
 }
