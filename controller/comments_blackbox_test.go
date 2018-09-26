@@ -396,6 +396,7 @@ func (s *CommentsSuite) TestNonCollaboratorCanNotDelete() {
 	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup, nil)
 
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotDelete-"), "TestWI")
+	require.NoError(s.T(), err)
 	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity, ""})
 	commentsCtrlNotAuthorized := NewCommentsController(svcNotAuthorized, s.GormDB, s.Configuration)
 
