@@ -43,7 +43,9 @@ func writeFunctions(api *design.APIDefinition, outDir string) ([]string, error) 
 		codegen.NewImport("uuid", "github.com/satori/go.uuid"),
 		codegen.NewImport("", "github.com/fabric8-services/fabric8-wit/ptr"),
 	}
-	ctxWr.WriteHeader(title, "app", imports)
+	if err := ctxWr.WriteHeader(title, "app", imports); err != nil {
+		return nil, errs.WithStack(err)
+	}
 	if err := ctxWr.ExecuteTemplate("newSpaceRelation", newSpaceRelation, nil, nil); err != nil {
 		return nil, err
 	}
