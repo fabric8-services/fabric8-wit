@@ -195,7 +195,9 @@ func (r *GormWorkItemLinkRepository) acquireLock(spaceID uuid.UUID) error {
 	// effectively limits us to just 32 bit hashes. Once we allow cross-space
 	// linking we need to revisit the locking.
 	h := fnv.New32()
-	h.Write([]byte("links-" + spaceID.String()))
+	if _, err := h.Write([]byte("links-" + spaceID.String())); err != nil {
+		return errs.WithStack(err)
+	}
 	key := h.Sum32()
 
 	db := r.db.Exec("SELECT pg_advisory_xact_lock($1)", key)
