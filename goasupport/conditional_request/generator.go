@@ -128,7 +128,7 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	var entities []Entity
 
 	err := api.IterateResources(func(res *design.ResourceDefinition) error {
-		res.IterateActions(func(act *design.ActionDefinition) error {
+		return res.IterateActions(func(act *design.ActionDefinition) error {
 			name := fmt.Sprintf("%v%vContext", codegen.Goify(act.Name, true), codegen.Goify(res.Name, true))
 			// look-up headers for conditional request support
 			if act.Headers != nil {
@@ -187,7 +187,6 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 			}
 			return nil
 		})
-		return nil
 	})
 
 	if err != nil {
