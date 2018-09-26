@@ -202,7 +202,10 @@ func TestDeRegister(t *testing.T) {
 			"../../test/data/gemini-scan/deregister-call-gemini-codebases-200",
 		)
 		require.NoError(t, err)
-		defer recordCodebases.Stop()
+		defer func() {
+			err := recordCodebases.Stop()
+			require.NoError(t, err)
+		}()
 		codebaseClient := &http.Client{Transport: recordCodebases.Transport}
 
 		recordGemini, err := testrecorder.New(
@@ -210,7 +213,10 @@ func TestDeRegister(t *testing.T) {
 			testrecorder.WithJWTMatcher("../../test/jwt/public_key.pem"),
 		)
 		require.NoError(t, err)
-		defer recordGemini.Stop()
+		defer func() {
+			err := recordGemini.Stop()
+			require.NoError(t, err)
+		}()
 		geminiClient := &http.Client{Transport: recordGemini.Transport}
 
 		cli := gemini.NewScanRepoClient(geminiURL, geminiClient, codebaseURL, codebaseClient, false)
