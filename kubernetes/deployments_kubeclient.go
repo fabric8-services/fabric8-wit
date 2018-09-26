@@ -1607,8 +1607,6 @@ func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, en
 			return nil, convertError(errs.WithStack(err), "failed to get limit range %s in %s", limitRangeName, namespace)
 		}
 
-		defaultCPULimit := float64(0)
-		defaultMemLimit := float64(0)
 		var containerCPULimit, containerMemLimit *resource.Quantity
 		for _, limit := range limitRange.Spec.Limits {
 			if limit.Type == "Container" {
@@ -1631,11 +1629,11 @@ func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, en
 			return nil, errs.Errorf("CPU or memory container limit missing from LimitRange for namespace %s", namespace)
 		}
 
-		defaultCPULimit, err = quantityToFloat64(*containerCPULimit)
+		defaultCPULimit, err := quantityToFloat64(*containerCPULimit)
 		if err != nil {
 			return nil, errs.Errorf("could not convert cpu quantity %+v to float64 value", *containerCPULimit)
 		}
-		defaultMemLimit, err = quantityToFloat64(*containerMemLimit)
+		defaultMemLimit, err := quantityToFloat64(*containerMemLimit)
 		if err != nil {
 			return nil, errs.Errorf("could not convert memory quantity %+v to float64 value", *containerMemLimit)
 		}
