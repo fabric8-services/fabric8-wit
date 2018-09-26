@@ -13,18 +13,6 @@ var workItemLinkCategoryLinks = a.Type("WorkItemLinkCategoryLinks", func() {
 	a.Required("self")
 })
 
-// createWorkItemLinkCategoryPayload defines the structure of work item link category payload in JSONAPI format during creation
-var createWorkItemLinkCategoryPayload = a.Type("CreateWorkItemLinkCategoryPayload", func() {
-	a.Attribute("data", workItemLinkCategoryData)
-	a.Required("data")
-})
-
-// UpdateWorkItemLinkCategoryPayload defines the structure of work item link category payload in JSONAPI format during update
-var _ = a.Type("UpdateWorkItemLinkCategoryPayload", func() {
-	a.Attribute("data", workItemLinkCategoryData)
-	a.Required("data")
-})
-
 // workItemLinkCategoryListMeta holds meta information for a work item link category array response
 var workItemLinkCategoryListMeta = a.Type("WorkItemLinkCategoryListMeta", func() {
 	a.Attribute("totalCount", d.Integer, func() {
