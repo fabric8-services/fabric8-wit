@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"testing"
 
 	"net/http"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -181,30 +179,6 @@ func TestGetMaxHeaderSizeSetByEnvVaribaleOK(t *testing.T) {
 	viperValue := config.GetHeaderMaxLength()
 	require.NotNil(t, viperValue)
 	assert.Equal(t, envValue, viperValue)
-}
-
-func generateEnvKey(yamlKey string) string {
-	return "F8_" + strings.ToUpper(strings.Replace(yamlKey, ".", "_", -1))
-}
-
-func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, getEndpoint func(req *http.Request) (string, error)) {
-	envValue := uuid.NewV4().String()
-	env := os.Getenv(envName)
-	defer func() {
-		os.Setenv(envName, env)
-		resetConfiguration(defaultValuesConfigFilePath)
-	}()
-
-	os.Setenv(envName, envValue)
-	resetConfiguration(defaultValuesConfigFilePath)
-
-	url, err := getEndpoint(reqLong)
-	require.NoError(t, err)
-	require.Equal(t, envValue, url)
-
-	url, err = getEndpoint(reqShort)
-	require.NoError(t, err)
-	require.Equal(t, envValue, url)
 }
 
 func TestGetDeploymentsTimeoutDefault(t *testing.T) {

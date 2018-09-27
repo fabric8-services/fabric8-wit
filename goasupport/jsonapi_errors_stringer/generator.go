@@ -8,6 +8,7 @@ import (
 
 	"github.com/goadesign/goa/design"
 	"github.com/goadesign/goa/goagen/codegen"
+	errs "github.com/pkg/errors"
 )
 
 // Generate adds method to support conditional queries
@@ -20,7 +21,9 @@ func Generate() ([]string, error) {
 	set.String("design", "", "") // Consume design argument so Parse doesn't complain
 	set.StringVar(&ver, "version", "", "")
 	set.StringVar(&outDir, "out", "", "")
-	set.Parse(os.Args[2:])
+	if err := set.Parse(os.Args[2:]); err != nil {
+		return nil, errs.WithStack(err)
+	}
 	// First check compatibility
 	if err := codegen.CheckVersion(ver); err != nil {
 		return nil, err
@@ -40,7 +43,9 @@ func writeFunctions(api *design.APIDefinition, outDir string) ([]string, error) 
 		codegen.SimpleImport("fmt"),
 		codegen.SimpleImport("github.com/davecgh/go-spew/spew"),
 	}
-	ctxWr.WriteHeader(title, "app", imports)
+	if err := ctxWr.WriteHeader(title, "app", imports); err != nil {
+		return nil, errs.WithStack(err)
+	}
 	if err := ctxWr.ExecuteTemplate("jsonAPIErrorsStringer", jsonAPIErrorsStringer, nil, nil); err != nil {
 		return nil, err
 	}

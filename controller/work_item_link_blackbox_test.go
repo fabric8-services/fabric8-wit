@@ -43,21 +43,6 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.testDir = filepath.Join("test-files", "work_item_link")
 }
 
-// CreateWorkItemLinkCategory creates a work item link category
-func newCreateWorkItemLinkCategoryPayload(name string) *app.CreateWorkItemLinkCategoryPayload {
-	description := "This work item link category is managed by an admin user."
-	// Use the goa generated code to create a work item link category
-	return &app.CreateWorkItemLinkCategoryPayload{
-		Data: &app.WorkItemLinkCategoryData{
-			Type: link.EndpointWorkItemLinkCategories,
-			Attributes: &app.WorkItemLinkCategoryAttributes{
-				Name:        &name,
-				Description: &description,
-			},
-		},
-	}
-}
-
 // createWorkItemLinkType creates a workitem link type
 func createWorkItemLinkType(t *testing.T, db application.DB, name string, categoryID, spaceTemplateID uuid.UUID) *link.WorkItemLinkType {
 	description := "Specify that one bug blocks another one."
@@ -83,21 +68,6 @@ func newCreateWorkItemLinkPayload(sourceID, targetID, linkTypeID uuid.UUID) *app
 	payload := ConvertLinkFromModel(&http.Request{Host: "api.service.domain.org"}, lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkPayload{
-		Data: payload.Data,
-	}
-}
-
-// newUpdateWorkItemLinkPayload returns the payload to update a work item link
-func newUpdateWorkItemLinkPayload(linkID, sourceID, targetID, linkTypeID uuid.UUID) *app.UpdateWorkItemLinkPayload {
-	lt := link.WorkItemLink{
-		ID:         linkID,
-		SourceID:   sourceID,
-		TargetID:   targetID,
-		LinkTypeID: linkTypeID,
-	}
-	payload := ConvertLinkFromModel(&http.Request{Host: "api.service.domain.org"}, lt)
-	// The create payload is required during creation. Simply copy data over.
-	return &app.UpdateWorkItemLinkPayload{
 		Data: payload.Data,
 	}
 }

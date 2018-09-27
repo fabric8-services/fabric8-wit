@@ -5,18 +5,6 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
-// createWorkItemLinkTypePayload defines the structure of work item link type payload in JSONAPI format during creation
-var createWorkItemLinkTypePayload = a.Type("CreateWorkItemLinkTypePayload", func() {
-	a.Attribute("data", workItemLinkTypeData)
-	a.Required("data")
-})
-
-// updateWorkItemLinkTypePayload defines the structure of work item link type payload in JSONAPI format during update
-var updateWorkItemLinkTypePayload = a.Type("UpdateWorkItemLinkTypePayload", func() {
-	a.Attribute("data", workItemLinkTypeData)
-	a.Required("data")
-})
-
 // workItemLinkTypeListMeta holds meta information for a work item link type array response
 var workItemLinkTypeListMeta = a.Type("WorkItemLinkTypeListMeta", func() {
 	a.Attribute("totalCount", d.Integer, func() {
@@ -83,7 +71,7 @@ See also http://jsonapi.org/format/#document-resource-object-relationships`)
 })
 
 // relationWorkItemType is the JSONAPI store for the work item type relationship objects
-var relationWorkItemType = a.Type("RelationWorkItemType", func() {
+var _ = a.Type("RelationWorkItemType", func() {
 	a.Attribute("data", relationWorkItemTypeData)
 	a.Attribute("links", genericLinks)
 })

@@ -27,7 +27,7 @@ var workItemBoardLinks = a.Type("WorkItemBoardLinks", func() {
 	a.Required("self")
 })
 
-var workItemBoardColumnData = a.Type("WorkItemBoardColumnData", func() {
+var _ = a.Type("WorkItemBoardColumnData", func() {
 	a.Description(`a column represents a vertical lane in a board`)
 	a.Attribute("type", d.String, "The type string of the work item board column", func() {
 		a.Enum("boardcolumns")

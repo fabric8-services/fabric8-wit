@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
 	"strings"
 
 	"github.com/goadesign/goa/design"
 	"github.com/goadesign/goa/goagen/codegen"
+	errs "github.com/pkg/errors"
 )
 
 // Generate adds method to support conditional queries
@@ -22,11 +22,13 @@ func Generate() ([]string, error) {
 	set.String("design", "", "") // Consume design argument so Parse doesn't complain
 	set.StringVar(&ver, "version", "", "")
 	set.StringVar(&outDir, "out", "", "")
-	set.Parse(os.Args[2:])
+	if err := set.Parse(os.Args[2:]); err != nil {
+		return nil, errs.WithStack(err)
+	}
 
 	// First check compatibility
 	if err := codegen.CheckVersion(ver); err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	return WriteNames(design.Design, outDir)
@@ -125,8 +127,8 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	var contexts []RequestContext
 	var entities []Entity
 
-	api.IterateResources(func(res *design.ResourceDefinition) error {
-		res.IterateActions(func(act *design.ActionDefinition) error {
+	err := api.IterateResources(func(res *design.ResourceDefinition) error {
+		return res.IterateActions(func(act *design.ActionDefinition) error {
 			name := fmt.Sprintf("%v%vContext", codegen.Goify(act.Name, true), codegen.Goify(res.Name, true))
 			// look-up headers for conditional request support
 			if act.Headers != nil {
@@ -185,8 +187,11 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 			}
 			return nil
 		})
-		return nil
 	})
+
+	if err != nil {
+		panic(err)
+	}
 
 	ctxFile := filepath.Join(outDir, "conditional_requests.go")
 	ctxWr, err := codegen.SourceFileFor(ctxFile)
@@ -211,7 +216,9 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	for alias, pkg := range packageAliases {
 		imports = append(imports, codegen.NewImport(alias, pkg))
 	}
-	ctxWr.WriteHeader(title, "app", imports)
+	if err := ctxWr.WriteHeader(title, "app", imports); err != nil {
+		return nil, err
+	}
 	if err := ctxWr.ExecuteTemplate("constants", constants, nil, nil); err != nil {
 		return nil, err
 	}

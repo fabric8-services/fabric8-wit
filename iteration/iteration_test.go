@@ -82,7 +82,8 @@ func (s *TestIterationRepository) TestCreate() {
 			EndAt:   &end,
 		}
 		// when
-		repo.Create(context.Background(), &i)
+		err := repo.Create(context.Background(), &i)
+		require.NoError(t, err)
 		parentPath := append(i.Path, i.ID)
 		require.NotNil(t, parentPath)
 		i2 := iteration.Iteration{
@@ -92,8 +93,9 @@ func (s *TestIterationRepository) TestCreate() {
 			EndAt:   &end,
 			Path:    parentPath,
 		}
-		repo.Create(context.Background(), &i2)
+		err = repo.Create(context.Background(), &i2)
 		// then
+		require.NoError(t, err)
 		i2L, err := repo.Load(context.Background(), i2.ID)
 		require.NoError(t, err)
 		assert.NotEmpty(t, i2.Path)
@@ -211,7 +213,8 @@ func (s *TestIterationRepository) TestLoad() {
 			EndAt:   &end,
 		}
 		// when
-		repo.Create(context.Background(), &i)
+		err := repo.Create(context.Background(), &i)
+		require.NoError(t, err)
 
 		i2 := iteration.Iteration{
 			Name:    name2,
@@ -220,8 +223,9 @@ func (s *TestIterationRepository) TestLoad() {
 			EndAt:   &end,
 		}
 		i2.MakeChildOf(i)
-		repo.Create(context.Background(), &i2)
+		err = repo.Create(context.Background(), &i2)
 		// then
+		require.NoError(t, err)
 		res, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
 		require.NoError(t, err)
 		assert.Equal(t, i.Name, res.Name)
@@ -247,8 +251,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// then
 		require.NoError(t, err)
 		assert.Len(t, its, 3)
-		var mustHaveIDs = make(map[uuid.UUID]struct{}, 3)
-		mustHaveIDs = map[uuid.UUID]struct{}{
+		mustHaveIDs := map[uuid.UUID]struct{}{
 			fxt.Iterations[0].ID: {},
 			fxt.Iterations[1].ID: {},
 			fxt.Iterations[2].ID: {},
@@ -263,7 +266,6 @@ func (s *TestIterationRepository) TestLoad() {
 		// then
 		require.NoError(t, err)
 		assert.Len(t, its, 1)
-		mustHaveIDs = make(map[uuid.UUID]struct{}, 1)
 		mustHaveIDs = map[uuid.UUID]struct{}{
 			fxt.Iterations[3].ID: {},
 		}

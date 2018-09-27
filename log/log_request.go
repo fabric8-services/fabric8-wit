@@ -112,7 +112,9 @@ func LogRequest(verbose bool) goa.Middleware {
 // Do not use as a reliable way to get unique IDs, instead use for things like logging.
 func shortID() string {
 	b := make([]byte, 6)
-	io.ReadFull(rand.Reader, b)
+	if _, err := io.ReadFull(rand.Reader, b); err != nil && err == io.ErrUnexpectedEOF {
+		panic(err)
+	}
 	return base64.StdEncoding.EncodeToString(b)
 }
 

@@ -1,6 +1,9 @@
 package models
 
 import (
+	"context"
+
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 )
@@ -12,9 +15,15 @@ func Transactional(db *gorm.DB, todo func(tx *gorm.DB) error) error {
 		return tx.Error
 	}
 	if err := todo(tx); err != nil {
-		tx.Rollback()
+		tx := tx.Rollback()
+		if tx.Error != nil {
+			log.Error(context.Background(), map[string]interface{}{
+				"errRollback": errs.WithStack(tx.Error),
+				"err":         errs.WithStack(err),
+			}, "failed to rollback transaction: %+v", tx.Error)
+		}
 		return errs.WithStack(err)
 	}
-	tx.Commit()
+	tx = tx.Commit()
 	return tx.Error
 }

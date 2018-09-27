@@ -283,7 +283,10 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 
 	for rows.Next() {
 		value := Codebase{}
-		db.ScanRows(rows, &value)
+		err := db.ScanRows(rows, &value)
+		if err != nil {
+			return nil, 0, errs.Wrapf(err, "failed to scan codebase rows")
+		}
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
@@ -300,10 +303,14 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 		rows2, err := orgDB.Rows()
 		defer closeable.Close(ctx, rows2)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, errs.WithStack(err)
 		}
 		rows2.Next() // count(*) will always return a row
-		rows2.Scan(&count)
+		err = rows2.Scan(&count)
+		if err != nil {
+			return nil, 0, errs.WithStack(err)
+		}
+
 	}
 	return result, count, nil
 }
@@ -384,7 +391,10 @@ func (m *GormCodebaseRepository) SearchByURL(ctx context.Context, url string, st
 	first := true
 	for rows.Next() {
 		value := Codebase{}
-		db.ScanRows(rows, &value)
+		err := db.ScanRows(rows, &value)
+		if err != nil {
+			return nil, 0, errors.NewInternalError(ctx, err)
+		}
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {

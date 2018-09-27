@@ -56,10 +56,6 @@ func NewGormSearchRepository(db *gorm.DB) *GormSearchRepository {
 	return &GormSearchRepository{db, workitem.NewWorkItemTypeRepository(db)}
 }
 
-func generateSearchQuery(q string) (string, error) {
-	return q, nil
-}
-
 //searchKeyword defines how a decomposed raw search query will look like
 type searchKeyword struct {
 	workItemTypes []uuid.UUID
@@ -770,7 +766,9 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 			return nil, 0, errs.WithStack(err)
 		}
 		rows2.Next() // count(*) will always return a row
-		rows2.Scan(&count)
+		if err := rows2.Scan(&count); err != nil {
+			return nil, 0, errs.WithStack(err)
+		}
 	}
 	return result, count, nil
 }

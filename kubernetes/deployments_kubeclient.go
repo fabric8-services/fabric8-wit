@@ -1673,7 +1673,7 @@ func (kc *kubeClient) getPodStatus(pods []*v1.Pod) ([][]string, int) {
 	podStatus := make(map[string]int)
 	podTotal := 0
 	for _, pod := range pods {
-		statusKey := podUnknown
+		var statusKey string
 		if pod.Status.Phase == v1.PodFailed {
 			// Failed pods are not included, see web console:
 			// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/directives/podDonut.js#L32

@@ -293,7 +293,7 @@ func (c *WorkItemLinkController) checkWorkItemCreatorOrSpaceOwner(ctx context.Co
 		return true, nil, nil
 	}
 	space, err := appl.Spaces().Load(ctx, wi.SpaceID)
-	return currentIdentityID == space.OwnerID, &wi.SpaceID, nil
+	return currentIdentityID == space.OwnerID, &wi.SpaceID, err
 }
 
 type deleteWorkItemLinkFuncs interface {

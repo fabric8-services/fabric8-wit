@@ -20,6 +20,12 @@ const (
 	ErrorMediaIdentifier = "application/vnd.api+json"
 )
 
+type contextKey int
+
+const (
+	reqIDKey contextKey = 1
+)
+
 func shortID() string {
 	b := make([]byte, 6)
 	io.ReadFull(rand.Reader, b)
@@ -40,9 +46,8 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 				return nil
 			}
 			cause := errs.Cause(e)
-			status := http.StatusInternalServerError
 			var respBody interface{}
-			respBody, status = ErrorToJSONAPIErrors(ctx, e)
+			respBody, status := ErrorToJSONAPIErrors(ctx, e)
 			rw.Header().Set("Content-Type", ErrorMediaIdentifier)
 			if err, ok := cause.(goa.ServiceError); ok {
 				status = err.ResponseStatus()
@@ -54,12 +59,10 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 				//rw.Header().Set("Content-Type", "text/plain")
 			}
 			if status >= 500 && status < 600 {
-				//reqID := ctx.Value(reqIDKey)
-				reqID := ctx.Value(1) // TODO remove this hack
+				reqID := ctx.Value(reqIDKey)
 				if reqID == nil {
 					reqID = shortID()
-					//ctx = context.WithValue(ctx, reqIDKey, reqID)
-					ctx = context.WithValue(ctx, 1, reqID) // TODO remove this hack
+					ctx = context.WithValue(ctx, reqIDKey, reqID)
 				}
 				log.Error(ctx, map[string]interface{}{
 					"msg": respBody,

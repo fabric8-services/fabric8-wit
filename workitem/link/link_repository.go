@@ -195,7 +195,9 @@ func (r *GormWorkItemLinkRepository) acquireLock(spaceID uuid.UUID) error {
 	// effectively limits us to just 32 bit hashes. Once we allow cross-space
 	// linking we need to revisit the locking.
 	h := fnv.New32()
-	h.Write([]byte("links-" + spaceID.String()))
+	if _, err := h.Write([]byte("links-" + spaceID.String())); err != nil {
+		return errs.WithStack(err)
+	}
 	key := h.Sum32()
 
 	db := r.db.Exec("SELECT pg_advisory_xact_lock($1)", key)
@@ -349,8 +351,7 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUI
 	if err := r.acquireLock(src.SpaceID); err != nil {
 		return errs.Wrap(err, "failed to acquire lock during link deletion")
 	}
-	r.deleteLink(ctx, lnk, suppressorID)
-	return nil
+	return r.deleteLink(ctx, lnk, suppressorID)
 }
 
 // DeleteRelatedLinks deletes all links in which the source or target equals the
@@ -376,7 +377,9 @@ func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiI
 			}
 			locked = true
 		}
-		r.deleteLink(ctx, workitemLink, suppressorID)
+		if err := r.deleteLink(ctx, workitemLink, suppressorID); err != nil {
+			return errs.WithStack(err)
+		}
 	}
 	return nil
 }

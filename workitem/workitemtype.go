@@ -151,22 +151,6 @@ func (wit WorkItemType) TableName() string {
 var _ convert.Equaler = WorkItemType{}
 var _ convert.Equaler = (*WorkItemType)(nil)
 
-// returns true if the left hand and right hand side string
-// pointers either both point to nil or reference the same
-// content; otherwise false is returned.
-func strPtrIsNilOrContentIsEqual(l, r *string) bool {
-	if l == nil && r != nil {
-		return false
-	}
-	if l != nil && r == nil {
-		return false
-	}
-	if l == nil && r == nil {
-		return true
-	}
-	return *l == *r
-}
-
 // Equal returns true if two WorkItemType objects are equal; otherwise false is returned.
 func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	other, ok := u.(WorkItemType)

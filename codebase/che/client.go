@@ -448,7 +448,7 @@ func (w WorkspaceResponse) GetHrefByRelOfWorkspaceLink(rel string) string {
 
 // Following const define commonly used WorkspaceLink rel
 const (
-	IdeUrlRel   = "ide url"
+	IdeURLRel   = "ide url"
 	SelfLinkRel = "self link"
 )
 

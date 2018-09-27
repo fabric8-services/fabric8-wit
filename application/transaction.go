@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"runtime/debug"
 	"time"
 
@@ -46,15 +47,27 @@ func Transactional(db DB, todo func(f Application) error) error {
 		case err := <-errorChan:
 			if err != nil {
 				log.Debug(nil, map[string]interface{}{"error": err}, "Rolling back the transaction...")
-				tx.Rollback()
+				errRollback := tx.Rollback()
+				if errRollback != nil {
+					log.Error(context.Background(), map[string]interface{}{
+						"errRollback": errors.WithStack(errRollback),
+						"err":         errors.WithStack(err),
+					}, "failed to rollback transaction: %+v", errRollback)
+				}
 				log.Error(nil, map[string]interface{}{
 					"err": err,
 				}, "database transaction failed!")
 				return errors.WithStack(err)
 			}
 
-			tx.Commit()
-			log.Debug(nil, nil, "Commit the transaction!")
+			log.Debug(nil, nil, "Committing the transaction!")
+			errCommit := tx.Commit()
+			if errCommit != nil {
+				log.Error(context.Background(), map[string]interface{}{
+					"errCommit": errors.WithStack(errCommit),
+				}, "failed to commit transaction: %+v", errCommit)
+			}
+
 			return nil
 		case <-txTimeout:
 			log.Debug(nil, nil, "Rolling back the transaction...")

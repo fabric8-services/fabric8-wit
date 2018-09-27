@@ -8,6 +8,7 @@ import (
 
 	"github.com/goadesign/goa/design"
 	"github.com/goadesign/goa/goagen/codegen"
+	errs "github.com/pkg/errors"
 )
 
 // Generate adds method to support conditional queries
@@ -20,7 +21,9 @@ func Generate() ([]string, error) {
 	set.String("design", "", "") // Consume design argument so Parse doesn't complain
 	set.StringVar(&ver, "version", "", "")
 	set.StringVar(&outDir, "out", "", "")
-	set.Parse(os.Args[2:])
+	if err := set.Parse(os.Args[2:]); err != nil {
+		return nil, errs.WithStack(err)
+	}
 	// First check compatibility
 	if err := codegen.CheckVersion(ver); err != nil {
 		return nil, err
@@ -40,7 +43,9 @@ func writeFunctions(api *design.APIDefinition, outDir string) ([]string, error) 
 		codegen.NewImport("uuid", "github.com/satori/go.uuid"),
 		codegen.NewImport("", "github.com/fabric8-services/fabric8-wit/ptr"),
 	}
-	ctxWr.WriteHeader(title, "app", imports)
+	if err := ctxWr.WriteHeader(title, "app", imports); err != nil {
+		return nil, errs.WithStack(err)
+	}
 	if err := ctxWr.ExecuteTemplate("newSpaceRelation", newSpaceRelation, nil, nil); err != nil {
 		return nil, err
 	}

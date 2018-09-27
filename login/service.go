@@ -41,11 +41,11 @@ type KeycloakOAuthProvider struct {
 
 // KeycloakOAuthService represents keycloak OAuth service interface
 type KeycloakOAuthService interface {
-	CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error)
+	CreateOrUpdateKeycloakUser(ctx context.Context, accessToken string) (*account.Identity, *account.User, error)
 }
 
 // CreateOrUpdateKeycloakUser creates a user and a keycloak identity. If the user and identity already exist then update them.
-func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error) {
+func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(ctx context.Context, accessToken string) (*account.Identity, *account.User, error) {
 	var identity *account.Identity
 	var user *account.User
 
@@ -171,7 +171,9 @@ func generateGravatarURL(email string) (string, error) {
 		return "", errs.WithStack(err)
 	}
 	hash := md5.New()
-	hash.Write([]byte(email))
+	if _, err := hash.Write([]byte(email)); err != nil {
+		return "", errs.WithStack(err)
+	}
 	grURL.Path += fmt.Sprintf("%v", hex.EncodeToString(hash.Sum(nil))) + ".jpg"
 
 	// We can use our own default image if there is no gravatar available for this email

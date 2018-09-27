@@ -11,11 +11,11 @@ import (
 	"github.com/goadesign/goa"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
 	dummyCtrl  = "DummyController"
-	testCtrl   = "TestController"
 	postMethod = "POST"
 	getMethod  = "GET"
 )
@@ -63,7 +63,8 @@ func TestReqDurationMetric(t *testing.T) {
 	// validate
 	reqMetric, _ := reqDuration.GetMetricWithLabelValues(post, dummy, "2xx")
 	m := &dto.Metric{}
-	reqMetric.Write(m)
+	err := reqMetric.Write(m)
+	require.NoError(t, err)
 	checkHistogram(t, m, uint64(len(reqTimes)), expectedBound, expectedCnt)
 }
 
@@ -85,7 +86,8 @@ func TestResSizeMetric(t *testing.T) {
 	// validate
 	reqMetric, _ := resSize.GetMetricWithLabelValues(get, dummy, "2xx")
 	m := &dto.Metric{}
-	reqMetric.Write(m)
+	err := reqMetric.Write(m)
+	require.NoError(t, err)
 	checkHistogram(t, m, uint64(len(resSizes)), expectedBound, expectedCnt)
 }
 
@@ -107,7 +109,8 @@ func TestReqSizeMetric(t *testing.T) {
 	// validate
 	reqMetric, _ := reqSize.GetMetricWithLabelValues(post, dummy, "2xx")
 	m := &dto.Metric{}
-	reqMetric.Write(m)
+	err := reqMetric.Write(m)
+	require.NoError(t, err)
 	checkHistogram(t, m, uint64(len(reqSizes)), expectedBound, expectedCnt)
 }
 

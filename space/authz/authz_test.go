@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/auth"
 	witerrors "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -34,7 +33,6 @@ type TestAuthzSuite struct {
 	testsuite.UnitTestSuite
 	authzService *AuthzRoleService
 	doer         *testsupport.DummyHttpDoer
-	authzConfig  *auth.ServiceConfiguration
 }
 
 func (s *TestAuthzSuite) SetupSuite() {

@@ -55,7 +55,7 @@ var eventList = JSONList(
 	nil,
 )
 
-var eventSingle = JSONSingle(
+var _ = JSONSingle(
 	"Event", "Holds a single Event",
 	event,
 	nil)

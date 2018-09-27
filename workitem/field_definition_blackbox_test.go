@@ -20,7 +20,8 @@ func testFieldDefinitionMarshalUnmarshal(t *testing.T, def workitem.FieldDefinit
 
 	t.Logf("bytes are %s", string(bytes))
 	unmarshalled := workitem.FieldDefinition{}
-	json.Unmarshal(bytes, &unmarshalled)
+	err = json.Unmarshal(bytes, &unmarshalled)
+	require.NoError(t, err)
 
 	if !reflect.DeepEqual(def, unmarshalled) {
 		t.Errorf("field should be %v, but is %v", def, unmarshalled)

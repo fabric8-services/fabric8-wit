@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -125,7 +126,8 @@ func (s *BenchDbOperations) BenchmarkGormSelectSpaceNameRaw() {
 		defer result.Close()
 		for result.Next() {
 			var wit string
-			result.Scan(&wit)
+			err := result.Scan(&wit)
+			require.NoError(s.B(), err)
 			names = append(names, wit)
 		}
 	}
@@ -195,11 +197,12 @@ func (s *BenchDbOperations) BenchmarkGormSelectSpaceRaw() {
 		defer result.Close()
 		for result.Next() {
 			var sp space.Space
-			result.Scan(
+			err := result.Scan(
 				&sp.Version,
 				&sp.Name,
 				&sp.Description,
 				&sp.OwnerID)
+			require.NoError(s.B(), err)
 			sps = append(sps, sp)
 		}
 	}

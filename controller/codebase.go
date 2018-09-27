@@ -179,7 +179,7 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 		codebaseRelatedLink := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(app.CodebaseHref(cb.ID)))
 		openLink := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.Config.Name))
 
-		ideLink := workspace.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
+		ideLink := workspace.GetHrefByRelOfWorkspaceLink(che.IdeURLRel)
 		selfLink := workspace.GetHrefByRelOfWorkspaceLink(che.SelfLinkRel)
 
 		existingWorkspaces = append(existingWorkspaces, &app.Workspace{
@@ -385,7 +385,7 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	ideURL := workspaceResp.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
+	ideURL := workspaceResp.GetHrefByRelOfWorkspaceLink(che.IdeURLRel)
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
 			Open: &ideURL,
@@ -442,7 +442,7 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 
-	ideURL := workspaceResp.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
+	ideURL := workspaceResp.GetHrefByRelOfWorkspaceLink(che.IdeURLRel)
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
 			Open: &ideURL,
