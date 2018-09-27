@@ -2,6 +2,7 @@ package goasupport
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"testing"
 
@@ -16,14 +17,15 @@ import (
 )
 
 func TestForwardRequest(t *testing.T) {
-
 	reqID := uuid.NewV4().String()
-	ctx := context.Background()
 
 	service := goa.New("test")
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/goo", nil)
 	req.Header.Set(middleware.RequestIDHeader, reqID)
+	service.Context = goa.NewContext(nil, rw, req, nil)
+	service.Encoder.Register(func(w io.Writer) goa.Encoder { return goa.NewJSONEncoder(w) }, "*/*")
+	service.Decoder.Register(func(r io.Reader) goa.Decoder { return goa.NewJSONDecoder(r) }, "*/*")
 
 	var newCtx context.Context
 	h := func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
@@ -31,7 +33,7 @@ func TestForwardRequest(t *testing.T) {
 		return service.Send(ctx, 200, "ok")
 	}
 	rg := middleware.RequestID()(h)
-	err := rg(ctx, rw, req)
+	err := rg(service.Context, rw, req)
 	require.NoError(t, err)
 
 	assert.Equal(t, middleware.ContextRequestID(newCtx), reqID)
