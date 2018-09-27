@@ -79,7 +79,7 @@ func (wi WorkItemStorage) Equal(u convert.Equaler) bool {
 	return convert.CascadeEqual(wi.Fields, other.Fields)
 }
 
-// EqualValue implements conver.Equaler interface
+// EqualValue implements convert.Equaler interface
 func (wi WorkItemStorage) EqualValue(u convert.Equaler) bool {
 	other, ok := u.(WorkItemStorage)
 	if !ok {
