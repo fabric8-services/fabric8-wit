@@ -32,7 +32,6 @@ type WorkItemLinkType struct {
 	ForwardDescription    *string   `json:"forward_description,omitempty"`
 	ReverseName           string    `json:"reverse_name"`
 	ReverseDescription    *string   `json:"reverse_description,omitempty"`
-	LinkCategoryID        uuid.UUID `sql:"type:uuid" json:"link_category_id"`
 	SpaceTemplateID       uuid.UUID `sql:"type:uuid" json:"space_template_id"` // Reference to a space template
 }
 
@@ -73,9 +72,6 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.ReverseName != other.ReverseName {
 		return false
 	}
-	if !uuid.Equal(t.LinkCategoryID, other.LinkCategoryID) {
-		return false
-	}
 	if !uuid.Equal(t.SpaceTemplateID, other.SpaceTemplateID) {
 		return false
 	}
@@ -96,9 +92,6 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	}
 	if err := t.Topology.CheckValid(); err != nil {
 		return errs.WithStack(err)
-	}
-	if t.LinkCategoryID == uuid.Nil {
-		return errors.NewBadParameterError("link_category_id", t.LinkCategoryID)
 	}
 	if t.SpaceTemplateID == uuid.Nil {
 		return errors.NewBadParameterError("space_template_id", t.SpaceTemplateID)

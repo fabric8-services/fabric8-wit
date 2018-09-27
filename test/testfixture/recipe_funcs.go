@@ -436,34 +436,6 @@ func WorkItemLinkTypes(n int, fns ...CustomizeWorkItemLinkTypeFunc) RecipeFuncti
 	}
 }
 
-// CustomizeWorkItemLinkCategoryFunc is directly compatible with
-// CustomizeEntityFunc but it can only be used for the
-// WorkItemLinkCategories() recipe-function.
-type CustomizeWorkItemLinkCategoryFunc CustomizeEntityFunc
-
-// WorkItemLinkCategories tells the test fixture to create at least n work item
-// link category objects. See also the Identities() function for more general
-// information on n and fns.
-//
-// No other objects will be created.
-func WorkItemLinkCategories(n int, fns ...CustomizeWorkItemLinkCategoryFunc) RecipeFunction {
-	return func(fxt *TestFixture) error {
-		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
-			l := len(fxt.WorkItemLinkCategories)
-			if l < n {
-				return errs.Errorf(checkStr, n, kindWorkItemLinkCategories, l)
-			}
-			return nil
-		})
-		// Convert fns to []CustomizeEntityFunc
-		customFuncs := make([]CustomizeEntityFunc, len(fns))
-		for idx := range fns {
-			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
-		}
-		return fxt.setupInfo(n, kindWorkItemLinkCategories, customFuncs...)
-	}
-}
-
 // CustomizeWorkItemLinkFunc is directly compatible with
 // CustomizeEntityFunc but it can only be used for the WorkItemLinks()
 // recipe-function.
