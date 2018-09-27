@@ -187,7 +187,6 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 
-	spaceDeletionErrorExternal := fmt.Errorf("could not delete space")
 	spaceID, err := goauuid.FromString(ctx.SpaceID.String())
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -195,7 +194,8 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			"error":    err,
 		}, "could not convert the UUID of type github.com/satori/go.uuid to github.com/goadesign/goa/uuid")
 		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
+			ctx, errors.NewInternalError(ctx, errs.Wrap(err, "could not delete space")),
+		)
 	}
 
 	// extract config in it's generic form to be utilized elsewhere
@@ -205,7 +205,8 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			"space_id": spaceID,
 		}, "no configuation found in SpaceController object")
 		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
+			ctx, errors.NewInternalErrorFromString("could not delete space"),
+		)
 	}
 
 	// delete all the codebases associated with this space
@@ -229,7 +230,10 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 				"error":    err,
 			}, "could not delete OpenShift resources")
 			return jsonapi.JSONErrorResponse(
-				ctx, errors.NewInternalError(ctx, err))
+				ctx, errors.NewInternalError(ctx, errs.Wrapf(
+					err, "could not delete Openshift resources associated with space %s", spaceID),
+				),
+			)
 		}
 	}
 

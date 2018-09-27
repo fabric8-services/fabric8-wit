@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/numbersequence"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
@@ -23,7 +24,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
-	"github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -110,7 +110,6 @@ type WorkItemRepository interface {
 func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
 	repository := &GormWorkItemRepository{
 		db:    db,
-		winr:  numbersequence.NewWorkItemNumberSequenceRepository(db),
 		witr:  &GormWorkItemTypeRepository{db},
 		wirr:  &GormRevisionRepository{db},
 		space: space.NewRepository(db),
@@ -121,7 +120,6 @@ func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
 // GormWorkItemRepository implements WorkItemRepository using gorm
 type GormWorkItemRepository struct {
 	db    *gorm.DB
-	winr  *numbersequence.GormWorkItemNumberSequenceRepository
 	witr  *GormWorkItemTypeRepository
 	wirr  *GormRevisionRepository
 	space *space.GormRepository
@@ -713,17 +711,13 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		return nil, nil, errors.NewInternalError(ctx, err)
 	}
 	pos = pos + orderValue
-	number, err := r.winr.NextVal(ctx, spaceID)
-	if err != nil {
-		return nil, nil, errors.NewInternalError(ctx, err)
-	}
 	wi := WorkItemStorage{
 		Type:           typeID,
 		Fields:         Fields{},
 		ExecutionOrder: pos,
 		SpaceID:        spaceID,
-		Number:         *number,
 	}
+	wi.HumanFriendlyNumber = numbersequence.NewHumanFriendlyNumber(spaceID, wi.TableName())
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldDef.ReadOnly {
@@ -953,10 +947,19 @@ func (r *GormWorkItemRepository) getAllIterationWithCounts(ctx context.Context, 
 	var allIterations []uuid.UUID
 	db.Pluck("id", &allIterations)
 	var res []WICountsPerIteration
-	db = r.db.Table(workitemTableName).Select(`iterations.id as IterationId, count(*) as Total,
-			count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed`).Joins(`left join iterations
-			on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb`).Where(`iterations.space_id = ?
-			and work_items.deleted_at IS NULL`, spaceID).Group(`IterationId`).Scan(&res)
+	db = r.db.Table(workitemTableName).Select(`
+		iterations.id AS IterationId,
+		count(*) AS Total,
+		count(*) FILTER (WHERE fields->>'system.state' ILIKE 'closed') AS Closed
+	`).Joins(`
+		INNER JOIN iterations
+		ON
+			iterations.space_id = $1
+			AND fields @> concat('{"system.iteration": "', iterations.id, '"}')::jsonb
+	`).Where(`
+		work_items.space_id = $1
+		AND work_items.deleted_at IS NULL
+	`, spaceID).Group(`IterationId`).Scan(&res)
 	db.Scan(&res)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
