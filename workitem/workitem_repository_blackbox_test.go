@@ -709,7 +709,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 		t.Run("by updated descending", func(t *testing.T) {
 			// when
 			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
-				_, err := s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
+				_, _, err := s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
 				require.NoError(t, err)
 			}
 			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))

@@ -9,6 +9,7 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 )
 
@@ -135,7 +136,7 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListRawScan() {
 		for result.Next() {
 			wit := workitem.WorkItemType{}
 			err := result.Scan(&wit)
-			require.NoError(s.B(), err)
+			require.NoError(r.B(), err)
 			rows = append(rows, wit)
 		}
 	}

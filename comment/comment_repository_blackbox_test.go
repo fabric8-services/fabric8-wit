@@ -76,7 +76,7 @@ func (s *TestCommentRepository) TestCreateCommentWithParentComment() {
 	// now retrieving the stored child comment again and see if the parent reference was stored
 	var resultComment *comment.Comment
 	// when
-	resultComment, err := s.repo.Load(s.Ctx, childComment.ID)
+	resultComment, err = s.repo.Load(s.Ctx, childComment.ID)
 	// then
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), resultComment.ParentCommentID, "Parent comment id was not set, ID nil")
@@ -121,7 +121,7 @@ func (s *TestCommentRepository) TestSaveCommentWithMarkup() {
 	comment.Body = "Test AB"
 	comment.Markup = rendering.SystemMarkupMarkdown
 	err := s.repo.Save(s.Ctx, comment, comment.Creator)
-	require.NoError(sT(), err)
+	require.NoError(s.T(), err)
 	offset := 0
 	limit := 1
 	comments, _, err := s.repo.List(s.Ctx, comment.ParentID, &offset, &limit)

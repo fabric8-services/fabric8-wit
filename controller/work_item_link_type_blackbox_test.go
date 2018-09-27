@@ -1,15 +1,12 @@
 package controller_test
 
 import (
-	"context"
-	"net/http"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -45,26 +42,6 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 func (s *workItemLinkTypeSuite) UnSecuredController() (*goa.Service, *WorkItemLinkTypeController) {
 	svc := goa.New("WorkItemLinkType-Service")
 	return svc, NewWorkItemLinkTypeController(svc, s.GormDB, s.Configuration)
-}
-
-func createWorkItemLinkTypeInRepo(t *testing.T, db application.DB, ctx context.Context, payload *app.CreateWorkItemLinkTypePayload) *app.WorkItemLinkTypeSingle {
-	appLinkType := app.WorkItemLinkTypeSingle{
-		Data: payload.Data,
-	}
-	modelLinkType, err := ConvertWorkItemLinkTypeToModel(appLinkType)
-	require.NoError(t, err)
-	var appLinkTypeResult app.WorkItemLinkTypeSingle
-	err = application.Transactional(db, func(appl application.Application) error {
-		createdModelLinkType, err := appl.WorkItemLinkTypes().Create(ctx, *modelLinkType)
-		if err != nil {
-			return err
-		}
-		r := &http.Request{Host: "domain.io"}
-		appLinkTypeResult = ConvertWorkItemLinkTypeFromModel(r, *createdModelLinkType)
-		return nil
-	})
-	require.NoError(t, err)
-	return &appLinkTypeResult
 }
 
 func (s *workItemLinkTypeSuite) TestShow() {

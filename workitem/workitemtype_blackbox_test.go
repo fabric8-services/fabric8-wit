@@ -46,7 +46,7 @@ func TestJsonMarshalListType(t *testing.T) {
 	}
 
 	var parsedWIT workitem.WorkItemType
-	err := json.Unmarshal(bytes, &parsedWIT)
+	err = json.Unmarshal(bytes, &parsedWIT)
 	require.NoError(t, err)
 
 	if !expectedWIT.Equal(parsedWIT) {
@@ -80,7 +80,7 @@ func TestMarshalEnumType(t *testing.T) {
 	}
 
 	var parsedWIT workitem.WorkItemType
-	err := json.Unmarshal(bytes, &parsedWIT)
+	err = json.Unmarshal(bytes, &parsedWIT)
 	require.NoError(t, err)
 
 	if !expectedWIT.Equal(parsedWIT) {

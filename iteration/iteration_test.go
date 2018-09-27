@@ -93,7 +93,7 @@ func (s *TestIterationRepository) TestCreate() {
 			EndAt:   &end,
 			Path:    parentPath,
 		}
-		err := repo.Create(context.Background(), &i2)
+		err = repo.Create(context.Background(), &i2)
 		// then
 		require.NoError(t, err)
 		i2L, err := repo.Load(context.Background(), i2.ID)
@@ -223,7 +223,7 @@ func (s *TestIterationRepository) TestLoad() {
 			EndAt:   &end,
 		}
 		i2.MakeChildOf(i)
-		err := repo.Create(context.Background(), &i2)
+		err = repo.Create(context.Background(), &i2)
 		// then
 		require.NoError(t, err)
 		res, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
