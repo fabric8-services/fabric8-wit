@@ -156,6 +156,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMirgraion104", testMigration104IndexOnWIRevisionTable)
 	t.Run("TestMirgraion105", testMigration105UpdateRootIterationAreaPathField)
 	t.Run("TestMirgraion106", testMigration106NumberSequences)
+	t.Run("TestMirgraion107", testMigration107RemoveLinkCategoryConcept)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -586,8 +587,8 @@ func testMigration80(t *testing.T) {
 		link.SystemWorkItemLinkTypeBugBlockerID.String(),
 		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
 		link.SystemWorkItemLinkTypeParentChildID.String(),
-		link.SystemWorkItemLinkCategorySystemID.String(),
-		link.SystemWorkItemLinkCategoryUserID.String(),
+		uuid.FromStringOrNil("B1482C65-A64D-4058-BEB0-62F7198CB0F4").String(),
+		uuid.FromStringOrNil("2F24724F-797C-4073-8B16-4BB8CE9E84A6").String(),
 	))
 
 	// When we migrate the DB to version 80 all but the known link types and
@@ -617,8 +618,8 @@ func testMigration80(t *testing.T) {
 	t.Run("only known link categories exist", func(t *testing.T) {
 		// Make sure no other link categories other than the known ones are present
 		linkCategoriesToBeFound := map[uuid.UUID]struct{}{
-			link.SystemWorkItemLinkCategorySystemID: {},
-			link.SystemWorkItemLinkCategoryUserID:   {},
+			uuid.FromStringOrNil("B1482C65-A64D-4058-BEB0-62F7198CB0F4"): {},
+			uuid.FromStringOrNil("2F24724F-797C-4073-8B16-4BB8CE9E84A6"): {},
 		}
 		rows, err := sqlDB.Query("SELECT id FROM work_item_link_categories")
 		require.NoError(t, err)
@@ -1456,6 +1457,22 @@ func testMigration106NumberSequences(t *testing.T) {
 		require.True(t, dialect.HasIndex("iterations", "iterations_space_id_number_idx"))
 		require.True(t, dialect.HasIndex("areas", "areas_space_id_number_idx"))
 	})
+}
+
+func testMigration107RemoveLinkCategoryConcept(t *testing.T) {
+	t.Run("migrate to previous version", func(t *testing.T) {
+		migrateToVersion(t, sqlDB, migrations[:107], 107)
+	})
+
+	require.True(t, dialect.HasColumn("work_item_link_types", "link_category_id"))
+	require.True(t, dialect.HasTable("work_item_link_categories"))
+
+	t.Run("migrate to current version", func(t *testing.T) {
+		migrateToVersion(t, sqlDB, migrations[:108], 108)
+	})
+
+	require.False(t, dialect.HasColumn("work_item_link_types", "link_category_id"))
+	require.False(t, dialect.HasTable("work_item_link_categories"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

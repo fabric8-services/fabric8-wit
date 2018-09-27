@@ -1,0 +1,2 @@
+ALTER TABLE work_item_link_types DROP COLUMN link_category_id;
+DROP TABLE work_item_link_categories;
