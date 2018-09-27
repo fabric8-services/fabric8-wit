@@ -153,7 +153,6 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		// manual checking
 		if !isolated {
 			require.Len(t, c.WorkItemLinkTypes, n)
-			require.Len(t, c.WorkItemLinkCategories, 1)
 			require.Len(t, c.Identities, 1)
 			require.Len(t, c.SpaceTemplates, 1)
 		}

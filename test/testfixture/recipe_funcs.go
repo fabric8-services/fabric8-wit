@@ -401,7 +401,6 @@ type CustomizeWorkItemLinkTypeFunc CustomizeEntityFunc
 //
 // When called in NewFixture() this function will call also call
 //     SpaceTemplates(1)
-//     WorkItemLinkCategories(1)
 // but with NewFixtureIsolated(), no other objects will be created.
 //
 // We've created these helper functions that you should have a look at if you
@@ -432,7 +431,7 @@ func WorkItemLinkTypes(n int, fns ...CustomizeWorkItemLinkTypeFunc) RecipeFuncti
 		if err := fxt.setupInfo(n, kindWorkItemLinkTypes, customFuncs...); err != nil {
 			return err
 		}
-		return fxt.deps(SpaceTemplates(1), WorkItemLinkCategories(1))
+		return fxt.deps(SpaceTemplates(1))
 	}
 }
 

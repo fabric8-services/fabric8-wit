@@ -94,8 +94,6 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 
 // ConvertWorkItemLinkTypeFromModel converts a work item link type from model to REST representation
 func ConvertWorkItemLinkTypeFromModel(request *http.Request, modelLinkType link.WorkItemLinkType) app.WorkItemLinkTypeSingle {
-	linkCategoryRelatedURL := rest.AbsoluteURL(request, app.WorkItemLinkCategoryHref(modelLinkType.LinkCategoryID.String()))
-
 	spaceTemplateRelatedURL := rest.AbsoluteURL(request, app.SpaceTemplateHref(modelLinkType.SpaceTemplateID.String()))
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(space.SystemSpace.String()))
 
@@ -117,16 +115,6 @@ func ConvertWorkItemLinkTypeFromModel(request *http.Request, modelLinkType link.
 				Topology:           &topologyStr,
 			},
 			Relationships: &app.WorkItemLinkTypeRelationships{
-				LinkCategory: &app.RelationWorkItemLinkCategory{
-					Data: &app.RelationWorkItemLinkCategoryData{
-						Type: link.EndpointWorkItemLinkCategories,
-						ID:   modelLinkType.LinkCategoryID,
-					},
-					Links: &app.GenericLinks{
-						Self:    &linkCategoryRelatedURL,
-						Related: &linkCategoryRelatedURL,
-					},
-				},
 				Space:         app.NewSpaceRelation(space.SystemSpace, spaceRelatedURL),
 				SpaceTemplate: app.NewSpaceTemplateRelation(modelLinkType.SpaceTemplateID, spaceTemplateRelatedURL),
 			},
@@ -197,9 +185,6 @@ func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*li
 		}
 	}
 
-	if rel != nil && rel.LinkCategory != nil && rel.LinkCategory.Data != nil {
-		modelLinkType.LinkCategoryID = rel.LinkCategory.Data.ID
-	}
 	if rel != nil && rel.SpaceTemplate != nil && rel.SpaceTemplate.Data != nil {
 		modelLinkType.SpaceTemplateID = rel.SpaceTemplate.Data.ID
 	}

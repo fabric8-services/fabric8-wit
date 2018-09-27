@@ -275,7 +275,7 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 	})
 	s.T().Run("link type not found", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
 		id := uuid.NewV4()
 		modelToSave := link.WorkItemLinkType{
 			ID:              id,
@@ -284,7 +284,6 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 			ReverseName:     "reverse name",
 			ForwardName:     "forward name",
 			Topology:        link.TopologyTree,
-			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when

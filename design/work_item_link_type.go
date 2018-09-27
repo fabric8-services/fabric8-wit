@@ -77,7 +77,6 @@ For example, if a bug blocks a user story, the reverse name name is "blocked by"
 var workItemLinkTypeRelationships = a.Type("WorkItemLinkTypeRelationships", func() {
 	a.Description(`JSONAPI store for the data of a work item link type.
 See also http://jsonapi.org/format/#document-resource-object-relationships`)
-	a.Attribute("link_category", relationWorkItemLinkCategory, "The work item link category of this work item link type.")
 	a.Attribute("space", relationSpaces, "(OBSOLETE) This defines the owning space of this work item link type.")
 	a.Attribute("space_template", spaceTemplateRelation, "This defines the owning space template of this work item link type.")
 })
