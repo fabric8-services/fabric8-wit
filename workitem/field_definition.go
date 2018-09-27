@@ -70,7 +70,7 @@ type FieldType interface {
 	ConvertToModel(value interface{}) (interface{}, error)
 	// ConvertFromModel converts a field value for use in the REST API layer
 	ConvertFromModel(value interface{}) (interface{}, error)
-	// Equal implement the convert.Equaler interface
+	// Equal implements the convert.Equaler interface
 	Equal(u convert.Equaler) bool
 	// EqualValue implements the convert.Equaler interface
 	EqualValue(u convert.Equaler) bool
