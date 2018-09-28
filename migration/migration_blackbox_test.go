@@ -1464,15 +1464,44 @@ func testMigration107RemoveLinkCategoryConcept(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:107], 107)
 	})
 
-	require.True(t, dialect.HasColumn("work_item_link_types", "link_category_id"))
 	require.True(t, dialect.HasTable("work_item_link_categories"))
+	require.True(t, dialect.HasForeignKey("work_item_link_types", "work_item_link_types_link_category_id_fkey"))
 
 	t.Run("migrate to current version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:108], 108)
 	})
 
-	require.False(t, dialect.HasColumn("work_item_link_types", "link_category_id"))
-	require.False(t, dialect.HasTable("work_item_link_categories"))
+	require.True(t, dialect.HasTable("work_item_link_categories"))
+	require.False(t, dialect.HasForeignKey("work_item_link_types", "work_item_link_types_link_category_id_fkey"))
+
+	t.Run("test that we can create link types with and without a link category", func(t *testing.T) {
+		spaceTemplateID := uuid.NewV4()
+		linkCategoryID := uuid.NewV4()
+		linkType1ID := uuid.NewV4()
+		linkType2ID := uuid.NewV4()
+		require.Nil(t, runSQLscript(sqlDB, "107-remove-link-category-concept.sql",
+			spaceTemplateID.String(),
+			linkCategoryID.String(),
+			linkType1ID.String(),
+			linkType2ID.String(),
+		))
+
+		exists := func(t *testing.T, table string, id uuid.UUID) bool {
+			q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = '%s'", table, id)
+			row := sqlDB.QueryRow(q)
+			require.NotNil(t, row)
+			// we have to scan the path into an interface because it can be nil
+			var p int32
+			err := row.Scan(&p)
+			require.NoError(t, err, "%+v", err)
+			return p == 1
+		}
+
+		require.True(t, exists(t, "work_item_link_categories", linkCategoryID))
+		require.True(t, exists(t, "work_item_link_types", linkType1ID))
+		require.True(t, exists(t, "work_item_link_types", linkType2ID))
+	})
+
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
