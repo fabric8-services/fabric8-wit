@@ -349,7 +349,11 @@ func TestGetEnvironments(t *testing.T) {
 					envData := testCase.data[envName]
 					require.NotNil(t, envData, "Unknown app: "+envName)
 					require.Equal(t, envData.envName, envName, "Wrong environment name")
-					verifyEnvironment(env, envData, t)
+
+					quotas := env.Attributes.Quota
+					require.NotNil(t, quotas, "Expected non-nil Quota attribute")
+
+					verifyEnvironmentStats(quotas, envData, t)
 				}
 			}
 		})
@@ -358,133 +362,62 @@ func TestGetEnvironments(t *testing.T) {
 
 func TestGetSpaceAndOtherEnvironmentUsage(t *testing.T) {
 	type environmentUsage struct {
-		CPUUsage float64
-		Memory   float64
-	}
-
-	const MIB = 1024 * 1024
-
-	fakeStage := "stage"
-	fakeRun := "run"
-	fakeTest := "test"
-
-	fakeTestCpuCores := 0.2
-	fakeRunCpuCores := 0.0
-	fakeStageCpuCores := 0.3
-
-	fakeTestMem := 10.0 * MIB
-	fakeRunMem := 20.0 * MIB
-	fakeStageMem := 25.0 * MIB
-
-	testSpace := &app.SimpleSpace{
-		Type: "space",
-		Attributes: &app.SimpleSpaceAttributes{
-			Name: "testSpace",
-			Applications: []*app.SimpleApp{
-				{
-					Attributes: &app.SimpleAppAttributes{
-						Deployments: []*app.SimpleDeployment{
-							{
-								Attributes: &app.SimpleDeploymentAttributes{
-									PodsQuota: &app.PodsQuota{
-										Cpucores: &fakeTestCpuCores,
-										Memory:   &fakeTestMem,
-									},
-									Name: "test",
-								},
-								Links: nil,
-								Type:  "deployment",
-							},
-							{
-								Attributes: &app.SimpleDeploymentAttributes{
-									PodsQuota: &app.PodsQuota{
-										Cpucores: &fakeRunCpuCores,
-										Memory:   &fakeRunMem,
-									},
-									Name: "run",
-								},
-								Links: nil,
-								Type:  "deployment",
-							},
-							{
-								Attributes: &app.SimpleDeploymentAttributes{
-									PodsQuota: &app.PodsQuota{
-										Cpucores: &fakeStageCpuCores,
-										Memory:   &fakeStageMem,
-									},
-									Name: "stage",
-								},
-								Links: nil,
-								Type:  "deployment",
-							},
-						},
-						Name: "fakeName",
-					},
-					ID:   "fakeId",
-					Type: "space",
-				},
-			},
-		},
+		cpucores float64
+		memory   float64
 	}
 
 	testCases := []struct {
-		testName                  string
-		cassetteName              string
-		shouldFail                bool
-		errorChecker              func(error) (bool, error)
-		spaceEnvironmentUsageData []*app.SpaceEnvironmentUsage
-		environmentData           map[string]environmentUsage
+		testName       string
+		cassetteName   string
+		spaceName      string
+		shouldFail     bool
+		errorChecker   func(error) (bool, error)
+		thisSpaceData  map[string]*environmentUsage
+		otherSpaceData map[string]*envTestData
 	}{
 		{
 			testName:     "Basic",
 			cassetteName: "getspaceandotherenvironmentusage",
-			spaceEnvironmentUsageData: []*app.SpaceEnvironmentUsage{
-				&app.SpaceEnvironmentUsage{
-					Attributes: &app.SpaceEnvironmentUsageAttributes{
-						Name: &fakeTest,
-						Quota: &app.SpaceEnvironmentUsageQuota{
-							CPUCores: &fakeTestCpuCores,
-							Memory:   &fakeTestMem,
-						},
-					},
-				},
-				&app.SpaceEnvironmentUsage{
-					Attributes: &app.SpaceEnvironmentUsageAttributes{
-						Name: &fakeRun,
-						Quota: &app.SpaceEnvironmentUsageQuota{
-							CPUCores: &fakeRunCpuCores,
-							Memory:   &fakeRunMem,
-						},
-					},
-				},
-				&app.SpaceEnvironmentUsage{
-					Attributes: &app.SpaceEnvironmentUsageAttributes{
-						Name: &fakeStage,
-						Quota: &app.SpaceEnvironmentUsageQuota{
-							CPUCores: &fakeStageCpuCores,
-							Memory:   &fakeStageMem,
-						},
-					},
-				},
+			spaceName:    "mySpace",
+			thisSpaceData: map[string]*environmentUsage{
+				"run":   {1.464, 786432000},
+				"stage": {0.976, 524288000},
+				"test":  {0.0, 0.0},
 			},
-			environmentData: map[string]environmentUsage{
-				"test": environmentUsage{
-					CPUUsage: 0.0,
-					Memory:   (250 * MIB) - fakeTestMem,
+			otherSpaceData: map[string]*envTestData{
+				"run": {
+					envName: "run",
+					cpu:     &quotaData{0.436, 2.0},
+					mem:     &quotaData{209715200.0, 1073741824.0},
+					rc:      &quotaData{2, 20},
+					pvc:     &quotaData{1, 1},
+					secret:  &quotaData{11, 20},
+					svc:     &quotaData{2, 5},
 				},
-				"run": environmentUsage{
-					CPUUsage: 0.488,
-					Memory:   (250 * MIB) - fakeRunMem,
+				"stage": {
+					envName: "stage",
+					cpu:     &quotaData{0.0, 2.0},
+					mem:     &quotaData{0.0, 1073741824.0},
+					rc:      &quotaData{5, 20},
+					pvc:     &quotaData{0, 1},
+					secret:  &quotaData{9, 20},
+					svc:     &quotaData{2, 5},
 				},
-				"stage": environmentUsage{
-					CPUUsage: 0.188,
-					Memory:   (250 * MIB) - fakeStageMem,
+				"test": {
+					envName: "test",
+					cpu:     &quotaData{0.2, 2.0},
+					mem:     &quotaData{262144000.0, 1073741824.0},
+					rc:      &quotaData{1, 20},
+					pvc:     &quotaData{0, 1},
+					secret:  &quotaData{12, 20},
+					svc:     &quotaData{1, 5},
 				},
 			},
 		},
 		{
 			testName:     "Kubernetes Error",
-			cassetteName: "getenvironments-rq-error",
+			cassetteName: "getspaceandotherenvironmentusage-rq-error",
+			spaceName:    "mySpace",
 			shouldFail:   true,
 			errorChecker: errors.IsNotFoundError,
 		},
@@ -498,7 +431,7 @@ func TestGetSpaceAndOtherEnvironmentUsage(t *testing.T) {
 
 			fixture := &testFixture{}
 			kc := getDefaultKubeClient(fixture, r.Transport, t)
-			spaceEnvironmentUsages, simpleEnvironments, err := kc.GetSpaceAndOtherEnvironmentUsage(testSpace)
+			result, err := kc.GetSpaceAndOtherEnvironmentUsage(testCase.spaceName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
 				if testCase.errorChecker != nil {
@@ -507,14 +440,34 @@ func TestGetSpaceAndOtherEnvironmentUsage(t *testing.T) {
 				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
+				require.NotNil(t, result, "Result should be non-nil")
 
-				require.Equal(t, len(testCase.spaceEnvironmentUsageData), len(spaceEnvironmentUsages), "Wrong number of space usage objects returned")
-				require.Equal(t, len(testCase.environmentData), len(simpleEnvironments), "Wrong number of environments returned")
-				require.ElementsMatch(t, testCase.spaceEnvironmentUsageData, spaceEnvironmentUsages, "Space environment usages do not match")
+				require.Equal(t, len(testCase.otherSpaceData), len(result), "Wrong number of environments")
+				for _, usage := range result {
+					// Check usage for space
+					require.NotNil(t, usage.Attributes.Name, "Environment must have a name")
+					envName := *usage.Attributes.Name
 
-				for _, env := range simpleEnvironments {
-					require.Equal(t, testCase.environmentData[*env.Attributes.Name].CPUUsage, *env.Attributes.Quota.Cpucores.Used, fmt.Sprintf("environment %+v usage does not match computed usage", *env.Attributes.Name))
-					require.Equal(t, testCase.environmentData[*env.Attributes.Name].Memory, *env.Attributes.Quota.Memory.Used, fmt.Sprintf("environment %+v usage does not match computed usage", *env.Attributes.Name))
+					thisSpaceData, pres := testCase.thisSpaceData[envName]
+					require.True(t, pres, "Unknown environment %s", envName)
+					spaceUsage := usage.Attributes.SpaceUsage
+					require.NotNil(t, spaceUsage, "Usage by this space is missing")
+
+					cpuUsage := spaceUsage.Cpucores
+					require.NotNil(t, cpuUsage, "Expected CPU usage in response")
+					require.InDelta(t, thisSpaceData.cpucores, *cpuUsage, fltDelta, "Incorrect CPU usage for %s", envName)
+
+					memUsage := spaceUsage.Memory
+					require.NotNil(t, memUsage, "Expected memory usage in response")
+					require.InDelta(t, thisSpaceData.memory, *memUsage, fltDelta, "Incorrect memory usage for %s", envName)
+
+					// Check usage for other spaces
+					otherSpaceData, pres := testCase.otherSpaceData[envName]
+					require.True(t, pres, "Unknown environment %s", envName)
+					otherUsage := usage.Attributes.OtherUsage
+					require.NotNil(t, otherUsage, "Usage by other spaces is missing")
+
+					verifyEnvironmentStats(otherUsage, otherSpaceData, t)
 				}
 			}
 		})
@@ -637,25 +590,25 @@ func TestGetEnvironment(t *testing.T) {
 				require.NotNil(t, env.Attributes, "Environment attributes are nil")
 				require.NotNil(t, env.Attributes.Name, "Environment name must not be nil")
 
-				verifyEnvironment(env, &testCase.envTestData, t)
+				require.Equal(t, testCase.envName, *env.Attributes.Name, "Wrong environment name")
+
+				quotas := env.Attributes.Quota
+				require.NotNil(t, quotas, "Expected non-nil Quota attribute")
+
+				verifyEnvironmentStats(quotas, &testCase.envTestData, t)
 			}
 		})
 	}
 }
 
-func verifyEnvironment(env *app.SimpleEnvironment, testCase *envTestData, t *testing.T) {
-	require.Equal(t, testCase.envName, *env.Attributes.Name, "Wrong environment name")
-
-	quotas := env.Attributes.Quota
-	require.NotNil(t, quotas, "Expected non-nil Quota attribute")
-
+func verifyEnvironmentStats(quotas *app.EnvStats, testCase *envTestData, t *testing.T) {
 	cpuQuota := quotas.Cpucores
 	require.NotNil(t, cpuQuota, "Expected CPU usage/limit in response")
 	require.InDelta(t, testCase.cpu.limit, *cpuQuota.Quota, fltDelta, "Incorrect CPU quota for %s", testCase.envName)
 	require.InDelta(t, testCase.cpu.used, *cpuQuota.Used, fltDelta, "Incorrect CPU usage for %s", testCase.envName)
 
 	memQuota := quotas.Memory
-	require.NotNil(t, cpuQuota, "Expected memory usage/limit in response")
+	require.NotNil(t, memQuota, "Expected memory usage/limit in response")
 	require.InDelta(t, testCase.mem.limit, *memQuota.Quota, fltDelta, "Incorrect memory quota for %s", testCase.envName)
 	require.InDelta(t, testCase.mem.used, *memQuota.Used, fltDelta, "Incorrect memory usage for %s", testCase.envName)
 

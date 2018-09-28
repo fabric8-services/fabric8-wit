@@ -388,7 +388,32 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 }
 
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.
+// FIXME Remove this method once showSpaceEnvironments API is removed.
 func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsDeploymentsContext) error {
+
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	envs, err := kc.GetEnvironments()
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "error retrieving environments"))
+	}
+	if envs == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("environments", ctx.SpaceID.String()))
+	}
+
+	res := &app.SimpleEnvironmentList{
+		Data: envs,
+	}
+
+	return ctx.OK(res)
+}
+
+// ShowEnvironmentsBySpace runs the showEnvironmentsBySpace action.
+func (c *DeploymentsController) ShowEnvironmentsBySpace(ctx *app.ShowEnvironmentsBySpaceDeploymentsContext) error {
 
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
@@ -401,26 +426,16 @@ func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironm
 		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("osio space", ctx.SpaceID.String()))
 	}
 
-	space, err := kc.GetSpace(ctx.SpaceID.String())
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve space %s", *kubeSpaceName))
-	}
-	if space == nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("openshift space", *kubeSpaceName))
-	}
-
-	spaceUsage, otherUsage, err := kc.GetSpaceAndOtherEnvironmentUsage(space)
+	usage, err := kc.GetSpaceAndOtherEnvironmentUsage(*kubeSpaceName)
 
 	// Model the response
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "error retrieving environments"))
 	}
 
-	res := &app.SimpleSpaceAndOtherEnvironmentUsageSingle{
-		Data: &app.SpaceAndOtherEnvironmentUsage{
-			SpaceUsage: spaceUsage,
-			OtherUsage: otherUsage,
-		}}
+	res := &app.SpaceAndOtherEnvironmentUsageList{
+		Data: usage,
+	}
 
 	return ctx.OK(res)
 }
