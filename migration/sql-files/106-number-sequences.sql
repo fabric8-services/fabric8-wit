@@ -1,3 +1,5 @@
+LOCK spaces, iterations, areas, work_item_number_sequences IN EXCLUSIVE MODE;
+
 -- Create the number sequences table
 CREATE TABLE number_sequences (
     space_id uuid REFERENCES spaces(id) ON DELETE CASCADE,
