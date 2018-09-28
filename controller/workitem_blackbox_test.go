@@ -881,7 +881,6 @@ type WorkItem2Suite struct {
 	workitemsCtrl  app.WorkitemsController
 	witCtrl        app.WorkitemtypeController
 	linkCtrl       app.WorkItemLinkController
-	linkCatCtrl    app.WorkItemLinkCategoryController
 	linkTypeCtrl   app.WorkItemLinkTypeController
 	spaceCtrl      app.SpaceController
 	svc            *goa.Service
@@ -900,7 +899,6 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *testIdentity)
 	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, s.GormDB, &s.notification, s.Configuration)
 	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, s.GormDB, &s.notification, s.Configuration)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, s.GormDB)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, s.GormDB, s.Configuration)
 	s.linkCtrl = NewWorkItemLinkController(s.svc, s.GormDB, s.Configuration)
 	s.spaceCtrl = NewSpaceController(s.svc, s.GormDB, s.Configuration, &DummyResourceManager{})

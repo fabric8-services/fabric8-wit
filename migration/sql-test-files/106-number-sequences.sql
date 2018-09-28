@@ -39,6 +39,11 @@ VALUES
     (current_setting('wi3.id')::uuid, current_setting('wit.id')::uuid, current_setting('sp2.id')::uuid, '{"system_title":"WI3"}'::json, 1, '2018-09-17 12:01'),
     (current_setting('wi4.id')::uuid, current_setting('wit.id')::uuid, current_setting('sp2.id')::uuid, '{"system_title":"WI4"}'::json, 2, '2018-09-17 17:01');
 
+INSERT INTO work_item_number_sequences (space_id, current_val)
+VALUES 
+    (current_setting('sp1.id')::uuid, 2),
+    (current_setting('sp2.id')::uuid, 2);
+
 INSERT INTO iterations (id, name, path, space_id, created_at) 
 VALUES 
     (current_setting('iter1.id')::uuid, 'iteration 1', replace(current_setting('iter1.id'), '-', '_')::ltree, current_setting('sp1.id')::uuid, '2018-09-17 16:01'),
