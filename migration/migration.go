@@ -209,7 +209,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("032-add-foreign-key-space-id.sql")})
 
 	// Version 33
-	m = append(m, steps{ExecuteSQLFile("033-add-space-id-wilt.sql", space.SystemSpace.String(), "system.space", "Description of the space")})
+	m = append(m, steps{ExecuteSQLFile("033-add-space-id-wilt.sql", space.SystemSpace.String(), "system_space", "Description of the space")})
 
 	// Version 34
 	m = append(m, steps{ExecuteSQLFile("034-space-owner.sql")})

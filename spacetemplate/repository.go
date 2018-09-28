@@ -16,7 +16,7 @@ import (
 type Repository interface {
 	repository.Exister
 	// Create creates a new space template and all the artifacts (e.g. work item
-	// types, work item link types) in the system.
+	// types, work item link types) in the system_
 	Create(ctx context.Context, template SpaceTemplate) (*SpaceTemplate, error)
 	// List returns an array with all space templates in it
 	List(ctx context.Context) ([]SpaceTemplate, error)
@@ -71,7 +71,7 @@ func (r *GormRepository) Load(ctx context.Context, spaceTemplateID uuid.UUID) (*
 }
 
 // Create creates a new space template and all the artifacts (e.g. work item
-// types, work item link types) in the system.
+// types, work item link types) in the system_
 func (r *GormRepository) Create(ctx context.Context, s SpaceTemplate) (*SpaceTemplate, error) {
 	if uuid.Equal(s.ID, uuid.Nil) {
 		s.ID = uuid.NewV4()

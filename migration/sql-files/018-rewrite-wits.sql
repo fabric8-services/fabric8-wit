@@ -7,12 +7,12 @@ CREATE EXTENSION IF NOT EXISTS "ltree";
 -- good shape for it to be migrated to an ltree
 UPDATE work_item_types SET
     -- Remove any leading '/' from the WIT's path.
-    -- Remove any occurence of 'system.'.
+    -- Remove any occurence of 'system_'.
     -- Replace '/' with '.' as the new path separator for use with ltree.
     -- Replace every non-C-LOCALE character with an underscore (the "." is an
     -- exception because it will be used by ltree)
     path =  regexp_replace(
-                replace(replace(ltrim(path, '/'), 'system.', ''), '/', '.'),
+                replace(replace(ltrim(path, '/'), 'system_', ''), '/', '.'),
                 '[^a-zA-Z0-9_\.]',
                 '_'
             )

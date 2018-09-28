@@ -30,14 +30,14 @@ INSERT INTO spaces (id,name,space_template_id)
         (current_setting('sp2.id')::uuid, current_setting('sp2.id'), current_setting('sp_template.id')::uuid);
 
 INSERT INTO work_item_types (id,name,can_construct,space_template_id,fields,description,icon) 
-    VALUES (current_setting('wit.id')::uuid, 'Custom WIT', 'true', current_setting('sp_template.id')::uuid, '{"system.title": {"type": {"kind": "string"}, "label": "Title", "required": true, "read_only": false, "description": "The title text of the work item"}}', 'Description for Impediment', 'fa fa-bookmark');
+    VALUES (current_setting('wit.id')::uuid, 'Custom WIT', 'true', current_setting('sp_template.id')::uuid, '{"system_title": {"type": {"kind": "string"}, "label": "Title", "required": true, "read_only": false, "description": "The title text of the work item"}}', 'Description for Impediment', 'fa fa-bookmark');
 
 INSERT INTO work_items (id, type, space_id, fields, number, created_at)
 VALUES
-    (current_setting('wi1.id')::uuid, current_setting('wit.id')::uuid, current_setting('sp1.id')::uuid, '{"system.title":"WI1"}'::json, 1, '2018-09-17 16:01'),
-    (current_setting('wi2.id')::uuid, current_setting('wit.id')::uuid, current_setting('sp1.id')::uuid, '{"system.title":"WI2"}'::json, 2, '2018-09-17 18:01'),
-    (current_setting('wi3.id')::uuid, current_setting('wit.id')::uuid, current_setting('sp2.id')::uuid, '{"system.title":"WI3"}'::json, 1, '2018-09-17 12:01'),
-    (current_setting('wi4.id')::uuid, current_setting('wit.id')::uuid, current_setting('sp2.id')::uuid, '{"system.title":"WI4"}'::json, 2, '2018-09-17 17:01');
+    (current_setting('wi1.id')::uuid, current_setting('wit.id')::uuid, current_setting('sp1.id')::uuid, '{"system_title":"WI1"}'::json, 1, '2018-09-17 16:01'),
+    (current_setting('wi2.id')::uuid, current_setting('wit.id')::uuid, current_setting('sp1.id')::uuid, '{"system_title":"WI2"}'::json, 2, '2018-09-17 18:01'),
+    (current_setting('wi3.id')::uuid, current_setting('wit.id')::uuid, current_setting('sp2.id')::uuid, '{"system_title":"WI3"}'::json, 1, '2018-09-17 12:01'),
+    (current_setting('wi4.id')::uuid, current_setting('wit.id')::uuid, current_setting('sp2.id')::uuid, '{"system_title":"WI4"}'::json, 2, '2018-09-17 17:01');
 
 INSERT INTO iterations (id, name, path, space_id, created_at) 
 VALUES 

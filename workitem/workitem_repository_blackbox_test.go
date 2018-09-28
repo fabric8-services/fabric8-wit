@@ -654,7 +654,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 		)
 		t.Run("by created descending", func(t *testing.T) {
 			// when
-			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			exp, _ := query.Parse(ptr.String(`{"system_state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-created"))
 			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
 			// then
@@ -681,7 +681,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 		})
 		t.Run("by created ascending", func(t *testing.T) {
 			// when
-			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			exp, _ := query.Parse(ptr.String(`{"system_state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("created"))
 			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
 			// then
@@ -711,7 +711,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
 				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
 			}
-			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			exp, _ := query.Parse(ptr.String(`{"system_state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("-updated"))
 			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
 			// then
@@ -741,7 +741,7 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 			for _, v := range []int{3, 2, 0, 1, 6, 5, 4} {
 				s.repo.Save(context.Background(), fxt.WorkItems[v].SpaceID, *fxt.WorkItems[v], fxt.Identities[0].ID)
 			}
-			exp, _ := query.Parse(ptr.String(`{"system.state": "open"}`))
+			exp, _ := query.Parse(ptr.String(`{"system_state": "open"}`))
 			sort, _ := workitem.ParseSortWorkItemsBy(ptr.String("updated"))
 			res, count, err := s.repo.List(context.Background(), fxt.Spaces[0].ID, exp, nil, nil, nil, sort)
 			// then

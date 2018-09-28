@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -51,6 +52,12 @@ func NewNotifyingWorkitemsController(service *goa.Service, db application.DB, no
 
 // Create does POST workitem
 func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
+	for k, v := range ctx.Payload.Data.Attributes {
+		if strings.Contains(k, ".") {
+			ctx.Payload.Data.Attributes[strings.Replace(k, ".", "_", -1)] = v
+			delete(ctx.Payload.Data.Attributes, k)
+		}
+	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
@@ -72,7 +79,6 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-
 	// FIXME
 	// A workaround for https://github.com/fabric8-services/fabric8-wit/issues/1358
 	// Allow any user to create a work item in spaces belong to the "openshiftio" user
@@ -176,11 +182,11 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 	}
 	if ctx.FilterAssignee != nil {
 		if *ctx.FilterAssignee == none {
-			exp = criteria.And(exp, criteria.IsNull("system.assignees"))
+			exp = criteria.And(exp, criteria.IsNull("system_assignees"))
 			additionalQuery = append(additionalQuery, "filter[assignee]=none")
 
 		} else {
-			exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+			exp = criteria.And(exp, criteria.Equals(criteria.Field("system_assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
 			additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
 		}
 	}

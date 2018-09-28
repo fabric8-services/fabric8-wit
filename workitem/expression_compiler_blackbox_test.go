@@ -192,7 +192,7 @@ func TestIsNull(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	wiTbl := workitem.WorkItemStorage{}.TableName()
-	expect(t, c.IsNull("system.assignees"), `(`+workitem.Column(wiTbl, "fields")+`->>'system.assignees' IS NULL)`, []interface{}{}, nil)
+	expect(t, c.IsNull("system_assignees"), `(`+workitem.Column(wiTbl, "fields")+`->>'system_assignees' IS NULL)`, []interface{}{}, nil)
 	expect(t, c.IsNull("ID"), `(`+workitem.Column(wiTbl, "id")+` IS NULL)`, []interface{}{}, nil)
 	expect(t, c.IsNull("Type"), `(`+workitem.Column(wiTbl, "type")+` IS NULL)`, []interface{}{}, nil)
 	expect(t, c.IsNull("Version"), `(`+workitem.Column(wiTbl, "version")+` IS NULL)`, []interface{}{}, nil)
@@ -224,38 +224,38 @@ func expect(t *testing.T, expr c.Expression, expectedClause string, expectedPara
 func TestArray(t *testing.T) {
 	assignees := []string{"1", "2", "3"}
 
-	exp := c.Equals(c.Field("system.assignees"), c.Literal(assignees))
+	exp := c.Equals(c.Field("system_assignees"), c.Literal(assignees))
 	where, _, _, compileErrors := workitem.Compile(exp)
 	require.Empty(t, compileErrors)
 	wiTbl := workitem.WorkItemStorage{}.TableName()
-	assert.Equal(t, `(`+workitem.Column(wiTbl, "fields")+` @> '{"system.assignees" : ["1","2","3"]}')`, where)
+	assert.Equal(t, `(`+workitem.Column(wiTbl, "fields")+` @> '{"system_assignees" : ["1","2","3"]}')`, where)
 }
 
 func TestSubstring(t *testing.T) {
 	wiTbl := workitem.WorkItemStorage{}.TableName()
-	t.Run("system.title with simple text", func(t *testing.T) {
+	t.Run("system_title with simple text", func(t *testing.T) {
 		title := "some title"
 
-		exp := c.Substring(c.Field("system.title"), c.Literal(title))
+		exp := c.Substring(c.Field("system_title"), c.Literal(title))
 		where, _, _, compileErrors := workitem.Compile(exp)
 		require.Empty(t, compileErrors)
 
-		assert.Equal(t, workitem.Column(wiTbl, "fields")+`->>'system.title' ILIKE ?`, where)
+		assert.Equal(t, workitem.Column(wiTbl, "fields")+`->>'system_title' ILIKE ?`, where)
 	})
-	t.Run("system.title with SQL injection text", func(t *testing.T) {
+	t.Run("system_title with SQL injection text", func(t *testing.T) {
 		title := "some title"
 
-		exp := c.Substring(c.Field("system.title;DELETE FROM work_items"), c.Literal(title))
+		exp := c.Substring(c.Field("system_title;DELETE FROM work_items"), c.Literal(title))
 		where, _, _, compileErrors := workitem.Compile(exp)
 		require.Empty(t, compileErrors)
 
-		assert.Equal(t, workitem.Column(wiTbl, "fields")+`->>'system.title;DELETE FROM work_items' ILIKE ?`, where)
+		assert.Equal(t, workitem.Column(wiTbl, "fields")+`->>'system_title;DELETE FROM work_items' ILIKE ?`, where)
 	})
 
-	t.Run("system.title with SQL injection text single quote", func(t *testing.T) {
+	t.Run("system_title with SQL injection text single quote", func(t *testing.T) {
 		title := "some title"
 
-		exp := c.Substring(c.Field("system.title'DELETE FROM work_items"), c.Literal(title))
+		exp := c.Substring(c.Field("system_title'DELETE FROM work_items"), c.Literal(title))
 		where, _, _, compileErrors := workitem.Compile(exp)
 		require.NotEmpty(t, compileErrors)
 		assert.Len(t, compileErrors, 1)

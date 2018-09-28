@@ -54,10 +54,10 @@ const (
 	remoteDescription         = workitem.SystemDescription
 	remoteState               = workitem.SystemState
 	remoteItemID              = workitem.SystemRemoteItemID
-	remoteCreatorLogin        = "system.creator.login"
-	remoteCreatorProfileURL   = "system.creator.profile_url"
-	RemoteAssigneeLogins      = "system.assignees.login"
-	RemoteAssigneeProfileURLs = "system.assignees.profile_url"
+	remoteCreatorLogin        = "system_creator.login"
+	remoteCreatorProfileURL   = "system_creator.profile_url"
+	RemoteAssigneeLogins      = "system_assignees.login"
+	RemoteAssigneeProfileURLs = "system_assignees.profile_url"
 )
 
 // RemoteWorkItemKeyMaps relate remote attribute keys to internal representation
