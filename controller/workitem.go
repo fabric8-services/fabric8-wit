@@ -71,10 +71,8 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 		config:       config}
 }
 
-// authorizeWorkitemTypeEditor returns true if the modifier is allowed to change
-// workitem type else it returns false.
-// Only space owner and workitem creator are allowed to change workitem type
-func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
+// authorizeWorkitemCreatorAndSpaceAdmin returns true if the modifier is space owner or workitem creator
+func (c *WorkitemController) authorizeWorkitemCreatorAndSpaceAdmin(ctx context.Context, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
 	// check if workitem editor is same as workitem creator
 	if editorID == creatorID {
 		return true, nil
@@ -87,7 +85,7 @@ func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, sp
 	if space != nil && editorID == space.OwnerID.String() {
 		return true, nil
 	}
-	return false, errors.NewUnauthorizedError("user is not allowed to change workitem type")
+	return false, errors.NewUnauthorizedError("user is not a workitem creator or space owner")
 }
 
 // Returns true if the user is the work item creator or space collaborator
@@ -134,7 +132,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
 		ctx.Payload.Data.Relationships.BaseType.Data != nil && ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
 
-		authorized, err := c.authorizeWorkitemTypeEditor(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+		authorized, err := c.authorizeWorkitemCreatorAndSpaceAdmin(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -236,14 +234,11 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 
 // Delete does DELETE workitem
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
-	// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-	if true {
-		return ctx.MethodNotAllowed()
-	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
+
 	var wi *workitem.WorkItem
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		wi, err = appl.WorkItems().LoadByID(ctx, ctx.WiID)
@@ -255,13 +250,20 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
+
+	// This checks if user is space admin or workitem creator or not
+	creator := wi.Fields[workitem.SystemCreator]
+	if creator == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
+	}
+	authorized, err := c.authorizeWorkitemCreatorAndSpaceAdmin(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the workitem"))
 	}
+
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		if err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
 			return errs.Wrapf(err, "error deleting work item %s", ctx.WiID)
