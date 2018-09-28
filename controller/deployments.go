@@ -393,19 +393,18 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 		// permission for all deployments
 		for _, appl := range space.Attributes.Applications {
 			for _, depl := range appl.Attributes.Deployments {
+
+				envName := depl.Attributes.Name
+
 				deployPath := witclient.SetDeploymentDeploymentsPath(guid, appl.Attributes.Name, depl.Attributes.Name)
 				deployURLStr := rest.AbsoluteURL(ctx.Request, deployPath)
-				if err != nil {
-					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve path for %s", *kubeSpaceName))
-				}
-				envName := depl.Attributes.Name
 				methods := []string{}
 				canScale, err := kc.CanScaleDeployment(envName)
 				if err != nil {
 					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
 				}
 				if canScale {
-					methods = append(methods, "PATCH")
+					methods = append(methods, "PUT")
 				}
 				canDelete, err := kc.CanDeleteDeployment(envName)
 				if err != nil {
@@ -421,31 +420,44 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 						Methods: methods,
 					},
 				}
+
+				methods = []string{}
+				// TODO chekc these are not aliased
+				deployPath = witclient.ShowDeploymentStatSeriesDeploymentsPath(guid, appl.Attributes.Name, depl.Attributes.Name)
+				deployURLStr = rest.AbsoluteURL(ctx.Request, deployPath)
+				canGetStatSeries, err := kc.CanGetDeploymentStatSeries(envName)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
+				}
+				if canGetStatSeries {
+					methods = append(methods, "GET")
+				}
+				depl.Links.StatSeries = &app.LinkWithAccess{
+					Href: &deployURLStr,
+					Meta: &app.EndpointAccess{
+						Methods: methods,
+					},
+				}
+
+				methods = []string{}
+				// TODO chekc these are not aliased
+				deployPath = witclient.ShowDeploymentStatsDeploymentsPath(guid, appl.Attributes.Name, depl.Attributes.Name)
+				deployURLStr = rest.AbsoluteURL(ctx.Request, deployPath)
+				canGetStats, err := kc.CanGetDeploymentStats(envName)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
+				}
+				if canGetStats {
+					methods = append(methods, "GET")
+				}
+				depl.Links.Stats = &app.LinkWithAccess{
+					Href: &deployURLStr,
+					Meta: &app.EndpointAccess{
+						Methods: methods,
+					},
+				}
+
 			}
-		}
-
-		// permssions for this space
-		spaceURLStr := rest.AbsoluteURL(ctx.Request, witclient.ShowSpacePath(guid))
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve path for  %s", *kubeSpaceName))
-		}
-
-		methods := []string{}
-		canGetSpace, err := kc.CanGetSpace()
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
-		}
-		if canGetSpace {
-			methods = append(methods, "GET")
-		}
-		// DELETE, etc come later
-		space.Links = &app.SimpleSpaceLinks{
-			Space: &app.LinkWithAccess{
-				Href: &spaceURLStr,
-				Meta: &app.EndpointAccess{
-					Methods: methods,
-				},
-			},
 		}
 	}
 

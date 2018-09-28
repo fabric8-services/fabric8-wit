@@ -69,6 +69,8 @@ var genericLinksForDeployment = a.Type("GenericLinksForDeployment", func() {
 	a.Attribute("logs", d.String)
 	a.Attribute("application", d.String)
 	a.Attribute("self", linkWithAccess)
+	a.Attribute("stats", linkWithAccess)
+	a.Attribute("stat_series", linkWithAccess)
 })
 
 var simpleDeploymentAttributes = a.Type("SimpleDeploymentAttributes", func() {
