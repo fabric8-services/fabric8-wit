@@ -45,13 +45,16 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !uuid.Equal(t.ID, other.ID) {
+	if t.ID != other.ID {
 		return false
 	}
 	if t.Name != other.Name {
 		return false
 	}
 	if t.Version != other.Version {
+		return false
+	}
+	if !convert.CascadeEqual(t.Lifecycle, other.Lifecycle) {
 		return false
 	}
 	if !reflect.DeepEqual(t.Description, other.Description) {
@@ -72,10 +75,21 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.ReverseName != other.ReverseName {
 		return false
 	}
-	if !uuid.Equal(t.SpaceTemplateID, other.SpaceTemplateID) {
+	if t.SpaceTemplateID != other.SpaceTemplateID {
 		return false
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler interface
+func (t WorkItemLinkType) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(WorkItemLinkType)
+	if !ok {
+		return false
+	}
+	t.Version = other.Version
+	t.Lifecycle = other.Lifecycle
+	return t.Equal(u)
 }
 
 // CheckValidForCreation returns an error if the work item link type cannot be
