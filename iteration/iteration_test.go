@@ -44,8 +44,9 @@ func (s *TestIterationRepository) TestCreateIteration() {
 			EndAt:   &end,
 		}
 		// when
-		repo.Create(context.Background(), &i)
+		err := repo.Create(context.Background(), &i)
 		// then
+		require.NoError(t, err)
 		if i.ID == uuid.Nil {
 			t.Errorf("Iteration was not created, ID nil")
 		}
@@ -72,7 +73,8 @@ func (s *TestIterationRepository) TestCreateIteration() {
 			EndAt:   &end,
 		}
 		// when
-		repo.Create(context.Background(), &i)
+		err := repo.Create(context.Background(), &i)
+		require.NoError(t, err)
 		parentPath := append(i.Path, i.ID)
 		require.NotNil(t, parentPath)
 		i2 := iteration.Iteration{
@@ -82,8 +84,9 @@ func (s *TestIterationRepository) TestCreateIteration() {
 			EndAt:   &end,
 			Path:    parentPath,
 		}
-		repo.Create(context.Background(), &i2)
+		err = repo.Create(context.Background(), &i2)
 		// then
+		require.NoError(t, err)
 		i2L, err := repo.Load(context.Background(), i2.ID)
 		require.NoError(t, err)
 		assert.NotEmpty(t, i2.Path)
@@ -201,8 +204,8 @@ func (s *TestIterationRepository) TestLoad() {
 			EndAt:   &end,
 		}
 		// when
-		repo.Create(context.Background(), &i)
-
+		err := repo.Create(context.Background(), &i)
+		require.NoError(t, err)
 		i2 := iteration.Iteration{
 			Name:    name2,
 			SpaceID: fxt.Spaces[0].ID,
@@ -210,8 +213,9 @@ func (s *TestIterationRepository) TestLoad() {
 			EndAt:   &end,
 		}
 		i2.MakeChildOf(i)
-		repo.Create(context.Background(), &i2)
+		err = repo.Create(context.Background(), &i2)
 		// then
+		require.NoError(t, err)
 		res, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
 		require.NoError(t, err)
 		assert.Equal(t, i.Name, res.Name)
