@@ -1,13 +1,13 @@
 package workitem
 
 import (
+	"reflect"
 	"strconv"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/numbersequence"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -15,9 +15,10 @@ import (
 // WorkItemStorage represents a work item as it is stored in the database
 type WorkItemStorage struct {
 	gormsupport.Lifecycle
-	numbersequence.HumanFriendlyNumber
 	// unique id per installation (used for references at the DB level)
 	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	// unique number per _space_
+	Number int
 	// Id of the type of this work item
 	Type uuid.UUID `sql:"type:uuid"`
 	// Version for optimistic concurrency control
@@ -51,13 +52,13 @@ func (wi WorkItemStorage) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !wi.Lifecycle.Equal(other.Lifecycle) {
+	if !convert.CascadeEqual(wi.Lifecycle, other.Lifecycle) {
 		return false
 	}
-	if !wi.HumanFriendlyNumber.Equal(other.HumanFriendlyNumber) {
+	if wi.Number != other.Number {
 		return false
 	}
-	if !uuid.Equal(wi.Type, other.Type) {
+	if wi.Type != other.Type {
 		return false
 	}
 	if wi.ID != other.ID {
@@ -69,10 +70,28 @@ func (wi WorkItemStorage) Equal(u convert.Equaler) bool {
 	if wi.ExecutionOrder != other.ExecutionOrder {
 		return false
 	}
+	if wi.Number != other.Number {
+		return false
+	}
 	if wi.SpaceID != other.SpaceID {
 		return false
 	}
-	return wi.Fields.Equal(other.Fields)
+	if !reflect.DeepEqual(wi.RelationShipsChangedAt, other.RelationShipsChangedAt) {
+		return false
+	}
+	return convert.CascadeEqual(wi.Fields, other.Fields)
+}
+
+// EqualValue implements convert.Equaler interface
+func (wi WorkItemStorage) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(WorkItemStorage)
+	if !ok {
+		return false
+	}
+	wi.Version = other.Version
+	wi.Lifecycle = other.Lifecycle
+	wi.RelationShipsChangedAt = other.RelationShipsChangedAt
+	return wi.Equal(u)
 }
 
 // ParseWorkItemIDToUint64 does what it says

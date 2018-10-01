@@ -32,6 +32,11 @@ func (f Fields) Equal(u convert.Equaler) bool {
 	return reflect.DeepEqual(f, other)
 }
 
+// EqualValue implements the convert.Equaler interface
+func (f Fields) EqualValue(u convert.Equaler) bool {
+	return f.Equal(u)
+}
+
 // Value implements the driver.Valuer interface
 func (f Fields) Value() (driver.Value, error) {
 	return toBytes(f)
