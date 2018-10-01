@@ -94,10 +94,10 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !t.SimpleType.Equal(other.SimpleType) {
+	if !convert.CascadeEqual(t.SimpleType, other.SimpleType) {
 		return false
 	}
-	if !t.BaseType.Equal(other.BaseType) {
+	if !convert.CascadeEqual(t.BaseType, other.BaseType) {
 		return false
 	}
 	if !t.RewritableValues {
@@ -109,6 +109,11 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler
+func (t EnumType) EqualValue(u convert.Equaler) bool {
+	return t.Equal(u)
 }
 
 // EqualEnclosing returns true if two EnumType objects are equal and/or the

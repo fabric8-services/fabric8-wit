@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -356,4 +358,87 @@ func containsAllSpaces(t *testing.T, expectedSpaces []*space.Space, actualSpaces
 		}
 		return true
 	}
+}
+
+func Test_EqualAndEqualValue(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	lifecycle := gormsupport.Lifecycle{
+		CreatedAt: now,
+		UpdatedAt: now,
+		DeletedAt: nil,
+	}
+
+	a := space.Space{
+		Lifecycle:       lifecycle,
+		ID:              uuid.NewV4(),
+		Description:     "foo",
+		Name:            "bar",
+		OwnerID:         uuid.NewV4(),
+		SpaceTemplateID: uuid.NewV4(),
+		Version:         0,
+	}
+
+	t.Run("equality", func(t *testing.T) {
+		t.Parallel()
+		require.True(t, a.Equal(a))
+		require.True(t, a.EqualValue(a))
+	})
+
+	t.Run("lifecycle", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Lifecycle.CreatedAt = time.Now().Add(time.Second * 1000)
+		require.False(t, a.Equal(b))
+		require.True(t, a.EqualValue(b))
+	})
+
+	t.Run("id", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.ID = uuid.NewV4()
+		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
+	})
+
+	t.Run("description", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Description = "some other description"
+		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
+	})
+
+	t.Run("name", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Name = "some other name"
+		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
+	})
+
+	t.Run("owner", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.OwnerID = uuid.NewV4()
+		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
+	})
+
+	t.Run("space template", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.SpaceTemplateID = uuid.NewV4()
+		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
+	})
+
+	t.Run("version", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Version = 1234
+		require.False(t, a.Equal(b))
+		require.True(t, a.EqualValue(b))
+	})
 }
