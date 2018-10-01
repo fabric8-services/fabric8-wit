@@ -1079,7 +1079,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 		spaceIDStr := fxt.Spaces[0].ID.String()
 
 		t.Run("without child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s/**"}`, fxt.Iterations[2].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[2].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 4)
@@ -1097,7 +1097,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("with one child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s/**"}`, fxt.Iterations[1].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[1].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 6)
@@ -1117,7 +1117,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("with two child iteration", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s/**"}`, fxt.Iterations[0].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[0].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 9)
@@ -1141,7 +1141,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 		})
 
 		t.Run("without child iteration - implicit", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[2].ID)
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[2].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 4)
@@ -1158,8 +1158,8 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			}
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
-		t.Run("without child iteration - no /** suffix", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[2].ID)
+		t.Run("without child iteration - child false", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[2].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 4)
@@ -1176,8 +1176,8 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			}
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
-		t.Run("with one child iteration - no /** suffix", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[1].ID)
+		t.Run("with one child iteration - child false", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[1].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 2)
@@ -1192,8 +1192,8 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption
 			}
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
-		t.Run("with two child iteration - no /** suffix", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[0].ID)
+		t.Run("with two child iteration - child false", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[0].ID)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			require.NotEmpty(t, result.Data)
 			assert.Len(t, result.Data, 3)

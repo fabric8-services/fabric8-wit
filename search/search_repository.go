@@ -276,15 +276,16 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			s := string(concreteVal)
 			q.Value = &s
 			if q.Name == "iteration" || q.Name == "area" {
-				if strings.HasSuffix(s, "/**") {
-					q.Child = true
-					ns := s[0 : len(s)-3]
-					q.Value = &ns
-				}
+				q.Child = true
 			}
 		case bool:
 			s := concreteVal
-			q.Negate = s
+			if key == "negate" {
+				q.Negate = s
+			} else if key == "child" {
+				q.Child = s
+			}
+
 		case nil:
 			q.Name = key
 			q.Value = nil
