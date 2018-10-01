@@ -463,7 +463,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("108-number-column-for-area.sql")})
 
 	// Version 109
-	m = append(m, steps{ExecuteSQLFile("108-number-column-for-iteration.sql")})
+	m = append(m, steps{ExecuteSQLFile("109-number-column-for-iteration.sql")})
 
 	// Version N
 	//
