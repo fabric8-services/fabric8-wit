@@ -127,14 +127,14 @@ var DefaultTableJoins = func() TableJoinMap {
 			TableAlias:       "iter",
 			On:               JoinOnJSONField(SystemIteration, "iter.id") + " AND " + Column("iter", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id"),
 			PrefixActivators: []string{"iteration."},
-			AllowedColumns:   []string{"name", "created_at", "number"},
+			AllowedColumns:   []string{"name", "created_at"},
 		},
 		"area": {
 			TableName:        "areas",
 			TableAlias:       "ar",
 			On:               JoinOnJSONField(SystemArea, "ar.id") + " AND " + Column("ar", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id"),
 			PrefixActivators: []string{"area."},
-			AllowedColumns:   []string{"name", "number"},
+			AllowedColumns:   []string{"name"},
 		},
 		"codebase": {
 			TableName:        "codebases",
