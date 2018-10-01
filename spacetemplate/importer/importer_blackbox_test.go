@@ -421,7 +421,6 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 				ReverseName:        "blocked by",
 				ReverseDescription: ptr.String("description for blocked by"),
 				Topology:           "tree",
-				LinkCategoryID:     link.SystemWorkItemLinkCategoryUserID,
 			},
 		},
 		WITGs: []*workitem.WorkItemTypeGroup{

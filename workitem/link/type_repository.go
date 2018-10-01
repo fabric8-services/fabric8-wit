@@ -46,21 +46,6 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType Wo
 		}, "failed to validate link type")
 		return nil, errs.WithStack(err)
 	}
-	// Check link category exists
-	err := NewWorkItemLinkCategoryRepository(r.db).CheckExists(ctx, linkType.LinkCategoryID)
-	if err != nil {
-		cause := errs.Cause(err)
-		switch cause.(type) {
-		case errors.NotFoundError:
-			log.Error(ctx, map[string]interface{}{
-				"wilt_id":     linkType.ID.String(),
-				"link_cat_id": linkType.LinkCategoryID,
-			}, "work item link category not found")
-			return nil, errors.NewNotFoundError("work item link category", linkType.LinkCategoryID.String())
-		default:
-			return nil, errors.NewInternalError(ctx, errs.WithStack(err))
-		}
-	}
 	db := r.db.Create(&linkType)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_link_types_name_idx") {

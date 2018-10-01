@@ -1,3 +1,5 @@
+LOCK spaces, iterations, areas, work_item_number_sequences IN EXCLUSIVE MODE;
+
 -- Create the number sequences table
 CREATE TABLE number_sequences (
     space_id uuid REFERENCES spaces(id) ON DELETE CASCADE,
@@ -5,9 +7,6 @@ CREATE TABLE number_sequences (
     current_val INTEGER NOT NULL,
     PRIMARY KEY (space_id, table_name)
 );
-
--- Delete old number table
-DROP TABLE work_item_number_sequences;
 
 -- Update existing iterations and areas with new "number" column and fill in the
 -- numbers in the order iterations and areas have been created.
@@ -32,10 +31,12 @@ ALTER TABLE areas ADD CONSTRAINT areas_space_id_number_idx UNIQUE (space_id, num
 -- Update the number_sequences table with the maximum for each table type
 
 INSERT INTO number_sequences (space_id, table_name, current_val)
-    SELECT space_id, 'work_items' "table_name", MAX(number) 
-    FROM work_items 
-    WHERE number IS NOT NULL 
+    SELECT space_id, 'work_items' "table_name", current_val 
+    FROM work_item_number_sequences
     GROUP BY 1,2;
+
+-- Delete old number table
+DROP TABLE work_item_number_sequences;
 
 INSERT INTO number_sequences (space_id, table_name, current_val)
     SELECT space_id, 'iterations' "table_name", MAX(number)
