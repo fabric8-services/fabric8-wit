@@ -25,6 +25,11 @@ func (f ContextInformation) Equal(u convert.Equaler) bool {
 	return reflect.DeepEqual(f, other)
 }
 
+// EqualValue implements convert.Equaler
+func (f ContextInformation) EqualValue(u convert.Equaler) bool {
+	return f.Equal(u)
+}
+
 func (f ContextInformation) Value() (driver.Value, error) {
 	return toBytes(f)
 }
