@@ -6,11 +6,10 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/numbersequence"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,20 +19,21 @@ func TestWorkItem_EqualAndEqualValue(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	now := time.Now()
+	spaceID := uuid.NewV4()
 	a := workitem.WorkItemStorage{
-		ID:             uuid.NewV4(),
-		Number:         1,
-		ExecutionOrder: 111,
-		Type:           uuid.NewV4(),
-		Version:        0,
+		HumanFriendlyNumber: numbersequence.NewHumanFriendlyNumber(spaceID, workitem.WorkItemStorage{}.TableName(), 1),
+		ID:                  uuid.NewV4(),
+		Type:                uuid.NewV4(),
+		Version:             0,
 		Fields: workitem.Fields{
 			"foo": "bar",
 		},
-		SpaceID:                space.SystemSpace,
+		SpaceID:                spaceID,
+		ExecutionOrder:         111,
 		RelationShipsChangedAt: ptr.Time(now),
 	}
 
-	t.Run("object type difference", func(t *testing.T) {
+	t.Run("no equaler", func(t *testing.T) {
 		t.Parallel()
 		b := convert.DummyEqualer{}
 		assert.False(t, a.Equal(b))
@@ -115,15 +115,15 @@ func TestWorkItem_EqualAndEqualValue(t *testing.T) {
 	t.Run("equality", func(t *testing.T) {
 		t.Parallel()
 		b := workitem.WorkItemStorage{
-			ID:             a.ID,
-			Type:           a.Type,
-			Number:         1,
-			ExecutionOrder: 111,
-			Version:        0,
+			ID:                  a.ID,
+			Type:                a.Type,
+			HumanFriendlyNumber: numbersequence.NewHumanFriendlyNumber(spaceID, workitem.WorkItemStorage{}.TableName(), 1),
+			ExecutionOrder:      111,
+			Version:             0,
 			Fields: workitem.Fields{
 				"foo": "bar",
 			},
-			SpaceID:                space.SystemSpace,
+			SpaceID:                spaceID,
 			RelationShipsChangedAt: ptr.Time(now),
 		}
 		assert.True(t, a.Equal(b))

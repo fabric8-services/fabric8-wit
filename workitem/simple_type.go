@@ -103,7 +103,7 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %q", value, "float64", valueType.Name())
 		}
 		return value, nil
-	case KindInteger, KindDuration: // NOTE: Duration is a typedef of int64
+	case KindInteger:
 		// NOTE(kwk): This will change soon to be more consistent.
 		switch valueType.Kind() {
 		case reflect.Int,
@@ -183,7 +183,7 @@ func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	}
 	valueType := reflect.TypeOf(value)
 	switch t.GetKind() {
-	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration, KindArea, KindLabel, KindBoardColumn, KindBoolean:
+	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindIteration, KindArea, KindLabel, KindBoardColumn, KindBoolean:
 		return value, nil
 	case KindInstant:
 		switch valueType.Kind() {

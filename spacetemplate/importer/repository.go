@@ -268,9 +268,6 @@ func (r *GormRepository) createOrUpdateWILTs(ctx context.Context, s *ImportHelpe
 	}
 	wiltRepo := link.NewWorkItemLinkTypeRepository(r.db)
 	for _, wilt := range s.WILTs {
-		if wilt.LinkCategoryID == uuid.Nil {
-			wilt.LinkCategoryID = link.SystemWorkItemLinkCategorySystemID
-		}
 		loadedWILT, err := wiltRepo.Load(ctx, wilt.ID)
 		if err != nil {
 			cause := errs.Cause(err)
@@ -280,7 +277,6 @@ func (r *GormRepository) createOrUpdateWILTs(ctx context.Context, s *ImportHelpe
 				if uuid.Equal(wilt.ID, uuid.Nil) {
 					wilt.ID = uuid.NewV4()
 				}
-				wilt.LinkCategoryID = link.SystemWorkItemLinkCategoryUserID
 				wilt.SpaceTemplateID = s.Template.ID
 				_, err := wiltRepo.Create(ctx, *wilt)
 				if err != nil {

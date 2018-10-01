@@ -158,7 +158,6 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 			workitem.KindBoolean,
 			workitem.KindURL,
 			workitem.KindMarkup,
-			workitem.KindDuration, // TODO(kwk): get rid of duration
 			workitem.KindInstant:
 			return val, false
 		case workitem.KindIteration:

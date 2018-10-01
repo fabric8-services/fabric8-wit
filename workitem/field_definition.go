@@ -14,14 +14,13 @@ import (
 // constants for describing possible field types
 const (
 	// non-relational
-	KindString   Kind = "string"
-	KindInteger  Kind = "integer"
-	KindFloat    Kind = "float"
-	KindBoolean  Kind = "bool"
-	KindInstant  Kind = "instant"
-	KindDuration Kind = "duration"
-	KindURL      Kind = "url"
-	KindMarkup   Kind = "markup"
+	KindString  Kind = "string"
+	KindInteger Kind = "integer"
+	KindFloat   Kind = "float"
+	KindBoolean Kind = "bool"
+	KindInstant Kind = "instant"
+	KindURL     Kind = "url"
+	KindMarkup  Kind = "markup"
 	// relational
 	KindIteration   Kind = "iteration"
 	KindUser        Kind = "user"
@@ -287,7 +286,7 @@ func ConvertAnyToKind(any interface{}) (*Kind, error) {
 func ConvertStringToKind(k string) (*Kind, error) {
 	kind := Kind(k)
 	switch kind {
-	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoardColumn, KindBoolean:
+	case KindString, KindInteger, KindFloat, KindInstant, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoardColumn, KindBoolean:
 		return &kind, nil
 	}
 	return nil, errs.Errorf("kind '%s' is not a simple type", k)

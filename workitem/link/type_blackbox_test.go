@@ -31,7 +31,6 @@ func TestWorkItemLinkType_EqualAndEqualValue(t *testing.T) {
 		ForwardDescription: ptr.String("description for forward direction"),
 		ReverseName:        "blocked by",
 		ReverseDescription: ptr.String("description for reverse direction"),
-		LinkCategoryID:     uuid.NewV4(),
 		SpaceTemplateID:    uuid.NewV4(),
 		Lifecycle: gormsupport.Lifecycle{
 			CreatedAt: now,
@@ -134,14 +133,6 @@ func TestWorkItemLinkType_EqualAndEqualValue(t *testing.T) {
 		require.False(t, a.EqualValue(b))
 	})
 
-	t.Run("link category", func(t *testing.T) {
-		t.Parallel()
-		b := a
-		b.LinkCategoryID = uuid.NewV4()
-		require.False(t, a.Equal(b))
-		require.False(t, a.EqualValue(b))
-	})
-
 	t.Run("space template", func(t *testing.T) {
 		t.Parallel()
 		b := a
@@ -164,7 +155,6 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 		Version:         0,
 		ForwardName:     "blocks",
 		ReverseName:     "blocked by",
-		LinkCategoryID:  uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
 		SpaceTemplateID: uuid.FromStringOrNil("6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
 	}
 
@@ -194,12 +184,6 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 	t.Run("empty topology", func(t *testing.T) {
 		b := a
 		b.Topology = link.Topology("")
-		require.NotNil(t, b.CheckValidForCreation())
-	})
-
-	t.Run("empty link cat ID", func(t *testing.T) {
-		b := a
-		b.LinkCategoryID = uuid.Nil
 		require.NotNil(t, b.CheckValidForCreation())
 	})
 
