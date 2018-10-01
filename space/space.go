@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+	numbersequence "github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -114,13 +115,15 @@ type Repository interface {
 // NewRepository creates a new space repo
 func NewRepository(db *gorm.DB) *GormRepository {
 	return &GormRepository{
-		db: db,
+		db:   db,
+		winr: numbersequence.NewWorkItemNumberSequenceRepository(db),
 	}
 }
 
 // GormRepository implements SpaceRepository using gorm
 type GormRepository struct {
-	db *gorm.DB
+	db   *gorm.DB
+	winr numbersequence.WorkItemNumberSequenceRepository
 }
 
 // Load returns the space for the given id

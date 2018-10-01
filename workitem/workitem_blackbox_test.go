@@ -6,10 +6,10 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/numbersequence"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,10 +21,10 @@ func TestWorkItem_EqualAndEqualValue(t *testing.T) {
 	now := time.Now()
 	spaceID := uuid.NewV4()
 	a := workitem.WorkItemStorage{
-		HumanFriendlyNumber: numbersequence.NewHumanFriendlyNumber(spaceID, workitem.WorkItemStorage{}.TableName(), 1),
-		ID:                  uuid.NewV4(),
-		Type:                uuid.NewV4(),
-		Version:             0,
+		ID:      uuid.NewV4(),
+		Number:  1,
+		Type:    uuid.NewV4(),
+		Version: 0,
 		Fields: workitem.Fields{
 			"foo": "bar",
 		},
@@ -115,11 +115,11 @@ func TestWorkItem_EqualAndEqualValue(t *testing.T) {
 	t.Run("equality", func(t *testing.T) {
 		t.Parallel()
 		b := workitem.WorkItemStorage{
-			ID:                  a.ID,
-			Type:                a.Type,
-			HumanFriendlyNumber: numbersequence.NewHumanFriendlyNumber(spaceID, workitem.WorkItemStorage{}.TableName(), 1),
-			ExecutionOrder:      111,
-			Version:             0,
+			ID:             a.ID,
+			Type:           a.Type,
+			Number:         1,
+			ExecutionOrder: 111,
+			Version:        0,
 			Fields: workitem.Fields{
 				"foo": "bar",
 			},
