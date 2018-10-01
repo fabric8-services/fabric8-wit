@@ -82,13 +82,13 @@ type deleteTestResults struct {
 	envName   string
 }
 
-func (c *testKubeClient) DeleteDeployment(spaceName string, appName string, envName string) error {
-	c.deleteResults = &deleteTestResults{
+func (kc *testKubeClient) DeleteDeployment(spaceName string, appName string, envName string) error {
+	kc.deleteResults = &deleteTestResults{
 		spaceName: spaceName,
 		appName:   appName,
 		envName:   envName,
 	}
-	return c.fixture.deleteDeploymentError
+	return kc.fixture.deleteDeploymentError
 }
 
 func (fixture *deploymentsTestFixture) GetAndCheckOSIOClient(ctx context.Context) (controller.OpenshiftIOClient, error) {
@@ -589,11 +589,11 @@ func TestShowSpaceEnvironments(t *testing.T) {
 func TestShowEnvironmentsBySpace(t *testing.T) {
 
 	fakeEnvName := "fakeEnvName"
-	fakeCpuCores := 6.0
+	fakeCPUCores := 6.0
 	fakeMemUsage := 5.0
 
 	fakeQuota := &app.SpaceEnvironmentUsageQuota{
-		Cpucores: &fakeCpuCores,
+		Cpucores: &fakeCPUCores,
 		Memory:   &fakeMemUsage,
 	}
 
