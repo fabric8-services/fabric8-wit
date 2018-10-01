@@ -1543,6 +1543,109 @@ func verifyDeployment(dep *app.SimpleDeployment, testCase *deployTestData, t *te
 	}
 }
 
+func TestGetDeploymentPodQuota(t *testing.T) {
+	testCases := []struct {
+		testName     string
+		spaceName    string
+		appName      string
+		envName      string
+		cassetteName string
+		expectedCPU  float64
+		expectedMem  float64
+		errorChecker func(error) (bool, error)
+		shouldFail   bool
+	}{
+		{
+			testName:     "Basic",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "podquota",
+			expectedCPU:  1,
+			expectedMem:  262144000,
+		},
+		{
+			testName:     "Bad Environment",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "doesNotExist",
+			cassetteName: "podquota",
+			shouldFail:   true,
+		},
+		{
+			testName:     "Bad Deployment",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "stage",
+			cassetteName: "podquota",
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Multi Container",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "podquota-multicontainer",
+			expectedCPU:  1.7,
+			expectedMem:  799014912,
+		},
+		{
+			testName:     "No Resources",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "podquota-noresources",
+			expectedCPU:  1,
+			expectedMem:  536870912,
+		},
+		{
+			testName:     "Empty Resources",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "podquota-emptyresources",
+			expectedCPU:  1,
+			expectedMem:  536870912,
+		},
+		{
+			testName:     "Split Limit Range",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "podquota-split",
+			expectedCPU:  1,
+			expectedMem:  262144000,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
+
+			quota, err := kc.GetDeploymentPodQuota(testCase.spaceName, testCase.appName, testCase.envName)
+			if testCase.shouldFail {
+				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
+			} else {
+				require.NoError(t, err, "Unexpected error occurred")
+				require.NotNil(t, quota.Limits.Cpucores, "CPU limits must be non-nil")
+				require.InDelta(t, testCase.expectedCPU, *quota.Limits.Cpucores, fltDelta, "CPU limits are incorrect")
+				require.NotNil(t, quota.Limits.Memory, "Memory limits must be non-nil")
+				require.InDelta(t, testCase.expectedMem, *quota.Limits.Memory, fltDelta, "Memory limits are incorrect")
+			}
+		})
+	}
+}
+
 // code for test URL provider
 
 func (up *testURLProvider) GetAPIToken() (*string, error) {
