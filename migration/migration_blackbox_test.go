@@ -1370,7 +1370,7 @@ func testMigration106RemoveLinkCategoryConcept(t *testing.T) {
 
 func testMigration107NumberSequencesTable(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:108], 108)
-	require.True(t, dialect.HasTable("number_sequences_table"))
+	require.True(t, dialect.HasTable("number_sequences"))
 }
 
 func testMigration108NumberColumnForArea(t *testing.T) {
