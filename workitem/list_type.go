@@ -65,13 +65,18 @@ func (t ListType) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !t.SimpleType.Equal(other.SimpleType) {
+	if !convert.CascadeEqual(t.SimpleType, other.SimpleType) {
 		return false
 	}
 	if !reflect.DeepEqual(t.DefaultValue, other.DefaultValue) {
 		return false
 	}
-	return t.ComponentType.Equal(other.ComponentType)
+	return convert.CascadeEqual(t.ComponentType, other.ComponentType)
+}
+
+// EqualValue implements convert.Equaler interface
+func (t ListType) EqualValue(u convert.Equaler) bool {
+	return t.Equal(u)
 }
 
 // ConvertToModel implements the FieldType interface

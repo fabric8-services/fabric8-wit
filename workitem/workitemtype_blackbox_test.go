@@ -85,7 +85,7 @@ func TestMarshalEnumType(t *testing.T) {
 		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", parsedWIT, expectedWIT)
 	}
 }
-func TestWorkItemType_Equal(t *testing.T) {
+func TestWorkItemType_EqualAndEqualValue(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// given
@@ -112,47 +112,55 @@ func TestWorkItemType_Equal(t *testing.T) {
 		t.Parallel()
 		b := a
 		assert.True(t, a.Equal(b))
+		assert.True(t, a.EqualValue(b))
 	})
 	t.Run("space template ID", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.SpaceTemplateID = uuid.NewV4()
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("type", func(t *testing.T) {
 		t.Parallel()
 		b := convert.DummyEqualer{}
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("lifecycle", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Lifecycle = gormsupport.Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
 		assert.False(t, a.Equal(b))
+		assert.True(t, a.EqualValue(b))
 	})
 	t.Run("version", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Version += 1
 		assert.False(t, a.Equal(b))
+		assert.True(t, a.EqualValue(b))
 	})
 	t.Run("name", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Name = "bar"
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("extends", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Extends = uuid.NewV4()
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("parent path", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Path = "foobar"
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("ChildTypeIDs", func(t *testing.T) {
 		t.Parallel()
@@ -160,15 +168,18 @@ func TestWorkItemType_Equal(t *testing.T) {
 		// different IDs
 		b.ChildTypeIDs = []uuid.UUID{uuid.NewV4(), uuid.NewV4()}
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 		// different length
 		b.ChildTypeIDs = []uuid.UUID{uuid.NewV4(), uuid.NewV4(), uuid.NewV4()}
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("field array length", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Fields = map[string]workitem.FieldDefinition{}
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("field key existence", func(t *testing.T) {
 		t.Parallel()
@@ -179,6 +190,7 @@ func TestWorkItemType_Equal(t *testing.T) {
 			},
 		}
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("field difference", func(t *testing.T) {
 		t.Parallel()
@@ -196,6 +208,7 @@ func TestWorkItemType_Equal(t *testing.T) {
 			},
 		}
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("description", func(t *testing.T) {
 		t.Parallel()
@@ -203,12 +216,14 @@ func TestWorkItemType_Equal(t *testing.T) {
 			b := a
 			b.Description = ptr.String("some other description")
 			assert.False(t, a.Equal(b))
+			assert.False(t, a.EqualValue(b))
 		})
 		t.Run("different pointer but same value", func(t *testing.T) {
 			b := a
 			desc2 := desc
 			b.Description = &desc2
 			assert.True(t, a.Equal(b))
+			assert.True(t, a.EqualValue(b))
 		})
 	})
 	t.Run("icon", func(t *testing.T) {
@@ -216,12 +231,14 @@ func TestWorkItemType_Equal(t *testing.T) {
 		b := a
 		b.Icon = "fa-cog"
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("can construct", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.CanConstruct = true
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 }
 func TestMarshalFieldDef(t *testing.T) {
