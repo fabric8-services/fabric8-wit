@@ -158,7 +158,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMirgraion106", testMigration106RemoveLinkCategoryConcept)
 	t.Run("TestMirgraion107", testMigration107NumberSequencesTable)
 	t.Run("TestMirgraion108", testMigration108NumberColumnForArea)
-	t.Run("TestMirgraion109", testMigration109NumberColumnForArea)
+	t.Run("TestMirgraion109", testMigration109NumberColumnForIteration)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
