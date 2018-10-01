@@ -456,6 +456,15 @@ func GetMigrations() Migrations {
 	// Version 106
 	m = append(m, steps{ExecuteSQLFile("106-remove-link-category-concept.sql")})
 
+	// Version 107
+	m = append(m, steps{ExecuteSQLFile("107-number-sequences-table.sql")})
+
+	// Version 108
+	m = append(m, steps{ExecuteSQLFile("108-number-column-for-area.sql")})
+
+	// Version 109
+	m = append(m, steps{ExecuteSQLFile("109-number-column-for-iteration.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
