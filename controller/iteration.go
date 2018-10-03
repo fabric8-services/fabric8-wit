@@ -475,7 +475,6 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 			ParentPath:   &pathToTopMostParent,
 			UserActive:   &itr.UserActive,
 			ActiveStatus: &activeStatus,
-			Number:       &itr.Number,
 		},
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{
