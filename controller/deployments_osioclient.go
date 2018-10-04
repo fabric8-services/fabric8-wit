@@ -96,7 +96,6 @@ func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userServic
 }
 
 // GetUserServices - fetch array of user services
-// In the future, consider calling the tenant service (as /api/user/services implementation does)
 func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserService, error) {
 
 	if osioclient.userServices != nil {

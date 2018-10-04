@@ -14,12 +14,12 @@ const defaultAPIURL = "https://proxy.hostname/api"
 const defaultAPIToken = "token1"
 const defaultNS = "myDefaultNS"
 
-func getDefaultTenantProvider() (kubernetes.BaseURLProvider, error) {
+func getDefaultURLProvider() (kubernetes.BaseURLProvider, error) {
 	return controller.NewProxyURLProvider(defaultAPIToken, defaultAPIURL)
 }
 
-func TestTenantAPIURL(t *testing.T) {
-	p, err := getDefaultTenantProvider()
+func TestGetAPIURL(t *testing.T) {
+	p, err := getDefaultURLProvider()
 	require.NoError(t, err)
 	require.NotNil(t, p)
 
@@ -29,8 +29,8 @@ func TestTenantAPIURL(t *testing.T) {
 	require.Equal(t, defaultAPIURL, *apiurl, "GetAPIURL() returned wrong value")
 }
 
-func TestTenantGetDefaultMetricsURL(t *testing.T) {
-	p, err := getDefaultTenantProvider()
+func TestGetDefaultMetricsURL(t *testing.T) {
+	p, err := getDefaultURLProvider()
 	require.NoError(t, err)
 
 	murl, err := p.GetMetricsURL(defaultNS)
@@ -46,8 +46,8 @@ func TestTenantGetDefaultMetricsURL(t *testing.T) {
 	require.Equal(t, expected, *murl, "GetMetricsURL() has wrong value")
 }
 
-func TestTenantGetConsoleURL(t *testing.T) {
-	p, err := getDefaultTenantProvider()
+func TestGetConsoleURL(t *testing.T) {
+	p, err := getDefaultURLProvider()
 	require.NoError(t, err)
 
 	url, err := p.GetConsoleURL(defaultNS)
@@ -63,9 +63,9 @@ func TestTenantGetConsoleURL(t *testing.T) {
 	require.Equal(t, expected, *url, "GetConsoleURL() did not return the correct value from JSON")
 }
 
-func TestTenantGetLoggingURL(t *testing.T) {
+func TestGetLoggingURL(t *testing.T) {
 	const deployName = "aDeployName"
-	p, err := getDefaultTenantProvider()
+	p, err := getDefaultURLProvider()
 	require.NoError(t, err)
 
 	url, err := p.GetLoggingURL(defaultNS, deployName)
@@ -81,8 +81,8 @@ func TestTenantGetLoggingURL(t *testing.T) {
 	require.Equal(t, expected, *url, "GetLoggingURL() did not return correct value")
 }
 
-func TestTenantGetAPIToken(t *testing.T) {
-	p, err := getDefaultTenantProvider()
+func TestGetAPIToken(t *testing.T) {
+	p, err := getDefaultURLProvider()
 	require.NoError(t, err)
 	token, err := p.GetAPIToken()
 	require.NoError(t, err)
@@ -90,8 +90,8 @@ func TestTenantGetAPIToken(t *testing.T) {
 	require.Equal(t, defaultAPIToken, *token, "GetAPIToken() did not return API token")
 }
 
-func TestTenantGetDefaultMetricsToken(t *testing.T) {
-	p, err := getDefaultTenantProvider()
+func TestGetDefaultMetricsToken(t *testing.T) {
+	p, err := getDefaultURLProvider()
 	require.NoError(t, err)
 	mtoken, err := p.GetMetricsToken(defaultNS)
 	require.NoError(t, err)

@@ -15,15 +15,15 @@ import (
 
 // This incarnation uses the proxy for ALL OSO API calls and will not function without a proxy
 
-type tenantURLProvider struct {
+type deploymentsURLProvider struct {
 	apiURL   string
 	apiToken string
 	kubernetes.BaseURLProvider
 }
 
-// ensure tenantURLProvider implements BaseURLProvider
-var _ kubernetes.BaseURLProvider = &tenantURLProvider{}
-var _ kubernetes.BaseURLProvider = (*tenantURLProvider)(nil)
+// ensure deploymentsURLProvider implements BaseURLProvider
+var _ kubernetes.BaseURLProvider = &deploymentsURLProvider{}
+var _ kubernetes.BaseURLProvider = (*deploymentsURLProvider)(nil)
 
 // NewURLProvider looks at what servers are available and create a BaseURLProvder that fits
 func NewURLProvider(ctx context.Context, config *configuration.Registry, osioclient OpenshiftIOClient) (kubernetes.BaseURLProvider, error) {
@@ -46,27 +46,27 @@ func NewURLProvider(ctx context.Context, config *configuration.Registry, osiocli
 
 // NewProxyURLProvider create a provider from a UserService object (exposed for testing)
 func NewProxyURLProvider(token string, proxyURL string) (kubernetes.BaseURLProvider, error) {
-	provider := &tenantURLProvider{
+	provider := &deploymentsURLProvider{
 		apiURL:   proxyURL,
 		apiToken: token,
 	}
 	return provider, nil
 }
 
-func (up *tenantURLProvider) GetAPIToken() (*string, error) {
+func (up *deploymentsURLProvider) GetAPIToken() (*string, error) {
 	return &up.apiToken, nil
 }
 
-func (up *tenantURLProvider) GetAPIURL() (*string, error) {
+func (up *deploymentsURLProvider) GetAPIURL() (*string, error) {
 	// TODO this may be different for every namespace if no proxy
 	return &up.apiURL, nil
 }
 
-func (up *tenantURLProvider) GetMetricsToken(envNS string) (*string, error) {
+func (up *deploymentsURLProvider) GetMetricsToken(envNS string) (*string, error) {
 	return &up.apiToken, nil
 }
 
-func (up *tenantURLProvider) GetConsoleURL(envNS string) (*string, error) {
+func (up *deploymentsURLProvider) GetConsoleURL(envNS string) (*string, error) {
 	mu, err := modifyPath(up.apiURL, "/console")
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func (up *tenantURLProvider) GetConsoleURL(envNS string) (*string, error) {
 	return &consoleURL, nil
 }
 
-func (up *tenantURLProvider) GetLoggingURL(envNS string, deployName string) (*string, error) {
+func (up *deploymentsURLProvider) GetLoggingURL(envNS string, deployName string) (*string, error) {
 	mu, err := modifyPath(up.apiURL, "/logs")
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (up *tenantURLProvider) GetLoggingURL(envNS string, deployName string) (*st
 	return &loggingURL, nil
 }
 
-func (up *tenantURLProvider) GetMetricsURL(envNS string) (*string, error) {
+func (up *deploymentsURLProvider) GetMetricsURL(envNS string) (*string, error) {
 
 	// substitute "api" with "metrics" in user's cluster URL
 	mu, err := modifyPath(up.apiURL, "/metrics")
