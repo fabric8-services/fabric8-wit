@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/url"
 	"os"
@@ -54,14 +53,6 @@ func NewDeploymentsController(service *goa.Service, config *configuration.Regist
 			config: config,
 		},
 	}
-}
-
-func tostring(item interface{}) string {
-	bytes, err := json.MarshalIndent(item, "", "  ")
-	if err != nil {
-		return err.Error()
-	}
-	return string(bytes)
 }
 
 func (g *defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error) {
@@ -413,6 +404,7 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 				if canDelete {
 					methods = append(methods, "DELETE")
 				}
+				depl.Links = &app.GenericLinksForDeployment{}
 				// NOTE: we don't actually allow GET to this endpoint, so don't claim we do by adding "GET" to methods
 				depl.Links.Self = &app.LinkWithAccess{
 					Href: &deployURLStr,
