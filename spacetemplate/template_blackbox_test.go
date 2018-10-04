@@ -2,6 +2,7 @@ package spacetemplate_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -12,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_SpaceTemplate_Equal(t *testing.T) {
+func Test_SpaceTemplate_EqualAndEqualValue(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
@@ -27,6 +28,7 @@ func Test_SpaceTemplate_Equal(t *testing.T) {
 	t.Run("different types", func(t *testing.T) {
 		t.Parallel()
 		assert.False(t, expected.Equal(convert.DummyEqualer{}))
+		assert.False(t, expected.EqualValue(convert.DummyEqualer{}))
 	})
 
 	t.Run("id", func(t *testing.T) {
@@ -34,6 +36,7 @@ func Test_SpaceTemplate_Equal(t *testing.T) {
 		actual := expected
 		actual.ID = uuid.NewV4()
 		assert.False(t, expected.Equal(actual))
+		assert.False(t, expected.EqualValue(actual))
 	})
 
 	t.Run("version", func(t *testing.T) {
@@ -41,6 +44,15 @@ func Test_SpaceTemplate_Equal(t *testing.T) {
 		actual := expected
 		actual.Version = 10
 		assert.False(t, expected.Equal(actual))
+		assert.True(t, expected.EqualValue(actual))
+	})
+
+	t.Run("lifecycle", func(t *testing.T) {
+		t.Parallel()
+		actual := expected
+		actual.CreatedAt = time.Now()
+		assert.False(t, expected.Equal(actual))
+		assert.True(t, expected.EqualValue(actual))
 	})
 
 	t.Run("name", func(t *testing.T) {
@@ -48,6 +60,7 @@ func Test_SpaceTemplate_Equal(t *testing.T) {
 		actual := expected
 		actual.Name = "something else"
 		assert.False(t, expected.Equal(actual))
+		assert.False(t, expected.EqualValue(actual))
 	})
 
 	t.Run("can construct", func(t *testing.T) {
@@ -55,6 +68,7 @@ func Test_SpaceTemplate_Equal(t *testing.T) {
 		actual := expected
 		actual.CanConstruct = false
 		assert.False(t, expected.Equal(actual))
+		assert.False(t, expected.EqualValue(actual))
 	})
 
 	t.Run("description nil", func(t *testing.T) {
@@ -62,6 +76,7 @@ func Test_SpaceTemplate_Equal(t *testing.T) {
 		actual := expected
 		actual.Description = nil
 		assert.False(t, expected.Equal(actual))
+		assert.False(t, expected.EqualValue(actual))
 	})
 
 	t.Run("description not nil", func(t *testing.T) {
@@ -70,12 +85,14 @@ func Test_SpaceTemplate_Equal(t *testing.T) {
 		actualDescription := "some other description"
 		actual.Description = &actualDescription
 		assert.False(t, expected.Equal(actual))
+		assert.False(t, expected.EqualValue(actual))
 	})
 
 	t.Run("equalness", func(t *testing.T) {
 		t.Parallel()
 		actual := expected
 		assert.True(t, expected.Equal(actual))
+		assert.True(t, expected.EqualValue(actual))
 	})
 }
 

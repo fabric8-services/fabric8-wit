@@ -349,7 +349,125 @@ func TestGetEnvironments(t *testing.T) {
 					envData := testCase.data[envName]
 					require.NotNil(t, envData, "Unknown app: "+envName)
 					require.Equal(t, envData.envName, envName, "Wrong environment name")
-					verifyEnvironment(env, envData, t)
+
+					quotas := env.Attributes.Quota
+					require.NotNil(t, quotas, "Expected non-nil Quota attribute")
+
+					verifyEnvironmentStats(quotas, envData, t)
+				}
+			}
+		})
+	}
+}
+
+func TestGetSpaceAndOtherEnvironmentUsage(t *testing.T) {
+	type environmentUsage struct {
+		cpucores float64
+		memory   float64
+	}
+
+	testCases := []struct {
+		testName       string
+		cassetteName   string
+		spaceName      string
+		shouldFail     bool
+		errorChecker   func(error) (bool, error)
+		thisSpaceData  map[string]*environmentUsage
+		otherSpaceData map[string]*envTestData
+	}{
+		{
+			testName:     "Basic",
+			cassetteName: "getspaceandotherenvironmentusage",
+			spaceName:    "mySpace",
+			thisSpaceData: map[string]*environmentUsage{
+				"run":   {1.464, 786432000},
+				"stage": {0.976, 524288000},
+				"test":  {0.0, 0.0},
+			},
+			otherSpaceData: map[string]*envTestData{
+				"run": {
+					envName: "run",
+					cpu:     &quotaData{0.436, 2.0},
+					mem:     &quotaData{209715200.0, 1073741824.0},
+					rc:      &quotaData{2, 20},
+					pvc:     &quotaData{1, 1},
+					secret:  &quotaData{11, 20},
+					svc:     &quotaData{2, 5},
+				},
+				"stage": {
+					envName: "stage",
+					cpu:     &quotaData{0.0, 2.0},
+					mem:     &quotaData{0.0, 1073741824.0},
+					rc:      &quotaData{5, 20},
+					pvc:     &quotaData{0, 1},
+					secret:  &quotaData{9, 20},
+					svc:     &quotaData{2, 5},
+				},
+				"test": {
+					envName: "test",
+					cpu:     &quotaData{0.2, 2.0},
+					mem:     &quotaData{262144000.0, 1073741824.0},
+					rc:      &quotaData{1, 20},
+					pvc:     &quotaData{0, 1},
+					secret:  &quotaData{12, 20},
+					svc:     &quotaData{1, 5},
+				},
+			},
+		},
+		{
+			testName:     "Kubernetes Error",
+			cassetteName: "getspaceandotherenvironmentusage-rq-error",
+			spaceName:    "mySpace",
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
+			result, err := kc.GetSpaceAndOtherEnvironmentUsage(testCase.spaceName)
+			if testCase.shouldFail {
+				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
+			} else {
+				require.NoError(t, err, "Unexpected error occurred")
+				require.NotNil(t, result, "Result should be non-nil")
+
+				require.Equal(t, len(testCase.otherSpaceData), len(result), "Wrong number of environments")
+				for _, usage := range result {
+					// Check usage for space
+					require.NotNil(t, usage.Attributes.Name, "Environment must have a name")
+					envName := *usage.Attributes.Name
+
+					thisSpaceData, pres := testCase.thisSpaceData[envName]
+					require.True(t, pres, "Unknown environment %s", envName)
+					spaceUsage := usage.Attributes.SpaceUsage
+					require.NotNil(t, spaceUsage, "Usage by this space is missing")
+
+					cpuUsage := spaceUsage.Cpucores
+					require.NotNil(t, cpuUsage, "Expected CPU usage in response")
+					require.InDelta(t, thisSpaceData.cpucores, *cpuUsage, fltDelta, "Incorrect CPU usage for %s", envName)
+
+					memUsage := spaceUsage.Memory
+					require.NotNil(t, memUsage, "Expected memory usage in response")
+					require.InDelta(t, thisSpaceData.memory, *memUsage, fltDelta, "Incorrect memory usage for %s", envName)
+
+					// Check usage for other spaces
+					otherSpaceData, pres := testCase.otherSpaceData[envName]
+					require.True(t, pres, "Unknown environment %s", envName)
+					otherUsage := usage.Attributes.OtherUsage
+					require.NotNil(t, otherUsage, "Usage by other spaces is missing")
+
+					verifyEnvironmentStats(otherUsage, otherSpaceData, t)
 				}
 			}
 		})
@@ -472,25 +590,25 @@ func TestGetEnvironment(t *testing.T) {
 				require.NotNil(t, env.Attributes, "Environment attributes are nil")
 				require.NotNil(t, env.Attributes.Name, "Environment name must not be nil")
 
-				verifyEnvironment(env, &testCase.envTestData, t)
+				require.Equal(t, testCase.envName, *env.Attributes.Name, "Wrong environment name")
+
+				quotas := env.Attributes.Quota
+				require.NotNil(t, quotas, "Expected non-nil Quota attribute")
+
+				verifyEnvironmentStats(quotas, &testCase.envTestData, t)
 			}
 		})
 	}
 }
 
-func verifyEnvironment(env *app.SimpleEnvironment, testCase *envTestData, t *testing.T) {
-	require.Equal(t, testCase.envName, *env.Attributes.Name, "Wrong environment name")
-
-	quotas := env.Attributes.Quota
-	require.NotNil(t, quotas, "Expected non-nil Quota attribute")
-
+func verifyEnvironmentStats(quotas *app.EnvStats, testCase *envTestData, t *testing.T) {
 	cpuQuota := quotas.Cpucores
 	require.NotNil(t, cpuQuota, "Expected CPU usage/limit in response")
 	require.InDelta(t, testCase.cpu.limit, *cpuQuota.Quota, fltDelta, "Incorrect CPU quota for %s", testCase.envName)
 	require.InDelta(t, testCase.cpu.used, *cpuQuota.Used, fltDelta, "Incorrect CPU usage for %s", testCase.envName)
 
 	memQuota := quotas.Memory
-	require.NotNil(t, cpuQuota, "Expected memory usage/limit in response")
+	require.NotNil(t, memQuota, "Expected memory usage/limit in response")
 	require.InDelta(t, testCase.mem.limit, *memQuota.Quota, fltDelta, "Incorrect memory quota for %s", testCase.envName)
 	require.InDelta(t, testCase.mem.used, *memQuota.Used, fltDelta, "Incorrect memory usage for %s", testCase.envName)
 
@@ -1540,6 +1658,109 @@ func verifyDeployment(dep *app.SimpleDeployment, testCase *deployTestData, t *te
 	} else {
 		require.NotNil(t, dep.Links.Logs, "Logs URL is nil")
 		require.Equal(t, testCase.expectLogURL, *dep.Links.Logs, "Logs URL is incorrect")
+	}
+}
+
+func TestGetDeploymentPodQuota(t *testing.T) {
+	testCases := []struct {
+		testName     string
+		spaceName    string
+		appName      string
+		envName      string
+		cassetteName string
+		expectedCPU  float64
+		expectedMem  float64
+		errorChecker func(error) (bool, error)
+		shouldFail   bool
+	}{
+		{
+			testName:     "Basic",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "podquota",
+			expectedCPU:  1,
+			expectedMem:  262144000,
+		},
+		{
+			testName:     "Bad Environment",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "doesNotExist",
+			cassetteName: "podquota",
+			shouldFail:   true,
+		},
+		{
+			testName:     "Bad Deployment",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "stage",
+			cassetteName: "podquota",
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Multi Container",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "podquota-multicontainer",
+			expectedCPU:  1.7,
+			expectedMem:  799014912,
+		},
+		{
+			testName:     "No Resources",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "podquota-noresources",
+			expectedCPU:  1,
+			expectedMem:  536870912,
+		},
+		{
+			testName:     "Empty Resources",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "podquota-emptyresources",
+			expectedCPU:  1,
+			expectedMem:  536870912,
+		},
+		{
+			testName:     "Split Limit Range",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "podquota-split",
+			expectedCPU:  1,
+			expectedMem:  262144000,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
+
+			quota, err := kc.GetDeploymentPodQuota(testCase.spaceName, testCase.appName, testCase.envName)
+			if testCase.shouldFail {
+				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
+			} else {
+				require.NoError(t, err, "Unexpected error occurred")
+				require.NotNil(t, quota.Limits.Cpucores, "CPU limits must be non-nil")
+				require.InDelta(t, testCase.expectedCPU, *quota.Limits.Cpucores, fltDelta, "CPU limits are incorrect")
+				require.NotNil(t, quota.Limits.Memory, "Memory limits must be non-nil")
+				require.InDelta(t, testCase.expectedMem, *quota.Limits.Memory, fltDelta, "Memory limits are incorrect")
+			}
+		})
 	}
 }
 

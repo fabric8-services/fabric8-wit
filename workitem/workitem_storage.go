@@ -1,6 +1,7 @@
 package workitem
 
 import (
+	"reflect"
 	"strconv"
 	"time"
 
@@ -51,11 +52,13 @@ func (wi WorkItemStorage) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !wi.Lifecycle.Equal(other.Lifecycle) {
+	if !convert.CascadeEqual(wi.Lifecycle, other.Lifecycle) {
 		return false
 	}
-
-	if !uuid.Equal(wi.Type, other.Type) {
+	if wi.Number != other.Number {
+		return false
+	}
+	if wi.Type != other.Type {
 		return false
 	}
 	if wi.ID != other.ID {
@@ -67,10 +70,28 @@ func (wi WorkItemStorage) Equal(u convert.Equaler) bool {
 	if wi.ExecutionOrder != other.ExecutionOrder {
 		return false
 	}
+	if wi.Number != other.Number {
+		return false
+	}
 	if wi.SpaceID != other.SpaceID {
 		return false
 	}
-	return wi.Fields.Equal(other.Fields)
+	if !reflect.DeepEqual(wi.RelationShipsChangedAt, other.RelationShipsChangedAt) {
+		return false
+	}
+	return convert.CascadeEqual(wi.Fields, other.Fields)
+}
+
+// EqualValue implements convert.Equaler interface
+func (wi WorkItemStorage) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(WorkItemStorage)
+	if !ok {
+		return false
+	}
+	wi.Version = other.Version
+	wi.Lifecycle = other.Lifecycle
+	wi.RelationShipsChangedAt = other.RelationShipsChangedAt
+	return wi.Equal(u)
 }
 
 // ParseWorkItemIDToUint64 does what it says

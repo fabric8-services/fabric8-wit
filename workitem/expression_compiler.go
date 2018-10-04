@@ -425,6 +425,64 @@ func (c *expressionCompiler) Not(e *criteria.NotExpression) interface{} {
 	return c.binary(e, "!=")
 }
 
+func (c *expressionCompiler) Child(e *criteria.ChildExpression) interface{} {
+	left, ok := e.Left().(*criteria.FieldExpression)
+	if !ok {
+		c.err = append(c.err, errs.Errorf("invalid left expression (not a field expression): %+v", e.Left()))
+		return nil
+	}
+
+	if strings.Contains(left.FieldName, "'") {
+		c.err = append(c.err, errs.Errorf("single quote not allowed in field name: %s", left.FieldName))
+		return nil
+	}
+	litExp, ok := e.Right().(*criteria.LiteralExpression)
+	if !ok {
+		c.err = append(c.err, errs.Errorf("failed to convert right expression to literal expression: %+v", e.Right()))
+		return nil
+	}
+	r, ok := litExp.Value.(string)
+	if !ok {
+		c.err = append(c.err, errs.Errorf("failed to convert value of right literal expression to string: %+v", litExp.Value))
+		return nil
+	}
+	if strings.Contains(r, "'") {
+		// beware of injection, it's a reasonable restriction for field names,
+		// make sure it's not allowed when creating wi types
+		c.err = append(c.err, errs.Errorf("single quote not allowed in field value: %s", r))
+		return nil
+	}
+
+	var tblName string
+	var tblAlias string
+	var tblJoin string
+	if left.FieldName == SystemIteration {
+		tblName = "iterations"
+		tblAlias = "iter"
+		tblJoin = "iteration"
+	} else if left.FieldName == SystemArea {
+		tblName = "areas"
+		tblAlias = "ar"
+		tblJoin = "area"
+	} else {
+		c.err = append(c.err, errs.Errorf("invalid field name for child expression: %+v", left.FieldName))
+		return nil
+	}
+	c.joins[tblJoin].Active = true
+	c.parameters = append(c.parameters, r)
+
+	// Find all iteration/area which is a child of the given iteration/area
+	return fmt.Sprintf(`(uuid("`+WorkItemStorage{}.TableName()+`".fields->>'%[1]s') IN (
+				SELECT %[2]s.id
+					WHERE
+						(SELECT j.path
+							FROM %[3]s j
+							WHERE j.space_id = "`+WorkItemStorage{}.TableName()+`"."space_id" AND j.id = ? 
+						) @> %[2]s.path
+							  ))`, left.FieldName, tblAlias, tblName)
+
+}
+
 func (c *expressionCompiler) Parameter(v *criteria.ParameterExpression) interface{} {
 	c.err = append(c.err, errs.Errorf("parameter expression not supported"))
 	return nil
