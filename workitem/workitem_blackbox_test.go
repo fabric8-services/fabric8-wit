@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
