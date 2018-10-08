@@ -187,7 +187,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": ctx.SpaceID,
-			"error":    err,
+			"err":      err,
 		}, "could not convert the UUID of type github.com/satori/go.uuid to github.com/goadesign/goa/uuid")
 		return jsonapi.JSONErrorResponse(
 			ctx, errors.NewInternalError(ctx, errs.Wrap(err, "could not delete space")),
@@ -210,7 +210,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
-			"error":    err,
+			"err":      err,
 		}, "could not delete codebases")
 		return jsonapi.JSONErrorResponse(
 			ctx, errors.NewInternalError(ctx, errs.Wrapf(err, "failed to delete codebases associated with space %s", spaceID)))
@@ -223,7 +223,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"space_id": spaceID,
-				"error":    err,
+				"err":      err,
 			}, "could not delete OpenShift resources")
 			return jsonapi.JSONErrorResponse(
 				ctx, errors.NewInternalError(ctx, errs.Wrapf(
@@ -285,7 +285,7 @@ func deleteCodebases(
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
 			"path":     path,
-			"error":    err,
+			"err":      err,
 		}, "failed to list codebases")
 		return errs.Wrapf(err, "could not list codebases for space: %s", spaceID)
 	}
@@ -295,7 +295,7 @@ func deleteCodebases(
 		formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"error":    err,
+				"err":      err,
 				"response": resp,
 			}, "failed to decode JSON formatted errors returned while listing codebases")
 			return errors.NewInternalError(ctx,
