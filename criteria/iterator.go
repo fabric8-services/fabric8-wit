@@ -46,6 +46,10 @@ func (i *postOrderIterator) Not(exp *NotExpression) interface{} {
 	return i.binary(exp)
 }
 
+func (i *postOrderIterator) Child(exp *ChildExpression) interface{} {
+	return i.binary(exp)
+}
+
 func (i *postOrderIterator) IsNull(exp *IsNullExpression) interface{} {
 	return i.visit(exp)
 }

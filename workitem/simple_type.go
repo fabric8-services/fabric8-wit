@@ -69,6 +69,11 @@ func (t SimpleType) Equal(u convert.Equaler) bool {
 	return t.Kind == other.Kind
 }
 
+// EqualValue implements convert.Equaler interface
+func (t SimpleType) EqualValue(u convert.Equaler) bool {
+	return t.Equal(u)
+}
+
 // GetKind implements FieldType
 func (t SimpleType) GetKind() Kind {
 	return t.Kind

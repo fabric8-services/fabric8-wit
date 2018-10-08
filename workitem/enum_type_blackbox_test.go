@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEnumType_Equal(t *testing.T) {
+func TestEnumType_EqualAndEqualValue(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
@@ -21,48 +21,64 @@ func TestEnumType_Equal(t *testing.T) {
 		DefaultValue:     "fooooooobar",
 	}
 	t.Run("type inequality", func(t *testing.T) {
+		t.Parallel()
 		require.False(t, a.Equal(convert.DummyEqualer{}))
+		require.False(t, a.EqualValue(convert.DummyEqualer{}))
 	})
 
 	t.Run("simple type difference", func(t *testing.T) {
+		t.Parallel()
 		b := a
 		b.SimpleType = w.SimpleType{Kind: w.KindArea}
 		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
 	})
 
 	t.Run("base type difference", func(t *testing.T) {
+		t.Parallel()
 		b := a
 		b.BaseType = w.SimpleType{Kind: w.KindInteger}
 		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
 	})
 
 	t.Run("default value difference", func(t *testing.T) {
+		t.Parallel()
 		b := a
 		b.DefaultValue = "foo"
 		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
 	})
 
 	t.Run("value difference", func(t *testing.T) {
+		t.Parallel()
 		t.Run("not equal", func(t *testing.T) {
+			t.Parallel()
 			b := a
 			b.Values = []interface{}{"foo1", "bar2"}
 			require.False(t, a.Equal(b))
+			require.False(t, a.EqualValue(b))
 		})
 
 		t.Run("new type has overwritable values but old not", func(t *testing.T) {
+			t.Parallel()
 			b := a
 			b.Values = []interface{}{"foo1", "bar2"}
 			b.RewritableValues = true
 			require.False(t, a.Equal(b))
+			require.False(t, a.EqualValue(b))
 		})
 
 		t.Run("old type has overwritable values but new not", func(t *testing.T) {
+			t.Parallel()
 			b := a
 			b.Values = []interface{}{"foo1", "bar2"}
 			b.RewritableValues = true
 			require.True(t, b.Equal(a))
+			require.True(t, b.EqualValue(a))
 		})
 		t.Run("old and new type have overwritable values", func(t *testing.T) {
+			t.Parallel()
 			b := a
 			b.RewritableValues = true
 			b.Values = []interface{}{"foo1", "bar2"}
@@ -70,6 +86,8 @@ func TestEnumType_Equal(t *testing.T) {
 			c.RewritableValues = true
 			require.True(t, b.Equal(c))
 			require.True(t, c.Equal(b))
+			require.True(t, b.EqualValue(c))
+			require.True(t, c.EqualValue(b))
 		})
 	})
 }

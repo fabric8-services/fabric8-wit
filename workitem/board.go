@@ -41,6 +41,9 @@ func (wib Board) Equal(u convert.Equaler) bool {
 	if wib.SpaceTemplateID != other.SpaceTemplateID {
 		return false
 	}
+	if !convert.CascadeEqual(wib.Lifecycle, other.Lifecycle) {
+		return false
+	}
 	if wib.Name != other.Name {
 		return false
 	}
@@ -57,11 +60,21 @@ func (wib Board) Equal(u convert.Equaler) bool {
 		return false
 	}
 	for i := range wib.Columns {
-		if !wib.Columns[i].Equal(other.Columns[i]) {
+		if !convert.CascadeEqual(wib.Columns[i], other.Columns[i]) {
 			return false
 		}
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler
+func (wib Board) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(Board)
+	if !ok {
+		return false
+	}
+	wib.Lifecycle = other.Lifecycle
+	return wib.Equal(u)
 }
 
 // GetETagData returns the field values to use to generate the ETag
@@ -106,6 +119,9 @@ func (wibc BoardColumn) Equal(u convert.Equaler) bool {
 	if wibc.BoardID != other.BoardID {
 		return false
 	}
+	if !convert.CascadeEqual(wibc.Lifecycle, other.Lifecycle) {
+		return false
+	}
 	if wibc.Name != other.Name {
 		return false
 	}
@@ -119,4 +135,14 @@ func (wibc BoardColumn) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler interface
+func (wibc BoardColumn) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(BoardColumn)
+	if !ok {
+		return false
+	}
+	wibc.Lifecycle = other.Lifecycle
+	return wibc.Equal(u)
 }
