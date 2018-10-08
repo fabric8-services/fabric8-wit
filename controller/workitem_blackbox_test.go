@@ -3381,3 +3381,18 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 		})
 	}
 }
+
+func (s *WorkItem2Suite) TestDeleteWorkitem() {
+	s.T().Run("ok", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1))
+		s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[0])
+		test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+	})
+	s.T().Run("unauthorized", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1))
+		test.DeleteWorkitemUnauthorized(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+	})
+	s.T().Run("workitem not found", func(t *testing.T) {
+		test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, uuid.NewV4())
+	})
+}
