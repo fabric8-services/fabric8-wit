@@ -388,6 +388,7 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 }
 
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.
+// FIXME Remove this method once showSpaceEnvironments API is removed.
 func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsDeploymentsContext) error {
 
 	kc, err := c.GetKubeClient(ctx)
@@ -406,6 +407,34 @@ func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironm
 
 	res := &app.SimpleEnvironmentList{
 		Data: envs,
+	}
+
+	return ctx.OK(res)
+}
+
+// ShowEnvironmentsBySpace runs the showEnvironmentsBySpace action.
+func (c *DeploymentsController) ShowEnvironmentsBySpace(ctx *app.ShowEnvironmentsBySpaceDeploymentsContext) error {
+
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
+	if err != nil || kubeSpaceName == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("osio space", ctx.SpaceID.String()))
+	}
+
+	usage, err := kc.GetSpaceAndOtherEnvironmentUsage(*kubeSpaceName)
+
+	// Model the response
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "error retrieving environments"))
+	}
+
+	res := &app.SpaceAndOtherEnvironmentUsageList{
+		Data: usage,
 	}
 
 	return ctx.OK(res)

@@ -156,6 +156,9 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMirgraion104", testMigration104IndexOnWIRevisionTable)
 	t.Run("TestMirgraion105", testMigration105UpdateRootIterationAreaPathField)
 	t.Run("TestMirgraion106", testMigration106RemoveLinkCategoryConcept)
+	t.Run("TestMirgraion107", testMigration107NumberSequencesTable)
+	t.Run("TestMirgraion108", testMigration108NumberColumnForArea)
+	t.Run("TestMirgraion109", testMigration109NumberColumnForIteration)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1363,6 +1366,21 @@ func testMigration106RemoveLinkCategoryConcept(t *testing.T) {
 		require.True(t, exists(t, "work_item_link_types", linkType1ID))
 		require.True(t, exists(t, "work_item_link_types", linkType2ID))
 	})
+}
+
+func testMigration107NumberSequencesTable(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:108], 108)
+	require.True(t, dialect.HasTable("number_sequences"))
+}
+
+func testMigration108NumberColumnForArea(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:109], 109)
+	require.True(t, dialect.HasColumn("areas", "number"))
+}
+
+func testMigration109NumberColumnForIteration(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:110], 110)
+	require.True(t, dialect.HasColumn("iterations", "number"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
