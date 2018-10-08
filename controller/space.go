@@ -318,6 +318,10 @@ func deleteCodebases(
 		path = client.DeleteCodebasePath(*cb.ID)
 		resp, err := cl.DeleteCodebase(ctx, path)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"error":    err,
+				"response": resp,
+			}, "failed to delete codebase %s", cb.ID)
 			errorsList = append(errorsList,
 				errs.Wrapf(err, "could not delete codebase %s", cb.ID))
 			continue
@@ -325,6 +329,10 @@ func deleteCodebases(
 		if 200 < resp.StatusCode && resp.StatusCode >= 300 {
 			formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"error":    err,
+					"response": resp,
+				}, "failed to decode JSON formatted errors returned while deleting codebase %s", cb.ID)
 				errorsList = append(errorsList,
 					errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting codebase %s", cb.ID))
 				continue
