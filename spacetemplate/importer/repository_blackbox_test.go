@@ -298,7 +298,6 @@ func (s *repoSuite) TestImport() {
 				ForwardName:     "forward",
 				ReverseName:     "backwards",
 				Topology:        "tree",
-				LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
 			})
 			_, err := s.importerRepo.Import(s.Ctx, firstTemplate)
 			require.NoError(t, err)
