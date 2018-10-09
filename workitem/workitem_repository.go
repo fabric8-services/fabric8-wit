@@ -595,7 +595,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
 		var err error
-		if fieldName == SystemAssignees || fieldName == SystemLabels || fieldName == SystemBoardcolumns {
+		if fieldDef.Type.GetKind() == KindList {
 			switch fieldValue.(type) {
 			case []string:
 				if len(fieldValue.([]string)) == 0 {
@@ -735,7 +735,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		if err != nil {
 			return nil, nil, errors.NewBadParameterError(fieldName, fieldValue) // TODO(kwk): Change errors pkg to consume the original error as well
 		}
-		if (fieldName == SystemAssignees || fieldName == SystemLabels || fieldName == SystemBoardcolumns) && fieldValue == nil {
+		if fieldDef.Type.GetKind() == KindList && fieldValue == nil {
 			delete(wi.Fields, fieldName)
 		}
 		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {

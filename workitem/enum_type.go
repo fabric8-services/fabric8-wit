@@ -162,10 +162,17 @@ func containsAll(a []interface{}, v []interface{}) bool {
 	return result
 }
 
+// ConvertFromModel implements the FieldType interface
 func (t EnumType) ConvertFromModel(value interface{}) (interface{}, error) {
-	converted, err := t.BaseType.ConvertToModel(value)
+	if value == nil {
+		return nil, nil
+	}
+	converted, err := t.BaseType.ConvertFromModel(value)
 	if err != nil {
-		return nil, fmt.Errorf("error converting enum value: %s", err.Error())
+		return nil, errs.Errorf("error converting enum value: %s", err.Error())
+	}
+	if !contains(t.Values, converted) {
+		return nil, errs.Errorf("value: %+v (%[1]T) is not part of allowed enum values: %+v", value, t.Values)
 	}
 	return converted, nil
 }
