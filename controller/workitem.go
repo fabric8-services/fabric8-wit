@@ -85,7 +85,7 @@ func (c *WorkitemController) isWorkitemCreatorOrSpaceOwner(ctx context.Context, 
 	if space != nil && editorID == space.OwnerID.String() {
 		return true, nil
 	}
-	return false, errors.NewUnauthorizedError("user is not a workitem creator or space owner")
+	return false, errors.NewForbiddenError("user is not a workitem creator or space owner")
 }
 
 // Returns true if the user is the work item creator or space collaborator
@@ -258,7 +258,12 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	}
 	authorized, err := c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
+		forbidden, err := errors.IsForbiddenError(err)
+		if forbidden {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the workitem"))
+
+		}
+		return err
 	}
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the workitem"))

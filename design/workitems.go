@@ -153,7 +153,6 @@ var _ = a.Resource("workitem", func() {
 			a.Param("wiID", d.UUID, "ID of the work item to delete")
 		})
 		a.Response(d.OK)
-		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
