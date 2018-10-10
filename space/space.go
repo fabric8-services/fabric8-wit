@@ -22,6 +22,10 @@ import (
 )
 
 var (
+	// SystemSpace used to be a concept space that existed to house certain work
+	// item types that would then be shared among all spaces. This concept was
+	// deprecated with the advent of space templates.
+	// TODO(kwk): Remove system space entirely.
 	SystemSpace = uuid.FromStringOrNil("2e0698d8-753e-4cef-bb7c-f027634824a2")
 	SpaceType   = "spaces"
 )
