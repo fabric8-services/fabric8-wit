@@ -1386,7 +1386,7 @@ func testMigration109NumberColumnForIteration(t *testing.T) {
 
 func testMigration110UpdateNumberForExistingIterations(t *testing.T) {
 	t.Run("migrate to previous version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:110, 110)
+		migrateToVersion(t, sqlDB, migrations[:110], 110)
 	})
 
 	spaceTemplateID := uuid.NewV4()
