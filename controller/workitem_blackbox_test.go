@@ -3389,7 +3389,7 @@ func (s *WorkItem2Suite) TestDeleteWorkitem() {
 		test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
 	})
 	s.T().Run("unauthorized", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1), tf.Identities(2))
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1), tf.Identities(1))
 		svcNotAuthorized := goa.New("TestDeleteWI2-Service")
 		workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
 		test.DeleteWorkitemUnauthorized(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, fxt.WorkItems[0].ID)
