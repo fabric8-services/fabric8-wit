@@ -155,15 +155,11 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration103", testMigration103NotNullNotEmptyonEmail)
 	t.Run("TestMirgraion104", testMigration104IndexOnWIRevisionTable)
 	t.Run("TestMirgraion105", testMigration105UpdateRootIterationAreaPathField)
-<<<<<<< HEAD
 	t.Run("TestMirgraion106", testMigration106RemoveLinkCategoryConcept)
 	t.Run("TestMirgraion107", testMigration107NumberSequencesTable)
 	t.Run("TestMirgraion108", testMigration108NumberColumnForArea)
 	t.Run("TestMirgraion109", testMigration109NumberColumnForIteration)
-||||||| parent of a917dfe4... Introduce number column for area and iteration and allow searching it (#2287)
-=======
-	t.Run("TestMirgraion106", testMigration106NumberSequences)
->>>>>>> a917dfe4... Introduce number column for area and iteration and allow searching it (#2287)
+	t.Run("TestMirgraion110", testMigration110UpdateNumberForExistingIterations)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
