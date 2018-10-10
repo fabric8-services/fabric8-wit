@@ -3383,7 +3383,9 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 	}
 }
 
+// TestDeleteWorkitem tests the delete action
 func (s *WorkItem2Suite) TestDeleteWorkitem() {
+	// Delete Workitem tests deletion of workitem
 	s.T().Run("Delete Workitem", func(t *testing.T) {
 		t.Run("ok", func(t *testing.T) {
 			fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1))
@@ -3405,6 +3407,7 @@ func (s *WorkItem2Suite) TestDeleteWorkitem() {
 			test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, uuid.NewV4())
 		})
 	})
+	// Delete Workitem Links tests deletion of corresponding workitem links when a workitem is deleted
 	s.T().Run("Delete Workitem Links", func(t *testing.T) {
 		t.Run("ok", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, s.DB,
