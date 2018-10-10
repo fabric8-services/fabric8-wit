@@ -38,6 +38,7 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
 
 	"github.com/goadesign/goa"
@@ -3383,23 +3384,38 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 }
 
 func (s *WorkItem2Suite) TestDeleteWorkitem() {
-	s.T().Run("ok", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1))
-		s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[0])
-		test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+	s.T().Run("Delete Workitem", func(t *testing.T) {
+		t.Run("ok", func(t *testing.T) {
+			fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1))
+			s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[0])
+			test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+		})
+		t.Run("unauthorized", func(t *testing.T) {
+			fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1), tf.Identities(1))
+			svcNotAuthorized := goa.New("TestDeleteWI2-Service")
+			workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
+			test.DeleteWorkitemUnauthorized(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, fxt.WorkItems[0].ID)
+		})
+		t.Run("forbidden", func(t *testing.T) {
+			fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1), tf.Identities(2))
+			s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[1])
+			test.DeleteWorkitemForbidden(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+		})
+		t.Run("workitem not found", func(t *testing.T) {
+			test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, uuid.NewV4())
+		})
 	})
-	s.T().Run("unauthorized", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1), tf.Identities(1))
-		svcNotAuthorized := goa.New("TestDeleteWI2-Service")
-		workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
-		test.DeleteWorkitemUnauthorized(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, fxt.WorkItems[0].ID)
-	})
-	s.T().Run("forbidden", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1), tf.Identities(2))
-		s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[1])
-		test.DeleteWorkitemForbidden(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
-	})
-	s.T().Run("workitem not found", func(t *testing.T) {
-		test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, uuid.NewV4())
+	s.T().Run("Delete Workitem Links", func(t *testing.T) {
+		t.Run("ok", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.WorkItems(2, tf.SetWorkItemTitles("A", "B")),
+				tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree)),
+				tf.WorkItemLinksCustom(1, tf.BuildLinks(tf.LinkChain("A", "B")...)),
+			)
+			s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[0])
+			test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+			test.ShowWorkItemLinkNotFound(t, s.svc.Context, s.svc, s.linkCtrl, fxt.WorkItemLinks[0].ID, nil, nil)
+		})
 	})
 }

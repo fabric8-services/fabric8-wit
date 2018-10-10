@@ -270,11 +270,11 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	}
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		if err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
-			return errs.Wrapf(err, "error deleting work item %s", ctx.WiID)
-		}
 		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
 			return errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.WiID)
+		}
+		if err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
+			return errs.Wrapf(err, "error deleting work item %s", ctx.WiID)
 		}
 		return nil
 	})
