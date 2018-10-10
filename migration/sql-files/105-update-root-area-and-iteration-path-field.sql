@@ -1,10 +1,10 @@
--- append ID to non-root iteration and area paths
-UPDATE iterations SET path=text2ltree(concat(path, concat('.',replace(cast(id as text), '-', '_')))) WHERE path!='' AND path IS NOT NULL;
-UPDATE areas SET path=text2ltree(concat(path, concat('.',replace(cast(id as text), '-', '_')))) WHERE path!='' AND path IS NOT NULL;
-
 -- drop constraints
 ALTER TABLE iterations DROP CONSTRAINT iterations_name_space_id_path_unique;
 ALTER TABLE areas DROP CONSTRAINT areas_name_space_id_path_unique;
+
+-- append ID to non-root iteration and area paths
+UPDATE iterations SET path=text2ltree(concat(path, concat('.',replace(cast(id as text), '-', '_')))) WHERE path!='' AND path IS NOT NULL;
+UPDATE areas SET path=text2ltree(concat(path, concat('.',replace(cast(id as text), '-', '_')))) WHERE path!='' AND path IS NOT NULL;
 
 -- update root iteration and area paths to use converted ids
 UPDATE iterations SET path=text2ltree(replace(cast(id as text), '-', '_')) WHERE path='' OR PATH IS NULL;
