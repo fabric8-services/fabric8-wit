@@ -38,7 +38,6 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
 
 	"github.com/goadesign/goa"
@@ -3413,7 +3412,7 @@ func (s *WorkItem2Suite) TestDeleteWorkitem() {
 			fxt := tf.NewTestFixture(t, s.DB,
 				tf.CreateWorkItemEnvironment(),
 				tf.WorkItems(2, tf.SetWorkItemTitles("A", "B")),
-				tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree)),
+				tf.WorkItemLinkTypes(1),
 				tf.WorkItemLinksCustom(1, tf.BuildLinks(tf.LinkChain("A", "B")...)),
 			)
 			s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[0])
