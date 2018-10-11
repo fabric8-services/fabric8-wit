@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+	numbersequence "github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -21,6 +22,10 @@ import (
 )
 
 var (
+	// SystemSpace used to be a concept space that existed to house certain work
+	// item types that would then be shared among all spaces. This concept was
+	// deprecated with the advent of space templates.
+	// TODO(kwk): Remove system space entirely.
 	SystemSpace = uuid.FromStringOrNil("2e0698d8-753e-4cef-bb7c-f027634824a2")
 	SpaceType   = "spaces"
 )
@@ -114,13 +119,15 @@ type Repository interface {
 // NewRepository creates a new space repo
 func NewRepository(db *gorm.DB) *GormRepository {
 	return &GormRepository{
-		db: db,
+		db:   db,
+		winr: numbersequence.NewWorkItemNumberSequenceRepository(db),
 	}
 }
 
 // GormRepository implements SpaceRepository using gorm
 type GormRepository struct {
-	db *gorm.DB
+	db   *gorm.DB
+	winr numbersequence.WorkItemNumberSequenceRepository
 }
 
 // Load returns the space for the given id

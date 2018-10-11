@@ -200,6 +200,32 @@ func TestIsNull(t *testing.T) {
 	expect(t, c.IsNull("SpaceID"), `(`+workitem.Column(wiTbl, "space_id")+` IS NULL)`, []interface{}{}, nil)
 }
 
+func TestChild(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	defJoins := workitem.DefaultTableJoins()
+	t.Run("iteration", func(t *testing.T) {
+		j := *defJoins["iteration"]
+		j.Active = true
+		e := "(uuid(\"work_items\".fields->>'system.iteration') IN (\n\t\t\t\tSELECT iter.id\n\t\t\t\t\tWHERE\n\t\t\t\t\t\t(SELECT j.path\n\t\t\t\t\t\t\tFROM iterations j\n\t\t\t\t\t\t\tWHERE j.space_id = \"work_items\".\"space_id\" AND j.id = ? \n\t\t\t\t\t\t) @> iter.path\n\t\t\t\t\t\t\t  ))"
+		expect(t, c.Child(c.Field("system.iteration"), c.Literal("abcd")), e, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+	})
+	t.Run("area", func(t *testing.T) {
+		j := *defJoins["area"]
+		j.Active = true
+		e := "(uuid(\"work_items\".fields->>'system.area') IN (\n\t\t\t\tSELECT ar.id\n\t\t\t\t\tWHERE\n\t\t\t\t\t\t(SELECT j.path\n\t\t\t\t\t\t\tFROM areas j\n\t\t\t\t\t\t\tWHERE j.space_id = \"work_items\".\"space_id\" AND j.id = ? \n\t\t\t\t\t\t) @> ar.path\n\t\t\t\t\t\t\t  ))"
+		expect(t, c.Child(c.Field("system.area"), c.Literal("abcd")), e, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+	})
+	t.Run("label - error", func(t *testing.T) {
+		j := *defJoins["label"]
+		j.Active = true
+		expr := c.Child(c.Field("system.label"), c.Literal("abcd"))
+		_, _, _, compileErrors := workitem.Compile(expr)
+		require.EqualError(t, compileErrors[0], "invalid field name for child expression: system.label")
+	})
+
+}
+
 func expect(t *testing.T, expr c.Expression, expectedClause string, expectedParameters []interface{}, expectedJoins []*workitem.TableJoin) {
 	clause, parameters, joins, compileErrors := workitem.Compile(expr)
 	t.Run("check for compile errors", func(t *testing.T) {

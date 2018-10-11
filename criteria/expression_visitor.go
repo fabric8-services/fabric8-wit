@@ -10,5 +10,6 @@ type ExpressionVisitor interface {
 	Parameter(v *ParameterExpression) interface{}
 	Literal(c *LiteralExpression) interface{}
 	Not(e *NotExpression) interface{}
+	Child(e *ChildExpression) interface{}
 	IsNull(e *IsNullExpression) interface{}
 }
