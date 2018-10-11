@@ -60,10 +60,10 @@ func (c *Content) IsRepoValidURL() bool {
 // Repository value is mandatory
 func (c *Content) IsValid() error {
 	if c.Repository == "" {
-		return errors.NewBadParameterError("system.codebase", RepositoryKey+" is mandatory")
+		return errors.NewBadParameterError("system_codebase", RepositoryKey+" is mandatory")
 	}
 	if c.IsRepoValidURL() == false {
-		return errors.NewBadParameterError("system.codebase", RepositoryKey+" is not valid git url")
+		return errors.NewBadParameterError("system_codebase", RepositoryKey+" is not valid git url")
 	}
 	return nil
 }

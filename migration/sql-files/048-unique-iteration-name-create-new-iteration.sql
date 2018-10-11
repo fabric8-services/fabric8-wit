@@ -81,9 +81,9 @@ $rootiteration$  LANGUAGE plpgsql ;
 
 UPDATE iterations set path=GetUpdatedIterationPath(id,space_id,path);
 
-update work_items set fields=jsonb_set(fields, '{system.iteration}', to_jsonb(subq.id::text)) 
+update work_items set fields=jsonb_set(fields, '{system_iteration}', to_jsonb(subq.id::text)) 
     from (select id, space_id from iterations where path = '') AS subq
-    where subq.space_id = work_items.space_id and fields->>'system.iteration' IS NULL;
+    where subq.space_id = work_items.space_id and fields->>'system_iteration' IS NULL;
 
 -- cleanup
 DROP FUNCTION GetUpdatedIterationPath(uuid,uuid,ltree);

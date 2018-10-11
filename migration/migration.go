@@ -207,7 +207,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("032-add-foreign-key-space-id.sql")})
 
 	// Version 33
-	m = append(m, steps{ExecuteSQLFile("033-add-space-id-wilt.sql", space.SystemSpace.String(), "system.space", "Description of the space")})
+	m = append(m, steps{ExecuteSQLFile("033-add-space-id-wilt.sql", space.SystemSpace.String(), "system_space", "Description of the space")})
 
 	// Version 34
 	m = append(m, steps{ExecuteSQLFile("034-space-owner.sql")})
@@ -468,6 +468,8 @@ func GetMigrations() Migrations {
 	// Version 110
 	m = append(m, steps{ExecuteSQLFile("110-update-number-for-existing-iterations.sql")})
 
+	// Version 108
+	m = append(m, steps{ExecuteSQLFile("108-rename-field.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

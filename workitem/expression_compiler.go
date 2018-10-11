@@ -111,7 +111,7 @@ func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName str
 		return Column(WorkItemStorage{}.TableName(), mappedFieldName), false
 	}
 
-	if strings.Contains(fieldName, ".") {
+	if strings.Contains(fieldName, "_") {
 		// leave field untouched
 		return fieldName, true
 	}
@@ -197,7 +197,7 @@ var DefaultTableJoins = func() TableJoinMap {
 			On: Column("lbl", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id") + `
 		                    AND lbl.id::text IN (
 		                        SELECT
-						jsonb_array_elements_text(` + Column(WorkItemStorage{}.TableName(), "fields") + `->'system.labels')
+						jsonb_array_elements_text(` + Column(WorkItemStorage{}.TableName(), "fields") + `->'system_labels')
 					FROM labels)`,
 			PrefixActivators: []string{"label."},
 			AllowedColumns:   []string{"name"},

@@ -148,7 +148,7 @@ func (s *ActionSuite) TestActionExecution() {
 		})
 		require.NoError(t, err)
 		require.Len(t, changes, 0)
-		require.Equal(t, workitem.SystemStateOpen, afterActionWI.(workitem.WorkItem).Fields["system.state"])
+		require.Equal(t, workitem.SystemStateOpen, afterActionWI.(workitem.WorkItem).Fields["system_state"])
 	})
 
 	s.T().Run("unknown rule", func(t *testing.T) {
@@ -171,7 +171,7 @@ func (s *ActionSuite) TestActionExecution() {
 		require.NoError(t, err)
 		// Intentionally not using a constant here!
 		afterActionWI, changes, err := ExecuteActionsByChangeset(s.Ctx, s.GormDB, userID, newVersion, contextChanges, map[string]string{
-			"FieldSet": "{ \"system.state\": \"resolved\" }",
+			"FieldSet": "{ \"system_state\": \"resolved\" }",
 		})
 		require.NoError(t, err)
 		require.Len(t, changes, 1)

@@ -16,7 +16,7 @@ SET cats.usercat = '{{index . 5}}';
 SET cats.unknown_usercat = 'f83073d9-b79e-471b-a9a4-68248dd431ab';
 
 INSERT INTO spaces (id, name) VALUES 
-    (current_setting('spaces.system')::uuid, 'system.space')
+    (current_setting('spaces.system')::uuid, 'system_space')
     ON CONFLICT DO NOTHING;
 
 INSERT INTO work_item_link_categories (id, name) VALUES
@@ -74,10 +74,10 @@ INSERT INTO work_item_types (id, name, space_id) VALUES
     (current_setting('wits.test')::uuid, 'Test WIT', current_setting('spaces.system')::uuid);
 
 INSERT INTO work_items (id, space_id, type, fields) VALUES
-    (current_setting('wis.parent1')::uuid, current_setting('spaces.system')::uuid, current_setting('wits.test')::uuid, '{"system.title":"Parent"}'::json),
-    (current_setting('wis.parent2')::uuid, current_setting('spaces.system')::uuid, current_setting('wits.test')::uuid, '{"system.title":"Parent"}'::json),
-    (current_setting('wis.child1')::uuid, current_setting('spaces.system')::uuid, current_setting('wits.test')::uuid, '{"system.title":"Child"}'::json),
-    (current_setting('wis.child2')::uuid, current_setting('spaces.system')::uuid, current_setting('wits.test')::uuid, '{"system.title":"Child"}'::json);
+    (current_setting('wis.parent1')::uuid, current_setting('spaces.system')::uuid, current_setting('wits.test')::uuid, '{"system_title":"Parent"}'::json),
+    (current_setting('wis.parent2')::uuid, current_setting('spaces.system')::uuid, current_setting('wits.test')::uuid, '{"system_title":"Parent"}'::json),
+    (current_setting('wis.child1')::uuid, current_setting('spaces.system')::uuid, current_setting('wits.test')::uuid, '{"system_title":"Child"}'::json),
+    (current_setting('wis.child2')::uuid, current_setting('spaces.system')::uuid, current_setting('wits.test')::uuid, '{"system_title":"Child"}'::json);
 
 -- Create links using both link types
 

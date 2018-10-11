@@ -70,20 +70,20 @@ CREATE UNIQUE INDEX uix_work_items_spaceid_number ON work_items using btree (spa
 CREATE INDEX fulltext_search_index ON work_items USING GIN (tsv);
 
 -- UPDATE the 'tsv' COLUMN with the text value of the existing 'content' 
--- element in the 'system.description' JSON document
+-- element in the 'system_description' JSON document
 UPDATE work_items SET tsv =
     setweight(to_tsvector('english', "number"::text),'A') ||
-    setweight(to_tsvector('english', coalesce(fields->>'system.title','')),'B') ||
-    setweight(to_tsvector('english', coalesce(fields#>>'{system.description, content}','')),'C');
+    setweight(to_tsvector('english', coalesce(fields->>'system_title','')),'B') ||
+    setweight(to_tsvector('english', coalesce(fields#>>'{system_description, content}','')),'C');
 
 -- fill the 'tsv' COLUMN with the text value of the created/modified 'content' 
--- element in the 'system.description' JSON document
+-- element in the 'system_description' JSON document
 CREATE FUNCTION workitem_tsv_TRIGGER() RETURNS TRIGGER AS $$
 begin
   new.tsv :=
     setweight(to_tsvector('english', new.number::text),'A') ||
-    setweight(to_tsvector('english', coalesce(new.fields->>'system.title','')),'B') ||
-    setweight(to_tsvector('english', coalesce(new.fields#>>'{system.description, content}','')),'C');
+    setweight(to_tsvector('english', coalesce(new.fields->>'system_title','')),'B') ||
+    setweight(to_tsvector('english', coalesce(new.fields#>>'{system_description, content}','')),'C');
   return new;
 end
 $$ LANGUAGE plpgsql; 
