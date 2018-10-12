@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account/tenant"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	gemini "github.com/fabric8-services/fabric8-wit/codebase/analytics-gemini"
 	"github.com/fabric8-services/fabric8-wit/codebase/che"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -60,16 +59,6 @@ func withShowTenant(f account.CodebaseInitTenantProvider) ConfigureCodebaseContr
 	}
 }
 
-// withAnalyticsGeminiClient takes in the function that can initialize
-// the Analytics Gemini Service Client and it returns a closure which
-// takes in the CodebaseController object and initializes this object
-// with the Analytics Gemini Client
-func withAnalyticsGeminiClient(f AnalyticsGeminiClientProvider) ConfigureCodebaseController {
-	return func(codebaseCtrl *CodebaseController) {
-		codebaseCtrl.AnalyticsGeminiClient = f
-	}
-}
-
 func (s *CodebaseControllerTestSuite) UnsecuredController(settings ...ConfigureCodebaseController) (*goa.Service, *CodebaseController) {
 	svc := goa.New("Codebases-service")
 	codebaseCtrl := NewCodebaseController(svc, s.GormDB, s.Configuration)
@@ -115,23 +104,6 @@ func MockShowTenant() func(context.Context) (*tenant.TenantSingle, error) {
 				},
 			},
 			nil
-	}
-}
-
-// MockAnalyticsGeminiClient takes in the transport objects for
-// Gemini service and the Codebase service and returns function when
-// called returns the Gemini Service Client
-func MockAnalyticsGeminiClient(geminiTransport, codebaseTransport http.RoundTripper) func() *gemini.ScanRepoClient {
-	config, _ := configuration.New("")
-	return func() *gemini.ScanRepoClient {
-
-		return gemini.NewScanRepoClient(
-			config.GetAnalyticsGeminiServiceURL(),
-			&http.Client{Transport: geminiTransport},
-			config.GetCodebaseServiceURL(),
-			&http.Client{Transport: codebaseTransport},
-			false,
-		)
 	}
 }
 
@@ -185,7 +157,6 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			testsupport.TestIdentity,
 			withCheClient(NewMockCheClient(m, s.Configuration)),
 			withShowTenant(MockShowTenant()),
-			withAnalyticsGeminiClient(MockAnalyticsGeminiClient(m, m)),
 		)
 		// when
 		test.DeleteCodebaseNoContent(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
@@ -232,7 +203,6 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			testsupport.TestIdentity,
 			withCheClient(NewMockCheClient(m, s.Configuration)),
 			withShowTenant(MockShowTenant()),
-			withAnalyticsGeminiClient(MockAnalyticsGeminiClient(m, m)),
 		)
 		// when
 		test.DeleteCodebaseNoContent(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
@@ -355,7 +325,6 @@ func (s *CodebaseControllerTestSuite) TestUpdateCodebase() {
 		codebase := fxt.Codebases[0]
 		svc, ctrl := s.SecuredControllers(
 			*fxt.Identities[0],
-			withAnalyticsGeminiClient(MockAnalyticsGeminiClient(m, m)),
 		)
 
 		// input
