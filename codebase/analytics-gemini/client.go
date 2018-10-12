@@ -184,7 +184,7 @@ func (sr *ScanRepoClient) Register(ctx context.Context, d *Request) error {
 	if sr.devMode {
 		return nil
 	}
-	return sr.callGemini(ctx, d, "/api/v1/user-repo/scan")
+	return sr.callGemini(ctx, d, "/api/v1/user-repo/scan/experimental")
 }
 
 // DeRegister unsubscribes you from the analytics Gemini service so that the
