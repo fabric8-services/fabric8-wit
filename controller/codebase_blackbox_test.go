@@ -172,11 +172,6 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 				RequestURL:    "che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo",
 				StatusCode:    200,
 			},
-			httpmonitor.Exchange{
-				RequestMethod: "GET",
-				RequestURL:    "http://core/api/search/codebases?url=git%40github.com%3Abar%2Ffoo",
-				StatusCode:    200,
-			},
 		)
 
 		require.NoError(t, err)
@@ -217,11 +212,6 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 				RequestMethod: "DELETE",
 				RequestURL:    "che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo",
 				StatusCode:    500,
-			},
-			httpmonitor.Exchange{
-				RequestMethod: "GET",
-				RequestURL:    "http://core/api/search/codebases?url=git%40github.com%3Abar%2Ffoo",
-				StatusCode:    200,
 			},
 		)
 		require.NoError(t, err)
@@ -315,10 +305,9 @@ func (s *CodebaseControllerTestSuite) TestUpdateCodebase() {
 	}
 
 	t.Run("OK", func(t *testing.T) {
-		r, err := recorder.New("../test/data/gemini-scan/codebase-update-ok")
+		r, err := recorder.New("../test/data/cve-scan/codebase-update-ok")
 		require.NoError(t, err)
 		defer r.Stop()
-		m := httpmonitor.NewTransportMonitor(r.Transport)
 
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1))
@@ -341,15 +330,6 @@ func (s *CodebaseControllerTestSuite) TestUpdateCodebase() {
 		require.Equal(t, false, *result.Data.Attributes.CveScan)
 		require.Equal(t, newType, *result.Data.Attributes.Type)
 		require.Equal(t, newStack, *result.Data.Attributes.StackID)
-
-		err = m.ValidateExchanges(
-			httpmonitor.Exchange{
-				RequestMethod: "GET",
-				RequestURL:    "http://core/api/search/codebases?url=git%40github.com%3Afabric8-services%2Ffabric8-wit.git",
-				StatusCode:    200,
-			},
-		)
-		require.NoError(t, err)
 	})
 
 	t.Run("forbidden for wrong user", func(t *testing.T) {
