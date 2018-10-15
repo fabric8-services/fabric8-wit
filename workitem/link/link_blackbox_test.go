@@ -6,8 +6,8 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/convert"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	uuid "github.com/satori/go.uuid"

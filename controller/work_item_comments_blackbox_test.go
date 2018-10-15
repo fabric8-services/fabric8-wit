@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/id"
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 
 	"context"

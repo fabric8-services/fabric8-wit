@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/fabric8-services/fabric8-wit/workitem"

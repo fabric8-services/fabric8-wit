@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 
 	uuid "github.com/satori/go.uuid"
 )
