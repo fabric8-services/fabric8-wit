@@ -124,11 +124,6 @@ objects:
               configMapKeyRef:
                 name: core
                 key: codebase.serviceurl
-          - name: F8_ANALYTICS_GEMINI_SERVICEURL
-            valueFrom:
-              configMapKeyRef:
-                name: core
-                key: analytics.gemini.serviceurl
           - name: F8_REDIRECT_VALID
             valueFrom:
               configMapKeyRef:

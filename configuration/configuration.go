@@ -99,19 +99,18 @@ const (
 	varCacheControlQuery            = "cachecontrol.query"
 	varCacheControlComment          = "cachecontrol.comment"
 
-	defaultConfigFile            = "config.yaml"
-	varOpenshiftTenantMasterURL  = "openshift.tenant.masterurl"
-	varCheStarterURL             = "chestarterurl"
-	varValidRedirectURLs         = "redirect.valid"
-	varLogLevel                  = "log.level"
-	varLogJSON                   = "log.json"
-	varTenantServiceURL          = "tenant.serviceurl"
-	varNotificationServiceURL    = "notification.serviceurl"
-	varTogglesServiceURL         = "toggles.serviceurl"
-	varDeploymentsServiceURL     = "deployments.serviceurl"
-	varCodebaseServiceURL        = "codebase.serviceurl"
-	varAnalyticsGeminiServiceURL = "analytics.gemini.serviceurl"
-	varDeploymentsHTTPTimeout    = "deployments.http.timeout"
+	defaultConfigFile           = "config.yaml"
+	varOpenshiftTenantMasterURL = "openshift.tenant.masterurl"
+	varCheStarterURL            = "chestarterurl"
+	varValidRedirectURLs        = "redirect.valid"
+	varLogLevel                 = "log.level"
+	varLogJSON                  = "log.json"
+	varTenantServiceURL         = "tenant.serviceurl"
+	varNotificationServiceURL   = "notification.serviceurl"
+	varTogglesServiceURL        = "toggles.serviceurl"
+	varDeploymentsServiceURL    = "deployments.serviceurl"
+	varCodebaseServiceURL       = "codebase.serviceurl"
+	varDeploymentsHTTPTimeout   = "deployments.http.timeout"
 )
 
 // Registry encapsulates the Viper configuration registry which stores the
@@ -256,7 +255,6 @@ func (c *Registry) setConfigDefaults() {
 	c.v.SetDefault(varDeploymentsServiceURL, defaultDeploymentsServiceURL)
 	c.v.SetDefault(varCodebaseServiceURL, defaultCodebaseServiceURL)
 	c.v.SetDefault(varDeploymentsHTTPTimeout, defaultDeploymentsHTTPTimeout)
-	c.v.SetDefault(varAnalyticsGeminiServiceURL, defaultAnalyticsGeminiServiceURL)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -875,12 +873,6 @@ func (c *Registry) GetCodebaseServiceURL() string {
 	return c.v.GetString(varCodebaseServiceURL)
 }
 
-// GetAnalyticsGeminiServiceURL returns the URL for the Analytics service
-// which is used by the codebase repository to enable or disable scanning
-func (c *Registry) GetAnalyticsGeminiServiceURL() string {
-	return c.v.GetString(varAnalyticsGeminiServiceURL)
-}
-
 // GetDeploymentsTimeout returns the amount of seconds until it should timeout.
 func (c *Registry) GetDeploymentsHTTPTimeoutSeconds() time.Duration {
 	timeout := c.v.GetInt(varDeploymentsHTTPTimeout)
@@ -929,9 +921,6 @@ const (
 	// respective services.
 	defaultDeploymentsServiceURL = "http://core"
 	defaultCodebaseServiceURL    = "http://core"
-
-	// Analytics service URLs
-	defaultAnalyticsGeminiServiceURL = "http://geminiservice.analytics"
 
 	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth
 	// If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
