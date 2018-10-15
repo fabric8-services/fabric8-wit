@@ -1,11 +1,10 @@
--- Assign a number to every existing iteration partitioned by their space and in
--- ascending creation order.
-UPDATE iterations SET number = seq.row_number
-FROM (
-    SELECT id, space_id, created_at, row_number() OVER (PARTITION BY space_id ORDER BY created_at ASC)
+--- Assign a number to every existing iteration partitioned by their space and in
+--- ascending creation order.
+WITH iteration_numbers AS (
+    SELECT *, ROW_NUMBER() OVER(PARTITION BY space_id ORDER BY created_at ASC) AS num
     FROM iterations
-) AS seq
-WHERE iterations.id = seq.id;
+)
+UPDATE iterations SET number = (SELECT num FROM iteration_numbers WHERE iteration_numbers.id = iterations.id);
 
 -- Make "number" a required column and add an index for faster querying over
 -- "space_id" and "number".
