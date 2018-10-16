@@ -7,7 +7,7 @@ import (
 	"hash/fnv"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/closeable"
+	"github.com/fabric8-services/fabric8-common/closeable"
 
 	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/application/repository"

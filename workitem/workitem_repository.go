@@ -12,10 +12,10 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/label"
 
+	"github.com/fabric8-services/fabric8-common/closeable"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/area"
-	"github.com/fabric8-services/fabric8-wit/closeable"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"

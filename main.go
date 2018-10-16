@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-common/closeable"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
-	"github.com/fabric8-services/fabric8-wit/closeable"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
 	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"

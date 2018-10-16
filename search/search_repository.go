@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/fabric8-services/fabric8-wit/closeable"
+	"github.com/fabric8-services/fabric8-common/closeable"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/davecgh/go-spew/spew"
