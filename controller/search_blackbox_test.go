@@ -568,6 +568,27 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 		}),
 	)
 	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
+	s.T().Run("space=ID AND number=string", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND":[
+					{ "number": { "$EQ" : "asd" } },
+					{ "space": { "$EQ" : "%s" } }
+				]}`, spaceIDStr)
+		_, jerr := test.ShowSearchBadRequest(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, jerr)
+		require.Len(t, jerr.Errors, 1)
+	})
+
+	s.T().Run("space=ID AND number=*", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND":[
+					{ "number": { "$EQ" : "*" } },
+					{ "space": { "$EQ" : "%s" } }
+				]}`, spaceIDStr)
+		_, jerr := test.ShowSearchBadRequest(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, jerr)
+		require.Len(t, jerr.Errors, 1)
+	})
 
 	s.T().Run("label IN IMPORTANT, UI", func(t *testing.T) {
 		// following test does not include any "space" deliberately, hence if there
