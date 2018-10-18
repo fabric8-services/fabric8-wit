@@ -69,7 +69,7 @@ func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
 	)
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchWithChildIterationWorkItems() {
+func (s *searchRepositoryBlackboxTest) TestFilterWithChildIterationWorkItems() {
 	s.T().Run("iterations", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
@@ -145,7 +145,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithChildIterationWorkItems() {
 	})
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
+func (s *searchRepositoryBlackboxTest) TestFilterWithJoin() {
 	s.T().Run("join iterations", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Iterations(2),
@@ -313,7 +313,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {
+func (s *searchRepositoryBlackboxTest) TestFilterBoardColumnID() {
 	s.T().Run("boardcolumn", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.CreateWorkItemEnvironment(),
@@ -423,7 +423,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {
 	})
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchByParent() {
+func (s *searchRepositoryBlackboxTest) TestFilterByParent() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItems(4, tf.SetWorkItemTitles("grandparent", "parent", "child1", "child2")),
 		tf.WorkItemLinksCustom(3,
@@ -496,7 +496,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchByParent() {
 	})
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchBoardID() {
+func (s *searchRepositoryBlackboxTest) TestFilterBoardID() {
 	s.T().Run("board", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.CreateWorkItemEnvironment(),
@@ -538,122 +538,8 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardID() {
 	})
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
-
-	s.T().Run("Filter by title", func(t *testing.T) {
-
-		t.Run("matching title", func(t *testing.T) {
-			// given
-			fxt := s.getTestFixture()
-			// when
-			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType"
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
-			// then
-			require.NoError(t, err)
-			assert.Equal(t, 2, count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
-			assert.NotNil(t, res[0].Fields[workitem.SystemNumber])
-			assert.NotNil(t, res[1].Fields[workitem.SystemNumber])
-		})
-		s.T().Run("unmatching title", func(t *testing.T) {
-			// given
-			fxt := s.getTestFixture()
-			// when
-			spaceID := fxt.Spaces[0].ID.String()
-			query := "TRBTgorxi type:" + fxt.WorkItemTypeByName("base").ID.String()
-			_, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
-			// then
-			require.NoError(t, err)
-			assert.Equal(t, 0, count)
-		})
-	})
-
-	s.T().Run("SearchFullText by title and types", func(t *testing.T) {
-
-		t.Run("type sub1", func(t *testing.T) {
-			// given
-			fxt := s.getTestFixture()
-			// when
-			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub1").ID.String()
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
-			// then
-			require.NoError(t, err)
-			require.Equal(t, 1, count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[0]))
-		})
-
-		t.Run("type sub2", func(t *testing.T) {
-			// given
-			fxt := s.getTestFixture()
-			// when
-			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub2").ID.String()
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
-			// then
-			require.NoError(t, err)
-			require.Equal(t, 1, count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1]))
-		})
-
-		t.Run("type base", func(t *testing.T) {
-			// given
-			fxt := s.getTestFixture()
-			// when
-			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("base").ID.String()
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
-			// then
-			require.NoError(t, err)
-			require.Equal(t, 2, count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
-		})
-
-		t.Run("types sub1+sub2", func(t *testing.T) {
-			// given
-			fxt := s.getTestFixture()
-			// when
-			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub2").ID.String() + " type:" + fxt.WorkItemTypeByName("sub1").ID.String()
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
-			// then
-			require.NoError(t, err)
-			assert.Equal(t, 2, count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
-		})
-
-		t.Run("types base+sub1", func(t *testing.T) {
-			// given
-			fxt := s.getTestFixture()
-			// when
-			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("base").ID.String() + " type:" + fxt.WorkItemTypeByName("sub1").ID.String()
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
-			// then
-			require.NoError(t, err)
-			assert.Equal(t, 2, count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
-		})
-		// regression test for:
-		// https://github.com/openshiftio/openshift.io/issues/4288
-		// https://github.com/fabric8-services/fabric8-wit/issues/2273
-		t.Run("search for work item with single quotes in name", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(3, tf.SetWorkItemTitles("foo", "title with 'single quotes' in it", "bar")))
-			spaceID := fxt.Spaces[0].ID.String()
-			query := "with 'single quotes'"
-			// when
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
-			// then
-			require.NoError(t, err)
-			require.Equal(t, 1, count)
-			require.Equal(t, fxt.WorkItems[1].ID, res[0].ID)
-		})
-	})
-
-	s.T().Run("Filter with limits", func(t *testing.T) {
-
+func (s *searchRepositoryBlackboxTest) TestFilter() {
+	s.T().Run("with limits", func(t *testing.T) {
 		t.Run("none", func(t *testing.T) {
 			// given
 			fxt := s.getTestFixture()
@@ -762,29 +648,123 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			assert.Empty(t, ancestors)
 			assert.Empty(t, childLinks)
 		})
-
 	})
 }
 
-// containsAllWorkItems verifies that the `expectedWorkItems` array contains all `actualWorkitems` in the _given order_,
-// by comparing the lengths and each ID,
-func containsAllWorkItems(expectedWorkitems []workitem.WorkItem, actualWorkitems ...workitem.WorkItem) assert.Comparison {
-	return func() bool {
-		if len(expectedWorkitems) != len(actualWorkitems) {
-			return false
-		}
-		for i, expectedWorkitem := range expectedWorkitems {
-			if !uuid.Equal(expectedWorkitem.ID, actualWorkitems[i].ID) {
-				return false
-			}
-		}
-		return true
-	}
-}
-
-func (s *searchRepositoryBlackboxTest) TestSearch() {
-
+func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 	var start, limit int = 0, 100
+
+	s.T().Run("by title", func(t *testing.T) {
+
+		t.Run("matching title", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			// when
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType"
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 2, count)
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
+			assert.NotNil(t, res[0].Fields[workitem.SystemNumber])
+			assert.NotNil(t, res[1].Fields[workitem.SystemNumber])
+		})
+		s.T().Run("unmatching title", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			// when
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TRBTgorxi type:" + fxt.WorkItemTypeByName("base").ID.String()
+			_, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 0, count)
+		})
+	})
+
+	s.T().Run("by title and types", func(t *testing.T) {
+
+		t.Run("type sub1", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			// when
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub1").ID.String()
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			// then
+			require.NoError(t, err)
+			require.Equal(t, 1, count)
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[0]))
+		})
+
+		t.Run("type sub2", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			// when
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub2").ID.String()
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			// then
+			require.NoError(t, err)
+			require.Equal(t, 1, count)
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1]))
+		})
+
+		t.Run("type base", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			// when
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("base").ID.String()
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			// then
+			require.NoError(t, err)
+			require.Equal(t, 2, count)
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
+		})
+
+		t.Run("types sub1+sub2", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			// when
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub2").ID.String() + " type:" + fxt.WorkItemTypeByName("sub1").ID.String()
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 2, count)
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
+		})
+
+		t.Run("types base+sub1", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			// when
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("base").ID.String() + " type:" + fxt.WorkItemTypeByName("sub1").ID.String()
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 2, count)
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
+		})
+		// regression test for:
+		// https://github.com/openshiftio/openshift.io/issues/4288
+		// https://github.com/fabric8-services/fabric8-wit/issues/2273
+		t.Run("search for work item with single quotes in name", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(3, tf.SetWorkItemTitles("foo", "title with 'single quotes' in it", "bar")))
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "with 'single quotes'"
+			// when
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			// then
+			require.NoError(t, err)
+			require.Equal(t, 1, count)
+			require.Equal(t, fxt.WorkItems[1].ID, res[0].ID)
+		})
+	})
 
 	s.T().Run("Search accross title and description", func(t *testing.T) {
 
@@ -1009,6 +989,22 @@ func (s *searchRepositoryBlackboxTest) TestSearch() {
 			}
 		})
 	})
+}
+
+// containsAllWorkItems verifies that the `expectedWorkItems` array contains all `actualWorkitems` in the _given order_,
+// by comparing the lengths and each ID,
+func containsAllWorkItems(expectedWorkitems []workitem.WorkItem, actualWorkitems ...workitem.WorkItem) assert.Comparison {
+	return func() bool {
+		if len(expectedWorkitems) != len(actualWorkitems) {
+			return false
+		}
+		for i, expectedWorkitem := range expectedWorkitems {
+			if !uuid.Equal(expectedWorkitem.ID, actualWorkitems[i].ID) {
+				return false
+			}
+		}
+		return true
+	}
 }
 
 // verify verifies that the search results match with the expected count and that the title or description contain all
