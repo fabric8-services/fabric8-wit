@@ -2,7 +2,8 @@ package comment
 
 import (
 	"context"
-	"github.com/fabric8-services/fabric8-wit/id"
+
+	"github.com/fabric8-services/fabric8-common/id"
 
 	"time"
 

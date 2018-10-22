@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/id"
+	"github.com/fabric8-services/fabric8-common/id"
 
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
