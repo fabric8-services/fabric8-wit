@@ -1,6 +1,8 @@
 package workitem
 
 import (
+	"strconv"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"math"
 	"reflect"
 	"time"
@@ -166,6 +168,102 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "boolean", valueType.Name())
 		}
 		return value, nil
+	default:
+		return nil, errs.Errorf("unexpected type constant: '%s'", t.GetKind())
+	}
+}
+
+// ConvertToString implements the FieldType interface
+func (t SimpleType) ConvertToString(value interface{}) (*string, error) {
+	if value == nil {
+		return nil, nil
+	}
+	valueType := reflect.TypeOf(value)
+	switch t.GetKind() {
+	case KindString, KindUser, KindIteration, KindArea, KindLabel, KindBoardColumn:
+		if valueType.Kind() != reflect.String {
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "string", valueType.Name())
+		}
+		return ptr.String(value.(string)), nil
+	case KindURL:
+		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) {
+			return ptr.String(value.(string)), nil
+		}
+		return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %q", value, "URL", valueType.Name())
+	case KindFloat:
+		if valueType.Kind() != reflect.Float64 {
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %q", value, "float64", valueType.Name())
+		}
+		fval, ok := value.(float64)
+		if !ok {
+			return nil, errs.Errorf("failed to cast value %+v (%[1]T) to float64", value)
+		}
+		return ptr.String(strconv.FormatFloat(fval, 'f', 6, 64)), nil
+	case KindInteger:
+		// NOTE(kwk): This will change soon to be more consistent.
+		switch valueType.Kind() {
+		case reflect.Int:
+			ival, ok := value.(int)
+			if !ok {
+				return nil, errs.Errorf("failed to cast value %+v (%[1]T) to int", value)
+			}
+			return ptr.String(strconv.Itoa(ival)), nil
+		case reflect.Int64:
+			ival, ok := value.(int64)
+			if !ok {
+				return nil, errs.Errorf("failed to cast value %+v (%[1]T) to int64", value)
+			}
+			return ptr.String(strconv.FormatInt((ival), 10)), nil
+		case reflect.Float64:
+			fval, ok := value.(float64)
+			if !ok {
+				return nil, errs.Errorf("failed to cast value %+v (%[1]T) to float64", value)
+			}
+			if fval != math.Trunc(fval) {
+				return nil, errs.Errorf("float64 value %+v (%[1]T) has digits after the decimal point and therefore cannot be represented by an integer", value)
+			}
+			return ptr.String(strconv.FormatFloat(fval, 'f', 6, 64)), nil
+		default:
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s ", value, "int or float", valueType.Name())
+		}
+	case KindInstant:
+		// instant == milliseconds
+		// if !valueType.Implements(timeType) {
+		if valueType.Kind() != timeType.Kind() {
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "time.Time", valueType.Name())
+		}
+		return ptr.String(strconv.FormatInt((value.(time.Time).UnixNano()), 10)), nil
+	case KindList:
+		/*
+		if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s,", value, "array/slice", valueType.Kind())
+		}
+		listStr := strings.Join(value, ";")
+		return listStr, nil
+		*/
+		// TODO(michaelkleinhenz): implement
+		return ptr.String("not supported"), nil
+	case KindEnum:
+		// to be done yet | not sure what to write here as of now.
+		// TODO(michaelkleinhenz): implement
+		return ptr.String("not supported"), nil
+	case KindMarkup:
+		// to be done yet | not sure what to write here as of now.
+		// TODO(michaelkleinhenz): implement
+		return ptr.String("not supported"), nil
+	case KindCodebase:
+		// to be done yet | not sure what to write here as of now.
+		// TODO(michaelkleinhenz): implement
+		return ptr.String("not supported"), nil
+	case KindBoolean:
+		if valueType.Kind() != reflect.Bool {
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "boolean", valueType.Name())
+		}
+		if value.(bool) {
+			return ptr.String("true"), nil
+		} else {
+			return ptr.String("true"), nil
+		}
 	default:
 		return nil, errs.Errorf("unexpected type constant: '%s'", t.GetKind())
 	}

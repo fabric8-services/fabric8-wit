@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"bytes"
+	"encoding/csv"
 	"fmt"
 	"html"
 	"net/http"
@@ -551,6 +553,43 @@ func getVersion(version interface{}) (int, error) {
 		return v, nil
 	}
 	return -1, nil
+}
+
+// ConvertWorkItemsToCSV is responsible for converting given []WorkItem model object into a
+// String object containing CSV formatted data
+func ConvertWorkItemsToCSV(wits []workitem.WorkItemType, wis []workitem.WorkItem) ([][]byte, error) {
+	csv := []string{}
+	if len(wits) != len(wis) {
+		return nil, errs.Errorf("length mismatch of work items (%d) and work item types (%d)", len(wis), len(wits))
+	}
+	for i := 0; i < len(wis); i++ {
+		fieldNames, wiCSV, err := ConvertWorkItemToCSV(wits[i], wis[i])
+		if err != nil {
+			return nil, errs.Wrapf(err, "failed to convert work item to CSV: %s", wis[i].ID)
+		}
+		csv = append(csv, wiCSV)
+	}
+	return csv, nil
+}
+
+// ConvertWorkItemToCSV is responsible for converting given WorkItem model object into a
+// CSV string; it returns the field names, the field keys and the CSV for the work item
+func ConvertWorkItemToCSV(wit workitem.WorkItemType, wi workitem.WorkItem) ([]string, []string, []byte, error) {
+	fieldNames := []string{}
+	fieldKeys := []string{}
+	fieldValues := []string{}
+	for fieldKey, fieldDefinition := range wit.Fields {
+		fieldNames = append(fieldNames, fieldDefinition.Label)
+		fieldKeys = append(fieldNames, fieldKey)
+		fieldValueGeneric := wi.Fields[fieldKey]
+		// TODO: convert based on type to fieldValueStr
+		
+		fieldValues = append(fieldValues, fieldValueStr)
+	}
+	buf := new(bytes.Buffer)
+	w := csv.NewWriter(buf)
+	w.WriteAll([][]string{fieldValues})
+	return fieldNames, fieldKeys, buf.String(), nil
 }
 
 // WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during

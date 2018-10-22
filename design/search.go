@@ -11,10 +11,6 @@ var searchWorkItemList = JSONList(
 	pagingLinks,
 	meta)
 
-var csvSearchWorkItemList = CSVList(
-	"SearchWorkItem", "Holds the paginated response to a search request",
-	workItem)	
-
 var searchSpaceList = JSONList(
 	"SearchSpace", "Holds the paginated response to a search for spaces request",
 	space,
@@ -43,13 +39,33 @@ var _ = a.Resource("search", func() {
 				a.Example(`{$AND: [{"space": "f73988a2-1916-4572-910b-2df23df4dcc3"}, {"state": "NEW"}]}`)
 			})
 			a.Param("spaceID", d.String, "The optional space ID of the space to be searched in, if the filter[expression] query parameter is not provided")
-			a.Param("format", d.String, "The optional format parameter. Valid parameters are 'jsonapi' and 'csv'. If not given, the default jsonapi response format is used.")
 		})
 		a.Response(d.OK, func() {
 			a.Media(searchWorkItemList)
-		}, func() {
-			a.Media(csvSearchWorkItemList)
 		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
+	a.Action("workitemsCSV", func() {
+		a.Routing(
+			a.GET("/workitems/csv"),
+		)
+		a.Description("Search by ID, URL, full text capability")
+		a.Params(func() {
+			a.Param("q", d.String,
+				`Following are valid input for search query
+				1) "id:100" :- Look for work item hainvg id 100
+				2) "url:http://demo.openshift.io/details/500" :- Search on WI having id 500 and check 
+					if this URL is mentioned in searchable columns of work item
+				3) "simple keywords separated by space" :- Search in Work Items based on these keywords.`)
+			a.Param("filter[parentexists]", d.Boolean, "if false list work items without any parent")
+			a.Param("filter[expression]", d.String, "Filter expression in JSON format", func() {
+				a.Example(`{$AND: [{"space": "f73988a2-1916-4572-910b-2df23df4dcc3"}, {"state": "NEW"}]}`)
+			})
+			a.Param("spaceID", d.String, "The optional space ID of the space to be searched in, if the filter[expression] query parameter is not provided")
+		})
+		a.Response(d.OK, "text/csv")
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})

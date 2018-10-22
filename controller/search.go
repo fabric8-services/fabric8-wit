@@ -1,6 +1,9 @@
 package controller
 
 import (
+	"bytes"
+	"github.com/fabric8-services/fabric8-wit/ptr"
+	"hash/fnv"
 	"fmt"
 	"net/url"
 	"path"
@@ -133,6 +136,54 @@ func (a WorkItemInterfaceSlice) Swap(i, j int) {
 // Ensure WorkItemInterfaceSlice implements the sort.Interface
 var _ sort.Interface = WorkItemInterfaceSlice{}
 var _ sort.Interface = (*WorkItemInterfaceSlice)(nil)
+
+func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) error {
+	var result []workitem.WorkItem
+	var count int
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		// TODO(michaelkleinhenz): we may want to introduce url based paging at some point
+		result, count, _, _, err = appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, ptr.Int(0), ptr.Int(1001))
+		if err != nil {
+			cause := errs.Cause(err)
+			switch cause.(type) {
+			case errors.BadParameterError:
+				return goa.ErrBadRequest(fmt.Sprintf("bad parameter error searching work items for expression '%s': %s", *ctx.FilterExpression, err))
+			default:
+				log.Error(ctx, map[string]interface{}{
+					"err":               err,
+					"filter_expression": *ctx.FilterExpression,
+				}, "unable to list the work items")
+				return goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err))
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("error searching work items for expression '%s': %s", *ctx.FilterExpression, err))
+	}
+	// Load all work item types
+	wits, err := loadWorkItemTypesFromArr(ctx.Context, c.db, result)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("error loading work items types while searching work items for expression '%s': %s", *ctx.FilterExpression, err))
+	}
+	// Convert them to CSV format
+	wisCSV, err := ConvertWorkItemsToCSV(wits, result)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
+	}
+	// convert the []string to []byte
+	wisCSVBytes := []byte{}
+	for _, csvLine := range(wisCSV) {
+		wisCSVBytes = bytes.Join(wisCSVBytes, []byte(csvLine))
+	}
+	// to make filename dynamic, hash of the query expression
+	hash := fnv.New32a()
+	hash.Write([]byte(*ctx.FilterExpression))
+	// return output
+	ctx.ResponseData.Header().Set("Content-Disposiont", "attachment; filename='workitems-" + fmt.Sprint(hash.Sum32()) + ".csv'")
+	return ctx.OK(wisCSVBytes)
+}
 
 // Show runs the show action.
 func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
