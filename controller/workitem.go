@@ -263,12 +263,12 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	}
 	err = c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
 	if err != nil {
-		forbidden, err := errors.IsForbiddenError(err)
+		forbidden, _ := errors.IsForbiddenError(err)
 		if forbidden {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the workitem"))
 
 		}
-		return err
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
