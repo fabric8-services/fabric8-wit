@@ -3195,29 +3195,26 @@ func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitem
 }
 
 func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	require.NoError(s.T(), err)
-	space := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, *testIdentity, "")
-	// Create new workitem
-	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *space.ID)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity, ""})
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(2), tf.CreateWorkItemEnvironment(), tf.Spaces(1), tf.WorkItemTypes(1))
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 	workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
-	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity, ""})
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *fxt.Identities[1], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
 	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, s.GormDB, s.Configuration)
 
-	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
+	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+
+	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
+
 	// Not a space owner is not authorized to create
-	test.CreateWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, fxt.Spaces[0].ID, &payload)
 
 	// Update the workitem by space collaborator
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
-	payload2 := minimumRequiredUpdatePayloadWithSpace(*space.ID)
+	payload2 := minimumRequiredUpdatePayloadWithSpace(fxt.Spaces[0].ID)
 	payload2.Data.ID = wi.Data.ID
 	payload2.Data.Attributes = wi.Data.Attributes
 	_, updated := test.UpdateWorkitemOK(s.T(), svc.Context, svc, workitemCtrl, *wi.Data.ID, &payload2)
@@ -3236,18 +3233,19 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	}
 	err = testsupport.CreateTestIdentityForAccountIdentity(s.DB, &openshiftioTestIdentity)
 	require.NoError(s.T(), err)
-	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, openshiftioTestIdentity, "")
-	payload3 := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *openshiftioTestIdentitySpace.ID)
+	fxt = tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+		fxt.Spaces[idx].OwnerID = openshiftioTestIdentityID
+		return nil
+	}), tf.WorkItemTypes(1))
+	payload3 := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload3.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload3.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	payload3.Data.Relationships.Space.Data.ID = openshiftioTestIdentitySpace.ID
 	_, wi2 := test.CreateWorkitemsCreated(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, *payload3.Data.Relationships.Space.Data.ID, &payload3)
 
 	// Update the work item by the work item creator
-	wi2.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
-	payload4 := minimumRequiredUpdatePayloadWithSpace(*openshiftioTestIdentitySpace.ID)
+	payload4 := minimumRequiredUpdatePayloadWithSpace(fxt.Spaces[0].ID)
+	payload4.Data.Attributes[workitem.SystemVersion] = wi2.Data.Attributes[workitem.SystemVersion]
 	payload4.Data.ID = wi2.Data.ID
-	payload4.Data.Attributes = wi2.Data.Attributes
 	_, updated = test.UpdateWorkitemOK(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi2.Data.ID, &payload4)
 
 	assert.Equal(s.T(), *wi2.Data.ID, *updated.Data.ID)
@@ -3268,7 +3266,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	dataArray = append(dataArray, wi.Data)
 	payload5.Data = dataArray
 	payload5.Position.Direction = string(workitem.DirectionTop)
-	test.ReorderWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, *space.ID, &payload5)
+	test.ReorderWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, fxt.Spaces[0].ID, &payload5)
 }
 
 func ConvertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
