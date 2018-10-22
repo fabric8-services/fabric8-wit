@@ -72,20 +72,20 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 }
 
 // isWorkitemCreatorOrSpaceOwner returns true if the modifier is space owner or workitem creator
-func (c *WorkitemController) isWorkitemCreatorOrSpaceOwner(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID, editorID uuid.UUID) (bool, error) {
+func (c *WorkitemController) isWorkitemCreatorOrSpaceOwner(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID, editorID uuid.UUID) error {
 	// check if workitem editor is same as workitem creator
 	if editorID == creatorID {
-		return true, nil
+		return nil
 	}
 	space, err := c.db.Spaces().Load(ctx, spaceID)
 	if err != nil {
-		return false, errors.NewNotFoundError("space", spaceID.String())
+		return errors.NewNotFoundError("space", spaceID.String())
 	}
 	// check if workitem editor is same as space owner
 	if space != nil && editorID == space.OwnerID {
-		return true, nil
+		return nil
 	}
-	return false, errors.NewForbiddenError("user is not a workitem creator or space owner")
+	return errors.NewForbiddenError("user is not a workitem creator or space owner")
 }
 
 // Returns true if the user is the work item creator or space collaborator
@@ -136,12 +136,9 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
 		ctx.Payload.Data.Relationships.BaseType.Data != nil && ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
 
-		authorized, err := c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
+		err := c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		if !authorized {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to change the workitemtype"))
 		}
 		// Store new values of type and version
 		newType := ctx.Payload.Data.Relationships.BaseType
@@ -264,7 +261,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	authorized, err := c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
+	err = c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
 	if err != nil {
 		forbidden, err := errors.IsForbiddenError(err)
 		if forbidden {
@@ -273,10 +270,6 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		}
 		return err
 	}
-	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the workitem"))
-	}
-
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
 			return errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.WiID)
