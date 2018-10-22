@@ -72,7 +72,7 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 }
 
 // isWorkitemCreatorOrSpaceOwner returns true if the modifier is space owner or workitem creator
-func (c *WorkitemController) isWorkitemCreatorOrSpaceOwner(ctx context.Context, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
+func (c *WorkitemController) isWorkitemCreatorOrSpaceOwner(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID, editorID uuid.UUID) (bool, error) {
 	// check if workitem editor is same as workitem creator
 	if editorID == creatorID {
 		return true, nil
@@ -82,7 +82,7 @@ func (c *WorkitemController) isWorkitemCreatorOrSpaceOwner(ctx context.Context, 
 		return false, errors.NewNotFoundError("space", spaceID.String())
 	}
 	// check if workitem editor is same as space owner
-	if space != nil && editorID == space.OwnerID.String() {
+	if space != nil && editorID == space.OwnerID {
 		return true, nil
 	}
 	return false, errors.NewForbiddenError("user is not a workitem creator or space owner")
@@ -121,6 +121,10 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if creator == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
 	}
+	creatorID, err := uuid.FromString(creator.(string))
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	authorized, err := authorizeWorkitemEditor(ctx, c.db, wi.SpaceID, creator.(string), currentUserIdentityID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -132,7 +136,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
 		ctx.Payload.Data.Relationships.BaseType.Data != nil && ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
 
-		authorized, err := c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+		authorized, err := c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -251,12 +255,16 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	// This checks if user is space admin or workitem creator or not
+	// Check if user is space owner or workitem creator. Only space owner or workitem creator are allowed to delete the workitem.
 	creator := wi.Fields[workitem.SystemCreator]
 	if creator == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
 	}
-	authorized, err := c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+	creatorID, err := uuid.FromString(creator.(string))
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	authorized, err := c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
 	if err != nil {
 		forbidden, err := errors.IsForbiddenError(err)
 		if forbidden {
