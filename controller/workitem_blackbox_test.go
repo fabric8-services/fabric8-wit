@@ -2304,17 +2304,6 @@ func (s *WorkItem2Suite) TestWI2FailShowMissing() {
 	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, uuid.NewV4(), nil, nil)
 }
 
-func (s *WorkItem2Suite) TestWI2FailOnDelete() {
-	c := minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "Title"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(workitem.SystemBug)
-
-	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, nil)
-	test.DeleteWorkitemMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID)
-}
-
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.CreateWorkItemEnvironment(),
@@ -3258,8 +3247,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	// Not a space collaborator is not authorized to update
 	test.UpdateWorkitemForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi.Data.ID, &payload2)
 	// Not a space collaborator is not authorized to delete
-	// Temporarily disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-	// test.DeleteWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi.Data.ID)
+	test.DeleteWorkitemForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi.Data.ID)
 	// Not a space collaborator is not authorized to reorder
 	payload5 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -3389,4 +3377,44 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 			}
 		})
 	}
+}
+
+// TestDeleteWorkitem tests the delete action
+func (s *WorkItem2Suite) TestDeleteWorkitem() {
+	// Delete Workitem tests deletion of workitem
+	s.T().Run("Delete Workitem", func(t *testing.T) {
+		t.Run("ok", func(t *testing.T) {
+			fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1))
+			s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[0])
+			test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+		})
+		t.Run("unauthorized", func(t *testing.T) {
+			fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1))
+			svcNotAuthorized := goa.New("TestDeleteWI2-Service")
+			workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
+			test.DeleteWorkitemUnauthorized(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, fxt.WorkItems[0].ID)
+		})
+		t.Run("forbidden", func(t *testing.T) {
+			fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1), tf.Identities(2))
+			s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[1])
+			test.DeleteWorkitemForbidden(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+		})
+		t.Run("workitem not found", func(t *testing.T) {
+			test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, uuid.NewV4())
+		})
+	})
+	// Delete Workitem Links tests deletion of corresponding workitem links when a workitem is deleted
+	s.T().Run("Delete Workitem Links", func(t *testing.T) {
+		t.Run("ok", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.WorkItems(2, tf.SetWorkItemTitles("A", "B")),
+				tf.WorkItemLinkTypes(1),
+				tf.WorkItemLinksCustom(1, tf.BuildLinks(tf.LinkChain("A", "B")...)),
+			)
+			s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[0])
+			test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+			test.ShowWorkItemLinkNotFound(t, s.svc.Context, s.svc, s.linkCtrl, fxt.WorkItemLinks[0].ID, nil, nil)
+		})
+	})
 }
