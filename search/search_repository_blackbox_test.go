@@ -604,20 +604,20 @@ func (s *searchRepositoryBlackboxTest) TestFilter() {
 
 		// Regression test for https://github.com/openshiftio/openshift.io/issues/4429
 		t.Run("string instead of integer", func(t *testing.T) {
-			filter := `{"number":{"$EQ":"asd"}`
+			filter := `{"number":{"$EQ":"asd"}}`
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			// when
 			require.Error(t, err)
 			assert.Equal(t, 0, count)
 
-			filter = `{"number":{"$EQ":"*"}`
+			filter = `{"number":{"$EQ":"*"}}`
 			_, count, _, _, err = s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			// when
 			require.Error(t, err)
 			assert.Equal(t, 0, count)
 		})
 		t.Run("UUID instead of integer", func(t *testing.T) {
-			filter := fmt.Sprintf(`{"number":{"$EQ":"%s"}`, uuid.NewV4())
+			filter := fmt.Sprintf(`{"number":{"$EQ":"%s"}}`, uuid.NewV4())
 			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			// when
 			require.Error(t, err)
