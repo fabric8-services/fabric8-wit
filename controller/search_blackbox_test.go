@@ -392,7 +392,7 @@ func (s *searchControllerTestSuite) TestSearchFilter() {
 		_, jerr := test.ShowSearchBadRequest(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		// then
 		require.NotEmpty(t, jerr)
-		require.Len(t, jerr, 1)
+		require.Len(t, jerr.Errors, 1)
 	})
 }
 
