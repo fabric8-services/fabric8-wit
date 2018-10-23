@@ -237,7 +237,7 @@ func (s *searchControllerTestSuite) searchByURL(customHost, queryString string) 
 	return mt
 }
 
-// verifySearchByKnownURLs performs actual tests on search result and knwonURL map
+// verifySearchByKnownURLs performs actual tests on search result and knownURL map
 func (s *searchControllerTestSuite) verifySearchByKnownURLs(wi *workitem.WorkItem, host, searchQuery string) {
 	result := s.searchByURL(host, searchQuery)
 	assert.NotEmpty(s.T(), result.Data)
@@ -250,7 +250,7 @@ func (s *searchControllerTestSuite) verifySearchByKnownURLs(wi *workitem.WorkIte
 	assert.Contains(s.T(), known[search.HostRegistrationKeyForBoardWI].URLRegex, host)
 }
 
-// TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
+// TestAutoRegisterHostURL checks if client's host is neatly registered as a KnownURL or not
 // Uses helper functions verifySearchByKnownURLs, searchByURL
 func (s *searchControllerTestSuite) TestAutoRegisterHostURL() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
