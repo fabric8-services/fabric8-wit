@@ -244,7 +244,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		wi, err = appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
-			return errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", ctx.WiID))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap("failed to delete workitem", err))
 		}
 		return nil
 	})
