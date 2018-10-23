@@ -3250,7 +3250,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	test.UpdateWorkitemForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi.Data.ID, &payload2)
 	// Not a space collaborator is not authorized to delete
 	// Temporarily disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-	// test.DeleteWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi.Data.ID)
+	test.DeleteWorkitemForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi.Data.ID)
 	// Not a space collaborator is not authorized to reorder
 	payload5 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
