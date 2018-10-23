@@ -240,8 +240,8 @@ What applies to areas also applies to iterations, labels and board columns as we
 Steps
 
 1. Create "*_archived" tables for all tables that inherit the original tables.
-2. Move all entries where `deleted_at` IS NOT NULL to their respective `_archive` table.
-3. Install a soft-delete trigger usinge the above `archive_record()` function.
+2. Install a soft-delete trigger usinge the above `archive_record()` function.
+3. Move all entries where `deleted_at IS NOT NULL` to their respective `_archive` table by doing a hard `DELETE` which will trigger the `archive_record()` function.
 
 # Example
 

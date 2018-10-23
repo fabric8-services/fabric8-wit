@@ -160,6 +160,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMirgraion108", testMigration108NumberColumnForArea)
 	t.Run("TestMirgraion109", testMigration109NumberColumnForIteration)
 	t.Run("TestMirgraion110", testMigration110UpdateNumberForExistingIterations)
+	t.Run("TestMirgraion111", testMigration111CascadingSoftDelete)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1459,6 +1460,115 @@ func testMigration110UpdateNumberForExistingIterations(t *testing.T) {
 
 		require.True(t, dialect.HasIndex("iterations", "iterations_space_id_number_idx"))
 	})
+}
+
+func testMigration111CascadingSoftDelete(t *testing.T) {
+	t.Run("migrate to previous version", func(t *testing.T) {
+		migrateToVersion(t, sqlDB, migrations[:111], 111)
+	})
+
+	areaDeletedID := uuid.NewV4()
+	areaID := uuid.NewV4()
+	commentDeletedID := uuid.NewV4()
+	commentID := uuid.NewV4()
+	iterDeletedID := uuid.NewV4()
+	iterID := uuid.NewV4()
+	labelDeletedID := uuid.NewV4()
+	labelID := uuid.NewV4()
+	spaceDeletedID := uuid.NewV4()
+	spaceID := uuid.NewV4()
+	spaceTemplateDeletedID := uuid.NewV4()
+	spaceTemplateID := uuid.NewV4()
+	workItemDeletedID := uuid.NewV4()
+	workItemID := uuid.NewV4()
+	workItemLinkDeletedID := uuid.NewV4()
+	workItemLinkID := uuid.NewV4()
+	workItemLinkTypeDeletedID := uuid.NewV4()
+	workItemLinkTypeID := uuid.NewV4()
+	workItemTypeDeletedID := uuid.NewV4()
+	workItemTypeID := uuid.NewV4()
+
+	t.Run("setup test data to migrate", func(t *testing.T) {
+		require.Nil(t, runSQLscript(sqlDB, "111-cascading-soft-delete.sql",
+			areaID,
+			areaDeletedID,
+			commentDeletedID,
+			commentID,
+			iterID,
+			iterDeletedID,
+			labelID,
+			labelDeletedID,
+			spaceID,
+			spaceDeletedID,
+			spaceTemplateID,
+			spaceTemplateDeletedID,
+			workItemID,
+			workItemDeletedID,
+			workItemLinkID,
+			workItemLinkDeletedID,
+			workItemLinkTypeID,
+			workItemLinkTypeDeletedID,
+			workItemTypeID,
+			workItemTypeDeletedID,
+		))
+	})
+
+	// Helper functions
+	exists := func(t *testing.T, table string, id uuid.UUID) bool {
+		q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = '%s'", table, id)
+		row := sqlDB.QueryRow(q)
+		require.NotNil(t, row)
+		var p int32
+		err := row.Scan(&p)
+		require.NoError(t, err, "%+v", err)
+		return p == 1
+	}
+	existsButIsDeleted := func(t *testing.T, table string, id uuid.UUID) bool {
+		q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = '%s' AND deleted_at IS NOT NULL", table, id)
+		row := sqlDB.QueryRow(q)
+		require.NotNil(t, row)
+		var p int32
+		err := row.Scan(&p)
+		require.NoError(t, err, "%+v", err)
+		return p == 1
+	}
+	checkEntitiesExist := func(t *testing.T, existFunc func(t *testing.T, table string, id uuid.UUID) bool) {
+		t.Run("check that all entities exist", func(t *testing.T) {
+			require.True(t, existFunc(t, "areas", areaID))
+			require.True(t, existsButIsDeleted(t, "areas", areaDeletedID))
+			require.True(t, existFunc(t, "work_item_comments", commentID))
+			require.True(t, existsButIsDeleted(t, "work_item_comments", commentDeletedID))
+			require.True(t, existFunc(t, "iterations", iterID))
+			require.True(t, existsButIsDeleted(t, "iterations", iterDeletedID))
+			require.True(t, existFunc(t, "labels", labelID))
+			require.True(t, existsButIsDeleted(t, "labels", labelDeletedID))
+			require.True(t, existFunc(t, "spaces", spaceID))
+			require.True(t, existsButIsDeleted(t, "spaces", spaceDeletedID))
+			require.True(t, existFunc(t, "space_templates", spaceTemplateID))
+			require.True(t, existsButIsDeleted(t, "space_templates", spaceTemplateDeletedID))
+			require.True(t, existFunc(t, "work_items", workItemID))
+			require.True(t, existsButIsDeleted(t, "work_items", workItemDeletedID))
+			require.True(t, existFunc(t, "work_item_links", workItemLinkID))
+			require.True(t, existsButIsDeleted(t, "work_item_links", workItemLinkDeletedID))
+			require.True(t, existFunc(t, "work_item_link_types", workItemLinkTypeID))
+			require.True(t, existsButIsDeleted(t, "work_item_link_types", workItemLinkTypeDeletedID))
+			require.True(t, existFunc(t, "work_item_types", workItemTypeID))
+			require.True(t, existsButIsDeleted(t, "work_item_types", workItemTypeDeletedID))
+		})
+	})
+
+	t.Run("before migration", func(t *testing.T) {
+		checkEntitiesExist(t, exists)
+	})
+	t.Run("migrate to current version", func(t *testing.T) {
+		migrateToVersion(t, sqlDB, migrations[:112], 112)
+	})
+	t.Run("after migration", func(t *testing.T) {
+		checkEntitiesExist(t, exists)
+		require.Nil(t, runSQLscript(sqlDB, "111-soft-delete-space-template.sql", spaceTemplateID))
+		checkEntitiesExist(t, existsButIsDeleted)
+	})
+
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
