@@ -71,8 +71,8 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 		config:       config}
 }
 
-// isWorkitemCreatorOrSpaceOwner checks if the modifier is space owner or workitem creator
-func (c *WorkitemController) isWorkitemCreatorOrSpaceOwner(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID, editorID uuid.UUID) error {
+// WorkitemCreatorOrSpaceOwner checks if the modifier is space owner or workitem creator
+func (c *WorkitemController) WorkitemCreatorOrSpaceOwner(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID, editorID uuid.UUID) error {
 	// check if workitem editor is same as workitem creator
 	if editorID == creatorID {
 		return nil
@@ -140,7 +140,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
 		ctx.Payload.Data.Relationships.BaseType.Data != nil && ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
 
-		err := c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
+		err := c.WorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -269,7 +269,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	err = c.isWorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
+	err = c.WorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
 	if err != nil {
 		forbidden, _ := errors.IsForbiddenError(err)
 		if forbidden {
