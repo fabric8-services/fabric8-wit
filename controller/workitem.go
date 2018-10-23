@@ -121,7 +121,11 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if creator == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
 	}
-	creatorID, err := uuid.FromString(creator.(string))
+	creatorIDStr, ok := creator.(string)
+	if !ok {
+		return jsonapi.JSONErrorResponse(ctx, errs.Errorf("failed to convert user to string: %+v (%[1]T)", creator))
+	}
+	creatorID, err := uuid.FromString(creatorIDStr)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -257,7 +261,11 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	if creator == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
 	}
-	creatorID, err := uuid.FromString(creator.(string))
+	creatorIDStr, ok := creator.(string)
+	if !ok {
+		return jsonapi.JSONErrorResponse(ctx, errs.Errorf("failed to convert user to string: %+v (%[1]T)", creator))
+	}
+	creatorID, err := uuid.FromString(creatorIDStr)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
