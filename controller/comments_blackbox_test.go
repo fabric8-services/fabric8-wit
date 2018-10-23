@@ -24,7 +24,6 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -376,49 +375,21 @@ func (s *CommentsSuite) TestDeleteCommentWithoutAuth() {
 // Create another user, which is not space collaborator.
 // Test if another user can delete the comment
 func (s *CommentsSuite) TestNonCollaboratorCanNotDelete() {
-	// create space
-	// create user
-	// add user to the space collaborator list
-	// create workitem in created space
-	// create another user - do not add this user into collaborator list
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotDelete-"), "TestWIComments")
-	require.NoError(s.T(), err)
-	space := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, *testIdentity, "")
+	// create a space, workitem, comment and 2 users
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(2), tf.Spaces(1), tf.WorkItems(1), tf.Comments(1))
 
-	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity, ""})
-	workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
-
-	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup, nil)
-
-	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotDelete-"), "TestWI")
-	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity, ""})
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *fxt.Identities[1], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 	commentsCtrlNotAuthorized := NewCommentsController(svcNotAuthorized, s.GormDB, s.Configuration)
 
-	test.DeleteCommentsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, commentsCtrlNotAuthorized, *c.Data.ID)
+	// user 2 is not a collaborator
+	test.DeleteCommentsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, commentsCtrlNotAuthorized, fxt.Comments[0].ID)
 }
 
 func (s *CommentsSuite) TestCollaboratorCanDelete() {
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestCollaboratorCanDelete-"), "TestWIComments")
-	require.NoError(s.T(), err)
-	space := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, *testIdentity, "")
-
-	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-	svc, _, workitemsCtrl, _, _ := s.securedControllers(*testIdentity)
-	// svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", testIdentity, &TestSpaceAuthzService{testIdentity})
-	// ctrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
-
-	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup, nil)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Comments(1))
+	svc, _, _, _, _ := s.securedControllers(*fxt.Identities[0])
 	commentCtrl := NewCommentsController(svc, s.GormDB, s.Configuration)
-	test.DeleteCommentsOK(s.T(), svc.Context, svc, commentCtrl, *c.Data.ID)
+	test.DeleteCommentsOK(s.T(), svc.Context, svc, commentCtrl, fxt.Comments[0].ID)
 }
 
 func (s *CommentsSuite) TestCreatorCanDelete() {
@@ -430,86 +401,25 @@ func (s *CommentsSuite) TestCreatorCanDelete() {
 }
 
 func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
-	// create space owner identity
-	spaceOwner, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanDelete-"), "TestWIComments")
-	require.NoError(s.T(), err)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(2), tf.Comments(1))
+	collaborator1 := fxt.Identities[1]
 
-	// create 2 space collaborators' identity
-	collaborator1, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanDelete-"), "TestWIComments")
-	require.NoError(s.T(), err)
-
-	collaborator2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanDelete-"), "TestWIComments")
-	require.NoError(s.T(), err)
-
-	// Add 2 identities as Collaborators
-	space := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, *spaceOwner, fmt.Sprintf("%s,%s", collaborator1.ID.String(), collaborator2.ID.String()))
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", *spaceOwner, &TestSpaceAuthzService{*spaceOwner, fmt.Sprintf("%s,%s", collaborator1.ID.String(), collaborator2.ID.String())})
-
-	// Build WI payload and create 1 WI (created_by = space owner)
-	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	workitemsCtrl := NewWorkitemsController(svcWithSpaceOwner, s.GormDB, s.Configuration)
-
-	_, wi := test.CreateWorkitemsCreated(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-
-	// collaborator1 adds a comment on newly created work item
-	c := s.createWorkItemComment(*collaborator1, *wi.Data.ID, "Hello woody", &plaintextMarkup, nil)
-
-	// Collaborator2 deletes the comment
-	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", *collaborator2, &TestSpaceAuthzService{*collaborator2, ""})
-	commentCtrl := NewCommentsController(svcWithCollaborator2, s.GormDB, s.Configuration)
-	test.DeleteCommentsOK(s.T(), svcWithCollaborator2.Context, svcWithCollaborator2, commentCtrl, *c.Data.ID)
+	// Collaborator1 deletes the comment which was created by spaceOwner
+	svcWithCollaborator1 := testsupport.ServiceAsSpaceUser("Comments-Service", *collaborator1, &TestSpaceAuthzService{*collaborator1, ""})
+	commentCtrl := NewCommentsController(svcWithCollaborator1, s.GormDB, s.Configuration)
+	test.DeleteCommentsOK(s.T(), svcWithCollaborator1.Context, svcWithCollaborator1, commentCtrl, fxt.Comments[0].ID)
 }
 
-// Following test creates a space and space_owner creates a WI in that space
-// Space owner adds a comment on the created WI
-// Create another user, which is not space collaborator.
-// Test if another user can edit/update the comment
+// Following test creates a space and 2 identities.
+// Identity 1 creates is the space owner and creates a comment on a workitem.
+// Test if identity 2 ( which is not a space collaborator) can edit/update the comment
 func (s *CommentsSuite) TestNonCollaboratorCanNotUpdate() {
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotUpdate-"), "TestWIComments")
-	require.NoError(s.T(), err)
-	space := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, *testIdentity, "")
-
-	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI 2"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity, ""})
-	workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
-
-	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup, nil)
-
-	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotUpdate-"), "TestWI")
-	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity, ""})
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(2), tf.Comments(1))
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *fxt.Identities[1], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 	commentCtrlNotAuthorized := NewCommentsController(svcNotAuthorized, s.GormDB, s.Configuration)
 
 	updateCommentPayload := newUpdateCommentsPayload("updated body", &markdownMarkup)
-	test.UpdateCommentsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, commentCtrlNotAuthorized, *c.Data.ID, updateCommentPayload)
-}
-
-func (s *CommentsSuite) TestCollaboratorCanUpdate() {
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestCollaboratorCanUpdate-"), "TestWIComments")
-	require.NoError(s.T(), err)
-	space := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, *testIdentity, "")
-
-	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-	// svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", testIdentity, &TestSpaceAuthzService{testIdentity})
-	// ctrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
-	svc, _, workitemsCtrl, _, _ := s.securedControllers(*testIdentity)
-
-	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup, nil)
-	commentCtrl := NewCommentsController(svc, s.GormDB, s.Configuration)
-
-	updatedBody := "I am updated comment"
-	updateCommentPayload := newUpdateCommentsPayload(updatedBody, &markdownMarkup)
-	_, result := test.UpdateCommentsOK(s.T(), svc.Context, svc, commentCtrl, *c.Data.ID, updateCommentPayload)
-	assertComment(s.T(), result.Data, *testIdentity, updatedBody, markdownMarkup)
+	test.UpdateCommentsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, commentCtrlNotAuthorized, fxt.Comments[0].ID, updateCommentPayload)
 }
 
 func (s *CommentsSuite) TestCreatorCanUpdate() {
@@ -525,47 +435,26 @@ func (s *CommentsSuite) TestCreatorCanUpdate() {
 }
 
 func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
-	// create space owner identity
-	spaceOwner, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanUpdate-"), "TestWIComments")
-	require.NoError(s.T(), err)
-
-	// create 2 space collaborators' identity
-	collaborator1, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanUpdate-"), "TestWIComments")
-	require.NoError(s.T(), err)
-
-	collaborator2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanUpdate-"), "TestWIComments")
-	require.NoError(s.T(), err)
-
-	// Add 2 Collaborators in space
-	space := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, *spaceOwner, "")
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", *spaceOwner, &TestSpaceAuthzService{*spaceOwner, fmt.Sprintf("%s,%s", collaborator1.ID.String(), collaborator2.ID.String())})
-
-	// Build WI payload and create 1 WI (created_by = space owner)
-	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	workitemsCtrl := NewWorkitemsController(svcWithSpaceOwner, s.GormDB, s.Configuration)
-
-	_, wi := test.CreateWorkitemsCreated(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-
-	// collaborator1 adds a comment on newly created work item
-	c := s.createWorkItemComment(*collaborator1, *wi.Data.ID, "Hello woody", &plaintextMarkup, nil)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(3), tf.Comments(1))
+	spaceOwner := fxt.Identities[0]
+	collaborator1 := fxt.Identities[1]
+	collaborator2 := fxt.Identities[2]
 
 	// update comment by collaborator 1
 	updatedBody := "Another update on same comment"
 	updateCommentPayload := newUpdateCommentsPayload(updatedBody, &markdownMarkup)
 	svcWithCollaborator1 := testsupport.ServiceAsSpaceUser("Comments-Service", *collaborator1, &TestSpaceAuthzService{*collaborator1, ""})
 	commentCtrl := NewCommentsController(svcWithCollaborator1, s.GormDB, s.Configuration)
-	_, result := test.UpdateCommentsOK(s.T(), svcWithCollaborator1.Context, svcWithCollaborator1, commentCtrl, *c.Data.ID, updateCommentPayload)
-	assertComment(s.T(), result.Data, *collaborator1, updatedBody, markdownMarkup)
+	_, result := test.UpdateCommentsOK(s.T(), svcWithCollaborator1.Context, svcWithCollaborator1, commentCtrl, fxt.Comments[0].ID, updateCommentPayload)
+	assertComment(s.T(), result.Data, *spaceOwner, updatedBody, markdownMarkup)
 
 	// update comment by collaborator2
 	updatedBody = "Modified body of comment"
 	updateCommentPayload = newUpdateCommentsPayload(updatedBody, &markdownMarkup)
 	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", *collaborator2, &TestSpaceAuthzService{*collaborator2, ""})
 	commentCtrl = NewCommentsController(svcWithCollaborator2, s.GormDB, s.Configuration)
-	_, result = test.UpdateCommentsOK(s.T(), svcWithCollaborator2.Context, svcWithCollaborator2, commentCtrl, *c.Data.ID, updateCommentPayload)
-	assertComment(s.T(), result.Data, *collaborator1, updatedBody, markdownMarkup)
+	_, result = test.UpdateCommentsOK(s.T(), svcWithCollaborator2.Context, svcWithCollaborator2, commentCtrl, fxt.Comments[0].ID, updateCommentPayload)
+	assertComment(s.T(), result.Data, *spaceOwner, updatedBody, markdownMarkup)
 }
 
 func (s *CommentsSuite) TestNotificationSendOnUpdate() {
