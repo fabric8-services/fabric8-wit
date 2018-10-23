@@ -777,5 +777,10 @@ func (s *workItemRepoBlackBoxTest) TestDeleteWorkitem() {
 		)
 		err := s.repo.Delete(s.Ctx, fxt.WorkItems[0].ID, fxt.Identities[0].ID)
 		require.Nil(t, err)
+
+		// check if workitem exists
+		err = s.repo.CheckExists(s.Ctx, fxt.WorkItems[0].ID)
+		require.Error(t, err)
+		require.IsType(t, errors.NotFoundError{}, errs.Cause(err))
 	})
 }
