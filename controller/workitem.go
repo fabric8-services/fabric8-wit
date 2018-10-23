@@ -71,7 +71,7 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 		config:       config}
 }
 
-// isWorkitemCreatorOrSpaceOwner returns true if the modifier is space owner or workitem creator
+// isWorkitemCreatorOrSpaceOwner checks if the modifier is space owner or workitem creator
 func (c *WorkitemController) isWorkitemCreatorOrSpaceOwner(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID, editorID uuid.UUID) error {
 	// check if workitem editor is same as workitem creator
 	if editorID == creatorID {
