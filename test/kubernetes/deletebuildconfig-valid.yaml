@@ -1,0 +1,211 @@
+---
+version: 1
+interactions:
+  # BuildsConfigs
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/oapi/v1/namespaces/userns/buildconfigs?labelSelector=space%3Dmulticonfig
+    method: GET
+  response:
+    body: |
+        {
+            "apiVersion": "v1",
+            "items": [
+                {
+                    "apiVersion": "v1",
+                    "kind": "BuildConfig",
+                    "metadata": {
+                        "annotations": {
+                            "che.fabric8.io/stack": "vert.x",
+                            "jenkins.openshift.org/disable-sync-create-on": "jenkins",
+                            "jenkins.openshift.org/generated-by": "jenkins",
+                            "jenkins.openshift.org/job-path": "hrishin/vertexinggg/master"
+                        },
+                        "creationTimestamp": "2018-11-14T10:40:13Z",
+                        "labels": {
+                            "openshift.io/gitRepository": "vertexinggg",
+                            "space": "multiconfig"
+                        },
+                        "name": "vertex",
+                        "namespace": "userns",
+                        "resourceVersion": "1331455082",
+                        "selfLink": "/oapi/v1/namespaces/userns/buildconfigs/vertex",
+                        "uid": "aad905b6-e7f9-11e8-ad49-02e52a0be43d"
+                    },
+                    "spec": {
+                        "failedBuildsHistoryLimit": 5,
+                        "nodeSelector": {},
+                        "output": {},
+                        "postCommit": {},
+                        "resources": {},
+                        "runPolicy": "Serial",
+                        "source": {
+                            "git": {
+                                "ref": "master",
+                                "uri": "https://github.com/hrishin/vertexinggg.git"
+                            },
+                            "type": "Git"
+                        },
+                        "strategy": {
+                            "jenkinsPipelineStrategy": {
+                                "env": [
+                                    {
+                                        "name": "BASE_URI",
+                                        "value": "https://jenkins.openshift.io"
+                                    },
+                                    {
+                                        "name": "FABRIC_SPACE",
+                                        "value": "multiconfig"
+                                    }
+                                ],
+                                "jenkinsfilePath": "Jenkinsfile"
+                            },
+                            "type": "JenkinsPipeline"
+                        },
+                        "successfulBuildsHistoryLimit": 5,
+                        "triggers": [
+                            {
+                                "github": {
+                                    "secret": "secret101"
+                                },
+                                "type": "GitHub"
+                            },
+                            {
+                                "generic": {
+                                    "secret": "secret101"
+                                },
+                                "type": "Generic"
+                            }
+                        ]
+                    },
+                    "status": {
+                        "lastVersion": 2
+                    }
+                }
+            ],
+            "kind": "BuildConfigList",
+            "metadata": {},
+            "resourceVersion": "",
+            "selfLink": ""
+        }
+
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200
+
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/oapi/v1/namespaces/userns/buildconfigs/vertex
+    method: DELETE
+  response:
+    body: |
+        {
+          "apiVersion": "v1",
+          "kind": "BuildConfig",
+          "metadata": {
+              "annotations": {
+                  "che.fabric8.io/stack": "vert.x",
+                  "jenkins.openshift.org/disable-sync-create-on": "jenkins",
+                  "jenkins.openshift.org/generated-by": "jenkins",
+                  "jenkins.openshift.org/job-path": "hrishin/vertexinggg/master"
+              },
+              "creationTimestamp": "2018-11-14T10:40:13Z",
+              "labels": {
+                  "openshift.io/gitRepository": "vertexinggg",
+                  "space": "multiconfig"
+              },
+              "name": "vertex",
+              "namespace": "hshinde",
+              "resourceVersion": "1331455082",
+              "selfLink": "/oapi/v1/namespaces/hshinde/buildconfigs/vertex",
+              "uid": "aad905b6-e7f9-11e8-ad49-02e52a0be43d"
+          },
+          "spec": {
+              "failedBuildsHistoryLimit": 5,
+              "nodeSelector": {},
+              "output": {},
+              "postCommit": {},
+              "resources": {},
+              "runPolicy": "Serial",
+              "source": {
+                  "git": {
+                      "ref": "master",
+                      "uri": "https://github.com/hrishin/vertexinggg.git"
+                  },
+                  "type": "Git"
+              },
+              "strategy": {
+                  "jenkinsPipelineStrategy": {
+                      "env": [
+                          {
+                              "name": "BASE_URI",
+                              "value": "https://jenkins.openshift.io"
+                          },
+                          {
+                              "name": "FABRIC_SPACE",
+                              "value": "multiconfig"
+                          }
+                      ],
+                      "jenkinsfilePath": "Jenkinsfile"
+                  },
+                  "type": "JenkinsPipeline"
+              },
+              "successfulBuildsHistoryLimit": 5,
+              "triggers": [
+                  {
+                      "github": {
+                          "secret": "secret101"
+                      },
+                      "type": "GitHub"
+                  },
+                  {
+                      "generic": {
+                          "secret": "secret101"
+                      },
+                      "type": "Generic"
+                  }
+              ]
+          },
+          "status": {
+              "lastVersion": 2
+          }
+        }
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/oapi/v1/namespaces/userns/buildconfigs?labelSelector=space%3Demptybc
+    method: GET
+  response:
+    body: |
+        {
+            "apiVersion": "v1",
+            "items": [],
+            "kind": "BuildConfigList",
+            "metadata": {},
+            "resourceVersion": "",
+            "selfLink": ""
+        }
+
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200

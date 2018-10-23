@@ -11,18 +11,17 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 	kubeErrors "k8s.io/apimachinery/pkg/api/errors"
-	resource "k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	v1 "k8s.io/client-go/pkg/api/v1"
-	rest "k8s.io/client-go/rest"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -86,6 +85,11 @@ type KubeClientInterface interface {
 	KubeAccessControl
 }
 
+// KubeRESTAPI collects methods that call out to the Kubernetes API server over the network
+type KubeRESTAPI interface {
+	corev1.CoreV1Interface
+}
+
 type kubeClient struct {
 	config *KubeClientConfig
 	envMap map[string]string
@@ -97,11 +101,6 @@ type kubeClient struct {
 	MetricsGetter
 }
 
-// KubeRESTAPI collects methods that call out to the Kubernetes API server over the network
-type KubeRESTAPI interface {
-	corev1.CoreV1Interface
-}
-
 type kubeAPIClient struct {
 	corev1.CoreV1Interface
 	restConfig *rest.Config
@@ -110,6 +109,7 @@ type kubeAPIClient struct {
 // OpenShiftRESTAPI collects methods that call out to the OpenShift API server over the network
 type OpenShiftRESTAPI interface {
 	GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error)
+	DeleteBuildConfig(namespace string, lables map[string]string) (map[string]interface{}, error)
 	GetBuilds(namespace string, labelSelector string) (map[string]interface{}, error)
 	GetDeploymentConfig(namespace string, name string) (map[string]interface{}, error)
 	DeleteDeploymentConfig(namespace string, name string, opts *metaV1.DeleteOptions) (map[string]interface{}, error)
@@ -204,6 +204,19 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	}
 
 	return kubeClient, nil
+}
+
+func NewOSClient(config *KubeClientConfig) (OpenShiftRESTAPI, error) {
+	// Use default implementation if no OpenShiftGetter is specified
+	if config.OpenShiftRESTAPIGetter == nil {
+		config.OpenShiftRESTAPIGetter = &defaultGetter{}
+	}
+	osAPI, err := config.GetOpenShiftRESTAPI(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return osAPI, nil
 }
 
 func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error) {
@@ -771,6 +784,87 @@ func (kc *kubeClient) getBuildConfigsForSpace(space string) ([]string, error) {
 func (oc *openShiftAPIClient) GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error) {
 	bcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/buildconfigs?labelSelector=%s", namespace, labelSelector)
 	return oc.getResource(bcURL, false)
+}
+
+func (oc *openShiftAPIClient) DeleteBuildConfig(namespace string, labels map[string]string) (map[string]interface{}, error) {
+
+	if namespace == "" {
+		namespace = oc.config.UserNamespace
+	}
+
+	var params []string
+	for k, v := range labels {
+		params = append(params, k + "=" + v)
+	}
+
+
+	// The API server rejects deleting buildconfigs by label, so get all
+	// buildconfigs with the label, and delete one-by-one
+	bcList, err := oc.GetBuildConfigs(namespace, url.QueryEscape(strings.Join(params[:],",")))
+	if err != nil {
+		return nil, err
+	}
+
+	kind, ok := bcList["kind"].(string)
+	if !ok || (kind != "BuildConfigList" && kind != "List") {
+		return nil, errs.New("no buildconfig list returned from endpoint")
+	}
+
+	bcs, ok := bcList["items"].([]interface{})
+	if !ok {
+		return nil, errs.New("no list of buildconfig in response")
+	}
+
+	response := make(map[string]interface{})
+
+	for _, bc := range bcs {
+		name, err := getName(bc)
+		if err != nil {
+		 	return nil, err
+		}
+
+		opts := getDeleteOption()
+		resourceURI := fmt.Sprintf("/oapi/v1/namespaces/%s/buildconfigs/%s", namespace, name)
+		resp, err := oc.sendResource(resourceURI, "DELETE", opts)
+		if err != nil {
+			return nil, err
+		}
+
+		response[name] = resp["status"].(interface{})
+	}
+
+	return response, nil
+}
+
+func getDeleteOption() *metaV1.DeleteOptions {
+	policy := metaV1.DeletePropagationForeground
+	opts := &metaV1.DeleteOptions{
+		TypeMeta: metaV1.TypeMeta{ // Normally set automatically by k8s client-go
+			Kind: "DeleteOptions",
+			APIVersion: "v1",
+		},
+		PropagationPolicy: &policy,
+	}
+	return opts
+}
+
+func getName(r interface{}) (string, error) {
+	b, ok := r.(map[string]interface{})
+	if !ok {
+		return "", errs.New("BuildConfig is not an object")
+	}
+
+	metadata, ok := b["metadata"].(map[string]interface{})
+	if !ok {
+		return "", errs.New("BuildConfig has no metadata")
+	}
+
+	name, ok := metadata["name"].(string)
+	if !ok {
+		return "", errs.New("BuildConfig name is missing")
+	}
+
+	return name, nil
 }
 
 // getDeployableEnvironmentNamespace finds a namespace with the corresponding environment name.

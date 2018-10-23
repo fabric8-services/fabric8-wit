@@ -435,6 +435,7 @@ func deleteOpenShiftResource(
 			}
 		}
 	}
+
 	if len(errorsList) != 0 {
 		var errString string
 		for _, err = range errorsList {
@@ -442,6 +443,16 @@ func deleteOpenShiftResource(
 		}
 		return errors.NewInternalErrorFromString(errString)
 	}
+
+	//delete pipelines from the space
+	spaceLabel := space.Data.Attributes.Name
+	log.Debug(ctx, map[string]interface{}{"label": spaceLabel}, "deleting pipelines in")
+	resp, err = cl.DeletePipelines(ctx, client.DeletePipelinesPath(), spaceLabel)
+
+	if err != nil {
+		log.Error(ctx, nil, fmt.Sprintf("error occurred while deleting pipelines from space : %s", spaceLabel))
+	}
+
 	return nil
 }
 
