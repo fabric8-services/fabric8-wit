@@ -369,21 +369,30 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithoutSpaceContext() {
 }
 
 func (s *searchControllerTestSuite) TestSearchFilter() {
-	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "specialwordforsearch"
-			return nil
-		}),
-	)
-	// when
-	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.WorkItems[0].SpaceID)
-	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	// then
-	require.NotEmpty(s.T(), sr.Data)
-	r := sr.Data[0]
-	assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, tf.SetWorkItemTitles("specialwordforsearch")))
+		// when
+		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
+		spaceIDStr := fxt.WorkItems[0].SpaceID.String()
+		_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		// then
+		require.NotEmpty(t, sr.Data)
+		r := sr.Data[0]
+		assert.Equal(t, "specialwordforsearch", r.Attributes[workitem.SystemTitle])
+	})
+
+	// Regression test for https://github.com/openshiftio/openshift.io/issues/4429
+	s.T().Run("fail - incorrect value type", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+		// when
+		filter := `{"number": "foo"}`
+		spaceIDStr := fxt.WorkItems[0].SpaceID.String()
+		_, jerr := test.ShowSearchBadRequest(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		// then
+		require.NotEmpty(t, jerr)
+	})
 }
 
 func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
