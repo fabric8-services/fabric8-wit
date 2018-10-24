@@ -19,13 +19,13 @@ SET id.workItemLinkType = '{{index . 17}}';
 SET id.workItemTypeDeleted = '{{index . 18}}';
 SET id.workItemType = '{{index . 19}}';
 
-INSERT INTO space_templates (id,name,description, deleted_at) VALUES
-    (current_setting('id.spaceTemplate')::uuid, current_setting('id.spaceTemplate'), 'test template', NULL),
-    (current_setting('id.spaceTemplateDeleted')::uuid, current_setting('id.spaceTemplateDeleted'), 'test template', '2018-09-17 16:01');
+-- INSERT INTO space_templates (id,name,description, deleted_at) VALUES
+--     (current_setting('id.spaceTemplate')::uuid, current_setting('id.spaceTemplate'), 'test template', NULL),
+--     (current_setting('id.spaceTemplateDeleted')::uuid, current_setting('id.spaceTemplateDeleted'), 'test template', '2018-09-17 16:01');
 
-INSERT INTO spaces (id,name,space_template_id, deleted_at) VALUES
-        (current_setting('id.space')::uuid, current_setting('id.space'), current_setting('id.spaceTemplate')::uuid, NULL),
-        (current_setting('id.spaceDeleted')::uuid, current_setting('id.spaceDeleted'), current_setting('id.spaceTemplate')::uuid, '2018-09-17 16:01');
+-- INSERT INTO spaces (id,name,space_template_id, deleted_at) VALUES
+--         (current_setting('id.space')::uuid, current_setting('id.space'), current_setting('id.spaceTemplate')::uuid, NULL),
+--         (current_setting('id.spaceDeleted')::uuid, current_setting('id.spaceDeleted'), current_setting('id.spaceTemplate')::uuid, '2018-09-17 16:01');
 
 -- INSERT INTO iterations (id, name, path, space_id, number, deleted_at) VALUES
 --     (current_setting('id.iter')::uuid, 'root iteration', replace(current_setting('id.iter'), '-', '_')::ltree, current_setting('id.space')::uuid, 1, NULL),
