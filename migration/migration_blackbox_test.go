@@ -159,8 +159,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMirgraion107", testMigration107NumberSequencesTable)
 	t.Run("TestMirgraion108", testMigration108NumberColumnForArea)
 	t.Run("TestMirgraion109", testMigration109NumberColumnForIteration)
-	t.Run("TestMirgraion110", testMigration110UpdateNumberForExistingIterations)
-	t.Run("TestMirgraion111", testMigration111CascadingSoftDelete)
+	t.Run("TestMirgraion110", testMigration110CascadingSoftDelete)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1385,86 +1384,9 @@ func testMigration109NumberColumnForIteration(t *testing.T) {
 	require.True(t, dialect.HasColumn("iterations", "number"))
 }
 
-func testMigration110UpdateNumberForExistingIterations(t *testing.T) {
+func testMigration110CascadingSoftDelete(t *testing.T) {
 	t.Run("migrate to previous version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:110], 110)
-	})
-
-	spaceTemplateID := uuid.NewV4()
-	space1ID := uuid.NewV4()
-	space2ID := uuid.NewV4()
-	// two iterations in space 1
-	iter1ID := uuid.NewV4()
-	iter2ID := uuid.NewV4()
-	// two iterations in space 2
-	iter3ID := uuid.NewV4()
-	iter4ID := uuid.NewV4()
-
-	t.Run("setup test data to migrate", func(t *testing.T) {
-		require.Nil(t, runSQLscript(sqlDB, "110-update-number-for-existing-iterations.sql",
-			spaceTemplateID.String(),
-			space1ID.String(),
-			space2ID.String(),
-			iter1ID.String(),
-			iter2ID.String(),
-			iter3ID.String(),
-			iter4ID.String(),
-		))
-	})
-
-	// Helper functions
-
-	getNumberOf := func(t *testing.T, table string, id uuid.UUID) int {
-		q := fmt.Sprintf("SELECT number FROM %s WHERE id = $1", table)
-		row := sqlDB.QueryRow(q, id)
-		require.NotNil(t, row)
-		var p int32
-		err := row.Scan(&p)
-		require.NoError(t, err, "%+v", err)
-		return int(p)
-	}
-	getNumberOfIteration := func(t *testing.T, iterID uuid.UUID) int { return getNumberOf(t, "iterations", iterID) }
-
-	t.Run("migrate to current version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:111], 111)
-	})
-
-	t.Run("checks after migration", func(t *testing.T) {
-		// check that the newest iteration/area has the smaller number and that
-		// the numbering is partitioned by space_id
-		assert.Equal(t, 2, getNumberOfIteration(t, iter1ID))
-		assert.Equal(t, 1, getNumberOfIteration(t, iter2ID))
-		assert.Equal(t, 2, getNumberOfIteration(t, iter3ID))
-		assert.Equal(t, 1, getNumberOfIteration(t, iter4ID))
-
-		// check that the sequences table has the expected values
-		type numberSequence struct {
-			spaceID    uuid.UUID
-			tableName  string
-			currentVal int
-		}
-		rows, err := sqlDB.Query("SELECT space_id, table_name, current_val FROM number_sequences WHERE space_id IN ($1, $2)", space1ID, space2ID)
-		require.NoError(t, err)
-		defer rows.Close()
-		toBeFound := map[numberSequence]struct{}{
-			{space1ID, "iterations", 2}: {},
-			{space2ID, "iterations", 2}: {},
-		}
-		for rows.Next() {
-			seq := numberSequence{}
-			err := rows.Scan(&seq.spaceID, &seq.tableName, &seq.currentVal)
-			require.NoError(t, err)
-			delete(toBeFound, seq)
-		}
-		require.Empty(t, toBeFound, "failed to find these number sequences: %+v", spew.Sdump(toBeFound))
-
-		require.True(t, dialect.HasIndex("iterations", "iterations_space_id_number_idx"))
-	})
-}
-
-func testMigration111CascadingSoftDelete(t *testing.T) {
-	t.Run("migrate to previous version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:111], 111)
 	})
 
 	areaDeletedID := uuid.NewV4()
@@ -1489,7 +1411,7 @@ func testMigration111CascadingSoftDelete(t *testing.T) {
 	workItemTypeID := uuid.NewV4()
 
 	t.Run("setup test data to migrate", func(t *testing.T) {
-		require.Nil(t, runSQLscript(sqlDB, "111-cascading-soft-delete.sql",
+		require.Nil(t, runSQLscript(sqlDB, "110-cascading-soft-delete.sql",
 			areaDeletedID.String(),
 			areaID.String(),
 			commentDeletedID.String(),
@@ -1552,11 +1474,11 @@ func testMigration111CascadingSoftDelete(t *testing.T) {
 		checkEntitiesExist(t, exists)
 	})
 	t.Run("migrate to current version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:112], 112)
+		migrateToVersion(t, sqlDB, migrations[:111], 111)
 	})
 	t.Run("after migration", func(t *testing.T) {
 		checkEntitiesExist(t, exists)
-		// require.Nil(t, runSQLscript(sqlDB, "111-soft-delete-space-template.sql", spaceTemplateID.String()))
+		// require.Nil(t, runSQLscript(sqlDB, "110-soft-delete-space-template.sql", spaceTemplateID.String()))
 		// checkEntitiesExist(t, existsButIsDeleted)
 	})
 

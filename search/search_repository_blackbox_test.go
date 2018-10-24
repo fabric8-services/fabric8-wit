@@ -585,6 +585,46 @@ func (s *searchRepositoryBlackboxTest) TestFilter() {
 		})
 	})
 
+	s.T().Run("fail - with incorrect value type", func(t *testing.T) {
+		// given
+		t.Run("integer instead of UUID", func(t *testing.T) {
+			filter := `{"space": 123}`
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.Error(t, err)
+			assert.Equal(t, 0, count)
+		})
+
+		t.Run("string instead of UUID", func(t *testing.T) {
+			filter := `{"space": "foo"}`
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.Error(t, err)
+			assert.Equal(t, 0, count)
+
+		})
+
+		// Regression test for https://github.com/openshiftio/openshift.io/issues/4429
+		t.Run("string instead of integer", func(t *testing.T) {
+			filter := `{"number":{"$EQ":"asd"}}`
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// when
+			require.Error(t, err)
+			assert.Equal(t, 0, count)
+
+			filter = `{"number":{"$EQ":"*"}}`
+			_, count, _, _, err = s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// when
+			require.Error(t, err)
+			assert.Equal(t, 0, count)
+		})
+		t.Run("UUID instead of integer", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"number":{"$EQ":"%s"}}`, uuid.NewV4())
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// when
+			require.Error(t, err)
+			assert.Equal(t, 0, count)
+		})
+	})
+
 	s.T().Run("with parent-exists filter", func(t *testing.T) {
 
 		t.Run("no link created", func(t *testing.T) {
