@@ -1,3 +1,6 @@
+-- Add missing foreign key constraint from comment to work item
+-- ALTER TABLE comments ADD FOREIGN KEY (parent_id) REFERENCES work_items(id) ON DELETE CASCADE;
+
 CREATE OR REPLACE FUNCTION archive_record()
 -- archive_record() can be use used as the trigger function on all tables
 -- that want to archive their data into a separate *_archive table after
@@ -53,37 +56,39 @@ END;
   $$ LANGUAGE plpgsql;
 
 -- Create archive tables
-CREATE TABLE areas_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (areas);
-CREATE TABLE comments_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (comments);
-CREATE TABLE iterations_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (iterations);
-CREATE TABLE labels_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (lables);
+-- CREATE TABLE areas_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (areas);
+-- CREATE TABLE comments_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (comments);
+-- CREATE TABLE iterations_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (iterations);
+-- CREATE TABLE labels_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (labels);
 CREATE TABLE space_templates_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (space_templates);
 CREATE TABLE spaces_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (spaces);
-CREATE TABLE work_item_link_types_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_link_types);
-CREATE TABLE work_item_links_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_links);
-CREATE TABLE work_item_types_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_types);
-CREATE TABLE work_items_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_items);
+-- CREATE TABLE work_item_link_types_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_link_types);
+-- CREATE TABLE work_item_links_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_links);
+-- CREATE TABLE work_item_types_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_types);
+-- CREATE TABLE work_items_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_items);
 
 -- Setup triggers
-CREATE TRIGGER archive_areas AFTER UPDATE OF deleted_at OR DELETE ON areas FOR EACH ROW EXECUTE PROCEDURE archive_record();
-CREATE TRIGGER archive_comments AFTER UPDATE OF deleted_at OR DELETE ON comments FOR EACH ROW EXECUTE PROCEDURE archive_record();
-CREATE TRIGGER archive_iterations AFTER UPDATE OF deleted_at OR DELETE ON iterations FOR EACH ROW EXECUTE PROCEDURE archive_record();
-CREATE TRIGGER archive_labels AFTER UPDATE OF deleted_at OR DELETE ON labels FOR EACH ROW EXECUTE PROCEDURE archive_record();
+-- CREATE TRIGGER archive_areas AFTER UPDATE OF deleted_at OR DELETE ON areas FOR EACH ROW EXECUTE PROCEDURE archive_record();
+-- CREATE TRIGGER archive_comments AFTER UPDATE OF deleted_at OR DELETE ON comments FOR EACH ROW EXECUTE PROCEDURE archive_record();
+-- CREATE TRIGGER archive_iterations AFTER UPDATE OF deleted_at OR DELETE ON iterations FOR EACH ROW EXECUTE PROCEDURE archive_record();
+-- CREATE TRIGGER archive_labels AFTER UPDATE OF deleted_at OR DELETE ON labels FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_space_templates AFTER UPDATE OF deleted_at OR DELETE ON space_templates FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_spaces AFTER UPDATE OF deleted_at OR DELETE ON spaces FOR EACH ROW EXECUTE PROCEDURE archive_record();
-CREATE TRIGGER archive_work_item_link_types AFTER UPDATE OF deleted_at OR DELETE ON work_item_link_types FOR EACH ROW EXECUTE PROCEDURE archive_record();
-CREATE TRIGGER archive_work_item_links AFTER UPDATE OF deleted_at OR DELETE ON work_item_links FOR EACH ROW EXECUTE PROCEDURE archive_record();
-CREATE TRIGGER archive_work_item_types AFTER UPDATE OF deleted_at OR DELETE ON work_item_types FOR EACH ROW EXECUTE PROCEDURE archive_record();
-CREATE TRIGGER archive_work_items AFTER UPDATE OF deleted_at OR DELETE ON work_items FOR EACH ROW EXECUTE PROCEDURE archive_record();
+-- CREATE TRIGGER archive_work_item_link_types AFTER UPDATE OF deleted_at OR DELETE ON work_item_link_types FOR EACH ROW EXECUTE PROCEDURE archive_record();
+-- CREATE TRIGGER archive_work_item_links AFTER UPDATE OF deleted_at OR DELETE ON work_item_links FOR EACH ROW EXECUTE PROCEDURE archive_record();
+-- CREATE TRIGGER archive_work_item_types AFTER UPDATE OF deleted_at OR DELETE ON work_item_types FOR EACH ROW EXECUTE PROCEDURE archive_record();
+-- CREATE TRIGGER archive_work_items AFTER UPDATE OF deleted_at OR DELETE ON work_items FOR EACH ROW EXECUTE PROCEDURE archive_record();
+
+
 
 -- Archive all deleted records
-DELETE FROM areas WHERE deleted_at IS NOT NULL;
-DELETE FROM comments WHERE deleted_at IS NOT NULL;
-DELETE FROM iterations WHERE deleted_at IS NOT NULL;
-DELETE FROM labels WHERE deleted_at IS NOT NULL;
+-- DELETE FROM areas WHERE deleted_at IS NOT NULL;
+-- DELETE FROM comments WHERE deleted_at IS NOT NULL;
+-- DELETE FROM iterations WHERE deleted_at IS NOT NULL;
+-- DELETE FROM labels WHERE deleted_at IS NOT NULL;
 DELETE FROM space_templates WHERE deleted_at IS NOT NULL;
 DELETE FROM spaces WHERE deleted_at IS NOT NULL;
-DELETE FROM work_item_link_types WHERE deleted_at IS NOT NULL;
-DELETE FROM work_item_links WHERE deleted_at IS NOT NULL;
-DELETE FROM work_item_types WHERE deleted_at IS NOT NULL;
-DELETE FROM work_items WHERE deleted_at IS NOT NULL;
+-- DELETE FROM work_item_link_types WHERE deleted_at IS NOT NULL;
+-- DELETE FROM work_item_links WHERE deleted_at IS NOT NULL;
+-- DELETE FROM work_item_types WHERE deleted_at IS NOT NULL;
+-- DELETE FROM work_items WHERE deleted_at IS NOT NULL;

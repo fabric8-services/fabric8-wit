@@ -571,7 +571,7 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 	// Apply all the updates of the next version
 	for j := range m[*nextVersion] {
 		if err := m[*nextVersion][j](tx); err != nil {
-			return errs.Errorf("failed to execute migration of step %d of version %d: %s\n", j, *nextVersion, err)
+			return errs.Errorf("failed to execute migration step %d of version %d: %s\n", j, *nextVersion, err)
 		}
 	}
 
