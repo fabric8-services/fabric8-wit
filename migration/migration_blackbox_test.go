@@ -1454,19 +1454,29 @@ func testMigration110CascadingSoftDelete(t *testing.T) {
 		require.NoError(t, err, "existsButIsDeleted table: %s, id: %s (comment: %s, comment (deleted): %s), err: %+v", table, id, areaID, areaDeletedID, err)
 		return p == 1
 	}
-	_ = existsButIsDeleted
 	checkEntitiesExist := func(t *testing.T, existFunc func(t *testing.T, table string, id uuid.UUID) bool) {
 		t.Run("check that all entities exist", func(t *testing.T) {
-			// require.True(t, existFunc(t, "areas", areaID), "area missing: %s", areaID)
-			// require.True(t, existFunc(t, "comments", commentID), "comment missing: %s", commentID)
-			// require.True(t, existFunc(t, "iterations", iterID), "iteration missing: %s", iterID)
-			// require.True(t, existFunc(t, "labels", labelID), "label missing: %s", labelID)
-			// require.True(t, existFunc(t, "spaces", spaceID), "space missing: %s", spaceID)
-			// require.True(t, existFunc(t, "space_templates", spaceTemplateID), "space template missing: %s", spaceTemplateID)
-			// require.True(t, existFunc(t, "work_items", workItemID), "work item missing: %s", workItemID)
-			// require.True(t, existFunc(t, "work_item_links", workItemLinkID), "work item link missing: %s", workItemLinkID)
-			// require.True(t, existFunc(t, "work_item_link_types", workItemLinkTypeID), "work item link type missing: %s", workItemLinkTypeID)
-			// require.True(t, existFunc(t, "work_item_types", workItemTypeID), "work item type missing: %s", workItemTypeID)
+			require.True(t, existFunc(t, "areas", areaID), "area missing: %s", areaID)
+			require.True(t, existFunc(t, "comments", commentID), "comment missing: %s", commentID)
+			require.True(t, existFunc(t, "iterations", iterID), "iteration missing: %s", iterID)
+			require.True(t, existFunc(t, "labels", labelID), "label missing: %s", labelID)
+			require.True(t, existFunc(t, "spaces", spaceID), "space missing: %s", spaceID)
+			require.True(t, existFunc(t, "space_templates", spaceTemplateID), "space template missing: %s", spaceTemplateID)
+			require.True(t, existFunc(t, "work_items", workItemID), "work item missing: %s", workItemID)
+			require.True(t, existFunc(t, "work_item_links", workItemLinkID), "work item link missing: %s", workItemLinkID)
+			require.True(t, existFunc(t, "work_item_link_types", workItemLinkTypeID), "work item link type missing: %s", workItemLinkTypeID)
+			require.True(t, existFunc(t, "work_item_types", workItemTypeID), "work item type missing: %s", workItemTypeID)
+
+			require.True(t, existsButIsDeleted(t, "areas", areaDeletedID), "area (deleted) missing: %s", areaDeletedID)
+			require.True(t, existsButIsDeleted(t, "comments", commentDeletedID), "comment (deleted) missing: %s", commentDeletedID)
+			require.True(t, existsButIsDeleted(t, "iterations", iterDeletedID), "iteration (deleted) missing: %s", iterDeletedID)
+			require.True(t, existsButIsDeleted(t, "labels", labelDeletedID), "label (deleted) missing: %s", labelDeletedID)
+			require.True(t, existsButIsDeleted(t, "spaces", spaceDeletedID), "space (deleted) missing: %s", spaceDeletedID)
+			require.True(t, existsButIsDeleted(t, "space_templates", spaceTemplateDeletedID), "space template (deleted) missing: %s", spaceTemplateDeletedID)
+			require.True(t, existsButIsDeleted(t, "work_items", workItemDeletedID), "work item (deleted) missing: %s", workItemDeletedID)
+			require.True(t, existsButIsDeleted(t, "work_item_links", workItemLinkDeletedID), "work item link (deleted) missing: %s", workItemLinkDeletedID)
+			require.True(t, existsButIsDeleted(t, "work_item_link_types", workItemLinkTypeDeletedID), "work item link type (deleted) missing: %sDeleted", workItemLinkTypeID)
+			require.True(t, existsButIsDeleted(t, "work_item_types", workItemTypeDeletedID), "work item type (deleted) missing: %s", workItemTypeDeletedID)
 		})
 	}
 
@@ -1478,8 +1488,8 @@ func testMigration110CascadingSoftDelete(t *testing.T) {
 	})
 	t.Run("after migration", func(t *testing.T) {
 		checkEntitiesExist(t, exists)
-		// require.Nil(t, runSQLscript(sqlDB, "110-soft-delete-space-template.sql", spaceTemplateID.String()))
-		// checkEntitiesExist(t, existsButIsDeleted)
+		require.Nil(t, runSQLscript(sqlDB, "110-soft-delete-space-template.sql", spaceTemplateID.String()))
+		checkEntitiesExist(t, existsButIsDeleted)
 	})
 
 }
