@@ -324,14 +324,6 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
 func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, witID uuid.UUID, spaceID uuid.UUID) error {
-	// load work item type to perform conversion according to a field type
-	wit, err := appl.WorkItemTypes().Load(ctx, witID)
-	if err != nil {
-		return errs.Wrapf(err, "failed to load work item type: %s", witID)
-	}
-	_ = wit
-
-	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
 		return err
