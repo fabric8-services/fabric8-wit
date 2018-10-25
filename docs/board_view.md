@@ -5,7 +5,7 @@ Implements User Stories:
  - Basic Board View for Planner: https://openshift.io/openshiftio/openshiftio/plan/detail/2073
 
 ## Description
-This implements the backend support for board views. It contains changes to the JSONAPI services as well as to the space template system_ It provides backend support for a flexible, extensible board view implementation.
+This implements the backend support for board views. It contains changes to the JSONAPI services as well as to the space template system. It provides backend support for a flexible, extensible board view implementation.
 
 ## Changes to the JSONAPI
 
