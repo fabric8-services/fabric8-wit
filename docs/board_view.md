@@ -5,7 +5,7 @@ Implements User Stories:
  - Basic Board View for Planner: https://openshift.io/openshiftio/openshiftio/plan/detail/2073
 
 ## Description
-This implements the backend support for board views. It contains changes to the JSONAPI services as well as to the space template system. It provides backend support for a flexible, extensible board view implementation.
+This implements the backend support for board views. It contains changes to the JSONAPI services as well as to the space template system_ It provides backend support for a flexible, extensible board view implementation.
 
 ## Changes to the JSONAPI
 
@@ -83,8 +83,8 @@ The response to `/workitems` and `/workitems/:id` is updated to contain the posi
   "data": [
     {
       "attributes": {
-        "system.created_at": "0001-01-01T00:00:00Z",
-        "system.title":"Some Work Item",
+        "system_created_at": "0001-01-01T00:00:00Z",
+        "system_title":"Some Work Item",
         # [...]
       },
       relationships: {
@@ -111,9 +111,9 @@ The meta-state is not directly connected to the board/column definitions, but to
   "data": [
     {
       "attributes": {
-        "system.created_at": "0001-01-01T00:00:00Z",
-        "system.title": "Some Work Item",
-        "system.metastate": "mInprogress",
+        "system_created_at": "0001-01-01T00:00:00Z",
+        "system_title": "Some Work Item",
+        "system_metastate": "mInprogress",
         # [...]
       },
 # [...]
@@ -150,7 +150,7 @@ The above only describes the schema of the board positions and the meta-state va
 
 ### Update the Position of Work Items on a Board
 
-When a Work Item is moved on a board by the user, a rule/action is executed on the WIT side on update of the `boardcolumns` relationship. Clients are expected to send a `PATCH` request with the updated list of `boardcolumns` to `/workitems/:id`. *The response of the `PATCH` request contains an updated Work Item that may contain updated attribute and/or relationship values* (for example, an updated `system.state` attribute). The client is expected to update the local Work Item data from that response.
+When a Work Item is moved on a board by the user, a rule/action is executed on the WIT side on update of the `boardcolumns` relationship. Clients are expected to send a `PATCH` request with the updated list of `boardcolumns` to `/workitems/:id`. *The response of the `PATCH` request contains an updated Work Item that may contain updated attribute and/or relationship values* (for example, an updated `system_state` attribute). The client is expected to update the local Work Item data from that response.
 
 The rule/action being executed on the WIT side is defined by `transRuleID` and `transRuleArguments` values in the board definition (see above). If a card is moved on the board, that rule/action get executed and calculate the updates necessary to the Work Item.
 
@@ -266,7 +266,7 @@ CREATE TABLE boardcolumns (
 The meta-state is stored and covered by a new Work Item Type attribute that provides the mapping by using the ordered nature of the enum definitions in the space template. The new attribute is added to the generalized WIT definition so it is inherited by all existing WITs in all templates:
 
 ```yaml
-"system.metastate":
+"system_metastate":
       label: Meta-State
       description: The meta-state of the work item
       read_only: yes
@@ -279,7 +279,7 @@ The meta-state is stored and covered by a new Work Item Type attribute that prov
         # This will allow other WITs to overwrite the values of the state.
         rewritable_values: yes
         # the sequence of the values need to match the sequence of the 
-        # system.state attributes. This encapsulates the mapping.
+        # system_state attributes. This encapsulates the mapping.
         values: 
         - mNew
         - mOpen
@@ -288,4 +288,4 @@ The meta-state is stored and covered by a new Work Item Type attribute that prov
         - mClosed
 ```
 
-The implementation needs to get the set of `system.state` values and the set of the `system.metastate` values to get the mapping from state to meta-state. The meta-state will be added to the Work Item JSONAPI model response like every other attribute (see above).
+The implementation needs to get the set of `system_state` values and the set of the `system_metastate` values to get the mapping from state to meta-state. The meta-state will be added to the Work Item JSONAPI model response like every other attribute (see above).

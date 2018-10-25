@@ -24,7 +24,7 @@ var workItem = a.Type("WorkItem", func() {
 		a.Example("abcd1234-1234-5678-cafe-0123456789ab")
 	})
 	a.Attribute("attributes", a.HashOf(d.String, d.Any), func() {
-		a.Example(map[string]interface{}{"version": "1", "system.state": "new", "system.title": "Example story"})
+		a.Example(map[string]interface{}{"version": "1", "system_state": "new", "system_title": "Example story"})
 	})
 	a.Attribute("relationships", workItemRelationships)
 	a.Attribute("links", genericLinksForWorkItem)
@@ -35,7 +35,7 @@ var workItem = a.Type("WorkItem", func() {
 var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("assignees", relationGenericList, "This defines assignees of the Work Item")
 	a.Attribute("labels", relationGenericList, "List of labels attached to the Work Item")
-	a.Attribute("system.boardcolumns", relationGenericList, "List of board columns this Work Item is attached to")
+	a.Attribute("system_boardcolumns", relationGenericList, "List of board columns this Work Item is attached to")
 	a.Attribute("creator", relationGeneric, "This defines creator of the Work Item")
 	a.Attribute("baseType", relationBaseType, "This defines type of Work Item")
 	a.Attribute("comments", relationGeneric, "This defines comments on the Work Item")

@@ -518,7 +518,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 	if description, ok := target.Fields[workitem.SystemDescription].(rendering.MarkupContent); ok {
 		// verify the description markup
 		if !rendering.IsMarkupSupported(description.Markup) {
-			return errors.NewBadParameterError("data.relationships.attributes[system.description].markup", description.Markup)
+			return errors.NewBadParameterError("data.relationships.attributes[system_description].markup", description.Markup)
 		}
 	}
 	return nil
