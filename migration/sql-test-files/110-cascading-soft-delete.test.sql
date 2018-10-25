@@ -104,7 +104,7 @@ INSERT INTO tracker_items (id, remote_item_id, item, tracker_id, deleted_at) VAL
 
 INSERT INTO tracker_queries (id, query, schedule, space_id, tracker_id, deleted_at) VALUES
     (current_setting('id.trackerQuery')::bigint, 'after', 'the', current_setting('id.space')::uuid, current_setting('id.tracker')::uuid, NULL),
-    (current_setting('id.deletedTrackerQuery')::bigint, 'before', 'the', current_setting('id.space')::uuid, current_setting('id.tracker')::uuid, NULL);
+    (current_setting('id.deletedTrackerQuery')::bigint, 'before', 'the', current_setting('id.space')::uuid, current_setting('id.tracker')::uuid, '2018-09-17 16:01');
 
 INSERT INTO work_item_boards (id, space_template_id, name, description, context_type, context, deleted_at) VALUES
     (current_setting('id.workItemBoard')::uuid, current_setting('id.spaceTemplate')::uuid, 'foo board', 'foo', 'my context type', 'my context', NULL),

@@ -1485,44 +1485,44 @@ func testMigration110CascadingSoftDelete(t *testing.T) {
 	verifyExists := func(t *testing.T, table string, id string) {
 		q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = '%s' AND deleted_at IS NULL", table, id)
 		row := sqlDB.QueryRow(q)
-		require.NotNil(t, row, "exists(): table: %s, id: %s", table, id)
+		require.NotNil(t, row, "exists(): table: %q, id: %q", table, id)
 		var p int32
 		err := row.Scan(&p)
-		require.NoError(t, err, "exists(): table: %s, id: %s, err: %+v", table, id, err)
-		require.Equal(t, int32(1), p, "exists(): table %s is missing id %s", table, id)
+		require.NoError(t, err, "exists(): table: %q, id: %q, err: %+v", table, id, err)
+		require.Equal(t, int32(1), p, "exists(): table %q is missing id %q", table, id)
 	}
 	verifySoftDeleted := func(t *testing.T, table string, id string) {
 		q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = '%s' AND deleted_at IS NOT NULL", table, id)
 		row := sqlDB.QueryRow(q)
-		require.NotNil(t, row, "existsButIsDeleted(): table: %s, id: %s", table, id)
+		require.NotNil(t, row, "existsButIsDeleted(): table: %q, id: %q", table, id)
 		var p int32
 		err := row.Scan(&p)
-		require.NoError(t, err, "existsButIsDeleted(): table: %s, id: %s, err: %+v", table, id, err)
-		require.Equal(t, int32(1), p, "existsButIsDeleted(): table %s is missing id %s", table, id)
+		require.NoError(t, err, "existsButIsDeleted(): table: %q, id: %q, err: %+v", table, id, err)
+		require.Equal(t, int32(1), p, "existsButIsDeleted(): table %q is missing id %q", table, id)
 	}
-	checkEntitiesExist := func(t *testing.T, existFunc func(t *testing.T, table string, id string)) {
-		t.Run("check that all entities exist", func(t *testing.T) {
-			verifyExists(t, "areas", areaID)
-			verifyExists(t, "codebases", codebaseID)
-			verifyExists(t, "comments", commentID)
-			verifyExists(t, "identities", identityID)
-			verifyExists(t, "iterations", iterationID)
-			verifyExists(t, "labels", labelID)
-			verifyExists(t, "spaces", spaceID)
-			verifyExists(t, "space_templates", spaceTemplateID)
-			verifyExists(t, "trackers", trackerID)
-			verifyExists(t, "tracker_items", trackerItemID)
-			verifyExists(t, "tracker_queries", trackerQueryID)
-			verifyExists(t, "users", userID)
-			verifyExists(t, "work_item_board_columns", workItemBoardColumnID)
-			verifyExists(t, "work_item_boards", workItemBoardID)
-			verifyExists(t, "work_item_child_types", workItemChildTypeID)
-			verifyExists(t, "work_items", workItemID)
-			verifyExists(t, "work_item_links", workItemLinkID)
-			verifyExists(t, "work_item_link_types", workItemLinkTypeID)
-			verifyExists(t, "work_item_type_groups", workItemTypeGroupID)
-			verifyExists(t, "work_item_type_group_members", workItemTypeGroupMemberID)
-			verifyExists(t, "work_item_types", workItemTypeID)
+	checkEntitiesExist := func(t *testing.T, name string, existFunc func(t *testing.T, table string, id string)) {
+		t.Run(name, func(t *testing.T) {
+			existFunc(t, "areas", areaID)
+			existFunc(t, "codebases", codebaseID)
+			existFunc(t, "comments", commentID)
+			existFunc(t, "identities", identityID)
+			existFunc(t, "iterations", iterationID)
+			existFunc(t, "labels", labelID)
+			existFunc(t, "spaces", spaceID)
+			existFunc(t, "space_templates", spaceTemplateID)
+			existFunc(t, "trackers", trackerID)
+			existFunc(t, "tracker_items", trackerItemID)
+			existFunc(t, "tracker_queries", trackerQueryID)
+			existFunc(t, "users", userID)
+			existFunc(t, "work_item_board_columns", workItemBoardColumnID)
+			existFunc(t, "work_item_boards", workItemBoardID)
+			existFunc(t, "work_item_child_types", workItemChildTypeID)
+			existFunc(t, "work_items", workItemID)
+			existFunc(t, "work_item_links", workItemLinkID)
+			existFunc(t, "work_item_link_types", workItemLinkTypeID)
+			existFunc(t, "work_item_type_groups", workItemTypeGroupID)
+			existFunc(t, "work_item_type_group_members", workItemTypeGroupMemberID)
+			existFunc(t, "work_item_types", workItemTypeID)
 			// deleted entries
 			verifySoftDeleted(t, "areas", deletedAreaID)
 			verifySoftDeleted(t, "codebases", deletedCodebaseID)
@@ -1549,16 +1549,16 @@ func testMigration110CascadingSoftDelete(t *testing.T) {
 	}
 
 	t.Run("before migration", func(t *testing.T) {
-		checkEntitiesExist(t, verifyExists)
+		checkEntitiesExist(t, "all entries have been created", verifyExists)
 	})
 	t.Run("migrate to current version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:111], 111)
 		require.False(t, dialect.HasTable("work_item_link_categories"))
 	})
 	t.Run("after migration", func(t *testing.T) {
-		checkEntitiesExist(t, verifyExists)
+		checkEntitiesExist(t, "entities are not modified", verifyExists)
 		require.Nil(t, runSQLscript(sqlDB, "110-soft-delete-entities.test.sql", spaceTemplateID, trackerID, userID))
-		checkEntitiesExist(t, verifySoftDeleted)
+		checkEntitiesExist(t, "all entries are soft-deleted", verifySoftDeleted)
 	})
 
 }
