@@ -179,13 +179,19 @@ EXPLAIN SELECT * FROM countries WHERE deleted_at IS NULL;
 
 Notice the absence of the sequential scan of the `countries_archive` table in the aforementioned `EXPLAIN`.
 
-## Benefits
+## Benefits and Risks
+
+### Benefits
 
 1. We have regular **cascaded deletes** back and can let the DB figure out in which order to delete things.
 2. At the same time, we're **archiving our data** as well. Every soft-delete 
 3. **No Go code changes** are required. We only have to setup a table and a trigger for each table that shall be archived.
 4. Whenever we figure that we don't want this behaviour with triggers and cascaded soft-delete anymore **we can easily go back**.
 5. All future **schema migrations** that are being made to the original table will be applied to the `_archive` version of that table as well. Except for constraints, which is good.
+
+### Risks
+
+1. Suppose you add a new table that references another existing table with a foreign key that has `ON DELETE CASCADE`. If the existing table uses the `archive_record()` function from above, your new table will receive hard `DELETE`s when something in the existing table is soft-deletes. This isn't a problem, if you use `archive_record()` for your new dependent table as well. But you just have to remember it.
 
 ## Final thoughts
 
