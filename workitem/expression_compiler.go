@@ -110,8 +110,8 @@ func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName str
 	if isColumnField {
 		return Column(WorkItemStorage{}.TableName(), mappedFieldName), false
 	}
-
-	if strings.Contains(fieldName, ".") {
+	// Check if the field name contains an underscore
+	if strings.Contains(fieldName, "_") {
 		// leave field untouched
 		return fieldName, true
 	}
