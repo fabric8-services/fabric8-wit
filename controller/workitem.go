@@ -324,6 +324,8 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
 func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, witID uuid.UUID, spaceID uuid.UUID) error {
+	// Todo(ibrahim) : Remove this once field names are migrated
+	replaceFieldNames(&source)
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
 		return err
@@ -524,6 +526,25 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 	return nil
 }
 
+// replaceFieldNames modifies the source to rename all system.* fields to
+// system_* fields. It uses the OldToNewFieldNameMap to find the correct new
+// name for the old field
+// TODO(ibrahim) - Remove these after fields are migrated
+func replaceFieldNames(source *app.WorkItem) {
+	attributeList := source.Attributes
+	for oldAttributeName := range attributeList {
+		newAttributeName, ok := workitem.OldToNewFieldNameMap[oldAttributeName]
+		if ok {
+			// Assign system.* value to system_* only if system_* doesn't exist
+			// system_* has precedence over system.*
+			if _, empty := source.Attributes[newAttributeName]; !empty {
+				source.Attributes[newAttributeName] = source.Attributes[oldAttributeName]
+			}
+			delete(source.Attributes, oldAttributeName)
+		}
+	}
+}
+
 // setupCodebase is the link between CodebaseContent & Codebase
 // setupCodebase creates a codebase and saves it's ID in CodebaseContent
 // for future use
@@ -698,6 +719,7 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 			op.Attributes[name] = val
 		}
 	}
+	addNewFieldNames(op)
 	if op.Relationships.Assignees == nil {
 		op.Relationships.Assignees = &app.RelationGenericList{Data: nil}
 	}
@@ -717,6 +739,19 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 		}
 	}
 	return op, nil
+}
+
+// addNewFieldNames adds new field names (system_) to the payload. The payload
+// contains system.* and system_* field names with the same value
+// TODO (ibrahim) - remove this once field name migration is completed
+func addNewFieldNames(wi *app.WorkItem) {
+	attributeList := wi.Attributes
+	for newAttributeName := range attributeList {
+		oldAttributeName, ok := workitem.NewToOldFieldNameMap[newAttributeName]
+		if ok {
+			wi.Attributes[oldAttributeName] = wi.Attributes[newAttributeName]
+		}
+	}
 }
 
 // workItemIncludeHasChildren adds meta information about existing children
