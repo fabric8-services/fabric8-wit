@@ -6,6 +6,21 @@ DROP TABLE work_item_link_categories;
 DELETE FROM comments c WHERE parent_id IS NOT NULL AND NOT EXISTS (SELECT * FROM work_items w WHERE c.parent_id = w.id);
 ALTER TABLE comments ADD FOREIGN KEY (parent_id) REFERENCES work_items(id) ON DELETE CASCADE;
 
+-- Change foreign key from "tracker_items" and "tracker_queries" to "trackers"
+-- from `ON UPDATE RESTRICT ON DELETE RESTRICT` to `ON DELETE CASCADE` by adding
+-- the new and then dropping the old foreign key.
+ALTER TABLE tracker_items 
+    ADD FOREIGN KEY (tracker_id) REFERENCES trackers(id) ON DELETE CASCADE,
+    DROP CONSTRAINT tracker_items_tracker_id_trackers_id_foreign;
+ALTER TABLE tracker_queries 
+    ADD FOREIGN KEY (tracker_id) REFERENCES trackers(id) ON DELETE CASCADE,
+    DROP CONSTRAINT tracker_queries_tracker_id_trackers_id_foreign;
+
+-- Change foreign key from "identites" to "users" to cascade.
+ALTER TABLE identities
+    ADD FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    DROP CONSTRAINT identities_user_id_users_id_fk;
+
 CREATE OR REPLACE FUNCTION archive_record()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -42,7 +57,7 @@ BEGIN
     -- You should set up your archive table like so:
     --
     --      CREATE TABLE your_table_archive (CHECK(deleted_at IS NOT NULL)) INHERITS(your_table);
-    
+
     -- When a soft-delete happens
     IF (TG_OP = 'UPDATE' AND NEW.deleted_at IS NOT NULL) THEN
         EXECUTE format('DELETE FROM %I.%I WHERE id = $1', TG_TABLE_SCHEMA, TG_TABLE_NAME) USING OLD.id;
