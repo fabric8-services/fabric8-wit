@@ -99,44 +99,9 @@ The trigger function looks like this:
 
 ```sql
 CREATE OR REPLACE FUNCTION archive_record()
--- archive_record() can be use used as the trigger function on all tables
--- that want to archive their data into a separate *_archive table after
--- it was (soft-)DELETEd on the main table. The function will have no effect
--- if it is being used on a non-DELETE or non-UPDATE trigger.
---
--- You should set up a trigger like so:
---
---        CREATE TRIGGER soft_delete_countries
---            AFTER
---                -- this is what is triggered by GORM
---                UPDATE OF deleted_at 
---                -- this is what is triggered by a cascaded DELETE or a direct hard-DELETE
---                OR DELETE
---            ON countries
---            FOR EACH ROW
---            EXECUTE PROCEDURE archive_record();
---
--- The effect of such a trigger is that your entry will be archived under
--- these circumstances:
---
---   1. a soft-delete happens by setting a row's `deleted_at` field to a non-`NULL` value,
---   2. a hard-DELETE happens,
---   3. or a cascaded DELETE happens that was triggered by one of the before mentioned events.
---
--- The only requirements are:
---
---  1. your table has a `deleted_at` field
---  2. your table has an archive table with the extact same name and an `_archive` suffix
---  3. your table has a primary key called `id`
---
--- You should set up your archive table like so:
---
---      CREATE TABLE your_table_archive (
---          CHECK ( deleted_at IS NOT NULL )
---      ) INHERITS(your_table);
 RETURNS TRIGGER AS $$
 BEGIN
-    -- When a soft-delete is happening...
+    -- When a soft-delete happens...
     IF (TG_OP = 'UPDATE' AND NEW.deleted_at IS NOT NULL) THEN
         EXECUTE format('DELETE FROM %I.%I WHERE id = $1', TG_TABLE_SCHEMA, TG_TABLE_NAME) USING OLD.id;
         RETURN OLD;

@@ -1389,94 +1389,162 @@ func testMigration110CascadingSoftDelete(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:110], 110)
 	})
 
-	areaDeletedID := uuid.NewV4()
-	areaID := uuid.NewV4()
-	commentDeletedID := uuid.NewV4()
-	commentID := uuid.NewV4()
-	iterDeletedID := uuid.NewV4()
-	iterID := uuid.NewV4()
-	labelDeletedID := uuid.NewV4()
-	labelID := uuid.NewV4()
-	spaceDeletedID := uuid.NewV4()
-	spaceID := uuid.NewV4()
-	spaceTemplateDeletedID := uuid.NewV4()
-	spaceTemplateID := uuid.NewV4()
-	workItemDeletedID := uuid.NewV4()
-	workItemID := uuid.NewV4()
-	workItemLinkDeletedID := uuid.NewV4()
-	workItemLinkID := uuid.NewV4()
-	workItemLinkTypeDeletedID := uuid.NewV4()
-	workItemLinkTypeID := uuid.NewV4()
-	workItemTypeDeletedID := uuid.NewV4()
-	workItemTypeID := uuid.NewV4()
+	areaID := uuid.NewV4().String()
+	codebaseID := uuid.NewV4().String()
+	commentID := uuid.NewV4().String()
+	identityID := uuid.NewV4().String()
+	iterationID := uuid.NewV4().String()
+	labelID := uuid.NewV4().String()
+	spaceID := uuid.NewV4().String()
+	spaceTemplateID := uuid.NewV4().String()
+	trackerID := uuid.NewV4().String()
+	trackerItemID := "12345678"
+	trackerQueryID := "12345678"
+	userID := uuid.NewV4().String()
+	workItemBoardColumnID := uuid.NewV4().String()
+	workItemBoardID := uuid.NewV4().String()
+	workItemChildTypeID := uuid.NewV4().String()
+	workItemID := uuid.NewV4().String()
+	workItemLinkID := uuid.NewV4().String()
+	workItemLinkTypeID := uuid.NewV4().String()
+	workItemTypeGroupID := uuid.NewV4().String()
+	workItemTypeGroupMemberID := uuid.NewV4().String()
+	workItemTypeID := uuid.NewV4().String()
+	// deleted entries
+	deletedAreaID := uuid.NewV4().String()
+	deletedCodebaseID := uuid.NewV4().String()
+	deletedCommentID := uuid.NewV4().String()
+	deletedIdentityID := uuid.NewV4().String()
+	deletedIterationID := uuid.NewV4().String()
+	deletedLabelID := uuid.NewV4().String()
+	deletedSpaceID := uuid.NewV4().String()
+	deletedSpaceTemplateID := uuid.NewV4().String()
+	deletedTrackerID := uuid.NewV4().String()
+	deletedTrackerItemID := "123456789"
+	deletedTrackerQueryID := "123456789"
+	deletedUserID := uuid.NewV4().String()
+	deletedWorkItemBoardColumnID := uuid.NewV4().String()
+	deletedWorkItemBoardID := uuid.NewV4().String()
+	deletedWorkItemChildTypeID := uuid.NewV4().String()
+	deletedWorkItemID := uuid.NewV4().String()
+	deletedWorkItemLinkID := uuid.NewV4().String()
+	deletedWorkItemLinkTypeID := uuid.NewV4().String()
+	deletedWorkItemTypeGroupID := uuid.NewV4().String()
+	deletedWorkItemTypeGroupMemberID := uuid.NewV4().String()
+	deletedWorkItemTypeID := uuid.NewV4().String()
 
 	t.Run("setup test data to migrate", func(t *testing.T) {
-		require.Nil(t, runSQLscript(sqlDB, "110-cascading-soft-delete.sql",
-			areaDeletedID.String(),
-			areaID.String(),
-			commentDeletedID.String(),
-			commentID.String(),
-			iterDeletedID.String(),
-			iterID.String(),
-			labelDeletedID.String(),
-			labelID.String(),
-			spaceDeletedID.String(),
-			spaceID.String(),
-			spaceTemplateDeletedID.String(),
-			spaceTemplateID.String(),
-			workItemDeletedID.String(),
-			workItemID.String(),
-			workItemLinkDeletedID.String(),
-			workItemLinkID.String(),
-			workItemLinkTypeDeletedID.String(),
-			workItemLinkTypeID.String(),
-			workItemTypeDeletedID.String(),
-			workItemTypeID.String(),
+		require.Nil(t, runSQLscript(sqlDB, "110-cascading-soft-delete.test.sql",
+			areaID,
+			codebaseID,
+			commentID,
+			identityID,
+			iterationID,
+			labelID,
+			spaceID,
+			spaceTemplateID,
+			trackerID,
+			trackerItemID,
+			trackerQueryID,
+			userID,
+			workItemBoardColumnID,
+			workItemBoardID,
+			workItemChildTypeID,
+			workItemID,
+			workItemLinkID,
+			workItemLinkTypeID,
+			workItemTypeGroupID,
+			workItemTypeGroupMemberID,
+			workItemTypeID,
+			// deleted entries
+			deletedAreaID,
+			deletedCodebaseID,
+			deletedCommentID,
+			deletedIdentityID,
+			deletedIterationID,
+			deletedLabelID,
+			deletedSpaceID,
+			deletedSpaceTemplateID,
+			deletedTrackerID,
+			deletedTrackerItemID,
+			deletedTrackerQueryID,
+			deletedUserID,
+			deletedWorkItemBoardColumnID,
+			deletedWorkItemBoardID,
+			deletedWorkItemChildTypeID,
+			deletedWorkItemID,
+			deletedWorkItemLinkID,
+			deletedWorkItemLinkTypeID,
+			deletedWorkItemTypeGroupID,
+			deletedWorkItemTypeGroupMemberID,
+			deletedWorkItemTypeID,
 		))
 	})
 
 	// Helper functions
-	exists := func(t *testing.T, table string, id uuid.UUID) bool {
+	exists := func(t *testing.T, table string, id string) {
 		q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = '%s'", table, id)
 		row := sqlDB.QueryRow(q)
-		require.NotNil(t, row, "exists table: %s, id: %s", table, id)
+		require.NotNil(t, row, "exists(): table: %s, id: %s", table, id)
 		var p int32
 		err := row.Scan(&p)
-		require.NoError(t, err, "exists table: %s, id: %s, err: %+v", table, id, err)
-		return p == 1
+		require.NoError(t, err, "exists(): table: %s, id: %s, err: %+v", table, id, err)
+		require.Equal(t, int32(1), p, "exists(): table %s is missing id %s", table, id)
 	}
-	existsButIsDeleted := func(t *testing.T, table string, id uuid.UUID) bool {
+	existsButIsDeleted := func(t *testing.T, table string, id string) {
 		q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = '%s' AND deleted_at IS NOT NULL", table, id)
 		row := sqlDB.QueryRow(q)
-		require.NotNil(t, row, "existsButIsDeleted table: %s, id: %s", table, id)
+		require.NotNil(t, row, "existsButIsDeleted(): table: %s, id: %s", table, id)
 		var p int32
 		err := row.Scan(&p)
-		require.NoError(t, err, "existsButIsDeleted table: %s, id: %s (comment: %s, comment (deleted): %s), err: %+v", table, id, areaID, areaDeletedID, err)
-		return p == 1
+		require.NoError(t, err, "existsButIsDeleted(): table: %s, id: %s, err: %+v", table, id, err)
+		require.Equal(t, int32(1), p, "existsButIsDeleted(): table %s is missing id %s", table, id)
 	}
-	checkEntitiesExist := func(t *testing.T, existFunc func(t *testing.T, table string, id uuid.UUID) bool) {
+	checkEntitiesExist := func(t *testing.T, existFunc func(t *testing.T, table string, id string)) {
 		t.Run("check that all entities exist", func(t *testing.T) {
-			require.True(t, existFunc(t, "areas", areaID), "area missing: %s", areaID)
-			require.True(t, existFunc(t, "comments", commentID), "comment missing: %s", commentID)
-			require.True(t, existFunc(t, "iterations", iterID), "iteration missing: %s", iterID)
-			require.True(t, existFunc(t, "labels", labelID), "label missing: %s", labelID)
-			require.True(t, existFunc(t, "spaces", spaceID), "space missing: %s", spaceID)
-			require.True(t, existFunc(t, "space_templates", spaceTemplateID), "space template missing: %s", spaceTemplateID)
-			require.True(t, existFunc(t, "work_items", workItemID), "work item missing: %s", workItemID)
-			require.True(t, existFunc(t, "work_item_links", workItemLinkID), "work item link missing: %s", workItemLinkID)
-			require.True(t, existFunc(t, "work_item_link_types", workItemLinkTypeID), "work item link type missing: %s", workItemLinkTypeID)
-			require.True(t, existFunc(t, "work_item_types", workItemTypeID), "work item type missing: %s", workItemTypeID)
-
-			require.True(t, existsButIsDeleted(t, "areas", areaDeletedID), "area (deleted) missing: %s", areaDeletedID)
-			require.True(t, existsButIsDeleted(t, "comments", commentDeletedID), "comment (deleted) missing: %s", commentDeletedID)
-			require.True(t, existsButIsDeleted(t, "iterations", iterDeletedID), "iteration (deleted) missing: %s", iterDeletedID)
-			require.True(t, existsButIsDeleted(t, "labels", labelDeletedID), "label (deleted) missing: %s", labelDeletedID)
-			require.True(t, existsButIsDeleted(t, "spaces", spaceDeletedID), "space (deleted) missing: %s", spaceDeletedID)
-			require.True(t, existsButIsDeleted(t, "space_templates", spaceTemplateDeletedID), "space template (deleted) missing: %s", spaceTemplateDeletedID)
-			require.True(t, existsButIsDeleted(t, "work_items", workItemDeletedID), "work item (deleted) missing: %s", workItemDeletedID)
-			require.True(t, existsButIsDeleted(t, "work_item_links", workItemLinkDeletedID), "work item link (deleted) missing: %s", workItemLinkDeletedID)
-			require.True(t, existsButIsDeleted(t, "work_item_link_types", workItemLinkTypeDeletedID), "work item link type (deleted) missing: %sDeleted", workItemLinkTypeID)
-			require.True(t, existsButIsDeleted(t, "work_item_types", workItemTypeDeletedID), "work item type (deleted) missing: %s", workItemTypeDeletedID)
+			existFunc(t, "areas", areaID)
+			existFunc(t, "codebases", codebaseID)
+			existFunc(t, "comments", commentID)
+			existFunc(t, "identities", identityID)
+			existFunc(t, "iterations", iterationID)
+			existFunc(t, "labels", labelID)
+			existFunc(t, "spaces", spaceID)
+			existFunc(t, "space_templats", spaceTemplateID)
+			existFunc(t, "trackers", trackerID)
+			existFunc(t, "tracker_items", trackerItemID)
+			existFunc(t, "tracker_queries", trackerQueryID)
+			existFunc(t, "users", userID)
+			existFunc(t, "work_item_board_columns", workItemBoardColumnID)
+			existFunc(t, "work_item_boards", workItemBoardID)
+			existFunc(t, "work_item_child_types", workItemChildTypeID)
+			existFunc(t, "work_items", workItemID)
+			existFunc(t, "work_item_links", workItemLinkID)
+			existFunc(t, "work_item_link_types", workItemLinkTypeID)
+			existFunc(t, "work_item_type_groups", workItemTypeGroupID)
+			existFunc(t, "work_item_type_group_members", workItemTypeGroupMemberID)
+			existFunc(t, "work_item_types", workItemTypeID)
+			// deleted entries
+			existsButIsDeleted(t, "areas", deletedAreaID)
+			existsButIsDeleted(t, "codebases", deletedCodebaseID)
+			existsButIsDeleted(t, "comments", deletedCommentID)
+			existsButIsDeleted(t, "identities", deletedIdentityID)
+			existsButIsDeleted(t, "iterations", deletedIterationID)
+			existsButIsDeleted(t, "labels", deletedLabelID)
+			existsButIsDeleted(t, "spaces", deletedSpaceID)
+			existsButIsDeleted(t, "space_templats", deletedSpaceTemplateID)
+			existsButIsDeleted(t, "trackers", deletedTrackerID)
+			existsButIsDeleted(t, "tracker_items", deletedTrackerItemID)
+			existsButIsDeleted(t, "tracker_queries", deletedTrackerQueryID)
+			existsButIsDeleted(t, "users", deletedUserID)
+			existsButIsDeleted(t, "work_item_board_columns", deletedWorkItemBoardColumnID)
+			existsButIsDeleted(t, "work_item_boards", deletedWorkItemBoardID)
+			existsButIsDeleted(t, "work_item_child_types", deletedWorkItemChildTypeID)
+			existsButIsDeleted(t, "work_items", deletedWorkItemID)
+			existsButIsDeleted(t, "work_item_links", deletedWorkItemLinkID)
+			existsButIsDeleted(t, "work_item_link_types", deletedWorkItemLinkTypeID)
+			existsButIsDeleted(t, "work_item_type_groups", deletedWorkItemTypeGroupID)
+			existsButIsDeleted(t, "work_item_type_group_members", deletedWorkItemTypeGroupMemberID)
+			existsButIsDeleted(t, "work_item_types", deletedWorkItemTypeID)
 		})
 	}
 
@@ -1485,10 +1553,11 @@ func testMigration110CascadingSoftDelete(t *testing.T) {
 	})
 	t.Run("migrate to current version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:111], 111)
+		require.False(t, dialect.HasTable("work_item_link_categories"))
 	})
 	t.Run("after migration", func(t *testing.T) {
 		checkEntitiesExist(t, exists)
-		require.Nil(t, runSQLscript(sqlDB, "110-soft-delete-space-template.sql", spaceTemplateID.String()))
+		require.Nil(t, runSQLscript(sqlDB, "110-soft-delete-entities.test.sql", spaceTemplateID, trackerID, userID))
 		checkEntitiesExist(t, existsButIsDeleted)
 	})
 
