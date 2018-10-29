@@ -12,7 +12,7 @@ import (
 //
 //   SELECT *
 //     FROM workitems
-//     LEFT JOIN iterations iter ON fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb
+//     LEFT JOIN iterations iter ON fields@> concat('{"system_iteration": "', iter.ID, '"}')::jsonb
 //     WHERE iter.name = "foo"
 //
 // With the prefix activators we can identify if a certain field expression
@@ -33,7 +33,7 @@ type TableJoin struct {
 	TableAlias string // e.g. "iter"
 
 	// On is the ON part of the JOIN.
-	On string // e.g. `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`
+	On string // e.g. `fields@> concat('{"system_iteration": "', iter.ID, '"}')::jsonb`
 
 	// Where defines what condition to place in the main WHERE clause of the
 	// final query.

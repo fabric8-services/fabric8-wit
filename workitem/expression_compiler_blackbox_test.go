@@ -192,7 +192,7 @@ func TestIsNull(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	wiTbl := workitem.WorkItemStorage{}.TableName()
-	expect(t, c.IsNull("system.assignees"), `(`+workitem.Column(wiTbl, "fields")+`->>'system.assignees' IS NULL)`, []interface{}{}, nil)
+	expect(t, c.IsNull("system_assignees"), `(`+workitem.Column(wiTbl, "fields")+`->>'system_assignees' IS NULL)`, []interface{}{}, nil)
 	expect(t, c.IsNull("ID"), `(`+workitem.Column(wiTbl, "id")+` IS NULL)`, []interface{}{}, nil)
 	expect(t, c.IsNull("Type"), `(`+workitem.Column(wiTbl, "type")+` IS NULL)`, []interface{}{}, nil)
 	expect(t, c.IsNull("Version"), `(`+workitem.Column(wiTbl, "version")+` IS NULL)`, []interface{}{}, nil)
@@ -207,21 +207,21 @@ func TestChild(t *testing.T) {
 	t.Run("iteration", func(t *testing.T) {
 		j := *defJoins["iteration"]
 		j.Active = true
-		e := "(uuid(\"work_items\".fields->>'system.iteration') IN (\n\t\t\t\tSELECT iter.id\n\t\t\t\t\tWHERE\n\t\t\t\t\t\t(SELECT j.path\n\t\t\t\t\t\t\tFROM iterations j\n\t\t\t\t\t\t\tWHERE j.space_id = \"work_items\".\"space_id\" AND j.id = ? \n\t\t\t\t\t\t) @> iter.path\n\t\t\t\t\t\t\t  ))"
-		expect(t, c.Child(c.Field("system.iteration"), c.Literal("abcd")), e, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+		e := "(uuid(\"work_items\".fields->>'system_iteration') IN (\n\t\t\t\tSELECT iter.id\n\t\t\t\t\tWHERE\n\t\t\t\t\t\t(SELECT j.path\n\t\t\t\t\t\t\tFROM iterations j\n\t\t\t\t\t\t\tWHERE j.space_id = \"work_items\".\"space_id\" AND j.id = ? \n\t\t\t\t\t\t) @> iter.path\n\t\t\t\t\t\t\t  ))"
+		expect(t, c.Child(c.Field("system_iteration"), c.Literal("abcd")), e, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
 	})
 	t.Run("area", func(t *testing.T) {
 		j := *defJoins["area"]
 		j.Active = true
-		e := "(uuid(\"work_items\".fields->>'system.area') IN (\n\t\t\t\tSELECT ar.id\n\t\t\t\t\tWHERE\n\t\t\t\t\t\t(SELECT j.path\n\t\t\t\t\t\t\tFROM areas j\n\t\t\t\t\t\t\tWHERE j.space_id = \"work_items\".\"space_id\" AND j.id = ? \n\t\t\t\t\t\t) @> ar.path\n\t\t\t\t\t\t\t  ))"
-		expect(t, c.Child(c.Field("system.area"), c.Literal("abcd")), e, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+		e := "(uuid(\"work_items\".fields->>'system_area') IN (\n\t\t\t\tSELECT ar.id\n\t\t\t\t\tWHERE\n\t\t\t\t\t\t(SELECT j.path\n\t\t\t\t\t\t\tFROM areas j\n\t\t\t\t\t\t\tWHERE j.space_id = \"work_items\".\"space_id\" AND j.id = ? \n\t\t\t\t\t\t) @> ar.path\n\t\t\t\t\t\t\t  ))"
+		expect(t, c.Child(c.Field("system_area"), c.Literal("abcd")), e, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
 	})
 	t.Run("label - error", func(t *testing.T) {
 		j := *defJoins["label"]
 		j.Active = true
-		expr := c.Child(c.Field("system.label"), c.Literal("abcd"))
+		expr := c.Child(c.Field("system_label"), c.Literal("abcd"))
 		_, _, _, compileErrors := workitem.Compile(expr)
-		require.EqualError(t, compileErrors[0], "invalid field name for child expression: system.label")
+		require.EqualError(t, compileErrors[0], "invalid field name for child expression: system_label")
 	})
 
 }
@@ -250,38 +250,38 @@ func expect(t *testing.T, expr c.Expression, expectedClause string, expectedPara
 func TestArray(t *testing.T) {
 	assignees := []string{"1", "2", "3"}
 
-	exp := c.Equals(c.Field("system.assignees"), c.Literal(assignees))
+	exp := c.Equals(c.Field("system_assignees"), c.Literal(assignees))
 	where, _, _, compileErrors := workitem.Compile(exp)
 	require.Empty(t, compileErrors)
 	wiTbl := workitem.WorkItemStorage{}.TableName()
-	assert.Equal(t, `(`+workitem.Column(wiTbl, "fields")+` @> '{"system.assignees" : ["1","2","3"]}')`, where)
+	assert.Equal(t, `(`+workitem.Column(wiTbl, "fields")+` @> '{"system_assignees" : ["1","2","3"]}')`, where)
 }
 
 func TestSubstring(t *testing.T) {
 	wiTbl := workitem.WorkItemStorage{}.TableName()
-	t.Run("system.title with simple text", func(t *testing.T) {
+	t.Run("system_title with simple text", func(t *testing.T) {
 		title := "some title"
 
-		exp := c.Substring(c.Field("system.title"), c.Literal(title))
+		exp := c.Substring(c.Field("system_title"), c.Literal(title))
 		where, _, _, compileErrors := workitem.Compile(exp)
 		require.Empty(t, compileErrors)
 
-		assert.Equal(t, workitem.Column(wiTbl, "fields")+`->>'system.title' ILIKE ?`, where)
+		assert.Equal(t, workitem.Column(wiTbl, "fields")+`->>'system_title' ILIKE ?`, where)
 	})
-	t.Run("system.title with SQL injection text", func(t *testing.T) {
+	t.Run("system_title with SQL injection text", func(t *testing.T) {
 		title := "some title"
 
-		exp := c.Substring(c.Field("system.title;DELETE FROM work_items"), c.Literal(title))
+		exp := c.Substring(c.Field("system_title;DELETE FROM work_items"), c.Literal(title))
 		where, _, _, compileErrors := workitem.Compile(exp)
 		require.Empty(t, compileErrors)
 
-		assert.Equal(t, workitem.Column(wiTbl, "fields")+`->>'system.title;DELETE FROM work_items' ILIKE ?`, where)
+		assert.Equal(t, workitem.Column(wiTbl, "fields")+`->>'system_title;DELETE FROM work_items' ILIKE ?`, where)
 	})
 
-	t.Run("system.title with SQL injection text single quote", func(t *testing.T) {
+	t.Run("system_title with SQL injection text single quote", func(t *testing.T) {
 		title := "some title"
 
-		exp := c.Substring(c.Field("system.title'DELETE FROM work_items"), c.Literal(title))
+		exp := c.Substring(c.Field("system_title'DELETE FROM work_items"), c.Literal(title))
 		where, _, _, compileErrors := workitem.Compile(exp)
 		require.NotEmpty(t, compileErrors)
 		assert.Len(t, compileErrors, 1)
