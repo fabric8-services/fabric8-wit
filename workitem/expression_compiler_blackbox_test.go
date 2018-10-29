@@ -16,7 +16,7 @@ func TestField(t *testing.T) {
 	defJoins := workitem.DefaultTableJoins()
 
 	wiTbl := workitem.WorkItemStorage{}.TableName()
-	expect(t, c.Equals(c.Field("foo.bar"), c.Literal(23)), `(`+workitem.Column(wiTbl, "fields")+` @> '{"foo.bar" : 23}')`, []interface{}{}, nil)
+	expect(t, c.Equals(c.Field("foo_bar"), c.Literal(23)), `(`+workitem.Column(wiTbl, "fields")+` @> '{"foo_bar" : 23}')`, []interface{}{}, nil)
 	expect(t, c.Equals(c.Field("foo"), c.Literal(23)), `(`+workitem.Column(wiTbl, "foo")+` = ?)`, []interface{}{23}, nil)
 	expect(t, c.Equals(c.Field("Type"), c.Literal("abcd")), `(`+workitem.Column(wiTbl, "type")+` = ?)`, []interface{}{"abcd"}, nil)
 	expect(t, c.Not(c.Field("Type"), c.Literal("abcd")), `(`+workitem.Column(wiTbl, "type")+` != ?)`, []interface{}{"abcd"}, nil)
@@ -183,9 +183,9 @@ func TestAndOr(t *testing.T) {
 
 	wiTbl := workitem.WorkItemStorage{}.TableName()
 
-	expect(t, c.And(c.Not(c.Field("foo.bar"), c.Literal("abcd")), c.Not(c.Literal(true), c.Literal(false))), `(NOT (`+workitem.Column(wiTbl, "fields")+` @> '{"foo.bar" : "abcd"}') AND (? != ?))`, []interface{}{true, false}, nil)
-	expect(t, c.And(c.Equals(c.Field("foo.bar"), c.Literal("abcd")), c.Equals(c.Literal(true), c.Literal(false))), `((`+workitem.Column(wiTbl, "fields")+` @> '{"foo.bar" : "abcd"}') AND (? = ?))`, []interface{}{true, false}, nil)
-	expect(t, c.Or(c.Equals(c.Field("foo.bar"), c.Literal("abcd")), c.Equals(c.Literal(true), c.Literal(false))), `((`+workitem.Column(wiTbl, "fields")+` @> '{"foo.bar" : "abcd"}') OR (? = ?))`, []interface{}{true, false}, nil)
+	expect(t, c.And(c.Not(c.Field("foo_bar"), c.Literal("abcd")), c.Not(c.Literal(true), c.Literal(false))), `(NOT (`+workitem.Column(wiTbl, "fields")+` @> '{"foo_bar" : "abcd"}') AND (? != ?))`, []interface{}{true, false}, nil)
+	expect(t, c.And(c.Equals(c.Field("foo_bar"), c.Literal("abcd")), c.Equals(c.Literal(true), c.Literal(false))), `((`+workitem.Column(wiTbl, "fields")+` @> '{"foo_bar" : "abcd"}') AND (? = ?))`, []interface{}{true, false}, nil)
+	expect(t, c.Or(c.Equals(c.Field("foo_bar"), c.Literal("abcd")), c.Equals(c.Literal(true), c.Literal(false))), `((`+workitem.Column(wiTbl, "fields")+` @> '{"foo_bar" : "abcd"}') OR (? = ?))`, []interface{}{true, false}, nil)
 }
 
 func TestIsNull(t *testing.T) {
