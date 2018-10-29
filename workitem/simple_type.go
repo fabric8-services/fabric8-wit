@@ -71,6 +71,11 @@ func (t SimpleType) Equal(u convert.Equaler) bool {
 	return t.Kind == other.Kind
 }
 
+// EqualValue implements convert.Equaler interface
+func (t SimpleType) EqualValue(u convert.Equaler) bool {
+	return t.Equal(u)
+}
+
 // GetKind implements FieldType
 func (t SimpleType) GetKind() Kind {
 	return t.Kind
@@ -269,7 +274,7 @@ func (t SimpleType) ConvertToString(value interface{}) (*string, error) {
 	}
 }
 
-// ConvertFromModel implements the t interface
+// ConvertFromModel implements the FieldType interface
 func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	if value == nil {
 		return nil, nil

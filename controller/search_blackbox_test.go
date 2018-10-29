@@ -14,13 +14,13 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -237,7 +237,7 @@ func (s *searchControllerTestSuite) searchByURL(customHost, queryString string) 
 	return mt
 }
 
-// verifySearchByKnownURLs performs actual tests on search result and knwonURL map
+// verifySearchByKnownURLs performs actual tests on search result and knownURL map
 func (s *searchControllerTestSuite) verifySearchByKnownURLs(wi *workitem.WorkItem, host, searchQuery string) {
 	result := s.searchByURL(host, searchQuery)
 	assert.NotEmpty(s.T(), result.Data)
@@ -250,7 +250,7 @@ func (s *searchControllerTestSuite) verifySearchByKnownURLs(wi *workitem.WorkIte
 	assert.Contains(s.T(), known[search.HostRegistrationKeyForBoardWI].URLRegex, host)
 }
 
-// TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
+// TestAutoRegisterHostURL checks if client's host is neatly registered as a KnownURL or not
 // Uses helper functions verifySearchByKnownURLs, searchByURL
 func (s *searchControllerTestSuite) TestAutoRegisterHostURL() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
@@ -369,21 +369,31 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsWithoutSpaceContext() {
 }
 
 func (s *searchControllerTestSuite) TestSearchFilter() {
-	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "specialwordforsearch"
-			return nil
-		}),
-	)
-	// when
-	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.WorkItems[0].SpaceID)
-	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	// then
-	require.NotEmpty(s.T(), sr.Data)
-	r := sr.Data[0]
-	assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, tf.SetWorkItemTitles("specialwordforsearch")))
+		// when
+		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
+		spaceIDStr := fxt.WorkItems[0].SpaceID.String()
+		_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		// then
+		require.NotEmpty(t, sr.Data)
+		r := sr.Data[0]
+		assert.Equal(t, "specialwordforsearch", r.Attributes[workitem.SystemTitle])
+	})
+
+	// Regression test for https://github.com/openshiftio/openshift.io/issues/4429
+	s.T().Run("fail - incorrect value type", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+		// when
+		filter := `{"number": "foo"}`
+		spaceIDStr := fxt.WorkItems[0].SpaceID.String()
+		_, jerr := test.ShowSearchBadRequest(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		// then
+		require.NotEmpty(t, jerr)
+		require.Len(t, jerr.Errors, 1)
+	})
 }
 
 func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
@@ -1043,11 +1053,194 @@ func (s *searchControllerTestSuite) TestSearchByJoinedData() {
 		})
 		for _, wi := range list.Data {
 			_, ok := toBeFound[*wi.ID]
-			require.True(t, ok, "unknown work item found: %s", *wi.ID)
+			require.True(t, ok, "unexpected work item found: %s", *wi.ID)
 			delete(toBeFound, *wi.ID)
 		}
 		require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
 	})
+}
+
+// TestSearchWorkItemsWithChildIterationsOption verifies the child work item search for iteration
+func (s *searchControllerTestSuite) TestSearchWorkItemsWithChildIterationsOption() {
+	s.T().Run("iterations", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Iterations(3,
+				tf.SetIterationNames("Top level iteration", "Level 1 iteration", "Level 2 iteration"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx > 0 {
+						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[idx-1])
+					}
+					return nil
+				}),
+
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+				case 3, 4:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				case 5, 6, 7, 8:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				}
+				return nil
+			}),
+		)
+
+		spaceIDStr := fxt.Spaces[0].ID.String()
+
+		t.Run("without child iteration", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[2].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 4)
+			toBeFound := id.MapFromSlice(id.Slice{
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+				fxt.WorkItems[7].ID,
+				fxt.WorkItems[8].ID,
+			})
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("with one child iteration", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[1].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 6)
+			toBeFound := id.MapFromSlice(id.Slice{
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+				fxt.WorkItems[7].ID,
+				fxt.WorkItems[8].ID,
+			})
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("with one child iteration implicit", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[1].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 6)
+			toBeFound := id.MapFromSlice(id.Slice{
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+				fxt.WorkItems[7].ID,
+				fxt.WorkItems[8].ID,
+			})
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("with two child iteration", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[0].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 9)
+			toBeFound := id.MapFromSlice(id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+				fxt.WorkItems[7].ID,
+				fxt.WorkItems[8].ID,
+			})
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+
+		t.Run("without child iteration - implicit", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s"}`, fxt.Iterations[2].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 4)
+			toBeFound := id.MapFromSlice(id.Slice{
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+				fxt.WorkItems[7].ID,
+				fxt.WorkItems[8].ID,
+			})
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("without child iteration - child false", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[2].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 4)
+			toBeFound := id.MapFromSlice(id.Slice{
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+				fxt.WorkItems[7].ID,
+				fxt.WorkItems[8].ID,
+			})
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("with one child iteration - child false", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[1].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 2)
+			toBeFound := id.MapFromSlice(id.Slice{
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+			})
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
+		})
+		t.Run("with two child iteration - child false", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[0].ID)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			require.NotEmpty(t, result.Data)
+			assert.Len(t, result.Data, 3)
+			toBeFound := id.MapFromSlice(id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+			})
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "unexpected work item found: %s", *wi.ID)
+				delete(toBeFound, *wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+	})
+
 }
 
 // TestIncludedParents verifies the Included list of parents

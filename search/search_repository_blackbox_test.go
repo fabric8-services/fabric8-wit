@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/search"
@@ -69,7 +69,83 @@ func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
 	)
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
+func (s *searchRepositoryBlackboxTest) TestFilterWithChildIterationWorkItems() {
+	s.T().Run("iterations", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
+				i := fxt.Iterations[idx]
+				switch idx {
+				case 0:
+					i.Name = "Top level iteration"
+				case 1:
+					i.Name = "Level 1 iteration"
+					i.MakeChildOf(*fxt.Iterations[idx-1])
+				case 2:
+					i.Name = "Level 2 iteration"
+					i.MakeChildOf(*fxt.Iterations[idx-1])
+				}
+				return nil
+			}),
+
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+				case 3, 4:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				case 5, 6, 7, 8:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				}
+				return nil
+			}),
+		)
+		t.Run("without child iteration", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"$AND": [{"iteration": "%s", "child": true}, {"space": "%s"}]}`, fxt.Iterations[2].ID, fxt.Spaces[0].ID)
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			assert.Equal(t, 4, count)
+		})
+
+		t.Run("with one child iteration", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[1].ID)
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			assert.Equal(t, 6, count)
+		})
+		t.Run("with two child iteration", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[0].ID)
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			assert.Equal(t, 9, count)
+		})
+		t.Run("without child iteration - child false", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": true}`, fxt.Iterations[2].ID)
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			assert.Equal(t, 4, count)
+		})
+		t.Run("with one child iteration - child false", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[1].ID)
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			assert.Equal(t, 2, count)
+		})
+		t.Run("with two child iteration - child false", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"iteration": "%s", "child": false}`, fxt.Iterations[0].ID)
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			assert.Equal(t, 3, count)
+		})
+		t.Run("with two child iteration and space", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"$AND": [{"iteration": "%s", "child": true},{"space": "%s"}]}`, fxt.Iterations[0].ID, fxt.Spaces[0].ID)
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.NoError(t, err)
+			assert.Equal(t, 9, count)
+		})
+	})
+}
+
+func (s *searchRepositoryBlackboxTest) TestFilterWithJoin() {
 	s.T().Run("join iterations", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Iterations(2),
@@ -237,7 +313,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {
+func (s *searchRepositoryBlackboxTest) TestFilterBoardColumnID() {
 	s.T().Run("boardcolumn", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.CreateWorkItemEnvironment(),
@@ -347,7 +423,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardColumnID() {
 	})
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchByParent() {
+func (s *searchRepositoryBlackboxTest) TestFilterByParent() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItems(4, tf.SetWorkItemTitles("grandparent", "parent", "child1", "child2")),
 		tf.WorkItemLinksCustom(3,
@@ -420,7 +496,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchByParent() {
 	})
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchBoardID() {
+func (s *searchRepositoryBlackboxTest) TestFilterBoardID() {
 	s.T().Run("board", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.CreateWorkItemEnvironment(),
@@ -462,9 +538,163 @@ func (s *searchRepositoryBlackboxTest) TestSearchBoardID() {
 	})
 }
 
-func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
+func (s *searchRepositoryBlackboxTest) TestFilter() {
+	s.T().Run("with limits", func(t *testing.T) {
+		t.Run("none", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			// when
+			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
+			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// when
+			require.NoError(t, err)
+			assert.Equal(t, 2, count)
+			assert.Equal(t, 2, len(res))
+			assert.Empty(t, ancestors)
+			assert.Empty(t, childLinks)
+		})
 
-	s.T().Run("Filter by title", func(t *testing.T) {
+		t.Run("with offset", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			// when
+			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
+			start := 3
+			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, nil, &start, nil)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, 2, count)
+			assert.Equal(t, 0, len(res))
+			assert.Empty(t, ancestors)
+			assert.Empty(t, childLinks)
+		})
+
+		t.Run("with limit", func(t *testing.T) {
+			// given
+			fxt := s.getTestFixture()
+			// when
+			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
+			limit := 1
+			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, &limit)
+			// then
+			require.NoError(s.T(), err)
+			assert.Equal(t, 2, count)
+			assert.Equal(t, 1, len(res))
+			assert.Empty(t, ancestors)
+			assert.Empty(t, childLinks)
+		})
+	})
+
+	s.T().Run("fail - with incorrect value type", func(t *testing.T) {
+		// given
+		t.Run("integer instead of UUID", func(t *testing.T) {
+			filter := `{"space": 123}`
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.Error(t, err)
+			assert.Equal(t, 0, count)
+		})
+
+		t.Run("string instead of UUID", func(t *testing.T) {
+			filter := `{"space": "foo"}`
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			require.Error(t, err)
+			assert.Equal(t, 0, count)
+
+		})
+
+		// Regression test for https://github.com/openshiftio/openshift.io/issues/4429
+		t.Run("string instead of integer", func(t *testing.T) {
+			filter := `{"number":{"$EQ":"asd"}}`
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// when
+			require.Error(t, err)
+			assert.Equal(t, 0, count)
+
+			filter = `{"number":{"$EQ":"*"}}`
+			_, count, _, _, err = s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// when
+			require.Error(t, err)
+			assert.Equal(t, 0, count)
+		})
+		t.Run("UUID instead of integer", func(t *testing.T) {
+			filter := fmt.Sprintf(`{"number":{"$EQ":"%s"}}`, uuid.NewV4())
+			_, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// when
+			require.Error(t, err)
+			assert.Equal(t, 0, count)
+		})
+	})
+
+	s.T().Run("with parent-exists filter", func(t *testing.T) {
+
+		t.Run("no link created", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(3))
+			// when
+			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
+			parentExists := false
+			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
+			// then both work items should be returned
+			require.NoError(t, err)
+			assert.Equal(t, 3, count)
+			assert.Equal(t, 3, len(res))
+			assert.Empty(t, ancestors)
+			assert.Empty(t, childLinks)
+		})
+
+		t.Run("link created", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItems(3),
+				tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItemLinks[idx].LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+					return nil
+				}),
+			)
+			// when
+			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
+			parentExists := false
+			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
+			// then only parent work item should be returned
+			require.NoError(t, err)
+			assert.Equal(t, 2, count)
+			require.Equal(t, 2, len(res))
+			// item #0 is parent of #1 and item #2 is not linked to any otjer item
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[2], *fxt.WorkItems[0]))
+			assert.Empty(t, ancestors)
+			assert.Empty(t, childLinks)
+		})
+
+		t.Run("link deleted", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItems(3),
+				tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItemLinks[idx].LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+					return nil
+				}),
+			)
+			linkRepo := link.NewWorkItemLinkRepository(s.DB)
+			err := linkRepo.Delete(context.Background(), fxt.WorkItemLinks[0].ID, fxt.Identities[0].ID)
+			require.NoError(t, err)
+			// when
+			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
+			parentExists := false
+			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
+			// then both work items should be returned
+			require.NoError(t, err)
+			assert.Equal(t, 3, count)
+			assert.Equal(t, 3, len(res))
+			assert.Empty(t, ancestors)
+			assert.Empty(t, childLinks)
+		})
+	})
+}
+
+func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
+	var start, limit int = 0, 100
+
+	s.T().Run("by title", func(t *testing.T) {
 
 		t.Run("matching title", func(t *testing.T) {
 			// given
@@ -493,7 +723,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 		})
 	})
 
-	s.T().Run("SearchFullText by title and types", func(t *testing.T) {
+	s.T().Run("by title and types", func(t *testing.T) {
 
 		t.Run("type sub1", func(t *testing.T) {
 			// given
@@ -575,140 +805,6 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			require.Equal(t, fxt.WorkItems[1].ID, res[0].ID)
 		})
 	})
-
-	s.T().Run("Filter with limits", func(t *testing.T) {
-
-		t.Run("none", func(t *testing.T) {
-			// given
-			fxt := s.getTestFixture()
-			// when
-			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
-			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
-			// when
-			require.NoError(t, err)
-			assert.Equal(t, 2, count)
-			assert.Equal(t, 2, len(res))
-			assert.Empty(t, ancestors)
-			assert.Empty(t, childLinks)
-		})
-
-		t.Run("with offset", func(t *testing.T) {
-			// given
-			fxt := s.getTestFixture()
-			// when
-			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
-			start := 3
-			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, nil, &start, nil)
-			// then
-			require.NoError(t, err)
-			assert.Equal(t, 2, count)
-			assert.Equal(t, 0, len(res))
-			assert.Empty(t, ancestors)
-			assert.Empty(t, childLinks)
-		})
-
-		t.Run("with limit", func(t *testing.T) {
-			// given
-			fxt := s.getTestFixture()
-			// when
-			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
-			limit := 1
-			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, &limit)
-			// then
-			require.NoError(s.T(), err)
-			assert.Equal(t, 2, count)
-			assert.Equal(t, 1, len(res))
-			assert.Empty(t, ancestors)
-			assert.Empty(t, childLinks)
-		})
-	})
-
-	s.T().Run("with parent-exists filter", func(t *testing.T) {
-
-		t.Run("no link created", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(3))
-			// when
-			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
-			parentExists := false
-			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
-			// then both work items should be returned
-			require.NoError(t, err)
-			assert.Equal(t, 3, count)
-			assert.Equal(t, 3, len(res))
-			assert.Empty(t, ancestors)
-			assert.Empty(t, childLinks)
-		})
-
-		t.Run("link created", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB,
-				tf.WorkItems(3),
-				tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
-					fxt.WorkItemLinks[idx].LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
-					return nil
-				}),
-			)
-			// when
-			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
-			parentExists := false
-			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
-			// then only parent work item should be returned
-			require.NoError(t, err)
-			assert.Equal(t, 2, count)
-			require.Equal(t, 2, len(res))
-			// item #0 is parent of #1 and item #2 is not linked to any otjer item
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[2], *fxt.WorkItems[0]))
-			assert.Empty(t, ancestors)
-			assert.Empty(t, childLinks)
-		})
-
-		t.Run("link deleted", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB,
-				tf.WorkItems(3),
-				tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
-					fxt.WorkItemLinks[idx].LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
-					return nil
-				}),
-			)
-			linkRepo := link.NewWorkItemLinkRepository(s.DB)
-			err := linkRepo.Delete(context.Background(), fxt.WorkItemLinks[0].ID, fxt.Identities[0].ID)
-			require.NoError(t, err)
-			// when
-			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
-			parentExists := false
-			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
-			// then both work items should be returned
-			require.NoError(t, err)
-			assert.Equal(t, 3, count)
-			assert.Equal(t, 3, len(res))
-			assert.Empty(t, ancestors)
-			assert.Empty(t, childLinks)
-		})
-
-	})
-}
-
-// containsAllWorkItems verifies that the `expectedWorkItems` array contains all `actualWorkitems` in the _given order_,
-// by comparing the lengths and each ID,
-func containsAllWorkItems(expectedWorkitems []workitem.WorkItem, actualWorkitems ...workitem.WorkItem) assert.Comparison {
-	return func() bool {
-		if len(expectedWorkitems) != len(actualWorkitems) {
-			return false
-		}
-		for i, expectedWorkitem := range expectedWorkitems {
-			if !uuid.Equal(expectedWorkitem.ID, actualWorkitems[i].ID) {
-				return false
-			}
-		}
-		return true
-	}
-}
-
-func (s *searchRepositoryBlackboxTest) TestSearch() {
-
-	var start, limit int = 0, 100
 
 	s.T().Run("Search accross title and description", func(t *testing.T) {
 
@@ -933,6 +1029,22 @@ func (s *searchRepositoryBlackboxTest) TestSearch() {
 			}
 		})
 	})
+}
+
+// containsAllWorkItems verifies that the `expectedWorkItems` array contains all `actualWorkitems` in the _given order_,
+// by comparing the lengths and each ID,
+func containsAllWorkItems(expectedWorkitems []workitem.WorkItem, actualWorkitems ...workitem.WorkItem) assert.Comparison {
+	return func() bool {
+		if len(expectedWorkitems) != len(actualWorkitems) {
+			return false
+		}
+		for i, expectedWorkitem := range expectedWorkitems {
+			if !uuid.Equal(expectedWorkitem.ID, actualWorkitems[i].ID) {
+				return false
+			}
+		}
+		return true
+	}
 }
 
 // verify verifies that the search results match with the expected count and that the title or description contain all

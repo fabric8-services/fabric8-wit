@@ -69,8 +69,10 @@ type FieldType interface {
 	ConvertToModel(value interface{}) (interface{}, error)
 	// ConvertFromModel converts a field value for use in the REST API layer
 	ConvertFromModel(value interface{}) (interface{}, error)
-	// Implement the Equaler interface
+	// Equal implements the convert.Equaler interface
 	Equal(u convert.Equaler) bool
+	// EqualValue implements the convert.Equaler interface
+	EqualValue(u convert.Equaler) bool
 	// GetDefaultValue is called if a field's value is nil.
 	GetDefaultValue() interface{}
 	// SetDefaultValue returns a copy of the FieldType object at hand if there
@@ -137,7 +139,12 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 	if f.Description != other.Description {
 		return false
 	}
-	return f.Type.Equal(other.Type)
+	return convert.CascadeEqual(f.Type, other.Type)
+}
+
+// EqualValue implements the convert.Equaler interface
+func (f FieldDefinition) EqualValue(u convert.Equaler) bool {
+	return f.Equal(u)
 }
 
 // ConvertToModel converts a field value for use in the persistence layer
@@ -206,6 +213,11 @@ func (f rawFieldDef) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return true
+}
+
+// EqualValue implements the convert.Equaler interface
+func (f rawFieldDef) EqualValue(u convert.Equaler) bool {
+	return f.Equal(u)
 }
 
 // UnmarshalJSON implements encoding/json.Unmarshaler

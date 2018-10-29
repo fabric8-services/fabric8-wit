@@ -173,10 +173,10 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !uuid.Equal(wit.ID, other.ID) {
+	if wit.ID != other.ID {
 		return false
 	}
-	if !wit.Lifecycle.Equal(other.Lifecycle) {
+	if !convert.CascadeEqual(wit.Lifecycle, other.Lifecycle) {
 		return false
 	}
 	if wit.Version != other.Version {
@@ -216,7 +216,7 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 		if !keyFound {
 			return false
 		}
-		if !witVal.Equal(otherVal) {
+		if !convert.CascadeEqual(witVal, otherVal) {
 			return false
 		}
 	}
@@ -224,6 +224,17 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler interface
+func (wit WorkItemType) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(WorkItemType)
+	if !ok {
+		return false
+	}
+	wit.Version = other.Version
+	wit.Lifecycle = other.Lifecycle
+	return wit.Equal(u)
 }
 
 // ConvertWorkItemStorageToModel converts a workItem from the storage/persistence layer into a workItem of the model domain layer

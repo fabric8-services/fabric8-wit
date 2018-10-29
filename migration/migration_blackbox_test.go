@@ -153,9 +153,12 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration101", testMigration101TypeGroupHasDescriptionField)
 	t.Run("TestMigration102", testMigration102LinkTypeDescriptionFields)
 	t.Run("TestMigration103", testMigration103NotNullNotEmptyonEmail)
-	t.Run("TestMirgraion104", testMigration104IndexOnWIRevisionTable)
-	t.Run("TestMirgraion105", testMigration105UpdateRootIterationAreaPathField)
-	t.Run("TestMirgraion106", testMigration106NumberSequences)
+	t.Run("TestMigration104", testMigration104IndexOnWIRevisionTable)
+	t.Run("TestMigration105", testMigration105UpdateRootIterationAreaPathField)
+	t.Run("TestMigration106", testMigration106RemoveLinkCategoryConcept)
+	t.Run("TestMigration107", testMigration107NumberSequencesTable)
+	t.Run("TestMigration108", testMigration108NumberColumnForArea)
+	t.Run("TestMigration109", testMigration109NumberColumnForIteration)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -586,8 +589,8 @@ func testMigration80(t *testing.T) {
 		link.SystemWorkItemLinkTypeBugBlockerID.String(),
 		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
 		link.SystemWorkItemLinkTypeParentChildID.String(),
-		link.SystemWorkItemLinkCategorySystemID.String(),
-		link.SystemWorkItemLinkCategoryUserID.String(),
+		uuid.FromStringOrNil("B1482C65-A64D-4058-BEB0-62F7198CB0F4").String(),
+		uuid.FromStringOrNil("2F24724F-797C-4073-8B16-4BB8CE9E84A6").String(),
 	))
 
 	// When we migrate the DB to version 80 all but the known link types and
@@ -617,8 +620,8 @@ func testMigration80(t *testing.T) {
 	t.Run("only known link categories exist", func(t *testing.T) {
 		// Make sure no other link categories other than the known ones are present
 		linkCategoriesToBeFound := map[uuid.UUID]struct{}{
-			link.SystemWorkItemLinkCategorySystemID: {},
-			link.SystemWorkItemLinkCategoryUserID:   {},
+			uuid.FromStringOrNil("B1482C65-A64D-4058-BEB0-62F7198CB0F4"): {},
+			uuid.FromStringOrNil("2F24724F-797C-4073-8B16-4BB8CE9E84A6"): {},
 		}
 		rows, err := sqlDB.Query("SELECT id FROM work_item_link_categories")
 		require.NoError(t, err)
@@ -1321,141 +1324,63 @@ func testMigration105UpdateRootIterationAreaPathField(t *testing.T) {
 	})
 }
 
-// testMigration106NumberSequences tests that we can migrate existing work
-// items, iterations and areas to use the new number_sequences table
-func testMigration106NumberSequences(t *testing.T) {
+func testMigration106RemoveLinkCategoryConcept(t *testing.T) {
 	t.Run("migrate to previous version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:106], 106)
 	})
 
-	spaceTemplateID := uuid.NewV4()
-	space1ID := uuid.NewV4()
-	space2ID := uuid.NewV4()
-	witID := uuid.NewV4()
-	// two work items in space 1
-	wi1ID := uuid.NewV4()
-	wi2ID := uuid.NewV4()
-	// two work items in space 2
-	wi3ID := uuid.NewV4()
-	wi4ID := uuid.NewV4()
-	// two iterations in space 1
-	iter1ID := uuid.NewV4()
-	iter2ID := uuid.NewV4()
-	// two iterations in space 2
-	iter3ID := uuid.NewV4()
-	iter4ID := uuid.NewV4()
-	// two areas in space 1
-	area1ID := uuid.NewV4()
-	area2ID := uuid.NewV4()
-	// two areas in space 2
-	area3ID := uuid.NewV4()
-	area4ID := uuid.NewV4()
-
-	t.Run("setup test data to migrate", func(t *testing.T) {
-		require.Nil(t, runSQLscript(sqlDB, "106-number-sequences.sql",
-			spaceTemplateID.String(),
-			space1ID.String(),
-			space2ID.String(),
-			witID.String(),
-			wi1ID.String(),
-			wi2ID.String(),
-			wi3ID.String(),
-			wi4ID.String(),
-			iter1ID.String(),
-			iter2ID.String(),
-			iter3ID.String(),
-			iter4ID.String(),
-			area1ID.String(),
-			area2ID.String(),
-			area3ID.String(),
-			area4ID.String(),
-		))
-	})
-
-	// Helper functions
-
-	getNumberOf := func(t *testing.T, table string, id uuid.UUID) int {
-		q := fmt.Sprintf("SELECT number FROM %s WHERE id = $1", table)
-		row := sqlDB.QueryRow(q, id)
-		require.NotNil(t, row)
-		var p int32
-		err := row.Scan(&p)
-		require.NoError(t, err, "%+v", err)
-		return int(p)
-	}
-	getNumberOfWorkItem := func(t *testing.T, wiID uuid.UUID) int { return getNumberOf(t, "work_items", wiID) }
-	getNumberOfIteration := func(t *testing.T, iterID uuid.UUID) int { return getNumberOf(t, "iterations", iterID) }
-	getNumberOfArea := func(t *testing.T, areaID uuid.UUID) int { return getNumberOf(t, "areas", areaID) }
-
-	t.Run("checks before migration", func(t *testing.T) {
-		require.Equal(t, 1, getNumberOfWorkItem(t, wi1ID))
-		require.Equal(t, 2, getNumberOfWorkItem(t, wi2ID))
-		require.Equal(t, 1, getNumberOfWorkItem(t, wi3ID))
-		require.Equal(t, 2, getNumberOfWorkItem(t, wi4ID))
-	})
+	require.True(t, dialect.HasTable("work_item_link_categories"))
+	require.True(t, dialect.HasForeignKey("work_item_link_types", "work_item_link_types_link_category_id_fkey"))
 
 	t.Run("migrate to current version", func(t *testing.T) {
 		migrateToVersion(t, sqlDB, migrations[:107], 107)
 	})
 
-	t.Run("checks after migration", func(t *testing.T) {
-		oldTable := "work_item_number_sequences"
-		require.False(t, dialect.HasTable(oldTable), "the old number sequences table %q should be deleted", oldTable)
+	require.True(t, dialect.HasTable("work_item_link_categories"))
+	require.False(t, dialect.HasForeignKey("work_item_link_types", "work_item_link_types_link_category_id_fkey"))
 
-		// work item numbering must not be touched
-		assert.Equal(t, 1, getNumberOfWorkItem(t, wi1ID))
-		assert.Equal(t, 2, getNumberOfWorkItem(t, wi2ID))
-		assert.Equal(t, 1, getNumberOfWorkItem(t, wi3ID))
-		assert.Equal(t, 2, getNumberOfWorkItem(t, wi4ID))
+	t.Run("test that we can create link types with and without a link category", func(t *testing.T) {
+		spaceTemplateID := uuid.NewV4()
+		linkCategoryID := uuid.NewV4()
+		linkType1ID := uuid.NewV4()
+		linkType2ID := uuid.NewV4()
+		require.Nil(t, runSQLscript(sqlDB, "106-remove-link-category-concept.sql",
+			spaceTemplateID.String(),
+			linkCategoryID.String(),
+			linkType1ID.String(),
+			linkType2ID.String(),
+		))
 
-		// check for (newly added) "number" columns
-		assert.True(t, dialect.HasColumn("work_items", "number"), "work_items table should still have the number column")
-		assert.True(t, dialect.HasColumn("iterations", "number"))
-		assert.True(t, dialect.HasColumn("areas", "number"))
-
-		// check that the newest iteration/area has the smaller number and that
-		// the numbering is partitioned by space_id
-		assert.Equal(t, 2, getNumberOfIteration(t, iter1ID))
-		assert.Equal(t, 1, getNumberOfIteration(t, iter2ID))
-		assert.Equal(t, 2, getNumberOfIteration(t, iter3ID))
-		assert.Equal(t, 1, getNumberOfIteration(t, iter4ID))
-
-		assert.Equal(t, 2, getNumberOfArea(t, area1ID))
-		assert.Equal(t, 1, getNumberOfArea(t, area2ID))
-		assert.Equal(t, 2, getNumberOfArea(t, area3ID))
-		assert.Equal(t, 1, getNumberOfArea(t, area4ID))
-
-		// check that the new sequences table exists and has the expected values
-		newTable := "number_sequences"
-		require.True(t, dialect.HasTable(newTable), "the new number sequences table %q has to exist", newTable)
-
-		type numberSequence struct {
-			spaceID    uuid.UUID
-			tableName  string
-			currentVal int
+		exists := func(t *testing.T, table string, id uuid.UUID) bool {
+			q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = '%s'", table, id)
+			row := sqlDB.QueryRow(q)
+			require.NotNil(t, row)
+			// we have to scan the path into an interface because it can be nil
+			var p int32
+			err := row.Scan(&p)
+			require.NoError(t, err, "%+v", err)
+			return p == 1
 		}
-		rows, err := sqlDB.Query("SELECT space_id, table_name, current_val FROM number_sequences WHERE space_id IN ($1, $2)", space1ID, space2ID)
-		require.NoError(t, err)
-		defer rows.Close()
-		toBeFound := map[numberSequence]struct{}{
-			{space1ID, "work_items", 2}: {},
-			{space2ID, "work_items", 2}: {},
-			{space1ID, "iterations", 2}: {},
-			{space2ID, "iterations", 2}: {},
-			{space1ID, "areas", 2}:      {},
-			{space2ID, "areas", 2}:      {},
-		}
-		for rows.Next() {
-			seq := numberSequence{}
-			err := rows.Scan(&seq.spaceID, &seq.tableName, &seq.currentVal)
-			require.NoError(t, err)
-			delete(toBeFound, seq)
-		}
-		require.Empty(t, toBeFound, "failed to find these number sequences: %+v", spew.Sdump(toBeFound))
 
-		require.True(t, dialect.HasIndex("iterations", "iterations_space_id_number_idx"))
-		require.True(t, dialect.HasIndex("areas", "areas_space_id_number_idx"))
+		require.True(t, exists(t, "work_item_link_categories", linkCategoryID))
+		require.True(t, exists(t, "work_item_link_types", linkType1ID))
+		require.True(t, exists(t, "work_item_link_types", linkType2ID))
 	})
+}
+
+func testMigration107NumberSequencesTable(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:108], 108)
+	require.True(t, dialect.HasTable("number_sequences"))
+}
+
+func testMigration108NumberColumnForArea(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:109], 109)
+	require.True(t, dialect.HasColumn("areas", "number"))
+}
+
+func testMigration109NumberColumnForIteration(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:110], 110)
+	require.True(t, dialect.HasColumn("iterations", "number"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

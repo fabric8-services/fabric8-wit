@@ -10,9 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
-	gemini "github.com/fabric8-services/fabric8-wit/codebase/analytics-gemini"
 	"github.com/fabric8-services/fabric8-wit/codebase/che"
-	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
@@ -41,17 +39,13 @@ type codebaseConfiguration interface {
 // CodebaseCheClientProvider the function that provides a `cheClient`
 type CodebaseCheClientProvider func(ctx context.Context, ns string) (che.Client, error)
 
-// AnalyticsGeminiClientProvider the function that provides a ScanRepoClient
-type AnalyticsGeminiClientProvider func() *gemini.ScanRepoClient
-
 // CodebaseController implements the codebase resource.
 type CodebaseController struct {
 	*goa.Controller
-	db                    application.DB
-	config                codebaseConfiguration
-	ShowTenant            account.CodebaseInitTenantProvider
-	NewCheClient          CodebaseCheClientProvider
-	AnalyticsGeminiClient AnalyticsGeminiClientProvider
+	db           application.DB
+	config       codebaseConfiguration
+	ShowTenant   account.CodebaseInitTenantProvider
+	NewCheClient CodebaseCheClientProvider
 }
 
 // NewCodebaseController creates a codebase controller.
@@ -114,19 +108,6 @@ func (c *CodebaseController) Update(ctx *app.UpdateCodebaseContext) error {
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-
-	// depending on the update we call the analytics service to enable
-	// or disable the scan for this codebase, calling only after the
-	// CveScan attribute is passed with some value
-	if reqAttributes.CveScan != nil && updatedCb.CVEScan {
-		if err = c.registerCodebaseToGeminiForScan(ctx, updatedCb.URL); err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-	} else if reqAttributes.CveScan != nil {
-		if err = c.deRegisterCodebaseFromGeminiForScan(ctx, updatedCb.URL); err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
 	}
 
 	res := &app.CodebaseSingle{
@@ -250,25 +231,6 @@ func (c *CodebaseController) verifyCodebaseOwner(ctx context.Context, codebaseID
 	return cb, nil
 }
 
-// registerCodebaseToGeminiForScan when given the codebase URL, subscribes this codebase
-// to enable code scanning to find CVEs with the analytics gemini service
-func (c *CodebaseController) registerCodebaseToGeminiForScan(
-	ctx context.Context,
-	repoURL string,
-) error {
-	scanClient := c.AnalyticsGeminiClient()
-	req := gemini.NewScanRepoRequest(repoURL)
-	return scanClient.Register(ctx, req)
-}
-
-// deRegisterCodebaseFromGeminiForScan when given the codebase URL, unsubscibes
-// this codebase from scanning
-func (c *CodebaseController) deRegisterCodebaseFromGeminiForScan(ctx context.Context, repoURL string) error {
-	scanClient := c.AnalyticsGeminiClient()
-	req := gemini.NewScanRepoRequest(repoURL)
-	return scanClient.DeRegister(ctx, req)
-}
-
 // Delete deletes the given codebase if the user is authenticated and authorized
 func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 	// see if the user is allowed to delete this codebase
@@ -316,11 +278,6 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 		return appl.Codebases().Delete(ctx, ctx.CodebaseID)
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-
-	// the codebase is deleted only then deregister from the analytics service
-	if err = c.deRegisterCodebaseFromGeminiForScan(ctx, cb.URL); err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
@@ -637,22 +594,6 @@ func NewDefaultCheClient(config codebaseConfiguration) CodebaseCheClientProvider
 	return func(ctx context.Context, ns string) (che.Client, error) {
 		cheClient := che.NewStarterClient(config.GetCheStarterURL(), config.GetOpenshiftTenantMasterURL(), ns, http.DefaultClient)
 		return cheClient, nil
-	}
-}
-
-// NewDefaultAnalyticsGeminiClient returns the default function to initialize a new Analytics
-// Gemini Client. As an attribute it takes in the Registry object.
-func NewDefaultAnalyticsGeminiClient(config *configuration.Registry) AnalyticsGeminiClientProvider {
-	return func() *gemini.ScanRepoClient {
-		return gemini.NewScanRepoClient(
-			config.GetAnalyticsGeminiServiceURL(),
-			&http.Client{},
-			config.GetCodebaseServiceURL(),
-			&http.Client{},
-			// this method is used in general to find out if the
-			// developer mode is enabled
-			config.IsPostgresDeveloperModeEnabled(),
-		)
 	}
 }
 

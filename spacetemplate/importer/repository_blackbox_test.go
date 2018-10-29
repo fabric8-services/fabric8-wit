@@ -3,9 +3,9 @@ package importer_test
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
@@ -141,6 +141,15 @@ func (s *repoSuite) TestImport() {
 					Kind: workitem.KindString,
 				},
 			}
+			// Test that new values are allowed in enum fields
+			stateField, ok := templ.WITs[0].Fields["state"]
+			require.True(t, ok, "failed to find 'state' field")
+			enumType, ok := stateField.Type.(workitem.EnumType)
+			require.True(t, ok, "failed to convert state field type to enum type")
+			enumType.Values = append(enumType.Values, "case closed")
+			stateField.Type = enumType
+			templ.WITs[0].Fields["state"] = stateField
+
 			templ.WITGs[0].Name = "Helmet"
 			templ.WIBs[0].Name = "Sword"
 			// when
@@ -167,6 +176,11 @@ func (s *repoSuite) TestImport() {
 					obj, ok := wit.Fields["flavor"]
 					require.True(t, ok, "flavor field not found in %+v", wit.Fields)
 					require.NotNil(t, obj)
+				})
+				t.Run("\"state\" field changed enum values", func(t *testing.T) {
+					enumType, ok := templ.WITs[0].Fields["state"].Type.(workitem.EnumType)
+					require.True(t, ok, "failed to convert state field to enum type")
+					require.Equal(t, []interface{}{"new", "closed", "case closed"}, enumType.Values)
 				})
 			})
 			t.Run("WILT name has changed", func(t *testing.T) {
@@ -298,7 +312,6 @@ func (s *repoSuite) TestImport() {
 				ForwardName:     "forward",
 				ReverseName:     "backwards",
 				Topology:        "tree",
-				LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
 			})
 			_, err := s.importerRepo.Import(s.Ctx, firstTemplate)
 			require.NoError(t, err)

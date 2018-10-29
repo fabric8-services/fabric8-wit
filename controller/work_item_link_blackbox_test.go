@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
@@ -41,36 +40,6 @@ func TestSuiteWorkItemLinks(t *testing.T) {
 func (s *workItemLinkSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.testDir = filepath.Join("test-files", "work_item_link")
-}
-
-// CreateWorkItemLinkCategory creates a work item link category
-func newCreateWorkItemLinkCategoryPayload(name string) *app.CreateWorkItemLinkCategoryPayload {
-	description := "This work item link category is managed by an admin user."
-	// Use the goa generated code to create a work item link category
-	return &app.CreateWorkItemLinkCategoryPayload{
-		Data: &app.WorkItemLinkCategoryData{
-			Type: link.EndpointWorkItemLinkCategories,
-			Attributes: &app.WorkItemLinkCategoryAttributes{
-				Name:        &name,
-				Description: &description,
-			},
-		},
-	}
-}
-
-// createWorkItemLinkType creates a workitem link type
-func createWorkItemLinkType(t *testing.T, db application.DB, name string, categoryID, spaceTemplateID uuid.UUID) *link.WorkItemLinkType {
-	description := "Specify that one bug blocks another one."
-	lt := link.WorkItemLinkType{
-		Name:            name,
-		Description:     &description,
-		Topology:        link.TopologyNetwork,
-		ForwardName:     "forward name string for " + name,
-		ReverseName:     "reverse name string for " + name,
-		LinkCategoryID:  categoryID,
-		SpaceTemplateID: spaceTemplateID,
-	}
-	return &lt
 }
 
 // newCreateWorkItemLinkPayload returns the payload to create a work item link
@@ -123,17 +92,14 @@ func (s *workItemLinkSuite) TestCreate() {
 
 			// ensure some relations are included in the response
 			expectedIDs := map[uuid.UUID]struct{}{
-				fxt.WorkItemLinkCategories[0].ID: {},
-				fxt.Spaces[0].ID:                 {},
-				fxt.WorkItemLinkTypes[0].ID:      {},
-				fxt.WorkItems[0].ID:              {},
-				fxt.WorkItems[1].ID:              {},
+				fxt.Spaces[0].ID:            {},
+				fxt.WorkItemLinkTypes[0].ID: {},
+				fxt.WorkItems[0].ID:         {},
+				fxt.WorkItems[1].ID:         {},
 			}
 			for _, obj := range workItemLink.Included {
 				var id uuid.UUID
 				switch v := obj.(type) {
-				case *app.WorkItemLinkCategoryData:
-					id = *v.ID
 				case *app.Space:
 					id = *v.ID
 				case *app.WorkItemLinkTypeData:

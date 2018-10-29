@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rendering"
@@ -767,5 +767,20 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 
+	})
+}
+
+func (s *workItemRepoBlackBoxTest) TestDeleteWorkitem() {
+	s.T().Run("ok", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.WorkItems(1),
+		)
+		err := s.repo.Delete(s.Ctx, fxt.WorkItems[0].ID, fxt.Identities[0].ID)
+		require.Nil(t, err)
+
+		// check if workitem exists
+		err = s.repo.CheckExists(s.Ctx, fxt.WorkItems[0].ID)
+		require.Error(t, err)
+		require.IsType(t, errors.NotFoundError{}, errs.Cause(err))
 	})
 }

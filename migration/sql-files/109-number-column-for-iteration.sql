@@ -1,0 +1,1 @@
+ALTER TABLE iterations ADD COLUMN number INTEGER;

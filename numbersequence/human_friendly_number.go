@@ -57,6 +57,11 @@ func (n HumanFriendlyNumber) Equal(u convert.Equaler) bool {
 	return true
 }
 
+// EqualValue implements convert.Equaler
+func (n HumanFriendlyNumber) EqualValue(u convert.Equaler) bool {
+	return n.Equal(u)
+}
+
 // BeforeCreate is a GORM callback (see http://doc.gorm.io/callbacks.html) that
 // will be called before creating the model. We use it to determine the next
 // human readable number for the model and set it automatically in the CREATE

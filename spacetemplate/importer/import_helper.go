@@ -123,7 +123,7 @@ func (s ImportHelper) Equal(u convert.Equaler) bool {
 		return false
 	}
 	// test nested space template on equality
-	if !s.Template.Equal(other.Template) {
+	if !convert.CascadeEqual(s.Template, other.Template) {
 		return false
 	}
 	if len(s.WITs) != len(other.WITs) {
@@ -133,7 +133,7 @@ func (s ImportHelper) Equal(u convert.Equaler) bool {
 		if other.WITs[k] == nil {
 			return false
 		}
-		if !s.WITs[k].Equal(*other.WITs[k]) {
+		if !convert.CascadeEqual(s.WITs[k], *other.WITs[k]) {
 			return false
 		}
 	}
@@ -144,7 +144,7 @@ func (s ImportHelper) Equal(u convert.Equaler) bool {
 		if other.WILTs[k] == nil {
 			return false
 		}
-		if !s.WILTs[k].Equal(*other.WILTs[k]) {
+		if !convert.CascadeEqual(s.WILTs[k], *other.WILTs[k]) {
 			return false
 		}
 	}
@@ -155,7 +155,7 @@ func (s ImportHelper) Equal(u convert.Equaler) bool {
 		if other.WITGs[k] == nil {
 			return false
 		}
-		if !s.WITGs[k].Equal(*other.WITGs[k]) {
+		if !convert.CascadeEqual(s.WITGs[k], *other.WITGs[k]) {
 			return false
 		}
 	}
@@ -166,11 +166,16 @@ func (s ImportHelper) Equal(u convert.Equaler) bool {
 		if other.WIBs[k] == nil {
 			return false
 		}
-		if !s.WIBs[k].Equal(*other.WIBs[k]) {
+		if !convert.CascadeEqual(s.WIBs[k], *other.WIBs[k]) {
 			return false
 		}
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler
+func (s ImportHelper) EqualValue(u convert.Equaler) bool {
+	return s.Equal(u)
 }
 
 // BaseTemplate returns the base template

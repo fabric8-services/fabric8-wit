@@ -19,34 +19,24 @@
         "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000001"
       },
       "relationships": {
-        "link_category": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
-            "type": "workitemlinkcategories"
-          },
-          "links": {
-            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
-            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
-          }
-        },
         "space": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
+            "id": "00000000-0000-0000-0000-000000000002",
             "type": "spaces"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
           }
         },
         "space_template": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000004",
+            "id": "00000000-0000-0000-0000-000000000003",
             "type": "spacetemplates"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
-            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003"
           }
         }
       },
@@ -65,40 +55,30 @@
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "00000000-0000-0000-0000-000000000005",
+      "id": "00000000-0000-0000-0000-000000000004",
       "links": {
-        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000005",
-        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000005"
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000004",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000004"
       },
       "relationships": {
-        "link_category": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
-            "type": "workitemlinkcategories"
-          },
-          "links": {
-            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
-            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
-          }
-        },
         "space": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
+            "id": "00000000-0000-0000-0000-000000000002",
             "type": "spaces"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
           }
         },
         "space_template": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000006",
+            "id": "00000000-0000-0000-0000-000000000005",
             "type": "spacetemplates"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000006",
-            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000006"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000005",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000005"
           }
         }
       },
@@ -117,40 +97,30 @@
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "00000000-0000-0000-0000-000000000007",
+      "id": "00000000-0000-0000-0000-000000000006",
       "links": {
-        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000007",
-        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000007"
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000006",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000006"
       },
       "relationships": {
-        "link_category": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
-            "type": "workitemlinkcategories"
-          },
-          "links": {
-            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
-            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
-          }
-        },
         "space": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
+            "id": "00000000-0000-0000-0000-000000000002",
             "type": "spaces"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
           }
         },
         "space_template": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000004",
+            "id": "00000000-0000-0000-0000-000000000003",
             "type": "spacetemplates"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
-            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003"
           }
         }
       },
@@ -169,40 +139,30 @@
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "00000000-0000-0000-0000-000000000008",
+      "id": "00000000-0000-0000-0000-000000000007",
       "links": {
-        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000008",
-        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000008"
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000007",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000007"
       },
       "relationships": {
-        "link_category": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
-            "type": "workitemlinkcategories"
-          },
-          "links": {
-            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
-            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
-          }
-        },
         "space": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
+            "id": "00000000-0000-0000-0000-000000000002",
             "type": "spaces"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
           }
         },
         "space_template": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000004",
+            "id": "00000000-0000-0000-0000-000000000003",
             "type": "spacetemplates"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004",
-            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003"
           }
         }
       },

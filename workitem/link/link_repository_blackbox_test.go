@@ -892,3 +892,16 @@ func (s *linkRepoBlackBoxTest) TestDeleteLinkAndListChildren() {
 		require.Len(t, childrenList, 0)
 	})
 }
+
+func (s *linkRepoBlackBoxTest) TestDeleteLink() {
+	s.T().Run("ok", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1))
+		err := s.workitemLinkRepo.DeleteRelatedLinks(s.Ctx, fxt.WorkItems[0].ID, fxt.Identities[0].ID)
+		require.NoError(t, err)
+
+		// check if link exists
+		err = s.workitemLinkRepo.CheckExists(s.Ctx, fxt.WorkItemLinks[0].ID)
+		require.Error(t, err)
+		require.IsType(t, errors.NotFoundError{}, err)
+	})
+}

@@ -232,7 +232,7 @@ func TestParseMap(t *testing.T) {
 		expected := &Query{Name: OR, Children: []Query{
 			{Name: AND, Children: []Query{
 				{Name: "space", Value: &openshiftio},
-				{Name: "area", Value: &area}}},
+				{Name: "area", Value: &area, Child: true}}},
 			{Name: AND, Children: []Query{
 				{Name: "space", Value: &rhel}}},
 		}}
@@ -260,7 +260,7 @@ func TestParseMap(t *testing.T) {
 		expected := &Query{Name: OR, Children: []Query{
 			{Name: AND, Children: []Query{
 				{Name: "space", Value: &openshiftio},
-				{Name: "area", Value: &area}}},
+				{Name: "area", Value: &area, Child: true}}},
 			{Name: AND, Children: []Query{
 				{Name: "space", Value: &rhel, Negate: true}}},
 		}}
@@ -288,7 +288,7 @@ func TestParseMap(t *testing.T) {
 		expected := &Query{Name: OR, Children: []Query{
 			{Name: AND, Children: []Query{
 				{Name: "space", Value: &openshiftio},
-				{Name: "area", Value: &area}}},
+				{Name: "area", Value: &area, Child: true}}},
 			{Name: AND, Children: []Query{
 				{Name: "space", Value: &rhel, Negate: true}}},
 		}}

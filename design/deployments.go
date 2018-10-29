@@ -151,13 +151,48 @@ var simpleDeploymentStatSeries = a.Type("SimpleDeploymentStatSeries", func() {
 	a.Attribute("net_rx", a.ArrayOf(timedNumberTuple))
 })
 
+var simpleDeploymentPodLimitRange = a.Type("SimpleDeploymentPodLimitRange", func() {
+	a.Description("pod limit range")
+	a.Attribute("limits", podsQuota)
+})
+
+var spaceAndOtherEnvironmentUsage = a.Type("SpaceAndOtherEnvironmentUsage", func() {
+	a.Description("Environment usage by specific space and all others")
+	a.Attribute("type", d.String, "The type of the related resource", func() {
+		a.Enum("environment")
+	})
+	a.Attribute("id", d.String, "ID of the environment (same as 'name')")
+	a.Attribute("attributes", spaceAndOtherEnvironmentAttributes)
+	a.Required("type", "id", "attributes")
+})
+
+var spaceAndOtherEnvironmentAttributes = a.Type("SpaceAndOtherEnvironmentUsageAttributes", func() {
+	a.Description("Attributes for environment usage info for a single space")
+	a.Attribute("name", d.String)
+	a.Attribute("space_usage", spaceEnvironmentUsageQuota)
+	a.Attribute("other_usage", envStats)
+})
+
+var spaceEnvironmentUsageQuota = a.Type("SpaceEnvironmentUsageQuota", func() {
+	a.Description("Quota info for space-aware environment usage")
+	a.Attribute("cpucores", d.Number)
+	a.Attribute("memory", d.Number)
+})
+
+var spaceAndOtherEnvironmentUsageMultiple = JSONList(
+	"spaceAndOtherEnvironmentUsage",
+	"Holds a response to environment usage for a space compared to other spaces",
+	spaceAndOtherEnvironmentUsage,
+	nil,
+	nil)
+
 var simpleSpaceSingle = JSONSingle(
 	"SimpleSpace", "Holds a single response to a space request",
 	simpleSpace,
 	nil)
 
 var simpleEnvironmentMultiple = JSONList(
-	"SimpleEnvironment", "Holds a response to a space/environment request",
+	"SimpleEnvironment", "Holds a response to a environment request",
 	simpleEnvironment,
 	nil,
 	nil)
@@ -170,6 +205,11 @@ var simpleDeploymentStatsSingle = JSONSingle(
 var simpleDeploymentStatSeriesSingle = JSONSingle(
 	"SimpleDeploymentStatSeries", "Holds a response to a stat series query",
 	simpleDeploymentStatSeries,
+	nil)
+
+var simpleDeploymentPodLimitRangeSingle = JSONSingle(
+	"simpleDeploymentPodLimitRange", "Holds a response to a pod limit range query",
+	simpleDeploymentPodLimitRange,
 	nil)
 
 var _ = a.Resource("deployments", func() {
@@ -231,6 +271,23 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
+	a.Action("showDeploymentPodLimitRange", func() {
+		a.Routing(
+			a.GET("/spaces/:spaceID/applications/:appName/deployments/:deployName/podlimits"),
+		)
+		a.Description("get pod resource limit range")
+		a.Params(func() {
+			a.Param("spaceID", d.UUID, "ID of the space")
+			a.Param("appName", d.String, "Name of the application")
+			a.Param("deployName", d.String, "Name of the deployment")
+		})
+		a.Response(d.OK, simpleDeploymentPodLimitRangeSingle)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+	})
+
 	a.Action("setDeployment", func() {
 		a.Routing(
 			a.PUT("/spaces/:spaceID/applications/:appName/deployments/:deployName"),
@@ -266,15 +323,32 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
+	// FIXME Keep original API around until frontend is completely moved over to
+	// showEnvironmentsBySpace, since this is a breaking change.
 	a.Action("showSpaceEnvironments", func() {
 		a.Routing(
 			a.GET("/spaces/:spaceID/environments"),
 		)
-		a.Description("list all environments for a space")
+		a.Description("DEPRECATED: please use /environments/spaces/:spaceID instead")
 		a.Params(func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 		})
 		a.Response(d.OK, simpleEnvironmentMultiple)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+	})
+
+	a.Action("showEnvironmentsBySpace", func() {
+		a.Routing(
+			a.GET("/environments/spaces/:spaceID"),
+		)
+		a.Description("list all environments for a space and information for all others")
+		a.Params(func() {
+			a.Param("spaceID", d.UUID, "ID of the space")
+		})
+		a.Response(d.OK, spaceAndOtherEnvironmentUsageMultiple)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSimpleType_Equal(t *testing.T) {
+func TestSimpleType_EqualAndEqualValue(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
@@ -17,6 +17,7 @@ func TestSimpleType_Equal(t *testing.T) {
 		t.Parallel()
 		a := SimpleType{Kind: KindString}
 		require.False(t, a.Equal(convert.DummyEqualer{}))
+		require.False(t, a.EqualValue(convert.DummyEqualer{}))
 	})
 
 	t.Run("kind difference", func(t *testing.T) {
@@ -24,6 +25,7 @@ func TestSimpleType_Equal(t *testing.T) {
 		a := SimpleType{Kind: KindString}
 		b := SimpleType{Kind: KindInteger}
 		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
 	})
 
 	t.Run("default difference", func(t *testing.T) {
@@ -31,6 +33,7 @@ func TestSimpleType_Equal(t *testing.T) {
 		a := SimpleType{Kind: KindInteger, DefaultValue: 1}
 		b := SimpleType{Kind: KindInteger}
 		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
 	})
 }
 

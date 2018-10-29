@@ -1,8 +1,9 @@
 package comment
 
 import (
-	"github.com/fabric8-services/fabric8-wit/id"
 	"time"
+
+	"github.com/fabric8-services/fabric8-common/id"
 
 	uuid "github.com/satori/go.uuid"
 )

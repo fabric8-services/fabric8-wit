@@ -102,11 +102,6 @@ func (g *GormBase) Users() account.UserRepository {
 	return account.NewUserRepository(g.db)
 }
 
-// WorkItemLinkCategories returns a work item link category repository
-func (g *GormBase) WorkItemLinkCategories() link.WorkItemLinkCategoryRepository {
-	return link.NewWorkItemLinkCategoryRepository(g.db)
-}
-
 // WorkItemLinkTypes returns a work item link type repository
 func (g *GormBase) WorkItemLinkTypes() link.WorkItemLinkTypeRepository {
 	return link.NewWorkItemLinkTypeRepository(g.db)
