@@ -2,7 +2,7 @@
   "data": [
     {
       "attributes": {
-        "name": "system.description",
+        "name": "system_description",
         "newValue": {
           "content": "# Description is modified1",
           "markup": "Markdown"

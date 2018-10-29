@@ -2,7 +2,7 @@
   "data": [
     {
       "attributes": {
-        "name": "system.title",
+        "name": "system_title",
         "newValue": "New Title",
         "oldValue": "work item 00000000-0000-0000-0000-000000000001",
         "revisionId": "00000000-0000-0000-0000-000000000002",

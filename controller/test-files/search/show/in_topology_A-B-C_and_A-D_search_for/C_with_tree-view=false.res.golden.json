@@ -13,6 +13,17 @@
         "system.state": "new",
         "system.title": "C",
         "system.updated_at": "0001-01-01T00:00:00Z",
+        "system_created_at": "0001-01-01T00:00:00Z",
+        "system_description": "`(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestIncludedParents in controller/search_blackbox_test.go)`",
+        "system_description_markup": "Markdown",
+        "system_description_rendered": "\u003cp\u003e\u003ccode\u003e(see function github.com/fabric8-services/fabric8-wit/controller_test.(*searchControllerTestSuite).TestIncludedParents in controller/search_blackbox_test.go)\u003c/code\u003e\u003c/p\u003e\n",
+        "system_metastate": null,
+        "system_number": 3,
+        "system_order": 3000,
+        "system_remote_item_id": null,
+        "system_state": "new",
+        "system_title": "C",
+        "system_updated_at": "0001-01-01T00:00:00Z",
         "version": 0
       },
       "id": "00000000-0000-0000-0000-000000000001",
@@ -78,7 +89,7 @@
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
           }
         },
-        "system.boardcolumns": {},
+        "system_boardcolumns": {},
         "workItemLinks": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/links"
