@@ -5,6 +5,153 @@
       "created-at": "0001-01-01T00:00:00Z",
       "description": "this work item type was automatically generated (see function github.com/fabric8-services/fabric8-wit/controller_test.(*WorkItem2Suite).TestWI2UpdateFieldOfDifferentSimpleTypes.func1 in controller/workitem_blackbox_test.go)",
       "fields": {
+        "system.area": {
+          "description": "The area to which the work item belongs",
+          "label": "Area",
+          "required": false,
+          "type": {
+            "kind": "area"
+          }
+        },
+        "system.assignees": {
+          "description": "The users that are assigned to the work item",
+          "label": "Assignees",
+          "required": false,
+          "type": {
+            "componentType": "user",
+            "kind": "list"
+          }
+        },
+        "system.boardcolumns": {
+          "description": "List of boardcolumns this work item is attached to",
+          "label": "Boardcolumns",
+          "required": false,
+          "type": {
+            "componentType": "boardcolumn",
+            "kind": "list"
+          }
+        },
+        "system.codebase": {
+          "description": "Contains codebase attributes to which this WI belongs to",
+          "label": "Codebase",
+          "required": false,
+          "type": {
+            "kind": "codebase"
+          }
+        },
+        "system.created_at": {
+          "description": "The date and time when the work item was created",
+          "label": "Created at",
+          "required": false,
+          "type": {
+            "kind": "instant"
+          }
+        },
+        "system.creator": {
+          "description": "The user that created the work item",
+          "label": "Creator",
+          "required": true,
+          "type": {
+            "kind": "user"
+          }
+        },
+        "system.description": {
+          "description": "A descriptive text of the work item",
+          "label": "Description",
+          "required": false,
+          "type": {
+            "kind": "markup"
+          }
+        },
+        "system.iteration": {
+          "description": "The iteration to which the work item belongs",
+          "label": "Iteration",
+          "required": false,
+          "type": {
+            "kind": "iteration"
+          }
+        },
+        "system.labels": {
+          "description": "List of labels attached to the work item",
+          "label": "Labels",
+          "required": false,
+          "type": {
+            "componentType": "label",
+            "kind": "list"
+          }
+        },
+        "system.metastate": {
+          "description": "The meta-state of the work item",
+          "label": "Meta State",
+          "required": false,
+          "type": {
+            "baseType": "string",
+            "kind": "enum",
+            "values": [
+              "mNew",
+              "mOpen",
+              "mInprogress",
+              "mResolved",
+              "mClosed"
+            ]
+          }
+        },
+        "system.number": {
+          "description": "The unique number that was given to this workitem within its space.",
+          "label": "Number",
+          "required": false,
+          "type": {
+            "kind": "integer"
+          }
+        },
+        "system.order": {
+          "description": "Execution Order of the workitem",
+          "label": "Execution Order",
+          "required": false,
+          "type": {
+            "kind": "float"
+          }
+        },
+        "system.remote_item_id": {
+          "description": "The ID of the remote work item",
+          "label": "Remote item",
+          "required": false,
+          "type": {
+            "kind": "string"
+          }
+        },
+        "system.state": {
+          "description": "The state of the work item",
+          "label": "State",
+          "required": true,
+          "type": {
+            "baseType": "string",
+            "kind": "enum",
+            "values": [
+              "new",
+              "open",
+              "in progress",
+              "resolved",
+              "closed"
+            ]
+          }
+        },
+        "system.title": {
+          "description": "The title text of the work item",
+          "label": "Title",
+          "required": true,
+          "type": {
+            "kind": "string"
+          }
+        },
+        "system.updated_at": {
+          "description": "The date and time when the work item was last updated",
+          "label": "Updated at",
+          "required": false,
+          "type": {
+            "kind": "instant"
+          }
+        },
         "system_area": {
           "description": "The area to which the work item belongs",
           "label": "Area",
