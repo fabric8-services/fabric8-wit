@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/fabric8-services/fabric8-common/closeable"
-
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/asaskevich/govalidator"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-common/id"
@@ -744,9 +744,13 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	rows, err := db.Rows()
 	defer closeable.Close(ctx, rows)
 	if err != nil {
+		if gormsupport.IsDataException(err) {
+			// Remove "pq: " from the original message and return it.
+			errMessage := strings.Replace(err.Error(), "pq: ", "", -1)
+			return nil, 0, errors.NewBadParameterErrorFromString(errMessage)
+		}
 		return nil, 0, errs.WithStack(err)
 	}
-
 	result := []workitem.WorkItemStorage{}
 	columns, err := rows.Columns()
 	if err != nil {

@@ -153,13 +153,12 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration101", testMigration101TypeGroupHasDescriptionField)
 	t.Run("TestMigration102", testMigration102LinkTypeDescriptionFields)
 	t.Run("TestMigration103", testMigration103NotNullNotEmptyonEmail)
-	t.Run("TestMirgraion104", testMigration104IndexOnWIRevisionTable)
-	t.Run("TestMirgraion105", testMigration105UpdateRootIterationAreaPathField)
-	t.Run("TestMirgraion106", testMigration106RemoveLinkCategoryConcept)
-	t.Run("TestMirgraion107", testMigration107NumberSequencesTable)
-	t.Run("TestMirgraion108", testMigration108NumberColumnForArea)
-	t.Run("TestMirgraion109", testMigration109NumberColumnForIteration)
-	t.Run("TestMirgraion110", testMigration110UpdateNumberForExistingIterations)
+	t.Run("TestMigration104", testMigration104IndexOnWIRevisionTable)
+	t.Run("TestMigration105", testMigration105UpdateRootIterationAreaPathField)
+	t.Run("TestMigration106", testMigration106RemoveLinkCategoryConcept)
+	t.Run("TestMigration107", testMigration107NumberSequencesTable)
+	t.Run("TestMigration108", testMigration108NumberColumnForArea)
+	t.Run("TestMigration109", testMigration109NumberColumnForIteration)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1382,83 +1381,6 @@ func testMigration108NumberColumnForArea(t *testing.T) {
 func testMigration109NumberColumnForIteration(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:110], 110)
 	require.True(t, dialect.HasColumn("iterations", "number"))
-}
-
-func testMigration110UpdateNumberForExistingIterations(t *testing.T) {
-	t.Run("migrate to previous version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:110], 110)
-	})
-
-	spaceTemplateID := uuid.NewV4()
-	space1ID := uuid.NewV4()
-	space2ID := uuid.NewV4()
-	// two iterations in space 1
-	iter1ID := uuid.NewV4()
-	iter2ID := uuid.NewV4()
-	// two iterations in space 2
-	iter3ID := uuid.NewV4()
-	iter4ID := uuid.NewV4()
-
-	t.Run("setup test data to migrate", func(t *testing.T) {
-		require.Nil(t, runSQLscript(sqlDB, "110-update-number-for-existing-iterations.sql",
-			spaceTemplateID.String(),
-			space1ID.String(),
-			space2ID.String(),
-			iter1ID.String(),
-			iter2ID.String(),
-			iter3ID.String(),
-			iter4ID.String(),
-		))
-	})
-
-	// Helper functions
-
-	getNumberOf := func(t *testing.T, table string, id uuid.UUID) int {
-		q := fmt.Sprintf("SELECT number FROM %s WHERE id = $1", table)
-		row := sqlDB.QueryRow(q, id)
-		require.NotNil(t, row)
-		var p int32
-		err := row.Scan(&p)
-		require.NoError(t, err, "%+v", err)
-		return int(p)
-	}
-	getNumberOfIteration := func(t *testing.T, iterID uuid.UUID) int { return getNumberOf(t, "iterations", iterID) }
-
-	t.Run("migrate to current version", func(t *testing.T) {
-		migrateToVersion(t, sqlDB, migrations[:111], 111)
-	})
-
-	t.Run("checks after migration", func(t *testing.T) {
-		// check that the newest iteration/area has the smaller number and that
-		// the numbering is partitioned by space_id
-		assert.Equal(t, 2, getNumberOfIteration(t, iter1ID))
-		assert.Equal(t, 1, getNumberOfIteration(t, iter2ID))
-		assert.Equal(t, 2, getNumberOfIteration(t, iter3ID))
-		assert.Equal(t, 1, getNumberOfIteration(t, iter4ID))
-
-		// check that the sequences table has the expected values
-		type numberSequence struct {
-			spaceID    uuid.UUID
-			tableName  string
-			currentVal int
-		}
-		rows, err := sqlDB.Query("SELECT space_id, table_name, current_val FROM number_sequences WHERE space_id IN ($1, $2)", space1ID, space2ID)
-		require.NoError(t, err)
-		defer rows.Close()
-		toBeFound := map[numberSequence]struct{}{
-			{space1ID, "iterations", 2}: {},
-			{space2ID, "iterations", 2}: {},
-		}
-		for rows.Next() {
-			seq := numberSequence{}
-			err := rows.Scan(&seq.spaceID, &seq.tableName, &seq.currentVal)
-			require.NoError(t, err)
-			delete(toBeFound, seq)
-		}
-		require.Empty(t, toBeFound, "failed to find these number sequences: %+v", spew.Sdump(toBeFound))
-
-		require.True(t, dialect.HasIndex("iterations", "iterations_space_id_number_idx"))
-	})
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

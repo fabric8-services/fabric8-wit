@@ -92,8 +92,8 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			ID:      spaceID,
 			Name:    spaceName,
 			OwnerID: *currentUser,
-			// Default to legacy space template to avoid breaking the API
-			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
+			// Default to Agile space template
+			SpaceTemplateID: spacetemplate.SystemAgileTemplateID,
 		}
 		if reqSpace.Attributes.Description != nil {
 			newSpace.Description = *reqSpace.Attributes.Description

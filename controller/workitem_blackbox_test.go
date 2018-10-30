@@ -2304,17 +2304,6 @@ func (s *WorkItem2Suite) TestWI2FailShowMissing() {
 	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, uuid.NewV4(), nil, nil)
 }
 
-func (s *WorkItem2Suite) TestWI2FailOnDelete() {
-	c := minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "Title"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(workitem.SystemBug)
-
-	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, nil)
-	test.DeleteWorkitemMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID)
-}
-
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.CreateWorkItemEnvironment(),
@@ -3195,29 +3184,26 @@ func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitem
 }
 
 func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	require.NoError(s.T(), err)
-	space := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, *testIdentity, "")
-	// Create new workitem
-	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *space.ID)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity, ""})
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(2), tf.CreateWorkItemEnvironment(), tf.Spaces(1), tf.WorkItemTypes(1))
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 	workitemCtrl := NewWorkitemController(svc, s.GormDB, s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, s.GormDB, s.Configuration)
-	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity, ""})
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *fxt.Identities[1], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
 	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, s.GormDB, s.Configuration)
 
-	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
+	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+
+	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
+
 	// Not a space owner is not authorized to create
-	test.CreateWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, fxt.Spaces[0].ID, &payload)
 
 	// Update the workitem by space collaborator
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
-	payload2 := minimumRequiredUpdatePayloadWithSpace(*space.ID)
+	payload2 := minimumRequiredUpdatePayloadWithSpace(fxt.Spaces[0].ID)
 	payload2.Data.ID = wi.Data.ID
 	payload2.Data.Attributes = wi.Data.Attributes
 	_, updated := test.UpdateWorkitemOK(s.T(), svc.Context, svc, workitemCtrl, *wi.Data.ID, &payload2)
@@ -3236,18 +3222,19 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	}
 	err = testsupport.CreateTestIdentityForAccountIdentity(s.DB, &openshiftioTestIdentity)
 	require.NoError(s.T(), err)
-	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), s.GormDB, s.Configuration, openshiftioTestIdentity, "")
-	payload3 := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *openshiftioTestIdentitySpace.ID)
+	fxt = tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+		fxt.Spaces[idx].OwnerID = openshiftioTestIdentityID
+		return nil
+	}), tf.WorkItemTypes(1))
+	payload3 := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload3.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload3.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	payload3.Data.Relationships.Space.Data.ID = openshiftioTestIdentitySpace.ID
 	_, wi2 := test.CreateWorkitemsCreated(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, *payload3.Data.Relationships.Space.Data.ID, &payload3)
 
 	// Update the work item by the work item creator
-	wi2.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
-	payload4 := minimumRequiredUpdatePayloadWithSpace(*openshiftioTestIdentitySpace.ID)
+	payload4 := minimumRequiredUpdatePayloadWithSpace(fxt.Spaces[0].ID)
+	payload4.Data.Attributes[workitem.SystemVersion] = wi2.Data.Attributes[workitem.SystemVersion]
 	payload4.Data.ID = wi2.Data.ID
-	payload4.Data.Attributes = wi2.Data.Attributes
 	_, updated = test.UpdateWorkitemOK(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi2.Data.ID, &payload4)
 
 	assert.Equal(s.T(), *wi2.Data.ID, *updated.Data.ID)
@@ -3260,15 +3247,14 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	// Not a space collaborator is not authorized to update
 	test.UpdateWorkitemForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi.Data.ID, &payload2)
 	// Not a space collaborator is not authorized to delete
-	// Temporarily disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-	// test.DeleteWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi.Data.ID)
+	test.DeleteWorkitemForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, *wi.Data.ID)
 	// Not a space collaborator is not authorized to reorder
 	payload5 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, wi.Data)
 	payload5.Data = dataArray
 	payload5.Position.Direction = string(workitem.DirectionTop)
-	test.ReorderWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, *space.ID, &payload5)
+	test.ReorderWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, fxt.Spaces[0].ID, &payload5)
 }
 
 func ConvertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
@@ -3391,4 +3377,44 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 			}
 		})
 	}
+}
+
+// TestDeleteWorkitem tests the delete action
+func (s *WorkItem2Suite) TestDeleteWorkitem() {
+	// Delete Workitem tests deletion of workitem
+	s.T().Run("Delete Workitem", func(t *testing.T) {
+		t.Run("ok", func(t *testing.T) {
+			fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1))
+			s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[0])
+			test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+		})
+		t.Run("unauthorized", func(t *testing.T) {
+			fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1))
+			svcNotAuthorized := goa.New("TestDeleteWI2-Service")
+			workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, s.GormDB, s.Configuration)
+			test.DeleteWorkitemUnauthorized(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemCtrlNotAuthorized, fxt.WorkItems[0].ID)
+		})
+		t.Run("forbidden", func(t *testing.T) {
+			fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1), tf.Identities(2))
+			s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[1])
+			test.DeleteWorkitemForbidden(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+		})
+		t.Run("workitem not found", func(t *testing.T) {
+			test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, uuid.NewV4())
+		})
+	})
+	// Delete Workitem Links tests deletion of corresponding workitem links when a workitem is deleted
+	s.T().Run("Delete Workitem Links", func(t *testing.T) {
+		t.Run("ok", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.WorkItems(2, tf.SetWorkItemTitles("A", "B")),
+				tf.WorkItemLinkTypes(1),
+				tf.WorkItemLinksCustom(1, tf.BuildLinks(tf.LinkChain("A", "B")...)),
+			)
+			s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *fxt.Identities[0])
+			test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID)
+			test.ShowWorkItemLinkNotFound(t, s.svc.Context, s.svc, s.linkCtrl, fxt.WorkItemLinks[0].ID, nil, nil)
+		})
+	})
 }

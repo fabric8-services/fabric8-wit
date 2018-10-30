@@ -769,3 +769,18 @@ func (s *workItemRepoBlackBoxTest) TestList() {
 
 	})
 }
+
+func (s *workItemRepoBlackBoxTest) TestDeleteWorkitem() {
+	s.T().Run("ok", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.WorkItems(1),
+		)
+		err := s.repo.Delete(s.Ctx, fxt.WorkItems[0].ID, fxt.Identities[0].ID)
+		require.Nil(t, err)
+
+		// check if workitem exists
+		err = s.repo.CheckExists(s.Ctx, fxt.WorkItems[0].ID)
+		require.Error(t, err)
+		require.IsType(t, errors.NotFoundError{}, errs.Cause(err))
+	})
+}
