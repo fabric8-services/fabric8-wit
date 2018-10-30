@@ -443,9 +443,9 @@ func (s *TestEvent) TestListEvent() {
 			}
 			for _, e := range eventList.Data {
 				require.Equal(t, secondUpdateRevID, e.Attributes.RevisionID, "wrong revision ID")
-				_, ok := toBeFound[e.Attributes.Name]
-				require.True(t, ok, "found unexpected event name: %s", e.Attributes.Name)
-				delete(toBeFound, e.Attributes.Name)
+				_, ok := toBeFound[e.Attributes.EventName]
+				require.True(t, ok, "found unexpected event name: %s", e.Attributes.EventName)
+				delete(toBeFound, e.Attributes.EventName)
 			}
 			require.Empty(t, toBeFound, "failed to find event for these fields: %+v", toBeFound)
 		})
