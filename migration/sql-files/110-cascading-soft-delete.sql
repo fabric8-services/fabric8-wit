@@ -26,6 +26,9 @@ ALTER TABLE comment_revisions
     ADD FOREIGN KEY (comment_id) REFERENCES comments(id),
     DROP CONSTRAINT comment_revisions_comments_fk;
 
+ALTER TABLE work_item_revisions ADD COLUMN deleted_at timestamp with time zone;
+ALTER TABLE comment_revisions ADD COLUMN deleted_at timestamp with time zone;
+
 CREATE OR REPLACE FUNCTION archive_record()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -84,6 +87,7 @@ END;
 -- Create archive tables
 CREATE TABLE areas_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (areas);
 CREATE TABLE codebases_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (codebases);
+CREATE TABLE comment_revisions_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (comment_revisions);
 CREATE TABLE comments_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (comments);
 CREATE TABLE identities_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (identities);
 CREATE TABLE iterations_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (iterations);
@@ -99,6 +103,7 @@ CREATE TABLE work_item_boards_archive (CHECK (deleted_at IS NOT NULL)) INHERITS 
 CREATE TABLE work_item_child_types_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_child_types);
 CREATE TABLE work_item_link_types_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_link_types);
 CREATE TABLE work_item_links_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_links);
+CREATE TABLE work_item_revisions_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_revisions);
 CREATE TABLE work_item_type_group_members_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_type_group_members);
 CREATE TABLE work_item_type_groups_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_type_groups);
 CREATE TABLE work_item_types_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_item_types);
@@ -107,6 +112,7 @@ CREATE TABLE work_items_archive (CHECK (deleted_at IS NOT NULL)) INHERITS (work_
 -- Setup triggers
 CREATE TRIGGER archive_areas AFTER UPDATE OF deleted_at OR DELETE ON areas FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_codebases AFTER UPDATE OF deleted_at OR DELETE ON codebases FOR EACH ROW EXECUTE PROCEDURE archive_record();
+CREATE TRIGGER archive_comment_revisions_archive AFTER UPDATE OF deleted_at OR DELETE ON comment_revisions FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_comments AFTER UPDATE OF deleted_at OR DELETE ON comments FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_identities AFTER UPDATE OF deleted_at OR DELETE ON identities FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_iterations AFTER UPDATE OF deleted_at OR DELETE ON iterations FOR EACH ROW EXECUTE PROCEDURE archive_record();
@@ -122,6 +128,7 @@ CREATE TRIGGER archive_work_item_boards AFTER UPDATE OF deleted_at OR DELETE ON 
 CREATE TRIGGER archive_work_item_child_types AFTER UPDATE OF deleted_at OR DELETE ON work_item_child_types FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_work_item_link_types AFTER UPDATE OF deleted_at OR DELETE ON work_item_link_types FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_work_item_links AFTER UPDATE OF deleted_at OR DELETE ON work_item_links FOR EACH ROW EXECUTE PROCEDURE archive_record();
+CREATE TRIGGER archive_work_item_revisions_archive AFTER UPDATE OF deleted_at OR DELETE ON work_item_revisions FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_work_item_type_group_members AFTER UPDATE OF deleted_at OR DELETE ON work_item_type_group_members FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_work_item_type_groups AFTER UPDATE OF deleted_at OR DELETE ON work_item_type_groups FOR EACH ROW EXECUTE PROCEDURE archive_record();
 CREATE TRIGGER archive_work_item_types AFTER UPDATE OF deleted_at OR DELETE ON work_item_types FOR EACH ROW EXECUTE PROCEDURE archive_record();
@@ -130,6 +137,7 @@ CREATE TRIGGER archive_work_items AFTER UPDATE OF deleted_at OR DELETE ON work_i
 -- Archive all deleted records
 DELETE FROM areas WHERE deleted_at IS NOT NULL;
 DELETE FROM codebases WHERE deleted_at IS NOT NULL;
+DELETE FROM comment_revisions WHERE deleted_at IS NOT NULL;
 DELETE FROM comments WHERE deleted_at IS NOT NULL;
 DELETE FROM identities WHERE deleted_at IS NOT NULL;
 DELETE FROM iterations WHERE deleted_at IS NOT NULL;
@@ -145,6 +153,7 @@ DELETE FROM work_item_boards WHERE deleted_at IS NOT NULL;
 DELETE FROM work_item_child_types WHERE deleted_at IS NOT NULL;
 DELETE FROM work_item_link_types WHERE deleted_at IS NOT NULL;
 DELETE FROM work_item_links WHERE deleted_at IS NOT NULL;
+DELETE FROM work_item_revisions WHERE deleted_at IS NOT NULL;
 DELETE FROM work_item_type_group_members WHERE deleted_at IS NOT NULL;
 DELETE FROM work_item_type_groups WHERE deleted_at IS NOT NULL;
 DELETE FROM work_item_types WHERE deleted_at IS NOT NULL;
