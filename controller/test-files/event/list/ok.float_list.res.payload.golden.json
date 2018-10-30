@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "float_list",
         "name": "float_list",
         "newValue": [
           0.1,
@@ -36,6 +37,7 @@
     },
     {
       "attributes": {
+        "event_name": "float_list",
         "name": "float_list",
         "newValue": [
           -1111.1,

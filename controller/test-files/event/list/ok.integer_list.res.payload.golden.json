@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "integer_list",
         "name": "integer_list",
         "newValue": [
           0,
@@ -36,6 +37,7 @@
     },
     {
       "attributes": {
+        "event_name": "integer_list",
         "name": "integer_list",
         "newValue": [
           333,

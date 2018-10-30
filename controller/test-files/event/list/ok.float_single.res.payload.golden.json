@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "float_single",
         "name": "float_single",
         "newValue": 0.1,
         "revisionId": "00000000-0000-0000-0000-000000000001",
@@ -33,6 +34,7 @@
     },
     {
       "attributes": {
+        "event_name": "float_single",
         "name": "float_single",
         "newValue": -1111.1,
         "oldValue": 0.1,

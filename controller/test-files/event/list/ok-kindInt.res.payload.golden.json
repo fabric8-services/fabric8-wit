@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "myIntType",
         "name": "myIntType",
         "newValue": 4235,
         "oldValue": 200,

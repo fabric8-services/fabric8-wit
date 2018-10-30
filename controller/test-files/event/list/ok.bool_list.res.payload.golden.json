@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "bool_list",
         "name": "bool_list",
         "newValue": [
           true,
@@ -36,6 +37,7 @@
     },
     {
       "attributes": {
+        "event_name": "bool_list",
         "name": "bool_list",
         "newValue": [
           false,

@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "markup_list",
         "name": "markup_list",
         "newValue": [
           {
@@ -42,6 +43,7 @@
     },
     {
       "attributes": {
+        "event_name": "markup_list",
         "name": "markup_list",
         "newValue": [
           {

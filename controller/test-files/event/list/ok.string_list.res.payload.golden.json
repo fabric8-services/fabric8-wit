@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "string_list",
         "name": "string_list",
         "newValue": [
           "foo",
@@ -36,6 +37,7 @@
     },
     {
       "attributes": {
+        "event_name": "string_list",
         "name": "string_list",
         "newValue": [
           "bar",

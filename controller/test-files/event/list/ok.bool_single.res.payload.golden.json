@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "bool_single",
         "name": "bool_single",
         "newValue": true,
         "revisionId": "00000000-0000-0000-0000-000000000001",
@@ -33,6 +34,7 @@
     },
     {
       "attributes": {
+        "event_name": "bool_single",
         "name": "bool_single",
         "newValue": false,
         "oldValue": true,

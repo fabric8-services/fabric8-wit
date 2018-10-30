@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "markup_single",
         "name": "markup_single",
         "newValue": {
           "content": "plain text",
@@ -36,6 +37,7 @@
     },
     {
       "attributes": {
+        "event_name": "markup_single",
         "name": "markup_single",
         "newValue": {
           "content": "default",

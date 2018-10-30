@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "url_list",
         "name": "url_list",
         "newValue": [
           "127.0.0.1",
@@ -36,6 +37,7 @@
     },
     {
       "attributes": {
+        "event_name": "url_list",
         "name": "url_list",
         "newValue": [
           "http://www.openshift.io",

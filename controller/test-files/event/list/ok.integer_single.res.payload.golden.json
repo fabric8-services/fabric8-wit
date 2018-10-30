@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "integer_single",
         "name": "integer_single",
         "newValue": 0,
         "revisionId": "00000000-0000-0000-0000-000000000001",
@@ -33,6 +34,7 @@
     },
     {
       "attributes": {
+        "event_name": "integer_single",
         "name": "integer_single",
         "newValue": 333,
         "oldValue": 0,

@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "myFloatType",
         "name": "myFloatType",
         "newValue": 2.99,
         "oldValue": 1.99,

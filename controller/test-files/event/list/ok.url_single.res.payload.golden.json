@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "event_name": "url_single",
         "name": "url_single",
         "newValue": "127.0.0.1",
         "revisionId": "00000000-0000-0000-0000-000000000001",
@@ -33,6 +34,7 @@
     },
     {
       "attributes": {
+        "event_name": "url_single",
         "name": "url_single",
         "newValue": "http://www.openshift.io",
         "oldValue": "127.0.0.1",
