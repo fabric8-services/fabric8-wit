@@ -1387,8 +1387,8 @@ func testMigration109NumberColumnForIteration(t *testing.T) {
 func testMigration110RenameFields(t *testing.T) {
 	// setup
 	require.Nil(t, runSQLscript(sqlDB, "110-rename-fields.sql"))
-	expectWorkItemFieldsToBe := func(t *testing.T, tableName string, witID uuid.UUID, expectedFields string) {
-		row := sqlDB.QueryRow(fmt.Sprintf("SELECT fields FROM %s WHERE id = '%s'", tableName, witID.String()))
+	expectWorkItemFieldsToBe := func(t *testing.T, tableName string, columnName string, witID uuid.UUID, expectedFields string) {
+		row := sqlDB.QueryRow(fmt.Sprintf("SELECT %s FROM %s WHERE id = '%s'", columnName, tableName, witID.String()))
 		require.NotNil(t, row)
 		var actualFields string
 		err := row.Scan(&actualFields)
@@ -1397,9 +1397,18 @@ func testMigration110RenameFields(t *testing.T) {
 	}
 
 	migrateToVersion(t, sqlDB, migrations[:111], 111)
-	expectedFields := `{"foo.bar": {"Type": {"Kind": "string"}}, "system_area": {"Type": {"Kind": "area"}}, "system_order": {"Type": {"Kind": "float"}}}`
+	expectedWITFields := `{"foo.bar": {"Type": {"Kind": "string"}}, "system_area": {"Type": {"Kind": "area"}}, "system_order": {"Type": {"Kind": "float"}}}`
 	// Ensure workitem type fields are renamed
-	expectWorkItemFieldsToBe(t, "work_item_types", uuid.FromStringOrNil("16bcbe81-f72f-4aa4-85c2-bbb97b4ec75f"), expectedFields)
+	expectWorkItemFieldsToBe(t, "work_item_types", "fields", uuid.FromStringOrNil("16bcbe81-f72f-4aa4-85c2-bbb97b4ec75f"), expectedWITFields)
+
+	// Ensure workitem fields are renamed
+	expectedWIFields := `{"foo.bar": 123, "system_title": "Work item 1", "system_number": 1234}`
+	expectWorkItemFieldsToBe(t, "work_items", "fields", uuid.FromStringOrNil("bc763f93-e45b-4ac9-bf96-e015877109d2"), expectedWIFields)
+
+	// Ensure workitem_revision fields are renamed
+	// The fieldvalue should be same as that of workitem
+	expectWorkItemFieldsToBe(t, "work_item_revisions", "work_item_fields", uuid.FromStringOrNil("2845d9b5-862e-4d97-9448-947e902e5909"), expectedWIFields)
+
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
