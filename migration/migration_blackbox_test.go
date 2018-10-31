@@ -159,6 +159,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration107", testMigration107NumberSequencesTable)
 	t.Run("TestMigration108", testMigration108NumberColumnForArea)
 	t.Run("TestMigration109", testMigration109NumberColumnForIteration)
+	t.Run("TestMigration110", testMigration110RenameFields)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1381,6 +1382,24 @@ func testMigration108NumberColumnForArea(t *testing.T) {
 func testMigration109NumberColumnForIteration(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:110], 110)
 	require.True(t, dialect.HasColumn("iterations", "number"))
+}
+
+func testMigration110RenameFields(t *testing.T) {
+	// setup
+	require.Nil(t, runSQLscript(sqlDB, "110-rename-fields.sql"))
+	expectWorkItemFieldsToBe := func(t *testing.T, tableName string, witID uuid.UUID, expectedFields string) {
+		row := sqlDB.QueryRow(fmt.Sprintf("SELECT fields FROM %s WHERE id = '%s'", tableName, witID.String()))
+		require.NotNil(t, row)
+		var actualFields string
+		err := row.Scan(&actualFields)
+		require.NoError(t, err)
+		require.Equal(t, expectedFields, actualFields)
+	}
+
+	migrateToVersion(t, sqlDB, migrations[:111], 111)
+	expectedFields := `{"foo.bar": {"Type": {"Kind": "string"}}, "system_area": {"Type": {"Kind": "area"}}, "system_order": {"Type": {"Kind": "float"}}}`
+	// Ensure workitem type fields are renamed
+	expectWorkItemFieldsToBe(t, "work_item_types", uuid.FromStringOrNil("16bcbe81-f72f-4aa4-85c2-bbb97b4ec75f"), expectedFields)
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
