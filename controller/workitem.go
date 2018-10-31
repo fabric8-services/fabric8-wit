@@ -563,15 +563,6 @@ func getVersion(version interface{}) (int, error) {
 	return -1, nil
 }
 
-// ConvertWorkItemsToSeperateCSV is responsible for converting given []WorkItem model object into a
-// []string object containing a set of CSV formatted data lines and a header line with labels.
-// This method keeps the WITs CSV data seperate, returning a [][]string containing a set of 
-// seperate CSV "files" as string[]. The index matches the index of the returned []WorkItemType
-func ConvertWorkItemsToSeperateCSV(wits []workitem.WorkItemType, wis []workitem.WorkItem) ([]workitem.WorkItemType, [][]string, error) {
-	// TODO(michael.kleinhenz) implement if this variant is needed
-	return nil, nil, errs.New("Not yet implemented.")
-}
-
 // ConvertWorkItemsToCSV is responsible for converting given []WorkItem model object into a
 // []string object containing a set of CSV formatted data lines and a header line with labels.
 // This methods combines all CSV data of all WITs into a single CSV
