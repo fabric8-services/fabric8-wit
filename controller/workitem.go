@@ -563,26 +563,76 @@ func getVersion(version interface{}) (int, error) {
 	return -1, nil
 }
 
-// ConvertWorkItemsToCSV is responsible for converting given []WorkItem model object into a
-// String object containing CSV formatted data
-func ConvertWorkItemsToCSV(wits []workitem.WorkItemType, wis []workitem.WorkItem) ([][]byte, error) {
-	csv := []string{}
-	if len(wits) != len(wis) {
-		return nil, errs.Errorf("length mismatch of work items (%d) and work item types (%d)", len(wis), len(wits))
-	}
-	for i := 0; i < len(wis); i++ {
-		fieldNames, wiCSV, err := ConvertWorkItemToCSV(wits[i], wis[i])
-		if err != nil {
-			return nil, errs.Wrapf(err, "failed to convert work item to CSV: %s", wis[i].ID)
-		}
-		csv = append(csv, wiCSV)
-	}
-	return csv, nil
+// ConvertWorkItemsToSeperateCSV is responsible for converting given []WorkItem model object into a
+// []string object containing a set of CSV formatted data lines and a header line with labels.
+// This method keeps the WITs CSV data seperate, returning a [][]string containing a set of 
+// seperate CSV "files" as string[]. The index matches the index of the returned []WorkItemType
+func ConvertWorkItemsToSeperateCSV(wits []workitem.WorkItemType, wis []workitem.WorkItem) ([]workitem.WorkItemType, [][]string, error) {
+	// TODO(michael.kleinhenz) implement if this variant is needed
+	return nil, nil, errs.New("Not yet implemented.")
 }
 
-// ConvertWorkItemToCSV is responsible for converting given WorkItem model object into a
-// CSV string; it returns the field names, the field keys and the CSV for the work item
-func ConvertWorkItemToCSV(wit workitem.WorkItemType, wi workitem.WorkItem) ([]string, []string, []byte, error) {
+// ConvertWorkItemsToCSV is responsible for converting given []WorkItem model object into a
+// []string object containing a set of CSV formatted data lines and a header line with labels.
+// This methods combines all CSV data of all WITs into a single CSV
+func ConvertWorkItemsToCSV(wits []workitem.WorkItemType, wis []workitem.WorkItem) (string, error) {
+	columnMap := make(map[string]int)
+	currentColumnIndex := 0
+	csvGrid := [][]string{}
+	if len(wits) != len(wis) {
+		return "", errs.Errorf("length mismatch of work items (%d) and work item types (%d)", len(wis), len(wits))
+	}
+	for i := 0; i < len(wis); i++ {
+		// iterate over the WIs, converting them one by one.
+		fieldLabels, _, fieldValues, err := ConvertWorkItemToStringValue(wits[i], wis[i])
+		if err != nil {
+			return "", errs.Wrapf(err, "failed to convert work item to CSV: %s", wis[i].ID)
+		}
+		// create a new line, yet without potential new columns.		
+		csvLine := make([]string, currentColumnIndex + 1)
+		// add new new (empty) line to the grid.
+		csvGrid = append(csvGrid, csvLine)		
+		// now, mangle up the column configuration
+		for j := 0; j < len(fieldLabels); j++ {
+			// iterate over the field keys, mapping them to the resulting grid
+			// the CSV key is unique and contains the WIT's name and the fieldLabel
+			// there might be collisions due to WITs names and/or fieldKeys are not 
+			// required to be unique, but for the usecase, if there is an equally 
+			// named WIT/fieldKey in a template, it is highly probable that this 
+			// is intended to go into the same column.
+			csvFieldKey := wits[i].Name + "::" + fieldLabels[j]
+			// now check if the current key is a new key.
+			_, ok := columnMap[csvFieldKey]
+			if !ok {
+				// this is a new key, create a new columnMap entry.
+				columnMap[csvFieldKey] = currentColumnIndex
+				currentColumnIndex++
+				// add the new header entry.
+				csvGrid[0] = append(csvGrid[0], csvFieldKey)
+				// append empty values to all existing "lines".
+				for k := 1; k < len(csvGrid); k++ {
+					csvGrid[k] = append(csvGrid[k], "")
+				}
+			}	
+			// now we are ready to put the value where is belongs in the grid.
+			gridRowIdx := len(csvGrid) - 1 // last line.
+			gridColumnIdx := columnMap[csvFieldKey]
+			csvGrid[gridRowIdx][gridColumnIdx] = fieldValues[j]
+		}
+	}
+	// create CSV from the [][]string
+	buf := new(bytes.Buffer)
+	w := csv.NewWriter(buf)
+	err := w.WriteAll(csvGrid)
+	if err != nil {
+		return "", errs.Wrapf(err, "failed to serialize to CSV format")
+	}
+	return buf.String(), nil
+}
+
+// ConvertWorkItemToStringValue is responsible for converting given WorkItem model object into a
+// string slice; it returns the field names, the field keys and the string converted values for the work item
+func ConvertWorkItemToStringValue(wit workitem.WorkItemType, wi workitem.WorkItem) ([]string, []string, []string, error) {
 	fieldNames := []string{}
 	fieldKeys := []string{}
 	fieldValues := []string{}
@@ -590,14 +640,19 @@ func ConvertWorkItemToCSV(wit workitem.WorkItemType, wi workitem.WorkItem) ([]st
 		fieldNames = append(fieldNames, fieldDefinition.Label)
 		fieldKeys = append(fieldNames, fieldKey)
 		fieldValueGeneric := wi.Fields[fieldKey]
-		// TODO: convert based on type to fieldValueStr
-		
-		fieldValues = append(fieldValues, fieldValueStr)
+		// convert the value to a string for the CSV
+		if fieldDefinition.Type.GetKind().IsSimpleType() {
+			// it is a SimpleType, so delegate the conversion
+			simpleType := fieldDefinition.Type.(workitem.SimpleType)
+			fieldValueStr, err := simpleType.ConvertToString(fieldValueGeneric)
+			if err != nil {
+				return nil, nil, nil, errs.Wrapf(err, "failed to convert simple type value to string for field key: %s", fieldKey)
+			}
+			fieldValues = append(fieldValues, *fieldValueStr)
+		}
+		// TODO(michael.kleinhenz): Add ListType and EnumType conversions here.
 	}
-	buf := new(bytes.Buffer)
-	w := csv.NewWriter(buf)
-	w.WriteAll([][]string{fieldValues})
-	return fieldNames, fieldKeys, buf.String(), nil
+	return fieldNames, fieldKeys, fieldValues, nil
 }
 
 // WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during

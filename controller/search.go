@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"bytes"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"hash/fnv"
 	"fmt"
@@ -167,16 +166,25 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error loading work items types while searching work items for expression '%s': %s", *ctx.FilterExpression, err))
 	}
-	// Convert them to CSV format
+	// Convert them to CSV format the return value contains the final CSV
 	wisCSV, err := ConvertWorkItemsToCSV(wits, result)
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
 	}
-	// convert the []string to []byte
-	wisCSVBytes := []byte{}
+	// convert the string to []byte
+	wisCSVBytes := []byte(wisCSV)
+	/*
 	for _, csvLine := range(wisCSV) {
-		wisCSVBytes = bytes.Join(wisCSVBytes, []byte(csvLine))
+		wisCSVBytes = append(wisCSVBytes, []byte(csvLine)...)
 	}
+	*/	
+	// TODO(michael.kleinhenz) we need a solution for the returning of multiple WITs:
+	//   1. return only the base data
+	//   2. return a very wide column span of all data
+	//   3. return a dynamic column config depending on what data we return
+	//      only one WIT -> all data, multiple WITs -> base data
+	//   4. return a zip with each WIT in a seperate file
+
 	// to make filename dynamic, hash of the query expression
 	hash := fnv.New32a()
 	hash.Write([]byte(*ctx.FilterExpression))

@@ -266,9 +266,8 @@ func (t SimpleType) ConvertToString(value interface{}) (*string, error) {
 		}
 		if value.(bool) {
 			return ptr.String("true"), nil
-		} else {
-			return ptr.String("true"), nil
 		}
+		return ptr.String("false"), nil
 	default:
 		return nil, errs.Errorf("unexpected type constant: '%s'", t.GetKind())
 	}
