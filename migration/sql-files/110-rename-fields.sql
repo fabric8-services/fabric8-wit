@@ -25,103 +25,54 @@ insert into field_name_map values
     ('system.metastate',            'system_metastate');
 
 DO
-$BODY$
-    declare old_field_name text;
-    declare type_id uuid;
-    declare new_field_name text;
-    declare field_count integer;
+$$
+    DECLARE
+        old_field_name text;
+        item_id uuid;
+        new_field_name text;
+        field_count integer;
+        -- we will repace system. fields in the following tables
+        table_field_array text[] = ARRAY[
+            ['work_item_types','fields'], ['work_items','fields'], ['work_item_revisions','work_item_fields']
+        ];
+        item text[];
     BEGIN
-        ------------------------------------------------------------------------
-        -- Rename fields in Work_item_type table
-        ------------------------------------------------------------------------
-        RAISE INFO 'Workitem Type field rename started';
-        -- For each workitem type
-        for type_id in select id from work_item_types
+        -- for each table in the array
+        FOREACH item SLICE 1 IN ARRAY table_field_array
         LOOP
-            RAISE INFO '  Renaming fields of workitem type %', type_id;
-            -- For each field in workitem type
-            for old_field_name in select jsonb_object_keys(fields) from work_item_types where id=type_id
+            RAISE INFO '% table field rename started', item[1];
+            -- For each item
+            for item_id in EXECUTE format('select id from %I', item[1])
             LOOP
-                -- Check if the old_field_name has to be renamed
-                select new_name into new_field_name from field_name_map where old_name=old_field_name;
-                -- field_name_map contains the key which means we have to rename
-                -- it to new_field_name
-                if new_field_name is not null then
-                    -- Rename old_field_name with new_field_name
-                    RAISE INFO '  Changing field name from % to %', old_field_name, new_field_name;
-                    update work_item_types set fields = fields - old_field_name || jsonb_build_object(new_field_name, fields->old_field_name) where id=type_id;
-                end if;
+                RAISE INFO '  Renaming fields of % %', item[1], item_id;
+                -- For each field in item
+                for old_field_name in EXECUTE format('
+                    select jsonb_object_keys(%s) from %I where id=''%s''', item[2], item[1], item_id
+                )
+                LOOP
+                    -- Check if the old_field_name has to be renamed
+                    select new_name into new_field_name from field_name_map where old_name=old_field_name;
+                    -- field_name_map contains the key which means we have to rename
+                    -- it to new_field_name
+                    if new_field_name is not null then
+                        -- Rename old_field_name with new_field_name
+                        RAISE INFO '    Changing field name from % to %', old_field_name, new_field_name;
+                        EXECUTE format('
+                            update %s set %2$I = %2$I - %3$s || jsonb_build_object(%4$s, %2$I->%3$s) where id=''%5$s''',
+                                item[1], item[2], quote_literal(old_field_name), quote_literal(new_field_name), item_id
+                        );
+                    end if;
+                END LOOP;
             END LOOP;
+            -- Ensure we do not have any system. fields left in the table
+            Execute format('
+                select count(key) from %I, lateral jsonb_each_text(%I) where key like %s', item[1], item[2], quote_literal('system.%')
+            ) into field_count ;
+            if field_count != 0 then
+                -- Fail transaction. We have system. keys present in the table
+                RAISE EXCEPTION 'System.* keys present in the % table', item[1];
+            end if;
+            RAISE INFO '% table field rename completed', item[1];
         END LOOP;
-
-        -- Ensure we do not have any system. fields left in the table
-        select count(key) into field_count from work_item_types, lateral jsonb_each_text(fields) where key like 'system.%';
-        if field_count != 0 then
-            -- Fail transaction. We have system. keys present in the table
-            RAISE EXCEPTION 'System.* keys present in the work_item_types table';
-        end if;
-        RAISE INFO 'Workitem Type field renames completed';
-
-        ------------------------------------------------------------------------
-        -- Rename fields in Work_item table
-        ------------------------------------------------------------------------
-        RAISE INFO 'Workitem field rename started';
-        -- For each workitem type
-        for type_id in select id from work_items
-        LOOP
-            RAISE INFO '  Renaming fields of workitem %', type_id;
-            -- For each field in workitem type
-            for old_field_name in select jsonb_object_keys(fields) from work_items where id=type_id
-            LOOP
-                -- Check if the old_field_name has to be renamed
-                select new_name into new_field_name from field_name_map where old_name=old_field_name;
-                -- field_name_map contains the key which means we have to rename
-                -- it to new_field_name
-                if new_field_name is not null then
-                    -- Rename old_field_name with new_field_name
-                    RAISE INFO '  Changing field name from % to %', old_field_name, new_field_name;
-                    update work_items set fields = fields - old_field_name || jsonb_build_object(new_field_name, fields->old_field_name) where id=type_id;
-                end if;
-            END LOOP;
-        END LOOP;
-
-        -- Ensure we do not have any system. fields left in the table
-        select count(key) into field_count from work_items, lateral jsonb_each_text(fields) where key like 'system.%';
-        if field_count != 0 then
-            -- Fail transaction. We have system. keys present in the table
-            RAISE EXCEPTION 'System.* keys present in the work_items table';
-        end if;
-        RAISE INFO 'Work_item field renames completed';
-
-        ------------------------------------------------------------------------
-        -- Rename fields in Work_item_revision table
-        ------------------------------------------------------------------------
-        RAISE INFO 'Workitem revision field rename started';
-        -- For each workitem type
-        for type_id in select id from work_item_revisions
-        LOOP
-            RAISE INFO '  Renaming fields of workitem revision %', type_id;
-            -- For each field in workitem type
-            for old_field_name in select jsonb_object_keys(work_item_fields) from work_item_revisions where id=type_id
-            LOOP
-                -- Check if the old_field_name has to be renamed
-                select new_name into new_field_name from field_name_map where old_name=old_field_name;
-                -- field_name_map contains the key which means we have to rename
-                -- it to new_field_name
-                if new_field_name is not null then
-                    -- Rename old_field_name with new_field_name
-                    RAISE INFO '  Changing field name from % to %', old_field_name, new_field_name;
-                    update work_item_revisions set work_item_fields = work_item_fields - old_field_name || jsonb_build_object(new_field_name, work_item_fields->old_field_name) where id=type_id;
-                end if;
-            END LOOP;
-        END LOOP;
-
-        -- Ensure we do not have any system. fields left in the table
-        select count(key) into field_count from work_item_revisions, lateral jsonb_each_text(work_item_fields) where key like 'system.%';
-        if field_count != 0 then
-            -- Fail transaction. We have system. keys present in the table
-            RAISE EXCEPTION 'System.* keys present in the work_item_revisions table';
-        end if;
-        RAISE INFO 'Work_item field renames completed';
     END;
-$BODY$
+$$
