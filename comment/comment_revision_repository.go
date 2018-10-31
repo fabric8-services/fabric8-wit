@@ -61,7 +61,7 @@ func (r *GormCommentRevisionRepository) Create(ctx context.Context, modifierID u
 		revision.CommentMarkup = nil
 	}
 
-	if err := tx.Debug().Create(&revision).Error; err != nil {
+	if err := tx.Create(&revision).Error; err != nil {
 		return errors.NewInternalError(ctx, errs.Wrap(err, "failed to create new comment revision"))
 	}
 	log.Debug(ctx, map[string]interface{}{"comment_id": c.ID}, "comment revision occurrence created")

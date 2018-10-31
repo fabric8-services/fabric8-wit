@@ -364,6 +364,11 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID uuid.UUI
 	workItem.ID = workitemID
 	// retrieve the current version of the work item to delete
 	r.db.Select("id, version, type").Where("id = ?", workitemID).Find(&workItem)
+	// store a revision of the deleted work item
+	_, err := r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem)
+	if err != nil {
+		return errs.Wrapf(err, "error while deleting work item")
+	}
 	// delete the work item
 	tx := r.db.Delete(workItem)
 	if err := tx.Error; err != nil {
@@ -371,11 +376,6 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID uuid.UUI
 	}
 	if tx.RowsAffected == 0 {
 		return errors.NewNotFoundError("work item", workitemID.String())
-	}
-	// store a revision of the deleted work item
-	_, err := r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem)
-	if err != nil {
-		return errs.Wrapf(err, "error while deleting work item")
 	}
 	log.Debug(ctx, map[string]interface{}{"wi_id": workitemID}, "Work item deleted successfully!")
 	return nil

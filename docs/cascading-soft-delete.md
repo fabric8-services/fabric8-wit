@@ -185,13 +185,15 @@ Notice the absence of the sequential scan of the `countries_archive` table in th
 
 1. We have regular **cascaded deletes** back and can let the DB figure out in which order to delete things.
 2. At the same time, we're **archiving our data** as well. Every soft-delete 
-3. **No Go code changes** are required. We only have to setup a table and a trigger for each table that shall be archived.
+3. **No Go code changes** are required (except one, see the 2nd risks below). We only have to setup a table and a trigger for each table that shall be archived.
 4. Whenever we figure that we don't want this behaviour with triggers and cascaded soft-delete anymore **we can easily go back**.
 5. All future **schema migrations** that are being made to the original table will be applied to the `_archive` version of that table as well. Except for constraints, which is good.
 
 ### Risks
 
 1. Suppose you add a new table that references another existing table with a foreign key that has `ON DELETE CASCADE`. If the existing table uses the `archive_record()` function from above, your new table will receive hard `DELETE`s when something in the existing table is soft-deletes. This isn't a problem, if you use `archive_record()` for your new dependent table as well. But you just have to remember it.
+
+2. We have tables like `work_item_revisions` and `comment_revisions`. We keep record of what is changing in the referenced tables, namely `work_items` and `comments`. And when a comment is deleted for example, we have to `INSERT` into the `comment_revisions` a record that states that a comment has been deleted. This is problematic because we do it **after** the comment was deleted, that means it no longer exists in the `comments` table. This will cause a foreign key violation. As it turns out we can avoid this by doing the `INSERT` to the `_revision` table before we do the actual delete. That is the only Go code change.
 
 ## Final thoughts
 
