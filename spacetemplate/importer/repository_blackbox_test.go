@@ -3,9 +3,9 @@ package importer_test
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
@@ -141,6 +141,15 @@ func (s *repoSuite) TestImport() {
 					Kind: workitem.KindString,
 				},
 			}
+			// Test that new values are allowed in enum fields
+			stateField, ok := templ.WITs[0].Fields["state"]
+			require.True(t, ok, "failed to find 'state' field")
+			enumType, ok := stateField.Type.(workitem.EnumType)
+			require.True(t, ok, "failed to convert state field type to enum type")
+			enumType.Values = append(enumType.Values, "case closed")
+			stateField.Type = enumType
+			templ.WITs[0].Fields["state"] = stateField
+
 			templ.WITGs[0].Name = "Helmet"
 			templ.WIBs[0].Name = "Sword"
 			// when
@@ -167,6 +176,11 @@ func (s *repoSuite) TestImport() {
 					obj, ok := wit.Fields["flavor"]
 					require.True(t, ok, "flavor field not found in %+v", wit.Fields)
 					require.NotNil(t, obj)
+				})
+				t.Run("\"state\" field changed enum values", func(t *testing.T) {
+					enumType, ok := templ.WITs[0].Fields["state"].Type.(workitem.EnumType)
+					require.True(t, ok, "failed to convert state field to enum type")
+					require.Equal(t, []interface{}{"new", "closed", "case closed"}, enumType.Values)
 				})
 			})
 			t.Run("WILT name has changed", func(t *testing.T) {
@@ -329,6 +343,45 @@ func (s *repoSuite) TestImport() {
 			// then
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "you must not remove these fields from the new work item type definition of")
+		})
+		t.Run("import existing template with new state enum value in first position (default)", func(t *testing.T) {
+			// Create fresh template
+			spaceTemplateID := uuid.NewV4()
+			witID := uuid.NewV4()
+			wiltID := uuid.NewV4()
+			witgID := uuid.NewV4()
+			wibID := uuid.NewV4()
+			oldTempl := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
+			oldTempl.Template.Name = "old name for space template " + spaceTemplateID.String()
+			_, err := s.importerRepo.Import(s.Ctx, oldTempl)
+			require.NoError(t, err)
+
+			// Import it once more but this time have a new default value that
+			// doesn't exist in before's state.
+			templ := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID, wibID)
+			templ.Template.Name = oldTempl.Template.Name
+
+			stateField, ok := templ.WITs[0].Fields["state"]
+			require.True(t, ok, "failed to find 'state' field in %+v", templ.WITs[0].Fields)
+			enumType, ok := stateField.Type.(workitem.EnumType)
+			require.True(t, ok, "failed to convert 'state' field to enum type: %+v", stateField.Type)
+			newDefault := uuid.NewV4().String()
+			newAllowedValues := append(enumType.Values, newDefault)
+			enumType.Values = newAllowedValues
+			fieldType, err := enumType.SetDefaultValue(newDefault)
+			require.NoError(t, err)
+			stateField.Type = fieldType
+			templ.WITs[0].Fields["state"] = stateField
+
+			// when
+			newTempl, err := s.importerRepo.Import(s.Ctx, templ)
+			// then
+			require.NoError(t, err)
+			newStateField := newTempl.WITs[0].Fields["state"]
+			newEnumType, ok := stateField.Type.(workitem.EnumType)
+			require.True(t, ok, "failed to convert 'state' field to enum type: %+v",
+				newStateField)
+			require.Equal(t, newAllowedValues, newEnumType.Values)
 		})
 	})
 }

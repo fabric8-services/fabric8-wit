@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -162,19 +162,20 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 
 					// When comparing the new and old field types we don't want
 					// to compare the default value. That is why we always
-					// overwrite the default value of the old type with the
-					// default value of the new type.
+					// overwrite the default value of the new type with the
+					// default value of the old type.
 
-					defVal := fd.Type.GetDefaultValue()
-					oldFieldType, err = oldFieldType.SetDefaultValue(defVal)
+					// remember new default value
+					oldDefVal := oldFieldType.GetDefaultValue()
+					newFieldType, err := fd.Type.SetDefaultValue(oldDefVal)
 					if err != nil {
-						return errs.Wrapf(err, "failed to overwrite default of old field type with %+v (%[1]T)", defVal)
+						return errs.Wrapf(err, "failed to temporarily overwrite default of new field type with %+v (%[1]T)", oldDefVal)
 					}
 
-					if equal := fd.Type.Equal(oldFieldType); !equal {
+					if equal := newFieldType.Equal(oldFieldType); !equal {
 						// Special treatment for EnumType
 						origEnum, ok1 := oldFieldType.(workitem.EnumType)
-						newEnum, ok2 := fd.Type.(workitem.EnumType)
+						newEnum, ok2 := newFieldType.(workitem.EnumType)
 						if ok1 && ok2 {
 							equal = newEnum.EqualEnclosing(origEnum)
 						}

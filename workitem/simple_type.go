@@ -176,7 +176,7 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	}
 }
 
-// ConvertFromModel implements the t interface
+// ConvertFromModel implements the FieldType interface
 func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	if value == nil {
 		return nil, nil

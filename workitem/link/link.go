@@ -3,10 +3,10 @@ package link
 import (
 	"time"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	convert "github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	uuid "github.com/satori/go.uuid"
 )
 
