@@ -373,14 +373,14 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 		}
 		target.Fields[workitem.SystemLabels] = ids
 	}
-	if source.Relationships != nil && source.Relationships.SystemBoardcolumns != nil {
+	if source.Relationships != nil && source.Relationships.Boardcolumns != nil {
 		// Pass empty array to remove all boardcolumns
 		// null is treated as bad param
-		if source.Relationships.SystemBoardcolumns.Data == nil {
+		if source.Relationships.Boardcolumns.Data == nil {
 			return errors.NewBadParameterError(workitem.SystemBoardcolumns, nil)
 		}
 		distinctIDs := map[uuid.UUID]struct{}{}
-		for _, d := range source.Relationships.SystemBoardcolumns.Data {
+		for _, d := range source.Relationships.Boardcolumns.Data {
 			columnUUID, err := uuid.FromString(*d.ID)
 			if err != nil {
 				return errors.NewBadParameterError(workitem.SystemBoardcolumns, *d.ID)
@@ -644,7 +644,7 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 		case workitem.SystemBoardcolumns:
 			if val != nil {
 				columnIDs := val.([]interface{})
-				op.Relationships.SystemBoardcolumns = &app.RelationGenericList{
+				op.Relationships.Boardcolumns = &app.RelationGenericList{
 					Data: ConvertBoardColumnsSimple(request, columnIDs),
 				}
 			}

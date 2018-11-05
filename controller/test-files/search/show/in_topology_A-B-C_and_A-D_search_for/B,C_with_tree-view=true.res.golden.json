@@ -32,6 +32,7 @@
             "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000002"
           }
         },
+        "boardcolumns": {},
         "children": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/children"
@@ -83,7 +84,6 @@
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000005"
           }
         },
-        "system.boardcolumns": {},
         "workItemLinks": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/links"
@@ -124,6 +124,7 @@
             "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000002"
           }
         },
+        "boardcolumns": {},
         "children": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/children"
@@ -175,7 +176,6 @@
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000005"
           }
         },
-        "system.boardcolumns": {},
         "workItemLinks": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/links"
@@ -218,6 +218,7 @@
             "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000002"
           }
         },
+        "boardcolumns": {},
         "children": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/children"
@@ -264,7 +265,6 @@
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000005"
           }
         },
-        "system.boardcolumns": {},
         "workItemLinks": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/links"
