@@ -1,6 +1,7 @@
 package workitem_test
 
 import (
+	"time"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
@@ -263,6 +264,151 @@ func TestConvertToModelWithType(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, convertedVal, d.targetValue)
+		})
+	}
+}
+
+type stringConvertTestData struct {
+	name string
+
+	initialValue interface{}
+	targetValue  string
+
+	initialFieldType FieldType
+	fieldConvertible bool
+}
+
+func getFieldTypeConversionToStringTestData() []stringConvertTestData {
+	return []stringConvertTestData{
+		{
+			"ok - simple type string",
+			"foo1",
+			"foo1",
+			SimpleType{Kind: KindString},
+			true,
+		}, {
+			"ok - simple type user",
+			"foo2",
+			"foo2",
+			SimpleType{Kind: KindUser},
+			true,
+		}, {
+			"ok - simple type label",
+			"foo3",
+			"foo3",
+			SimpleType{Kind: KindLabel},
+			true,
+		}, {
+			"ok - simple type iteration",
+			"foo4",
+			"foo4",
+			SimpleType{Kind: KindIteration},
+			true,
+		}, {
+			"ok - simple type area",
+			"foo5",
+			"foo5",
+			SimpleType{Kind: KindArea},
+			true,
+		}, {
+			"ok - simple type boardcolumn",
+			"foo6",
+			"foo6",
+			SimpleType{Kind: KindBoardColumn},
+			true,
+		}, {
+			"ok - simple type url",
+			"http://some/url",
+			"http://some/url",
+			SimpleType{Kind: KindURL},
+			true,
+		}, {
+			"fail - simple type url, no url",
+			"foo7",
+			"foo7",
+			SimpleType{Kind: KindURL},
+			false,
+		}, {
+			"ok - simple type float",
+			float64(3.141527),
+			"3.141527",
+			SimpleType{Kind: KindFloat},
+			true,
+		}, {
+			"fail - simple type float, no float64",
+			float32(3.141527),
+			"3.141527",
+			SimpleType{Kind: KindFloat},
+			false,
+		}, {
+			"ok - simple type integer, from int",
+			int(42),
+			"42",
+			SimpleType{Kind: KindInteger},
+			true,
+		}, {
+			"ok - simple type integer, from Int64",
+			int64(42),
+			"42",
+			SimpleType{Kind: KindInteger},
+			true,
+		}, {
+			"ok - simple type integer, from float64",
+			float64(42),
+			"42",
+			SimpleType{Kind: KindInteger},
+			true,
+		}, {
+			"fail - simple type integer, from float64, has fraction",
+			float64(3.141527),
+			"3",
+			SimpleType{Kind: KindInteger},
+			false,
+		}, {
+			"fail - simple type integer, not an int or float",
+			"42",
+			"42",
+			SimpleType{Kind: KindInteger},
+			false,
+		}, {
+			"ok - simple type instant",
+			time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC),
+			"1258490098651387237",
+			SimpleType{Kind: KindInstant},
+			true,
+		}, {
+			"fail - simple type instant, not a time",
+			42,
+			"42",
+			SimpleType{Kind: KindInstant},
+			false,
+		}, {
+			"ok - simple type boolean",
+			true,
+			"true",
+			SimpleType{Kind: KindBoolean},
+			true,
+		}, {
+			"fail - simple type boolean, not a boolean",
+			"true",
+			"true",
+			SimpleType{Kind: KindBoolean},
+			false,
+		},
+		// missing: KindList, KindEnum, KindMarkup, KindCodebase
+	}
+}
+
+func TestConvertToString(t *testing.T) {
+	for _, d := range getFieldTypeConversionToStringTestData() {
+		t.Run(d.name, func(t *testing.T) {
+			convertedVal, err := d.initialFieldType.ConvertToString(d.initialValue)
+			if !d.fieldConvertible {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, d.targetValue, *convertedVal)
 		})
 	}
 }

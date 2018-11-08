@@ -145,6 +145,15 @@ func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {
 	return converted, nil
 }
 
+// ConvertToString implements the FieldType interface
+func (t EnumType) ConvertToString(value interface{}) ([]string, error) {
+	converted, err := t.BaseType.ConvertToString(value)
+	if err != nil {
+		return nil, errs.Wrapf(err, "Error converting enum value to string")
+	}
+	return converted, nil
+}
+
 func contains(a []interface{}, v interface{}) bool {
 	for _, element := range a {
 		if element == v {

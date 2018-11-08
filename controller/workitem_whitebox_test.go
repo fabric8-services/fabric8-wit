@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"context"
 	"testing"
 
@@ -327,6 +328,53 @@ func (rest *TestWorkItemREST) TestConvertWorkItems() {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "length mismatch")
 	})
+}
+
+func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
+	rest.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), 
+			tf.Labels(3, tf.SetLabelNames("important", "backend", "ui")), 
+			tf.WorkItems(3, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				if idx < 2 {
+					wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("important").ID.String(), fxt.LabelByName("backend").ID.String()}
+				} else {
+					wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("ui").ID.String()}
+				}
+				return nil
+			}),
+		)
+		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, fxt.WorkItems)
+		require.NoError(t, err)
+		// when
+		convertedWIs, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
+		require.NoError(t, err)
+		fmt.Println(convertedWIs)
+		/*
+		for i, converted := range convertedWIs {
+			require.Equal(t, fxt.WorkItems[i].ID, *converted.ID)
+			require.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemTitle], converted.Attributes[workitem.SystemTitle])
+			content, ok := fxt.WorkItems[i].Fields[workitem.SystemDescription].(rendering.MarkupContent)
+			require.True(t, ok, "description is not a rendering.MarkupContent: %+v", fxt.WorkItems[i].Fields[workitem.SystemDescription])
+			require.Equal(t, content.Content, converted.Attributes[workitem.SystemDescription])
+		}
+		*/
+	})
+	/*
+	rest.T().Run("length mismatch", func(t *testing.T) {
+		// given
+		request := &http.Request{Host: "localhost"}
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(3))
+		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+		wits := []workitem.WorkItemType{}
+		// when
+		_, err := ConvertWorkItems(request, wits, wis)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "length mismatch")
+	})
+	*/
 }
 
 func (rest *TestWorkItemREST) TestLoadWorkItemTypes() {

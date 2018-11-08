@@ -136,6 +136,7 @@ func (a WorkItemInterfaceSlice) Swap(i, j int) {
 var _ sort.Interface = WorkItemInterfaceSlice{}
 var _ sort.Interface = (*WorkItemInterfaceSlice)(nil)
 
+// WorkitemsCSV converts workitems to CSV format.
 func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) error {
 	var result []workitem.WorkItem
 	var count int
@@ -167,24 +168,12 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 		return goa.ErrBadRequest(fmt.Sprintf("error loading work items types while searching work items for expression '%s': %s", *ctx.FilterExpression, err))
 	}
 	// Convert them to CSV format the return value contains the final CSV
-	wisCSV, err := ConvertWorkItemsToCSV(wits, result)
+	wisCSV, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, result)
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
 	}
 	// convert the string to []byte
 	wisCSVBytes := []byte(wisCSV)
-	/*
-	for _, csvLine := range(wisCSV) {
-		wisCSVBytes = append(wisCSVBytes, []byte(csvLine)...)
-	}
-	*/	
-	// TODO(michael.kleinhenz) we need a solution for the returning of multiple WITs:
-	//   1. return only the base data
-	//   2. return a very wide column span of all data
-	//   3. return a dynamic column config depending on what data we return
-	//      only one WIT -> all data, multiple WITs -> base data
-	//   4. return a zip with each WIT in a seperate file
-
 	// to make filename dynamic, hash of the query expression
 	hash := fnv.New32a()
 	hash.Write([]byte(*ctx.FilterExpression))

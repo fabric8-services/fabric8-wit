@@ -566,21 +566,27 @@ func getVersion(version interface{}) (int, error) {
 // ConvertWorkItemsToCSV is responsible for converting given []WorkItem model object into a
 // []string object containing a set of CSV formatted data lines and a header line with labels.
 // This methods combines all CSV data of all WITs into a single CSV
-func ConvertWorkItemsToCSV(wits []workitem.WorkItemType, wis []workitem.WorkItem) (string, error) {
-	columnMap := make(map[string]int)
-	currentColumnIndex := 0
-	csvGrid := [][]string{}
+func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wits []workitem.WorkItemType, wis []workitem.WorkItem) (string, error) {
 	if len(wits) != len(wis) {
 		return "", errs.Errorf("length mismatch of work items (%d) and work item types (%d)", len(wis), len(wits))
 	}
+	// columnMap holds the mapping from column key to column index.
+	// This is there to not be required to iterate over the label line
+	// on every field. Makes the algorithm more efficient on the cost of
+	// a bit more memory.
+	columnMap := make(map[string]int)
+	// csvGrid holds the final CSV in non-serialized form.
+	csvGrid := [][]string{}
+	// add an empty label line by default.
+	csvGrid = append(csvGrid, []string{})
 	for i := 0; i < len(wis); i++ {
 		// iterate over the WIs, converting them one by one.
-		fieldLabels, _, fieldValues, err := ConvertWorkItemToStringValue(wits[i], wis[i])
+		fieldLabels, _, fieldValues, err := ConvertWorkItemToStringValue(ctx, app, wits[i], wis[i])
 		if err != nil {
 			return "", errs.Wrapf(err, "failed to convert work item to CSV: %s", wis[i].ID)
 		}
 		// create a new line, yet without potential new columns.		
-		csvLine := make([]string, currentColumnIndex + 1)
+		csvLine := make([]string, len(csvGrid[0]))
 		// add new new (empty) line to the grid.
 		csvGrid = append(csvGrid, csvLine)		
 		// now, mangle up the column configuration
@@ -596,11 +602,10 @@ func ConvertWorkItemsToCSV(wits []workitem.WorkItemType, wis []workitem.WorkItem
 			_, ok := columnMap[csvFieldKey]
 			if !ok {
 				// this is a new key, create a new columnMap entry.
-				columnMap[csvFieldKey] = currentColumnIndex
-				currentColumnIndex++
+				columnMap[csvFieldKey] = len(csvGrid[0])
 				// add the new header entry.
 				csvGrid[0] = append(csvGrid[0], csvFieldKey)
-				// append empty values to all existing "lines".
+				// append empty values to all existing "lines" for the new column.
 				for k := 1; k < len(csvGrid); k++ {
 					csvGrid[k] = append(csvGrid[k], "")
 				}
@@ -618,32 +623,110 @@ func ConvertWorkItemsToCSV(wits []workitem.WorkItemType, wis []workitem.WorkItem
 	if err != nil {
 		return "", errs.Wrapf(err, "failed to serialize to CSV format")
 	}
+	// done, return serialized result.
 	return buf.String(), nil
 }
 
 // ConvertWorkItemToStringValue is responsible for converting given WorkItem model object into a
 // string slice; it returns the field names, the field keys and the string converted values for the work item
-func ConvertWorkItemToStringValue(wit workitem.WorkItemType, wi workitem.WorkItem) ([]string, []string, []string, error) {
+func ConvertWorkItemToStringValue(ctx context.Context, app application.Application, wit workitem.WorkItemType, wi workitem.WorkItem) ([]string, []string, []string, error) {
 	fieldNames := []string{}
 	fieldKeys := []string{}
 	fieldValues := []string{}
 	for fieldKey, fieldDefinition := range wit.Fields {
-		fieldNames = append(fieldNames, fieldDefinition.Label)
-		fieldKeys = append(fieldNames, fieldKey)
-		fieldValueGeneric := wi.Fields[fieldKey]
-		// convert the value to a string for the CSV
-		if fieldDefinition.Type.GetKind().IsSimpleType() {
-			// it is a SimpleType, so delegate the conversion
-			simpleType := fieldDefinition.Type.(workitem.SimpleType)
-			fieldValueStr, err := simpleType.ConvertToString(fieldValueGeneric)
+			// convert the value to a string for the CSV
+			fieldNames = append(fieldNames, fieldDefinition.Label)
+			fieldKeys = append(fieldNames, fieldKey)
+			fieldValueGeneric := wi.Fields[fieldKey]
+			fieldType := fieldDefinition.Type
+			fieldValueStr, err := fieldType.ConvertToString(fieldValueGeneric)
 			if err != nil {
 				return nil, nil, nil, errs.Wrapf(err, "failed to convert simple type value to string for field key: %s", fieldKey)
 			}
-			fieldValues = append(fieldValues, *fieldValueStr)
-		}
-		// TODO(michael.kleinhenz): Add ListType and EnumType conversions here.
+			var convertedValue *string
+			switch fieldType.(type) {
+			case workitem.ListType:
+				var converted string
+				// TODO better way of iterating.
+				for _, elem := range fieldValueStr {
+					elemConvertedValue, err := convertValueToString(ctx, app, fieldValueGeneric, []string{elem}, fieldKey, fieldType)
+					if err != nil {
+						return nil, nil, nil, errs.Wrapf(err, "failed to convert compound type value to string for field key: %s", fieldKey)
+					}
+					converted = converted + " " + *elemConvertedValue
+				}
+				convertedValue = ptr.String(converted)
+			case workitem.EnumType:
+				convertedValue, err = convertValueToString(ctx, app, fieldValueGeneric, fieldValueStr, fieldKey, fieldType)
+			default:
+				convertedValue, err = convertValueToString(ctx, app, fieldValueGeneric, fieldValueStr, fieldKey, fieldType)
+			}
+			if err != nil {
+				return nil, nil, nil, errs.Wrapf(err, "failed to resolve simple type value to string for field key: %s", fieldKey)
+			}
+			fieldValues = append(fieldValues, *convertedValue)
+			// TODO: process non-simple types here (iterater over returned array)
+			// now let's resolve the id values. But only for non-nil values.
 	}
 	return fieldNames, fieldKeys, fieldValues, nil
+}
+
+func convertValueToString(ctx context.Context, app application.Application, fieldValueGeneric interface{}, fieldValueStr []string, fieldKey string, fieldType workitem.FieldType) (*string, error) {
+	if fieldValueGeneric != nil && len(fieldValueStr) == 1 {
+		switch fieldType.GetKind() {
+		case workitem.KindUser:
+			userID, err := uuid.FromString(fieldValueStr[0])
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to convert user type value to string for field key: %s", fieldKey)
+			}
+			user, err := app.Identities().Load(ctx, userID)
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to retrieve user for field key: %s", fieldKey)
+			}
+			return ptr.String(user.Username), nil
+		case workitem.KindIteration:
+			iterationID, err := uuid.FromString(fieldValueStr[0])
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to convert iteration type value to string for field key: %s", fieldKey)
+			}
+			iteration, err := app.Iterations().Load(ctx, iterationID)
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to retrieve iteration for field key: %s", fieldKey)
+			}
+			return ptr.String(iteration.Name), nil
+		case workitem.KindArea:
+			areaID, err := uuid.FromString(fieldValueStr[0])
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to convert area type value to string for field key: %s", fieldKey)
+			}
+			area, err := app.Areas().Load(ctx, areaID)
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to retrieve area for field key: %s", fieldKey)
+			}
+			return ptr.String(area.Name), nil
+		case workitem.KindLabel:
+			labelID, err := uuid.FromString(fieldValueStr[0])
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to convert label type value to string for field key: %s", fieldKey)
+			}
+			label, err := app.Labels().Load(ctx, labelID)
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to retrieve label for field key: %s", fieldKey)
+			}
+			return ptr.String(label.Name), nil
+		default:
+			// the default case is also used for KindBoardcolumn as resolving the column is not provided by the
+			// factories and the resolved name also has limited use for the exported data.
+			return ptr.String(fieldValueStr[0]), nil
+		}	
+	} else if len(fieldValueStr) == 1 {
+		// the value is nil, we append the returned converted string (which is not nil in this case depending on the baseType!).
+		// this is an extra case because we may want to do some prosprocessing for some types here.
+		return ptr.String(fieldValueStr[0]), nil
+	} else {
+		// ConvertToString returned nil/empty array, which is a valid response. We add an empty string in this case.
+		return ptr.String(""), nil
+	}
 }
 
 // WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during
