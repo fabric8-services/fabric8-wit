@@ -422,3 +422,86 @@ func TestEnumType_ConvertFromModel(t *testing.T) {
 		})
 	}
 }
+
+func TestEnumType_ConvertToString(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	type testCase struct {
+		subTestName    string
+		input          interface{} // contains valid and invalid values
+		expectedOutput []string
+		wantErr        bool
+	}
+	tests := []struct {
+		name string
+		enum w.EnumType
+		data []testCase
+	}{
+		{
+			"kind string",
+			w.EnumType{
+				SimpleType: w.SimpleType{Kind: w.KindEnum},
+				BaseType:   w.SimpleType{Kind: w.KindString},
+				Values:     []interface{}{"first", "second", "third"},
+			},
+			[]testCase{
+				{"ok", "second", []string{"second"}, false},
+				{"ok - nil", nil, []string{""}, false},
+				{"fail - invalid string", "fourth", []string{}, true},
+				{"fail - int", 11, []string{}, true},
+				{"fail - float", 1.3, []string{}, true},
+				{"fail - empty string", "", []string{}, true},
+				{"fail - list", []string{"x", "y"}, []string{}, true},
+			},
+		},
+		{
+			"kind int",
+			w.EnumType{
+				SimpleType: w.SimpleType{Kind: w.KindEnum},
+				BaseType:   w.SimpleType{Kind: w.KindInteger},
+				Values:     []interface{}{4, 5, 6},
+			},
+			[]testCase{
+				{"ok", 4, []string{"4"}, false},
+				{"ok - nil", nil, []string{""}, false},
+				{"fail - invalid int", 2, []string{}, true},
+				{"fail - string", "11", []string{}, true},
+				{"fail - float", 1.3, []string{}, true},
+				{"fail - bool", true, []string{}, true},
+				{"fail - list", []string{"x", "y"}, []string{}, true},
+			},
+		},
+		{
+			"kind float",
+			w.EnumType{
+				SimpleType: w.SimpleType{Kind: w.KindEnum},
+				BaseType:   w.SimpleType{Kind: w.KindFloat},
+				Values:     []interface{}{1.1, 2.2, 3.3},
+			},
+			[]testCase{
+				{"ok", 1.1, []string{"1.100000"}, false},
+				{"ok - nil", nil, []string{""}, false},
+				{"fail - invalid float", 4.4, []string{}, true},
+				{"fail - int", 1, []string{}, true},
+				{"fail - string", "11", []string{}, true},
+				{"fail - bool", true, []string{}, true},
+				{"fail - list", []string{"x", "y"}, []string{}, true},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			for _, subtt := range test.data {
+				t.Run(subtt.subTestName, func(tt *testing.T) {
+					val, err := test.enum.ConvertToString(subtt.input)
+					if subtt.wantErr {
+						require.Error(tt, err)
+					} else {
+						require.NoError(tt, err)
+						require.Equal(tt, subtt.expectedOutput, val)
+					}
+				})
+			}
+		})
+	}
+}

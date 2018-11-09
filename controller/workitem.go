@@ -55,6 +55,9 @@ type WorkItemControllerConfig interface {
 	GetCacheControlWorkItem() string
 }
 
+// uuidStringCache stores the UUID cache for ID resolvings of the CSV conversion
+var uuidStringCache = make(map[string]string)
+
 // NewWorkitemController creates a workitem controller.
 func NewWorkitemController(service *goa.Service, db application.DB, config WorkItemControllerConfig) *WorkitemController {
 	return NewNotifyingWorkitemController(service, db, &notification.DevNullChannel{}, config)
@@ -585,17 +588,17 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 		if err != nil {
 			return "", errs.Wrapf(err, "failed to convert work item to CSV: %s", wis[i].ID)
 		}
-		// create a new line, yet without potential new columns.		
+		// create a new line, yet without potential new columns.
 		csvLine := make([]string, len(csvGrid[0]))
 		// add new new (empty) line to the grid.
-		csvGrid = append(csvGrid, csvLine)		
+		csvGrid = append(csvGrid, csvLine)
 		// now, mangle up the column configuration
 		for j := 0; j < len(fieldLabels); j++ {
 			// iterate over the field keys, mapping them to the resulting grid
 			// the CSV key is unique and contains the WIT's name and the fieldLabel
-			// there might be collisions due to WITs names and/or fieldKeys are not 
-			// required to be unique, but for the usecase, if there is an equally 
-			// named WIT/fieldKey in a template, it is highly probable that this 
+			// there might be collisions due to WITs names and/or fieldKeys are not
+			// required to be unique, but for the usecase, if there is an equally
+			// named WIT/fieldKey in a template, it is highly probable that this
 			// is intended to go into the same column.
 			csvFieldKey := fieldLabels[j]
 			// now check if the current key is a new key.
@@ -609,7 +612,7 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 				for k := 1; k < len(csvGrid); k++ {
 					csvGrid[k] = append(csvGrid[k], "")
 				}
-			}	
+			}
 			// now we are ready to put the value where is belongs in the grid.
 			gridRowIdx := len(csvGrid) - 1 // last line.
 			gridColumnIdx := columnMap[csvFieldKey]
@@ -634,55 +637,54 @@ func ConvertWorkItemToStringValue(ctx context.Context, app application.Applicati
 	fieldKeys := []string{}
 	fieldValues := []string{}
 	for fieldKey, fieldDefinition := range wit.Fields {
-			// convert the value to a string for the CSV
-			fieldNames = append(fieldNames, fieldDefinition.Label)
-			fieldKeys = append(fieldNames, fieldKey)
-			fieldValueGeneric := wi.Fields[fieldKey]
-			fieldType := fieldDefinition.Type
-			fieldValueStr, err := fieldType.ConvertToString(fieldValueGeneric)
-			if err != nil {
-				return nil, nil, nil, errs.Wrapf(err, "failed to convert simple type value to string for field key: %s", fieldKey)
-			}
-			var convertedValue *string
-			switch fieldType.(type) {
-			case workitem.ListType:
-				var converted string
-				kind := fieldType.(workitem.ListType).ComponentType.Kind
-				delim := ""
-				for _, elem := range fieldValueStr {
-					elemConvertedValue, err := convertValueToString(ctx, app, fieldValueGeneric, []string{elem}, fieldKey, kind)
-					if err != nil {
-						return nil, nil, nil, errs.Wrapf(err, "failed to convert compound type value to string for field key: %s", fieldKey)
-					}
-					converted = converted +  delim + *elemConvertedValue
-					delim = ";"
+		// convert the value to a string for the CSV
+		fieldNames = append(fieldNames, fieldDefinition.Label)
+		fieldKeys = append(fieldNames, fieldKey)
+		fieldValueGeneric := wi.Fields[fieldKey]
+		fieldType := fieldDefinition.Type
+		fieldValueStr, err := fieldType.ConvertToString(fieldValueGeneric)
+		if err != nil {
+			return nil, nil, nil, errs.Wrapf(err, "failed to convert simple type value to string for field key: %s", fieldKey)
+		}
+		var convertedValue *string
+		// now retrieve and, if needed, resolve the id value.
+		switch fieldType.(type) {
+		case workitem.ListType:
+			var converted string
+			kind := fieldType.(workitem.ListType).ComponentType.Kind
+			delim := ""
+			for _, elem := range fieldValueStr {
+				elemConvertedValue, err := convertValueToString(ctx, app, fieldValueGeneric, []string{elem}, fieldKey, kind)
+				if err != nil {
+					return nil, nil, nil, errs.Wrapf(err, "failed to convert compound type value to string for field key: %s", fieldKey)
 				}
-				convertedValue = ptr.String(converted)
-			case workitem.EnumType:
-				kind := fieldType.(workitem.EnumType).BaseType.Kind
-				convertedValue, err = convertValueToString(ctx, app, fieldValueGeneric, fieldValueStr, fieldKey, kind)
-			default:
-				kind := fieldType.GetKind()
-				convertedValue, err = convertValueToString(ctx, app, fieldValueGeneric, fieldValueStr, fieldKey, kind)
+				converted = converted + delim + *elemConvertedValue
+				delim = ";"
 			}
-			if err != nil {
-				return nil, nil, nil, errs.Wrapf(err, "failed to resolve simple type value to string for field key: %s", fieldKey)
-			}
-			fieldValues = append(fieldValues, *convertedValue)
-			// TODO: process non-simple types here (iterater over returned array)
-			// now let's resolve the id values. But only for non-nil values.
+			convertedValue = ptr.String(converted)
+		case workitem.EnumType:
+			kind := fieldType.(workitem.EnumType).BaseType.Kind
+			convertedValue, err = convertValueToString(ctx, app, fieldValueGeneric, fieldValueStr, fieldKey, kind)
+		default:
+			// all other Kinds don't need compound resolving.
+			kind := fieldType.GetKind()
+			convertedValue, err = convertValueToString(ctx, app, fieldValueGeneric, fieldValueStr, fieldKey, kind)
+		}
+		if err != nil {
+			return nil, nil, nil, errs.Wrapf(err, "failed to resolve simple type value to string for field key: %s", fieldKey)
+		}
+		fieldValues = append(fieldValues, *convertedValue)
 	}
 	return fieldNames, fieldKeys, fieldValues, nil
 }
 
-var uuidStringCache = make(map[string]string)
-
+// convertValueToString converts a value to a string. This includes ID resolving if needed.
 func convertValueToString(ctx context.Context, app application.Application, fieldValueGeneric interface{}, fieldValueStr []string, fieldKey string, kind workitem.Kind) (*string, error) {
 	if fieldValueGeneric != nil && len(fieldValueStr) == 1 {
 		switch kind {
 		case workitem.KindUser:
 			cachedValue, ok := uuidStringCache[fieldValueStr[0]]
-			if (ok) {
+			if ok {
 				return ptr.String(cachedValue), nil
 			}
 			userID, err := uuid.FromString(fieldValueStr[0])
@@ -697,7 +699,7 @@ func convertValueToString(ctx context.Context, app application.Application, fiel
 			return ptr.String(user.Username), nil
 		case workitem.KindIteration:
 			cachedValue, ok := uuidStringCache[fieldValueStr[0]]
-			if (ok) {
+			if ok {
 				return ptr.String(cachedValue), nil
 			}
 			iterationID, err := uuid.FromString(fieldValueStr[0])
@@ -712,7 +714,7 @@ func convertValueToString(ctx context.Context, app application.Application, fiel
 			return ptr.String(iteration.Name), nil
 		case workitem.KindArea:
 			cachedValue, ok := uuidStringCache[fieldValueStr[0]]
-			if (ok) {
+			if ok {
 				return ptr.String(cachedValue), nil
 			}
 			areaID, err := uuid.FromString(fieldValueStr[0])
@@ -727,7 +729,7 @@ func convertValueToString(ctx context.Context, app application.Application, fiel
 			return ptr.String(area.Name), nil
 		case workitem.KindLabel:
 			cachedValue, ok := uuidStringCache[fieldValueStr[0]]
-			if (ok) {
+			if ok {
 				return ptr.String(cachedValue), nil
 			}
 			labelID, err := uuid.FromString(fieldValueStr[0])
@@ -744,7 +746,7 @@ func convertValueToString(ctx context.Context, app application.Application, fiel
 			// the default case is also used for KindBoardcolumn as resolving the column is not provided by the
 			// factories and the resolved name also has limited use for the exported data.
 			return ptr.String(fieldValueStr[0]), nil
-		}	
+		}
 	} else if len(fieldValueStr) == 1 {
 		// the value is nil, we append the returned converted string (which is not nil in this case depending on the baseType!).
 		// this is an extra case because we may want to do some prosprocessing for some types here.

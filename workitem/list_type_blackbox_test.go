@@ -184,3 +184,67 @@ func TestListType_SetDefaultValue(t *testing.T) {
 		})
 	}
 }
+
+func TestListType_ConvertToString(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	tests := []struct {
+		name           string
+		enum           ListType
+		defVal         interface{}
+		expectedOutput []string
+		wantErr        bool
+	}{
+		{"convert empty value",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			[]interface{}{},
+			[]string{},
+			false},
+		{"convert single value",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			[]interface{}{"entry"},
+			[]string{"entry"},
+			false},
+		{"convert multiple values",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			[]interface{}{"one", "two", "three"},
+			[]string{"one", "two", "three"},
+			false},
+		{"nil value",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			nil,
+			[]string{},
+			false},
+		{"fail - invalid type",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			1,
+			[]string{},
+			true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output, err := tt.enum.ConvertToString(tt.defVal)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedOutput, output)
+			}
+		})
+	}
+}

@@ -1,9 +1,9 @@
 package workitem
 
 import (
-	"strconv"
 	"math"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -189,20 +189,6 @@ func (t SimpleType) ConvertToString(value interface{}) ([]string, error) {
 		if valueType.Kind() != reflect.String {
 			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "string", valueType.Name())
 		}
-		// TODO(michael.kleinhenz): ID resolving goes here
-		// This is the method I was talking about in the daily https://github.com/fabric8-services/fabric8-wit/blob/master/workitem/workitem_repository.go#L1336 . You might have to make some minor changes.
-		/*
-		andere variante:
-		db übergeben
-		func (t SimpleType) ToString(app application.Application) (string, error) {
-    switch k := t.GetKind() {
-    case KindArea:
-        app.Areas().Load()
-    }
-    return "", nil
-}
-		*/
-
 		return []string{value.(string)}, nil
 	case KindURL:
 		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) {

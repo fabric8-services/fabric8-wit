@@ -1,9 +1,9 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"hash/fnv"
-	"fmt"
 	"net/url"
 	"path"
 	"regexp"
@@ -178,7 +178,7 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	hash := fnv.New32a()
 	hash.Write([]byte(*ctx.FilterExpression))
 	// return output
-	ctx.ResponseData.Header().Set("Content-Disposiont", "attachment; filename='workitems-" + fmt.Sprint(hash.Sum32()) + ".csv'")
+	ctx.ResponseData.Header().Set("Content-Disposiont", "attachment; filename='workitems-"+fmt.Sprint(hash.Sum32())+".csv'")
 	return ctx.OK(wisCSVBytes)
 }
 

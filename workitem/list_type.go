@@ -98,19 +98,22 @@ func (t ListType) ConvertFromModel(value interface{}) (interface{}, error) {
 
 // ConvertToString implements the FieldType interface
 func (t ListType) ConvertToString(value interface{}) ([]string, error) {
+	if value == nil {
+		return []string{}, nil
+	}
 	valueList, err := ConvertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
 		return fieldType.ConvertToString(value)
 	}, t.ComponentType, value)
 	if err != nil {
 		return nil, errs.Wrapf(err, "Failed to convert list type")
 	}
-	if (len(valueList))==0 {
+	if (len(valueList)) == 0 {
 		return []string{}, nil
 	}
 	buffer := make([]string, len(valueList))
-	for i := range(valueList) {
+	for i := range valueList {
 		strValueList := valueList[i].([]string)
-		if (len(strValueList) != 1) {
+		if len(strValueList) != 1 {
 			return nil, errs.Errorf("String conversion of base type did not return exactly one value")
 		}
 		buffer[i] = strValueList[0]

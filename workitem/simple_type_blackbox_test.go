@@ -1,8 +1,8 @@
 package workitem_test
 
 import (
-	"time"
 	"testing"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -395,7 +395,6 @@ func getFieldTypeConversionToStringTestData() []stringConvertTestData {
 			SimpleType{Kind: KindBoolean},
 			false,
 		},
-		// missing: KindList, KindEnum, KindMarkup, KindCodebase
 	}
 }
 
@@ -408,7 +407,8 @@ func TestConvertToString(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, d.targetValue, *convertedVal)
+			require.Len(t, convertedVal, 1)
+			require.Equal(t, d.targetValue, convertedVal[0])
 		})
 	}
 }
