@@ -376,6 +376,7 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space, wiTypeID 
 }
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemLinking() {
+	// TODO (ibrahim) - Remove this once database is migrated for field renames.
 	rest.T().Skip("Skip this test until database is migrated to support new field names ")
 	// given
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, append(createSpaceAndRootAreaAndIterations(), tf.WorkItems(1))...)
@@ -398,6 +399,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 }
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemUnlinking() {
+	// TODO (ibrahim) - Remove this once database is migrated for field renames.
 	rest.T().Skip("Skip this test until database is migrated to support new field names ")
 	// given
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
@@ -440,6 +442,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 }
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemLinking() {
+	// TODO (ibrahim) - Remove this once database is migrated for field renames.
 	rest.T().Skip("Skip this test until database is migrated to support new field names ")
 	// given
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
@@ -460,6 +463,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 }
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemUnlinking() {
+	// TODO (ibrahim) - Remove this once database is migrated for field renames.
 	rest.T().Skip("Skip this test until database is migrated to support new field names ")
 	// given
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
