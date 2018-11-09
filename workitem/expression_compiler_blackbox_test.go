@@ -17,6 +17,7 @@ func TestField(t *testing.T) {
 
 	wiTbl := workitem.WorkItemStorage{}.TableName()
 	expect(t, c.Equals(c.Field("foo_bar"), c.Literal(23)), `(`+workitem.Column(wiTbl, "fields")+` @> '{"foo_bar" : 23}')`, []interface{}{}, nil)
+	expect(t, c.Equals(c.Field("foo.bar"), c.Literal(23)), `(`+workitem.Column(wiTbl, "foo.bar")+` = ?)`, []interface{}{23}, nil)
 	expect(t, c.Equals(c.Field("foo"), c.Literal(23)), `(`+workitem.Column(wiTbl, "foo")+` = ?)`, []interface{}{23}, nil)
 	expect(t, c.Equals(c.Field("Type"), c.Literal("abcd")), `(`+workitem.Column(wiTbl, "type")+` = ?)`, []interface{}{"abcd"}, nil)
 	expect(t, c.Not(c.Field("Type"), c.Literal("abcd")), `(`+workitem.Column(wiTbl, "type")+` != ?)`, []interface{}{"abcd"}, nil)
