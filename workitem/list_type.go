@@ -105,7 +105,7 @@ func (t ListType) ConvertToString(value interface{}) ([]string, error) {
 		return nil, errs.Wrapf(err, "Failed to convert list type")
 	}
 	if (len(valueList))==0 {
-		return []string{""}, nil
+		return []string{}, nil
 	}
 	buffer := make([]string, len(valueList))
 	for i := range(valueList) {

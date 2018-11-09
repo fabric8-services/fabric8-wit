@@ -597,7 +597,7 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 			// required to be unique, but for the usecase, if there is an equally 
 			// named WIT/fieldKey in a template, it is highly probable that this 
 			// is intended to go into the same column.
-			csvFieldKey := wits[i].Name + "::" + fieldLabels[j]
+			csvFieldKey := fieldLabels[j]
 			// now check if the current key is a new key.
 			_, ok := columnMap[csvFieldKey]
 			if !ok {
@@ -647,19 +647,23 @@ func ConvertWorkItemToStringValue(ctx context.Context, app application.Applicati
 			switch fieldType.(type) {
 			case workitem.ListType:
 				var converted string
-				// TODO better way of iterating.
+				kind := fieldType.(workitem.ListType).ComponentType.Kind
+				delim := ""
 				for _, elem := range fieldValueStr {
-					elemConvertedValue, err := convertValueToString(ctx, app, fieldValueGeneric, []string{elem}, fieldKey, fieldType)
+					elemConvertedValue, err := convertValueToString(ctx, app, fieldValueGeneric, []string{elem}, fieldKey, kind)
 					if err != nil {
 						return nil, nil, nil, errs.Wrapf(err, "failed to convert compound type value to string for field key: %s", fieldKey)
 					}
-					converted = converted + " " + *elemConvertedValue
+					converted = converted +  delim + *elemConvertedValue
+					delim = ";"
 				}
 				convertedValue = ptr.String(converted)
 			case workitem.EnumType:
-				convertedValue, err = convertValueToString(ctx, app, fieldValueGeneric, fieldValueStr, fieldKey, fieldType)
+				kind := fieldType.(workitem.EnumType).BaseType.Kind
+				convertedValue, err = convertValueToString(ctx, app, fieldValueGeneric, fieldValueStr, fieldKey, kind)
 			default:
-				convertedValue, err = convertValueToString(ctx, app, fieldValueGeneric, fieldValueStr, fieldKey, fieldType)
+				kind := fieldType.GetKind()
+				convertedValue, err = convertValueToString(ctx, app, fieldValueGeneric, fieldValueStr, fieldKey, kind)
 			}
 			if err != nil {
 				return nil, nil, nil, errs.Wrapf(err, "failed to resolve simple type value to string for field key: %s", fieldKey)
@@ -671,20 +675,31 @@ func ConvertWorkItemToStringValue(ctx context.Context, app application.Applicati
 	return fieldNames, fieldKeys, fieldValues, nil
 }
 
-func convertValueToString(ctx context.Context, app application.Application, fieldValueGeneric interface{}, fieldValueStr []string, fieldKey string, fieldType workitem.FieldType) (*string, error) {
+var uuidStringCache = make(map[string]string)
+
+func convertValueToString(ctx context.Context, app application.Application, fieldValueGeneric interface{}, fieldValueStr []string, fieldKey string, kind workitem.Kind) (*string, error) {
 	if fieldValueGeneric != nil && len(fieldValueStr) == 1 {
-		switch fieldType.GetKind() {
+		switch kind {
 		case workitem.KindUser:
+			cachedValue, ok := uuidStringCache[fieldValueStr[0]]
+			if (ok) {
+				return ptr.String(cachedValue), nil
+			}
 			userID, err := uuid.FromString(fieldValueStr[0])
 			if err != nil {
-				return nil, errs.Wrapf(err, "failed to convert user type value to string for field key: %s", fieldKey)
+				return nil, errs.Wrapf(err, "failed to convert user type value to string for field key: %s, value %s", fieldKey, fieldValueStr[0])
 			}
 			user, err := app.Identities().Load(ctx, userID)
 			if err != nil {
 				return nil, errs.Wrapf(err, "failed to retrieve user for field key: %s", fieldKey)
 			}
+			uuidStringCache[fieldValueStr[0]] = user.Username
 			return ptr.String(user.Username), nil
 		case workitem.KindIteration:
+			cachedValue, ok := uuidStringCache[fieldValueStr[0]]
+			if (ok) {
+				return ptr.String(cachedValue), nil
+			}
 			iterationID, err := uuid.FromString(fieldValueStr[0])
 			if err != nil {
 				return nil, errs.Wrapf(err, "failed to convert iteration type value to string for field key: %s", fieldKey)
@@ -693,8 +708,13 @@ func convertValueToString(ctx context.Context, app application.Application, fiel
 			if err != nil {
 				return nil, errs.Wrapf(err, "failed to retrieve iteration for field key: %s", fieldKey)
 			}
+			uuidStringCache[fieldValueStr[0]] = iteration.Name
 			return ptr.String(iteration.Name), nil
 		case workitem.KindArea:
+			cachedValue, ok := uuidStringCache[fieldValueStr[0]]
+			if (ok) {
+				return ptr.String(cachedValue), nil
+			}
 			areaID, err := uuid.FromString(fieldValueStr[0])
 			if err != nil {
 				return nil, errs.Wrapf(err, "failed to convert area type value to string for field key: %s", fieldKey)
@@ -703,8 +723,13 @@ func convertValueToString(ctx context.Context, app application.Application, fiel
 			if err != nil {
 				return nil, errs.Wrapf(err, "failed to retrieve area for field key: %s", fieldKey)
 			}
+			uuidStringCache[fieldValueStr[0]] = area.Name
 			return ptr.String(area.Name), nil
 		case workitem.KindLabel:
+			cachedValue, ok := uuidStringCache[fieldValueStr[0]]
+			if (ok) {
+				return ptr.String(cachedValue), nil
+			}
 			labelID, err := uuid.FromString(fieldValueStr[0])
 			if err != nil {
 				return nil, errs.Wrapf(err, "failed to convert label type value to string for field key: %s", fieldKey)
@@ -713,6 +738,7 @@ func convertValueToString(ctx context.Context, app application.Application, fiel
 			if err != nil {
 				return nil, errs.Wrapf(err, "failed to retrieve label for field key: %s", fieldKey)
 			}
+			uuidStringCache[fieldValueStr[0]] = label.Name
 			return ptr.String(label.Name), nil
 		default:
 			// the default case is also used for KindBoardcolumn as resolving the column is not provided by the
