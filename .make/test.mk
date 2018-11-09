@@ -180,6 +180,22 @@ test-integration-benchmark: prebuild-check migrate-database $(SOURCES)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test -run=^$$ -bench=. -cpu 1,2,4 -test.benchmem $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES) | grep -E "Bench|allocs"
 
+.PHONY: test-contracts-no-coverage
+## Runs the contract tests WITHOUT producing coverage files for each package.
+## Make sure you ran "make integration-test-env-prepare" before you run this target.
+test-contracts-no-coverage: prebuild-check migrate-database $(SOURCES)
+	$(call log-info,"Running test: $@")
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep contracts | grep 'consumer\|provider'))
+	PACT_DIR=$(PWD)/test/contracts/pacts \
+	PACT_CONSUMER=Fabric8WitConsumer \
+	PACT_PROVIDER=Fabric8Wit \
+	PACT_VERSION=1.0.0 \
+	PACT_PROVIDER_BASE_URL=http://localhost:8080 \
+	PACT_PROVIDER_AUTH_BASE_URL=http://localhost:8089 \
+	OSIO_USERNAME="$(OSIO_USERNAME)" \
+	OSIO_PASSWORD="$(OSIO_PASSWORD)" \
+	go test -count=1 $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+
 .PHONY: test-remote
 ## Runs the remote tests and produces coverage files for each package.
 test-remote: prebuild-check clean-coverage-remote $(COV_PATH_REMOTE)

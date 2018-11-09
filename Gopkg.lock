@@ -279,6 +279,12 @@
   revision = "e09130d898274b1faa2ecb484b59204e7e372548"
 
 [[projects]]
+  name = "github.com/google/uuid"
+  packages = ["."]
+  revision = "d460ce9f8df2e77fb1ba55ca87fafed96c607494"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/hashicorp/go-immutable-radix"
   packages = ["."]
   revision = "8aac2701530899b64bdea735a1de8da899815220"
@@ -305,6 +311,12 @@
     "json/token"
   ]
   revision = "37ab263305aaeb501a60eb16863e808d426e37f2"
+
+[[projects]]
+  name = "github.com/hashicorp/logutils"
+  packages = ["."]
+  revision = "a335183dfd075f638afcc820c90591ca3c97eba6"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/hawkular/hawkular-client-go"
@@ -420,6 +432,16 @@
   revision = "5a0325d7fafaac12dda6e7fb8bd222ec1b69875e"
 
 [[projects]]
+  name = "github.com/pact-foundation/pact-go"
+  packages = [
+    "dsl",
+    "types",
+    "utils"
+  ]
+  revision = "6b222e8f6bd14cf7d92a9c7f2a0464ff80af8a67"
+  version = "v1.0.0-beta.2"
+
+[[projects]]
   name = "github.com/pelletier/go-buffruneio"
   packages = ["."]
   revision = "c37440a7cf42ac63b919c752ca73a85067e05992"
@@ -450,6 +472,16 @@
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/pmacik/loginusers-go"
+  packages = [
+    "common",
+    "config",
+    "loginusers"
+  ]
+  revision = "cb69e5a68249e32da8daf54e5a5ca1bb177d075d"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -571,6 +603,11 @@
   ]
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
   version = "v1.2.1"
+
+[[projects]]
+  name = "github.com/tebeka/selenium"
+  packages = ["."]
+  revision = "master"
 
 [[projects]]
   name = "github.com/trivago/tgo"
