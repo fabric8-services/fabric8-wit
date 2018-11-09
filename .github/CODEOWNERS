@@ -1,0 +1,36 @@
+# Lines starting with '#' are comments.
+# Each line is a file pattern followed by one or more owners.
+#
+# Read more about this file here:
+#  * https://blog.github.com/2017-07-06-introducing-code-owners/
+#  * https://help.github.com/articles/about-codeowners/
+
+/.github/ @kwk
+/.make/ @kwk
+/controller/golden_files_test.go @kwk
+/controller/space_template*.go @kwk
+/controller/test-files/space_templates/ @kwk
+/controller/test-files/work_item/ @kwk
+/controller/work_item*.go @kwk
+/controller/workitem*.go @kwk
+/convert/ @kwk
+/criteria/ @kwk
+/design/space_template.go @kwk
+/design/work_item*.go @kwk
+/design/workitem*.go @kwk
+/docs/debugging.adoc @kwk
+/errors/ @kwk
+/gormsupport/ @kwk
+/gormtestsupport/ @kwk
+/jsonapi/ @kwk
+/migration/ @kwk
+/numbersequence/ @kwk
+/ptr/ @kwk
+/spacetemplates/ @kwk
+/test/testfixture/ @kwk
+/workitem/* @kwk
+/workitem/link/* @kwk
+Dockerfile.builder @kwk
+cico_run_coverage.sh @kwk
+cico_run_tests.sh @kwk
+cico_setup.sh @kwk
