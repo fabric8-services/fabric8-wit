@@ -2,7 +2,9 @@ package controller_test
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
+	"github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -31,6 +33,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,6 +64,135 @@ func (s *searchControllerTestSuite) SetupTest() {
 	require.NoError(s.T(), err)
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", *testIdentity)
 	s.controller = NewSearchController(s.svc, s.GormDB, spaceBlackBoxTestConfiguration)
+}
+
+func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
+	deserialize := func(csvStr string) ([]map[string]string, error) {
+		if csvStr == "" || csvStr == "\n" {
+			return []map[string]string{}, nil
+		}
+		var result []map[string]string
+		reader := csv.NewReader(strings.NewReader(csvStr))
+		// parse header line
+		keys, err := reader.Read()
+		if err == io.EOF {
+			return nil, err
+		}
+		// parse entities
+		for {
+			line, err := reader.Read()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return nil, err
+			}
+			if len(line) != len(keys) {
+				return nil, errs.Errorf("Parsed CSV line does not match key header line: ", line)
+			}
+			thisEntity := make(map[string]string)
+			for idx := range line {
+				thisEntity[keys[idx]] = line[idx]
+			}
+			result = append(result, thisEntity)
+		}
+		// return results
+		return result, nil
+	}
+	newFixture := func(t *testing.T, n int) *testfixture.TestFixture {
+		return tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(),
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[0].SpaceTemplateID = spacetemplate.SystemAgileTemplateID
+				return nil
+			}),
+			tf.Labels(2, tf.SetLabelNames("important", "backend")),
+			tf.WorkItems(n, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				wi.Type = uuid.FromStringOrNil("2853459d-60ef-4fbe-aaf4-eccb9f554b34") // Task
+				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("important").ID.String(), fxt.LabelByName("backend").ID.String()}
+				wi.Fields[workitem.SystemState] = interface{}("New")
+				wi.Fields["effort"] = 42.0 // Effort is in Task and Defect, will go in same column
+				return nil
+			}),
+		)
+	}
+	s.T().Run("standard result", func(t *testing.T) {
+		fxt := newFixture(t, 1)
+		// when
+		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
+		rr := httptest.NewRecorder()
+		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
+		rw := test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, nil, nil)
+		// then
+		recorder := rw.(*httptest.ResponseRecorder)
+		recorder.Flush()
+		require.NotNil(t, recorder.Body)
+		bodyStr := recorder.Body.String()
+		// deserialize and check consistency of header and entity lines.
+		entities, err := deserialize(bodyStr)
+		require.NoError(t, err)
+		require.Len(t, entities, 1)
+		// do some consistency checks - a full serialization check is
+		// done down the line in the simple_type and compound type tests.
+		// simple type
+		require.Equal(t, fxt.WorkItems[0].Fields[workitem.SystemTitle], entities[0]["Title"])
+		// compound type
+		require.Equal(t, "important;backend", entities[0]["Labels"])
+		// resolved type
+		require.Equal(t, "New", entities[0]["State"])
+	})
+	s.T().Run("empty result", func(t *testing.T) {
+		newFixture(t, 1)
+		// when giving a non-existing SpaceID
+		filter := fmt.Sprintf(`{"space": "%s"}`, uuid.NewV4().String())
+		rr := httptest.NewRecorder()
+		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
+		rw := test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, nil, nil)
+		// then
+		recorder := rw.(*httptest.ResponseRecorder)
+		recorder.Flush()
+		require.NotNil(t, recorder.Body)
+		bodyStr := recorder.Body.String()
+		// deserialize and check consistency of header and entity lines.
+		entities, err := deserialize(bodyStr)
+		require.NoError(t, err)
+		require.Len(t, entities, 0)
+	})
+	s.T().Run("paging", func(t *testing.T) {
+		fxt := newFixture(t, 10)
+		// when
+		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
+		rr := httptest.NewRecorder()
+		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
+		// fetch window 1
+		rw := test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(0))
+		// then
+		recorder := rw.(*httptest.ResponseRecorder)
+		recorder.Flush()
+		require.NotNil(t, recorder.Body)
+		bodyStr := recorder.Body.String()
+		moreMsg := "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
+		require.True(t, strings.Contains(bodyStr, moreMsg))
+		bodyStr = bodyStr[0 : len(bodyStr)-len(moreMsg)]
+		// deserialize and check consistency of header and entity lines.
+		entities1, err := deserialize(bodyStr)
+		require.NoError(t, err)
+		require.Len(t, entities1, 6)
+		// fetch window 2
+		rw = test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(5))
+		// then
+		recorder = rw.(*httptest.ResponseRecorder)
+		recorder.Flush()
+		require.NotNil(t, recorder.Body)
+		bodyStr = recorder.Body.String()
+		require.False(t, strings.Contains(bodyStr, moreMsg))
+		// deserialize and check consistency of header and entity lines.
+		entities2, err := deserialize(bodyStr)
+		require.NoError(t, err)
+		require.Len(t, entities2, 5)
+		// do some simple consistency checks, the paging is tested elsewhere.
+		// Just make sure we don't have the same entities returned.
+		require.NotEqual(t, entities1[0]["Number"], entities2[0]["Number"])
+	})
 }
 
 func (s *searchControllerTestSuite) TestSearchWorkItems() {

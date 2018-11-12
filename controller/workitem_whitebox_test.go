@@ -335,7 +335,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItems() {
 }
 
 func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
-	rest.T().Run("ok", func(t *testing.T) {
+	rest.T().Run("ok - result set", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(),
 			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
@@ -406,6 +406,37 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		require.Equal(t, "", entities[0]["Severity"])                                  // entity 0 does not has this field
 		require.Equal(t, "", entities[1]["Severity"])                                  // entity 1 does not has this field
 		require.Equal(t, fxt.WorkItems[2].Fields["severity"], entities[2]["Severity"]) // entity 1 has this field
+	})
+	rest.T().Run("ok - empty result set", func(t *testing.T) {
+		// given
+		wis := []workitem.WorkItem{}
+		wits := []workitem.WorkItemType{}
+		// when
+		convertedWIs, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
+		require.NoError(t, err)
+		require.Equal(t, "\n", convertedWIs)
+	})
+	rest.T().Run("fail - wrong WI count", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(3))
+		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, fxt.WorkItems)
+		require.NoError(t, err)
+		wis = wis[1:]
+		// when
+		_, err = ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
+		require.Error(t, err)
+	})
+	rest.T().Run("fail - wrong WIT count", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(3))
+		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, fxt.WorkItems)
+		require.NoError(t, err)
+		wits = wits[1:]
+		// when
+		_, err = ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
+		require.Error(t, err)
 	})
 }
 

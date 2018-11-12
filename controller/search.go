@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"hash/fnv"
 	"net/url"
 	"path"
@@ -138,12 +137,23 @@ var _ sort.Interface = (*WorkItemInterfaceSlice)(nil)
 
 // WorkitemsCSV converts workitems to CSV format.
 func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) error {
+	if ctx.FilterExpression == nil {
+		return goa.ErrBadRequest(fmt.Sprintf("bad parameter error exporting work items as CSV: param 'filter[expression]' missing"))
+	}
 	var result []workitem.WorkItem
-	var count int
+	offset := 0
+	if ctx.PageOffset != nil {
+		offset = *(ctx.PageOffset)
+	}
+	limit := 1000
+	if ctx.PageLimit != nil {
+		limit = *(ctx.PageLimit)
+	}
+	// we use a overflow entry to see if there is more than the window size.
+	limit++
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
-		// TODO(michaelkleinhenz): we may want to introduce url based paging at some point
-		result, count, _, _, err = appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, ptr.Int(0), ptr.Int(1001))
+		result, _, _, _, err = appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 		if err != nil {
 			cause := errs.Cause(err)
 			switch cause.(type) {
@@ -171,6 +181,10 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	wisCSV, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, result)
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
+	}
+	if len(result) >= limit {
+		// we have more than limit+1 rows, so add a note to the bottom of the returned list
+		wisCSV = wisCSV + "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
 	}
 	// convert the string to []byte
 	wisCSVBytes := []byte(wisCSV)
