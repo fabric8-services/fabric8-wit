@@ -442,6 +442,7 @@
               "baseType": "string",
               "kind": "enum",
               "values": [
+                "None",
                 "Done",
                 "Duplicate",
                 "Incomplete Description",

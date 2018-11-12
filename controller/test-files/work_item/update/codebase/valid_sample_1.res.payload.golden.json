@@ -49,6 +49,7 @@
           "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000002"
         }
       },
+      "boardcolumns": {},
       "children": {
         "links": {
           "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/children"
@@ -94,7 +95,6 @@
           "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
         }
       },
-      "system_boardcolumns": {},
       "workItemLinks": {
         "links": {
           "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/links"
