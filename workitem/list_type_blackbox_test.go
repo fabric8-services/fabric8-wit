@@ -149,7 +149,7 @@ func TestListType_SetDefaultValue(t *testing.T) {
 				ComponentType: SimpleType{Kind: KindString},
 				DefaultValue:  "second",
 			},
-			true},
+			false},
 		{"set default to nil",
 			ListType{
 				SimpleType:    SimpleType{Kind: KindList},
