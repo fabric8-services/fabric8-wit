@@ -56,8 +56,8 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoBoardcolumn() {
 
 	l.T().Run("Fetch WI and verify boardcolumns Relationship", func(t *testing.T) {
 		_, fetchedWI := test.ShowWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, nil, nil)
-		require.NotNil(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns)
-		assert.Empty(l.T(), fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
+		require.NotNil(l.T(), fetchedWI.Data.Relationships.Boardcolumns)
+		assert.Empty(l.T(), fetchedWI.Data.Relationships.Boardcolumns.Data)
 	})
 
 	l.T().Run("add a column reference", func(t *testing.T) {
@@ -70,7 +70,7 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoBoardcolumn() {
 					"version": fxt.WorkItems[0].Version,
 				},
 				Relationships: &app.WorkItemRelationships{
-					SystemBoardcolumns: &app.RelationGenericList{
+					Boardcolumns: &app.RelationGenericList{
 						Data: []*app.GenericData{
 							{
 								ID:   ptr.String(fxt.WorkItemBoards[0].Columns[0].ID.String()),
@@ -89,12 +89,12 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoBoardcolumn() {
 		_, updatedWI := test.UpdateWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, &u)
 		// then
 		assert.NotNil(t, updatedWI)
-		assert.Len(t, updatedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
+		assert.Len(t, updatedWI.Data.Relationships.Boardcolumns.Data, 2)
 		mustHave := map[string]struct{}{
-			*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
-			*u.Data.Relationships.SystemBoardcolumns.Data[1].ID: {},
+			*u.Data.Relationships.Boardcolumns.Data[0].ID: {},
+			*u.Data.Relationships.Boardcolumns.Data[1].ID: {},
 		}
-		for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {
+		for _, lblData := range updatedWI.Data.Relationships.Boardcolumns.Data {
 			delete(mustHave, *lblData.ID)
 		}
 		require.Empty(t, mustHave)
@@ -109,8 +109,8 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 
 	l.T().Run("Fetch WI and verify boardcolumns Relationship", func(t *testing.T) {
 		_, fetchedWI := test.ShowWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, nil, nil)
-		require.NotNil(t, fetchedWI.Data.Relationships.SystemBoardcolumns)
-		assert.Empty(t, fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
+		require.NotNil(t, fetchedWI.Data.Relationships.Boardcolumns)
+		assert.Empty(t, fetchedWI.Data.Relationships.Boardcolumns.Data)
 	})
 
 	l.T().Run("add a column reference duplicate", func(t *testing.T) {
@@ -123,7 +123,7 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 					"version": fxt.WorkItems[0].Version,
 				},
 				Relationships: &app.WorkItemRelationships{
-					SystemBoardcolumns: &app.RelationGenericList{
+					Boardcolumns: &app.RelationGenericList{
 						Data: []*app.GenericData{
 							{
 								ID:   ptr.String(fxt.WorkItemBoards[0].Columns[0].ID.String()),
@@ -150,12 +150,12 @@ func (l *TestWorkItemBoardcolumnREST) TestAddWItoDistinctBoardcolumn() {
 		_, updatedWI := test.UpdateWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, &u)
 		// then
 		assert.NotNil(t, updatedWI)
-		assert.Len(t, updatedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
+		assert.Len(t, updatedWI.Data.Relationships.Boardcolumns.Data, 2)
 		mustHave := map[string]struct{}{
-			*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
-			*u.Data.Relationships.SystemBoardcolumns.Data[2].ID: {},
+			*u.Data.Relationships.Boardcolumns.Data[0].ID: {},
+			*u.Data.Relationships.Boardcolumns.Data[2].ID: {},
 		}
-		for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {
+		for _, lblData := range updatedWI.Data.Relationships.Boardcolumns.Data {
 			delete(mustHave, *lblData.ID)
 		}
 		require.Empty(t, mustHave)
@@ -170,8 +170,8 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 
 	l.T().Run("Fetch WI and verify boardcolumns Relationship", func(t *testing.T) {
 		_, fetchedWI := test.ShowWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, nil, nil)
-		require.NotNil(t, fetchedWI.Data.Relationships.SystemBoardcolumns)
-		assert.Empty(t, fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
+		require.NotNil(t, fetchedWI.Data.Relationships.Boardcolumns)
+		assert.Empty(t, fetchedWI.Data.Relationships.Boardcolumns.Data)
 	})
 
 	l.T().Run("add a column reference", func(t *testing.T) {
@@ -184,7 +184,7 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 					"version": fxt.WorkItems[0].Version,
 				},
 				Relationships: &app.WorkItemRelationships{
-					SystemBoardcolumns: &app.RelationGenericList{
+					Boardcolumns: &app.RelationGenericList{
 						Data: []*app.GenericData{
 							{
 								ID:   ptr.String(fxt.WorkItemBoards[0].Columns[0].ID.String()),
@@ -203,12 +203,12 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 		_, updatedWI := test.UpdateWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, &u)
 		// then
 		assert.NotNil(t, updatedWI)
-		assert.Len(t, updatedWI.Data.Relationships.SystemBoardcolumns.Data, 2)
+		assert.Len(t, updatedWI.Data.Relationships.Boardcolumns.Data, 2)
 		mustHave := map[string]struct{}{
-			*u.Data.Relationships.SystemBoardcolumns.Data[0].ID: {},
-			*u.Data.Relationships.SystemBoardcolumns.Data[1].ID: {},
+			*u.Data.Relationships.Boardcolumns.Data[0].ID: {},
+			*u.Data.Relationships.Boardcolumns.Data[1].ID: {},
 		}
-		for _, lblData := range updatedWI.Data.Relationships.SystemBoardcolumns.Data {
+		for _, lblData := range updatedWI.Data.Relationships.Boardcolumns.Data {
 			delete(mustHave, *lblData.ID)
 		}
 		require.Empty(t, mustHave)
@@ -216,14 +216,14 @@ func (l *TestWorkItemBoardcolumnREST) TestRemoveAllBoardcolumns() {
 		t.Run("now remove all columns", func(t *testing.T) {
 			// given
 			u.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
-			u.Data.Relationships.SystemBoardcolumns = &app.RelationGenericList{
+			u.Data.Relationships.Boardcolumns = &app.RelationGenericList{
 				Data: []*app.GenericData{},
 			}
 			// when
 			_, updatedWI = test.UpdateWorkitemOK(t, svc.Context, svc, ctrl, fxt.WorkItems[0].ID, &u)
 			// then
 			assert.NotNil(t, updatedWI)
-			assert.Empty(t, updatedWI.Data.Relationships.SystemBoardcolumns.Data)
+			assert.Empty(t, updatedWI.Data.Relationships.Boardcolumns.Data)
 		})
 	})
 }
