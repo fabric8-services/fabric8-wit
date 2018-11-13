@@ -105,7 +105,7 @@ func (t ListType) ConvertToStringArray(value interface{}) ([]string, error) {
 		return fieldType.ConvertToStringArray(value)
 	}, t.ComponentType, value)
 	if err != nil {
-		return nil, errs.Wrapf(err, "Failed to convert list type")
+		return nil, errs.Wrapf(err, "failed to convert list type to string array")
 	}
 	if (len(valueList)) == 0 {
 		return []string{}, nil
@@ -114,7 +114,7 @@ func (t ListType) ConvertToStringArray(value interface{}) ([]string, error) {
 	for i := range valueList {
 		strValueList := valueList[i].([]string)
 		if len(strValueList) != 1 {
-			return nil, errs.Errorf("String conversion of base type did not return exactly one value")
+			return nil, errs.Errorf("string conversion of base type did not return exactly one value")
 		}
 		buffer[i] = strValueList[0]
 	}
