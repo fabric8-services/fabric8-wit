@@ -642,7 +642,7 @@ func ConvertWorkItemToStringValue(ctx context.Context, app application.Applicati
 		fieldKeys = append(fieldNames, fieldKey)
 		fieldValueGeneric := wi.Fields[fieldKey]
 		fieldType := fieldDefinition.Type
-		fieldValueStr, err := fieldType.ConvertToString(fieldValueGeneric)
+		fieldValueStr, err := fieldType.ConvertToStringArray(fieldValueGeneric)
 		if err != nil {
 			return nil, nil, nil, errs.Wrapf(err, "failed to convert simple type value to string for field key: %s", fieldKey)
 		}
@@ -752,7 +752,7 @@ func convertValueToString(ctx context.Context, app application.Application, fiel
 		// this is an extra case because we may want to do some prosprocessing for some types here.
 		return ptr.String(fieldValueStr[0]), nil
 	} else {
-		// ConvertToString returned nil/empty array, which is a valid response. We add an empty string in this case.
+		// ConvertToStringArray returned nil/empty array, which is a valid response. We add an empty string in this case.
 		return ptr.String(""), nil
 	}
 }

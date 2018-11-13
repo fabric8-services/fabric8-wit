@@ -185,7 +185,7 @@ func TestListType_SetDefaultValue(t *testing.T) {
 	}
 }
 
-func TestListType_ConvertToString(t *testing.T) {
+func TestListType_ConvertToStringArray(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	tests := []struct {
@@ -238,7 +238,7 @@ func TestListType_ConvertToString(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output, err := tt.enum.ConvertToString(tt.defVal)
+			output, err := tt.enum.ConvertToStringArray(tt.defVal)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
