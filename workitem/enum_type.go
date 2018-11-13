@@ -148,11 +148,11 @@ func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {
 // ConvertToString implements the FieldType interface
 func (t EnumType) ConvertToString(value interface{}) ([]string, error) {
 	if value != nil && !contains(t.Values, value) {
-		return nil, fmt.Errorf("value: %+v (%[1]T) is not part of allowed enum values: %+v", value, t.Values)
+		return nil, errs.Errorf("value: %+v (%[1]T) is not part of allowed enum values: %+v", value, t.Values)
 	}
 	converted, err := t.BaseType.ConvertToString(value)
 	if err != nil {
-		return nil, errs.Wrapf(err, "Error converting enum value to string")
+		return nil, errs.Wrapf(err, "failed to convert enum value to string: %+v", value)
 	}
 	return converted, nil
 }
