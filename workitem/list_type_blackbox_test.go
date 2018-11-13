@@ -237,7 +237,9 @@ func TestListType_ConvertToStringArray(t *testing.T) {
 			true},
 	}
 	for _, tt := range tests {
+		tt := tt // needed for parallel running to capture range
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			output, err := tt.enum.ConvertToStringArray(tt.defVal)
 			if tt.wantErr {
 				require.Error(t, err)
