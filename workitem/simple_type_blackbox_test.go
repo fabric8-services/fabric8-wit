@@ -53,6 +53,7 @@ func TestSimpleType_Validate(t *testing.T) {
 		{"invalid kind (list)", SimpleType{Kind: KindList, DefaultValue: "foo"}, true},
 	}
 	for _, tt := range tests {
+		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			err := tt.obj.Validate()
@@ -78,6 +79,7 @@ func TestSimpleType_GetDefault(t *testing.T) {
 		{"ok - string field nil default", SimpleType{Kind: KindString}, nil},
 	}
 	for _, tt := range tests {
+		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			require.Equal(t, tt.output, tt.obj.GetDefaultValue())
@@ -99,12 +101,12 @@ func TestSimpleType_SetDefaultValue(t *testing.T) {
 		{"set default to allowed value",
 			SimpleType{Kind: KindString},
 			"foo",
-			&SimpleType{Kind: KindString, DefaultValue: "foo"},
+			SimpleType{Kind: KindString, DefaultValue: "foo"},
 			false},
 		{"set default to nil",
 			SimpleType{Kind: KindString},
 			nil,
-			&SimpleType{Kind: KindString, DefaultValue: nil},
+			SimpleType{Kind: KindString, DefaultValue: nil},
 			false},
 		{"set default to not-allowed value",
 			SimpleType{Kind: KindString},
@@ -113,6 +115,7 @@ func TestSimpleType_SetDefaultValue(t *testing.T) {
 			true},
 	}
 	for _, tt := range tests {
+		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			output, err := tt.enum.SetDefaultValue(tt.defVal)

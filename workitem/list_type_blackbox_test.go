@@ -133,7 +133,7 @@ func TestListType_SetDefaultValue(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		enum           ListType
+		listType       ListType
 		defVal         interface{}
 		expectedOutput FieldType
 		wantErr        bool
@@ -143,11 +143,11 @@ func TestListType_SetDefaultValue(t *testing.T) {
 				SimpleType:    SimpleType{Kind: KindList},
 				ComponentType: SimpleType{Kind: KindString},
 			},
-			[]interface{}{"second"},
-			&ListType{
+			"second",
+			ListType{
 				SimpleType:    SimpleType{Kind: KindList},
 				ComponentType: SimpleType{Kind: KindString},
-				DefaultValue:  []interface{}{"second"},
+				DefaultValue:  "second",
 			},
 			false},
 		{"set default to nil",
@@ -156,7 +156,7 @@ func TestListType_SetDefaultValue(t *testing.T) {
 				ComponentType: SimpleType{Kind: KindString},
 			},
 			nil,
-			&ListType{
+			ListType{
 				SimpleType:    SimpleType{Kind: KindList},
 				ComponentType: SimpleType{Kind: KindString},
 				DefaultValue:  nil,
@@ -171,10 +171,12 @@ func TestListType_SetDefaultValue(t *testing.T) {
 			nil,
 			true},
 	}
+
 	for _, tt := range tests {
+		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			output, err := tt.enum.SetDefaultValue(tt.defVal)
+			output, err := tt.listType.SetDefaultValue(tt.defVal)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
