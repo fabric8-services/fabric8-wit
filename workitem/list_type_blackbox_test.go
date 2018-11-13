@@ -192,7 +192,7 @@ func TestListType_ConvertToStringArray(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	tests := []struct {
 		name           string
-		enum           ListType
+		list           ListType
 		defVal         interface{}
 		expectedOutput []string
 		wantErr        bool
@@ -242,7 +242,7 @@ func TestListType_ConvertToStringArray(t *testing.T) {
 		tt := tt // needed for parallel running to capture range
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			output, err := tt.enum.ConvertToStringArray(tt.defVal)
+			output, err := tt.list.ConvertToStringArray(tt.defVal)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
