@@ -428,7 +428,7 @@ func TestEnumType_ConvertFromModel(t *testing.T) {
 	}
 }
 
-func ConvertToStringSlice(t *testing.T) {
+func TestEnumType_ConvertToStringSlice(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	type testCase struct {
