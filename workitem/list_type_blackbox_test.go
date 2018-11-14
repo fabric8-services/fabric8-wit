@@ -187,7 +187,7 @@ func TestListType_SetDefaultValue(t *testing.T) {
 	}
 }
 
-func TestListType_ConvertToStringArray(t *testing.T) {
+func TestListType_ConvertToStringSlice(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	tests := []struct {
@@ -290,7 +290,7 @@ func TestListType_ConvertToStringArray(t *testing.T) {
 		tt := tt // needed for parallel running to capture range
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			output, err := tt.list.ConvertToStringArray(tt.defVal)
+			output, err := tt.list.ConvertToStringSlice(tt.defVal)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

@@ -177,8 +177,8 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	}
 }
 
-// ConvertToStringArray implements the FieldType interface
-func (t SimpleType) ConvertToStringArray(value interface{}) ([]string, error) {
+// ConvertToStringSlice implements the FieldType interface
+func (t SimpleType) ConvertToStringSlice(value interface{}) ([]string, error) {
 	if value == nil {
 		// if a value is nil, we return empty string.
 		return []string{""}, nil

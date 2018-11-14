@@ -96,16 +96,16 @@ func (t ListType) ConvertFromModel(value interface{}) (interface{}, error) {
 	}, t.ComponentType, value)
 }
 
-// ConvertToStringArray implements the FieldType interface
-func (t ListType) ConvertToStringArray(value interface{}) ([]string, error) {
+// ConvertToStringSlice implements the FieldType interface
+func (t ListType) ConvertToStringSlice(value interface{}) ([]string, error) {
 	if value == nil {
 		return []string{}, nil
 	}
 	valueList, err := ConvertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
-		return fieldType.ConvertToStringArray(value)
+		return fieldType.ConvertToStringSlice(value)
 	}, t.ComponentType, value)
 	if err != nil {
-		return nil, errs.Wrapf(err, "failed to convert list type to string array")
+		return nil, errs.Wrapf(err, "failed to convert list type to string slice")
 	}
 	if (len(valueList)) == 0 {
 		return []string{}, nil

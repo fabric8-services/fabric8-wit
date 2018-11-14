@@ -401,10 +401,10 @@ func getFieldTypeConversionToStringTestData() []stringConvertTestData {
 	}
 }
 
-func TestConvertToStringArray(t *testing.T) {
+func TestConvertToStringSlice(t *testing.T) {
 	for _, d := range getFieldTypeConversionToStringTestData() {
 		t.Run(d.name, func(t *testing.T) {
-			convertedVal, err := d.initialFieldType.ConvertToStringArray(d.initialValue)
+			convertedVal, err := d.initialFieldType.ConvertToStringSlice(d.initialValue)
 			if !d.fieldConvertible {
 				require.Error(t, err)
 				return

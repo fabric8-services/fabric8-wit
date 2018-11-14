@@ -428,7 +428,7 @@ func TestEnumType_ConvertFromModel(t *testing.T) {
 	}
 }
 
-func TestEnumType_ConvertToStringArray(t *testing.T) {
+func ConvertToStringSlice(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	type testCase struct {
@@ -498,7 +498,7 @@ func TestEnumType_ConvertToStringArray(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			for _, subtt := range test.data {
 				t.Run(subtt.subTestName, func(tt *testing.T) {
-					val, err := test.enum.ConvertToStringArray(subtt.input)
+					val, err := test.enum.ConvertToStringSlice(subtt.input)
 					if subtt.wantErr {
 						require.Error(tt, err)
 					} else {
