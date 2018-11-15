@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
-	"fmt"
 	"io"
 	"strconv"
 	"testing"
@@ -366,7 +365,6 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		require.NoError(t, err)
 		// when
 		convertedWIs, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
-		fmt.Println(convertedWIs)
 		require.NoError(t, err)
 		// parse the resulting CSV
 		var entities []map[string]string
