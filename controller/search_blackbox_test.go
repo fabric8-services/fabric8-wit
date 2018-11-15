@@ -75,7 +75,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		reader := csv.NewReader(strings.NewReader(csvStr))
 		// parse header line
 		keys, err := reader.Read()
-		if err == io.EOF {
+		if err != nil {
 			return nil, err
 		}
 		// parse entities
