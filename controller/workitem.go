@@ -572,51 +572,65 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	if len(wits) != len(wis) {
 		return "", errs.Errorf("length mismatch of work items (%d) and work item types (%d)", len(wis), len(wits))
 	}
-	// columnMap holds the mapping from column key to column index.
-	// This is there to not be required to iterate over the label line
-	// on every field. Makes the algorithm more efficient on the cost of
-	// a bit more memory.
-	columnMap := make(map[string]int)
 	// csvGrid holds the final CSV in non-serialized form.
 	csvGrid := [][]string{}
-	// add an empty label line by default.
-	csvGrid = append(csvGrid, []string{})
-	for i := 0; i < len(wis); i++ {
-		// iterate over the WIs, converting them one by one.
-		fieldLabels, _, fieldValues, err := ConvertWorkItemToStringValue(ctx, app, &uuidStringCache, wits[i], wis[i])
+	// create the global column mapping by iterating over all fields of all WITs
+	// we're using seperate []string types as maps are not guaranteed to iterate
+	// consistently in the same order; we need to iterate multiple times over
+	// the columns with a stable order
+	columnKeys := []string{}
+	columnLabels := []string{}
+	for i := 0; i < len(wits); i++ {
+		// retrieve fields for all WITs
+		fieldLabels, fieldKeys, err := extractWorkItemTypeFields(wits[i])
 		if err != nil {
-			return "", errs.Wrapf(err, "failed to convert work item to CSV: %s", wis[i].ID)
+			return "", errs.Wrapf(err, "failed to retrieve fields for work item type: %s", wits[i].ID)
 		}
-		// create a new line, yet without potential new columns.
-		csvLine := make([]string, len(csvGrid[0]))
-		// add new new (empty) line to the grid.
-		csvGrid = append(csvGrid, csvLine)
-		// now, mangle up the column configuration
 		for j := 0; j < len(fieldLabels); j++ {
-			// iterate over the field keys, mapping them to the resulting grid
-			// the CSV key is unique and contains the WIT's name and the fieldLabel
-			// there might be collisions due to WITs names and/or fieldKeys are not
-			// required to be unique, but for the usecase, if there is an equally
-			// named WIT/fieldKey in a template, it is highly probable that this
-			// is intended to go into the same column.
-			csvFieldKey := fieldLabels[j]
-			// now check if the current key is a new key.
-			_, ok := columnMap[csvFieldKey]
-			if !ok {
-				// this is a new key, create a new columnMap entry.
-				columnMap[csvFieldKey] = len(csvGrid[0])
-				// add the new header entry.
-				csvGrid[0] = append(csvGrid[0], csvFieldKey)
-				// append empty values to all existing "lines" for the new column.
-				for k := 1; k < len(csvGrid); k++ {
-					csvGrid[k] = append(csvGrid[k], "")
+			// check if the field is already in the column mapping
+			found := false
+			for k := 0; k < len(columnKeys); k++ {
+				if columnKeys[k] == fieldKeys[j] {
+					found = true
 				}
 			}
-			// now we are ready to put the value where is belongs in the grid.
-			gridRowIdx := len(csvGrid) - 1 // last line.
-			gridColumnIdx := columnMap[csvFieldKey]
-			csvGrid[gridRowIdx][gridColumnIdx] = fieldValues[j]
+			if !found {
+				// this is a new column, add it to the column mapping
+				// the CSV key is not unique and contains the field label
+				// there might be collisions due to field labels are not
+				// required to be unique, but for the usecase, if there is an equally
+				// named field label in a template, it is highly probable that this
+				// is intended to go into the same column.
+				columnKeys = append(columnKeys, fieldKeys[j])
+				columnLabels = append(columnLabels, fieldLabels[j])
+			}
 		}
+	}
+	// the column mapping keys are the header line for the csv
+	headerLine := []string{}
+	headerLine = append(headerLine, columnLabels...)
+	csvGrid = append(csvGrid, headerLine)
+	// now iterate over the work items and retrieve the values according to the column mapping
+	for i := 0; i < len(wis); i++ {
+		wiLine := []string{}
+		// for each work item, iterate over the column mapping and retrieve values
+		fieldKeyValueMap, err := convertWorkItemFieldValues(ctx, app, &uuidStringCache, wits[i], wis[i])
+		if err != nil {
+			return "", errs.Wrapf(err, "failed to retrieve field values for work item: %s", wis[i].ID)
+		}		
+		for i := 0; i < len(columnKeys); i++ {
+			columnKey := columnKeys[i]
+			// check if this wi has the current column key
+			if fieldValue, ok := fieldKeyValueMap[columnKey]; ok {
+				// this column can be filled from the work item
+				wiLine = append(wiLine, fieldValue)
+			} else {
+				// this column is not available in the work item, add an empty string
+				wiLine = append(wiLine, "")
+			}
+		}
+		// finally, add the line to the csv grid
+		csvGrid = append(csvGrid, wiLine)
 	}
 	// create CSV from the [][]string
 	buf := new(bytes.Buffer)
@@ -629,21 +643,30 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	return buf.String(), nil
 }
 
-// ConvertWorkItemToStringValue is responsible for converting given WorkItem model object into a
-// string slice; it returns the field names, the field keys and the string converted values for the work item
-func ConvertWorkItemToStringValue(ctx context.Context, app application.Application, uuidStringCache *map[string]string, wit workitem.WorkItemType, wi workitem.WorkItem) ([]string, []string, []string, error) {
-	fieldNames := []string{}
+// extractWorkItemTypeFields extracts the field information for a wit; it returns slices for
+// field labels and field keys
+func extractWorkItemTypeFields(wit workitem.WorkItemType) ([]string, []string, error) {
+	fieldLabels := []string{}
 	fieldKeys := []string{}
-	fieldValues := []string{}
+	for fieldKey, fieldDefinition := range wit.Fields {
+		// extract the label and key
+		fieldLabels = append(fieldLabels, fieldDefinition.Label)
+		fieldKeys = append(fieldKeys, fieldKey)
+	}
+	return fieldLabels, fieldKeys, nil
+}
+
+// convertWorkItemFieldValues extracts and converts the wi field values; it returns a map
+// that maps field keys to converted field values
+func convertWorkItemFieldValues(ctx context.Context, app application.Application, uuidStringCache *map[string]string, wit workitem.WorkItemType, wi workitem.WorkItem) (map[string]string, error) {
+	fieldMap := make(map[string]string)
 	for fieldKey, fieldDefinition := range wit.Fields {
 		// convert the value to a string for the CSV
-		fieldNames = append(fieldNames, fieldDefinition.Label)
-		fieldKeys = append(fieldNames, fieldKey)
 		fieldValueGeneric := wi.Fields[fieldKey]
 		fieldType := fieldDefinition.Type
 		fieldValueStr, err := fieldType.ConvertToStringSlice(fieldValueGeneric)
 		if err != nil {
-			return nil, nil, nil, errs.Wrapf(err, "failed to convert simple type value to string for field key: %s", fieldKey)
+			return nil, errs.Wrapf(err, "failed to convert type value to string for field key: %s", fieldKey)
 		}
 		var convertedValue *string
 		// now retrieve and, if needed, resolve the id value.
@@ -655,7 +678,7 @@ func ConvertWorkItemToStringValue(ctx context.Context, app application.Applicati
 			for _, elem := range fieldValueStr {
 				elemConvertedValue, err := convertValueToString(ctx, app, uuidStringCache, fieldValueGeneric, []string{elem}, fieldKey, kind)
 				if err != nil {
-					return nil, nil, nil, errs.Wrapf(err, "failed to convert compound type value to string for field key: %s", fieldKey)
+					return nil, errs.Wrapf(err, "failed to convert compound type value to string for field key: %s", fieldKey)
 				}
 				converted = converted + delim + *elemConvertedValue
 				delim = ";"
@@ -670,11 +693,11 @@ func ConvertWorkItemToStringValue(ctx context.Context, app application.Applicati
 			convertedValue, err = convertValueToString(ctx, app, uuidStringCache, fieldValueGeneric, fieldValueStr, fieldKey, kind)
 		}
 		if err != nil {
-			return nil, nil, nil, errs.Wrapf(err, "failed to resolve simple type value to string for field key: %s", fieldKey)
+			return nil, errs.Wrapf(err, "failed to resolve type value to string for field key: %s", fieldKey)
 		}
-		fieldValues = append(fieldValues, *convertedValue)
+		fieldMap[fieldKey] = *convertedValue
 	}
-	return fieldNames, fieldKeys, fieldValues, nil
+	return fieldMap, nil
 }
 
 // convertValueToString converts a value to a string. This includes ID resolving if needed.

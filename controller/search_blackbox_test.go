@@ -87,7 +87,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 				return nil, err
 			}
 			if len(line) != len(keys) {
-				return nil, errs.Errorf("Parsed CSV line does not match key header line: ", line)
+				return nil, errs.Errorf("Parsed CSV line length (%d) does not match key header line lenght (%d)", len(line), len(keys))
 			}
 			thisEntity := make(map[string]string)
 			for idx := range line {

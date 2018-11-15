@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"bytes"
 	"context"
 	"encoding/csv"
@@ -365,6 +366,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		require.NoError(t, err)
 		// when
 		convertedWIs, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
+		fmt.Println(convertedWIs)
 		require.NoError(t, err)
 		// parse the resulting CSV
 		var entities []map[string]string
@@ -388,7 +390,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		}
 		require.Len(t, entities, 3)
 		// now run tests on the maps.
-		// check a common field available thru the base type.
+		// check a common field available through the base type.
 		require.Equal(t, strconv.Itoa(fxt.WorkItems[0].Fields[workitem.SystemNumber].(int)), entities[0]["Number"])
 		require.Equal(t, strconv.Itoa(fxt.WorkItems[1].Fields[workitem.SystemNumber].(int)), entities[1]["Number"])
 		require.Equal(t, strconv.Itoa(fxt.WorkItems[2].Fields[workitem.SystemNumber].(int)), entities[2]["Number"])
