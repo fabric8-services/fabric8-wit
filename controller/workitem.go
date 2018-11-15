@@ -617,7 +617,7 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 		fieldKeyValueMap, err := convertWorkItemFieldValues(ctx, app, &uuidStringCache, wits[i], wis[i])
 		if err != nil {
 			return "", errs.Wrapf(err, "failed to retrieve field values for work item: %s", wis[i].ID)
-		}		
+		}
 		for i := 0; i < len(columnKeys); i++ {
 			columnKey := columnKeys[i]
 			// check if this wi has the current column key
