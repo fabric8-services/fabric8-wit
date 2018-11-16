@@ -2,9 +2,10 @@ package importer_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/convert"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
@@ -421,7 +422,6 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 				ReverseName:        "blocked by",
 				ReverseDescription: ptr.String("description for blocked by"),
 				Topology:           "tree",
-				LinkCategoryID:     link.SystemWorkItemLinkCategoryUserID,
 			},
 		},
 		WITGs: []*workitem.WorkItemTypeGroup{
@@ -469,7 +469,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 	return expected
 }
 
-func Test_ImportHelperEqual(t *testing.T) {
+func Test_ImportHelperEqualAndEqualValue(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
@@ -485,28 +485,47 @@ func Test_ImportHelperEqual(t *testing.T) {
 	t.Run("different types", func(t *testing.T) {
 		t.Parallel()
 		assert.False(t, expected.Equal(convert.DummyEqualer{}))
+		assert.False(t, expected.EqualValue(convert.DummyEqualer{}))
 	})
 	t.Run("equalness", func(t *testing.T) {
 		t.Parallel()
 		actual := expected
 		assert.True(t, expected.Equal(actual))
+		assert.True(t, expected.EqualValue(actual))
 	})
 	t.Run("different WITs", func(t *testing.T) {
 		t.Parallel()
 		actual := expected
 		actual.WITs = append(actual.WITs, &workitem.WorkItemType{})
 		assert.False(t, expected.Equal(actual))
+		assert.False(t, expected.EqualValue(actual))
 	})
 	t.Run("different WILTs", func(t *testing.T) {
 		t.Parallel()
 		actual := expected
 		actual.WILTs = append(actual.WILTs, &link.WorkItemLinkType{})
 		assert.False(t, expected.Equal(actual))
+		assert.False(t, expected.EqualValue(actual))
 	})
 	t.Run("different WITGs", func(t *testing.T) {
 		t.Parallel()
 		actual := expected
 		actual.WITGs = append(actual.WITGs, &workitem.WorkItemTypeGroup{})
 		assert.False(t, expected.Equal(actual))
+		assert.False(t, expected.EqualValue(actual))
+	})
+	t.Run("different space template version", func(t *testing.T) {
+		t.Parallel()
+		actual := expected
+		actual.Template.Version = 123
+		assert.False(t, expected.Equal(actual))
+		assert.True(t, expected.EqualValue(actual))
+	})
+	t.Run("different space template lifecycle", func(t *testing.T) {
+		t.Parallel()
+		actual := expected
+		actual.Template.Lifecycle.CreatedAt = time.Now()
+		assert.False(t, expected.Equal(actual))
+		assert.True(t, expected.EqualValue(actual))
 	})
 }

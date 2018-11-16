@@ -241,10 +241,6 @@ func main() {
 	workitemtypesCtrl := controller.NewWorkitemtypesController(service, appDB, config)
 	app.MountWorkitemtypesController(service, workitemtypesCtrl)
 
-	// Mount "work item link category" controller
-	workItemLinkCategoryCtrl := controller.NewWorkItemLinkCategoryController(service, appDB)
-	app.MountWorkItemLinkCategoryController(service, workItemLinkCategoryCtrl)
-
 	// Mount "work item link type" controller
 	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB, config)
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
@@ -368,7 +364,6 @@ func main() {
 	codebaseCtrl := controller.NewCodebaseController(service, appDB, config)
 	codebaseCtrl.ShowTenant = account.NewShowTenant(config)
 	codebaseCtrl.NewCheClient = controller.NewDefaultCheClient(config)
-	codebaseCtrl.AnalyticsGeminiClient = controller.NewDefaultAnalyticsGeminiClient(config)
 
 	app.MountCodebaseController(service, codebaseCtrl)
 

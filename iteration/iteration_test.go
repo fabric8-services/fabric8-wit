@@ -25,7 +25,7 @@ func TestRunIterationRepository(t *testing.T) {
 	suite.Run(t, &TestIterationRepository{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
-func (s *TestIterationRepository) TestCreateIteration() {
+func (s *TestIterationRepository) TestCreate() {
 	t := s.T()
 	resource.Require(t, resource.Database)
 	repo := iteration.NewIterationRepository(s.DB)
@@ -35,7 +35,7 @@ func (s *TestIterationRepository) TestCreateIteration() {
 		end := start.Add(time.Hour * (24 * 8 * 3))
 		name := "Sprint #24"
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(2))
 
 		i := iteration.Iteration{
 			Name:    name,
@@ -44,17 +44,27 @@ func (s *TestIterationRepository) TestCreateIteration() {
 			EndAt:   &end,
 		}
 		// when
-		repo.Create(context.Background(), &i)
+		err := repo.Create(context.Background(), &i)
 		// then
-		if i.ID == uuid.Nil {
-			t.Errorf("Iteration was not created, ID nil")
-		}
-		if i.CreatedAt.After(time.Now()) {
-			t.Errorf("Iteration was not created, CreatedAt after Now()?")
-		}
+		require.NoError(t, err)
+		require.NotEqual(t, uuid.Nil, i.ID, "iteration not created, ID is nil")
+		require.False(t, i.CreatedAt.After(time.Now()), "iteration was not created, CreatedAt after Now()?")
 		assert.Equal(t, start, *i.StartAt)
 		assert.Equal(t, end, *i.EndAt)
 		assert.Equal(t, name, i.Name)
+		assert.Equal(t, 1, i.Number)
+		t.Run("second iteration in space gets sequential number", func(t *testing.T) {
+			i := iteration.Iteration{Name: "second iteration", SpaceID: fxt.Spaces[0].ID}
+			err := repo.Create(context.Background(), &i)
+			require.NoError(t, err)
+			assert.Equal(t, 2, i.Number)
+		})
+		t.Run("first iteration in another space starts numbering at 1", func(t *testing.T) {
+			i := iteration.Iteration{Name: "first iteration", SpaceID: fxt.Spaces[1].ID}
+			err := repo.Create(context.Background(), &i)
+			require.NoError(t, err)
+			assert.Equal(t, 1, i.Number)
+		})
 	})
 
 	t.Run("success - create child", func(t *testing.T) {
@@ -72,7 +82,8 @@ func (s *TestIterationRepository) TestCreateIteration() {
 			EndAt:   &end,
 		}
 		// when
-		repo.Create(context.Background(), &i)
+		err := repo.Create(context.Background(), &i)
+		require.NoError(t, err)
 		parentPath := append(i.Path, i.ID)
 		require.NotNil(t, parentPath)
 		i2 := iteration.Iteration{
@@ -82,8 +93,9 @@ func (s *TestIterationRepository) TestCreateIteration() {
 			EndAt:   &end,
 			Path:    parentPath,
 		}
-		repo.Create(context.Background(), &i2)
+		err = repo.Create(context.Background(), &i2)
 		// then
+		require.NoError(t, err)
 		i2L, err := repo.Load(context.Background(), i2.ID)
 		require.NoError(t, err)
 		assert.NotEmpty(t, i2.Path)
@@ -201,8 +213,8 @@ func (s *TestIterationRepository) TestLoad() {
 			EndAt:   &end,
 		}
 		// when
-		repo.Create(context.Background(), &i)
-
+		err := repo.Create(context.Background(), &i)
+		require.NoError(t, err)
 		i2 := iteration.Iteration{
 			Name:    name2,
 			SpaceID: fxt.Spaces[0].ID,
@@ -210,8 +222,9 @@ func (s *TestIterationRepository) TestLoad() {
 			EndAt:   &end,
 		}
 		i2.MakeChildOf(i)
-		repo.Create(context.Background(), &i2)
+		err = repo.Create(context.Background(), &i2)
 		// then
+		require.NoError(t, err)
 		res, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
 		require.NoError(t, err)
 		assert.Equal(t, i.Name, res.Name)

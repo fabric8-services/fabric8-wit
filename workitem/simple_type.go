@@ -69,6 +69,11 @@ func (t SimpleType) Equal(u convert.Equaler) bool {
 	return t.Kind == other.Kind
 }
 
+// EqualValue implements convert.Equaler interface
+func (t SimpleType) EqualValue(u convert.Equaler) bool {
+	return t.Equal(u)
+}
+
 // GetKind implements FieldType
 func (t SimpleType) GetKind() Kind {
 	return t.Kind
@@ -98,7 +103,7 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %q", value, "float64", valueType.Name())
 		}
 		return value, nil
-	case KindInteger, KindDuration: // NOTE: Duration is a typedef of int64
+	case KindInteger:
 		// NOTE(kwk): This will change soon to be more consistent.
 		switch valueType.Kind() {
 		case reflect.Int,
@@ -171,14 +176,14 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	}
 }
 
-// ConvertFromModel implements the t interface
+// ConvertFromModel implements the FieldType interface
 func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	if value == nil {
 		return nil, nil
 	}
 	valueType := reflect.TypeOf(value)
 	switch t.GetKind() {
-	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration, KindArea, KindLabel, KindBoardColumn, KindBoolean:
+	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindIteration, KindArea, KindLabel, KindBoardColumn, KindBoolean:
 		return value, nil
 	case KindInstant:
 		switch valueType.Kind() {

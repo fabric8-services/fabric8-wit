@@ -47,16 +47,6 @@ func (s FieldTypeTestDataMap) GetKinds() []Kind {
 // GetFieldTypeTestData returns a list of legal and illegal values to be used
 // with a given field type (here: the map key).
 func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
-	// helper function to convert a string into a duration and handling the
-	// error
-	validDuration := func(s string) time.Duration {
-		d, err := time.ParseDuration(s)
-		if err != nil {
-			require.NoError(t, err, "we expected the duration to be valid: %s", s)
-		}
-		return d
-	}
-
 	res := FieldTypeTestDataMap{
 		KindString: {
 			Valid: []interface{}{
@@ -203,25 +193,6 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 				"1",
 				"true",
 				"false",
-			},
-		},
-		KindDuration: {
-			// Compensate for wrong interpretation of 0
-			Compensate: func(in interface{}) interface{} {
-				i := in.(float64)
-				return time.Duration(int64(i))
-			},
-			Valid: []interface{}{
-				validDuration("0"),
-				validDuration("300ms"),
-				validDuration("-1.5h"),
-				// 0, // TODO(kwk): should work because an untyped integer constant can be converted to time.Duration's underlying type: int64
-			},
-			Invalid: []interface{}{
-				// 0, // TODO(kwk): 0 doesn't fit in legal nor illegal
-				nil,
-				"1e2",
-				"4000",
 			},
 		},
 		KindInstant: {

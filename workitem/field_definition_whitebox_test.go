@@ -70,7 +70,7 @@ func TestCompatibleFields(t *testing.T) {
 	})
 }
 
-func TestFieldDefinition_Equal(t *testing.T) {
+func TestFieldDefinition_EqualAndEqualValue(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
@@ -91,6 +91,8 @@ func TestFieldDefinition_Equal(t *testing.T) {
 		b := a
 		require.True(t, a.Equal(b))
 		require.True(t, b.Equal(a))
+		require.True(t, a.EqualValue(b))
+		require.True(t, b.EqualValue(a))
 	})
 	t.Run("label", func(t *testing.T) {
 		t.Parallel()
@@ -98,6 +100,8 @@ func TestFieldDefinition_Equal(t *testing.T) {
 		b.Label = "b"
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
+		require.False(t, a.EqualValue(b))
+		require.False(t, b.EqualValue(a))
 	})
 	t.Run("description", func(t *testing.T) {
 		t.Parallel()
@@ -105,6 +109,8 @@ func TestFieldDefinition_Equal(t *testing.T) {
 		b.Description = "description for b"
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
+		require.False(t, a.EqualValue(b))
+		require.False(t, b.EqualValue(a))
 	})
 	t.Run("required", func(t *testing.T) {
 		t.Parallel()
@@ -112,6 +118,8 @@ func TestFieldDefinition_Equal(t *testing.T) {
 		b.Required = !a.Required
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
+		require.False(t, a.EqualValue(b))
+		require.False(t, b.EqualValue(a))
 	})
 	t.Run("read-only", func(t *testing.T) {
 		t.Parallel()
@@ -119,6 +127,8 @@ func TestFieldDefinition_Equal(t *testing.T) {
 		b.ReadOnly = !a.ReadOnly
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
+		require.False(t, a.EqualValue(b))
+		require.False(t, b.EqualValue(a))
 	})
 	t.Run("type", func(t *testing.T) {
 		t.Parallel()
@@ -126,10 +136,12 @@ func TestFieldDefinition_Equal(t *testing.T) {
 		b.Type = SimpleType{Kind: KindInteger}
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
+		require.False(t, a.EqualValue(b))
+		require.False(t, b.EqualValue(a))
 	})
 }
 
-func TestRawFieldDef_Equal(t *testing.T) {
+func TestRawFieldDef_EqualAndEqualValue(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
@@ -147,6 +159,8 @@ func TestRawFieldDef_Equal(t *testing.T) {
 		b := a
 		require.True(t, a.Equal(b))
 		require.True(t, b.Equal(a))
+		require.True(t, a.EqualValue(b))
+		require.True(t, b.EqualValue(a))
 	})
 	t.Run("label", func(t *testing.T) {
 		t.Parallel()
@@ -154,6 +168,8 @@ func TestRawFieldDef_Equal(t *testing.T) {
 		b.Label = "b"
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
+		require.False(t, a.EqualValue(b))
+		require.False(t, b.EqualValue(a))
 	})
 	t.Run("description", func(t *testing.T) {
 		t.Parallel()
@@ -161,6 +177,8 @@ func TestRawFieldDef_Equal(t *testing.T) {
 		b.Description = "description for b"
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
+		require.False(t, a.EqualValue(b))
+		require.False(t, b.EqualValue(a))
 	})
 	t.Run("required", func(t *testing.T) {
 		t.Parallel()
@@ -168,6 +186,8 @@ func TestRawFieldDef_Equal(t *testing.T) {
 		b.Required = !a.Required
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
+		require.False(t, a.EqualValue(b))
+		require.False(t, b.EqualValue(a))
 	})
 	t.Run("is read-only", func(t *testing.T) {
 		t.Parallel()
@@ -175,6 +195,8 @@ func TestRawFieldDef_Equal(t *testing.T) {
 		b.ReadOnly = !a.ReadOnly
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
+		require.False(t, a.EqualValue(b))
+		require.False(t, b.EqualValue(a))
 	})
 	t.Run("type", func(t *testing.T) {
 		t.Parallel()
@@ -182,5 +204,7 @@ func TestRawFieldDef_Equal(t *testing.T) {
 		b.Type = nil
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
+		require.False(t, a.EqualValue(b))
+		require.False(t, b.EqualValue(a))
 	})
 }

@@ -212,6 +212,7 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 			UpdatedAt:  &ar.UpdatedAt,
 			Version:    &ar.Version,
 			ParentPath: ptr.String(ar.Path.ParentPath().String()),
+			Number:     &ar.Number,
 		},
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{
@@ -239,7 +240,7 @@ func ConvertArea(db application.DB, request *http.Request, ar area.Area, options
 
 	// Now check the path, if the path is empty, then this is the topmost area
 	// in a specific space.
-	if ar.Path.ParentPath().IsEmpty() == false {
+	if !ar.Path.ParentPath().IsEmpty() {
 		parent := ar.Path.ParentID().String()
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{

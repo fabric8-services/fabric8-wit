@@ -69,7 +69,6 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 	resource.Require(t, resource.Database)
 
 	t.Run("tracker query exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}
@@ -90,7 +89,6 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 	})
 
 	t.Run("tracker query doesn't exist", func(t *testing.T) {
-		t.Parallel()
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)

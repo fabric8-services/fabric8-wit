@@ -2,6 +2,7 @@ package testfixture
 
 import (
 	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/query"
@@ -35,6 +36,20 @@ func (fxt *TestFixture) IterationByName(name string, spaceID ...uuid.UUID) *iter
 			return i
 		} else if i.Name == name && len(spaceID) == 0 {
 			return i
+		}
+	}
+	return nil
+}
+
+// AreaByName returns the first area that has the given name (if any). If you
+// have areas with the same name in different spaces you can also pass in one
+// space ID to filter by space as well.
+func (fxt *TestFixture) AreaByName(name string, spaceID ...uuid.UUID) *area.Area {
+	for _, a := range fxt.Areas {
+		if a.Name == name && len(spaceID) > 0 && a.SpaceID == spaceID[0] {
+			return a
+		} else if a.Name == name && len(spaceID) == 0 {
+			return a
 		}
 	}
 	return nil

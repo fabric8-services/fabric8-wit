@@ -92,8 +92,8 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			ID:      spaceID,
 			Name:    spaceName,
 			OwnerID: *currentUser,
-			// Default to legacy space template to avoid breaking the API
-			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
+			// Default to Agile space template
+			SpaceTemplateID: spacetemplate.SystemAgileTemplateID,
 		}
 		if reqSpace.Attributes.Description != nil {
 			newSpace.Description = *reqSpace.Attributes.Description
@@ -183,15 +183,15 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 
-	spaceDeletionErrorExternal := fmt.Errorf("could not delete space")
 	spaceID, err := goauuid.FromString(ctx.SpaceID.String())
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": ctx.SpaceID,
-			"error":    err,
+			"err":      err,
 		}, "could not convert the UUID of type github.com/satori/go.uuid to github.com/goadesign/goa/uuid")
 		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
+			ctx, errors.NewInternalError(ctx, errs.Wrap(err, "could not delete space")),
+		)
 	}
 
 	// extract config in it's generic form to be utilized elsewhere
@@ -201,7 +201,8 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			"space_id": spaceID,
 		}, "no configuation found in SpaceController object")
 		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
+			ctx, errors.NewInternalErrorFromString("could not delete space"),
+		)
 	}
 
 	// delete all the codebases associated with this space
@@ -209,10 +210,10 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
-			"error":    err,
+			"err":      err,
 		}, "could not delete codebases")
 		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
+			ctx, errors.NewInternalError(ctx, errs.Wrapf(err, "failed to delete codebases associated with space %s", spaceID)))
 	}
 
 	// now delete the OpenShift resources associated with this space on an
@@ -222,10 +223,13 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"space_id": spaceID,
-				"error":    err,
+				"err":      err,
 			}, "could not delete OpenShift resources")
 			return jsonapi.JSONErrorResponse(
-				ctx, errors.NewInternalError(ctx, err))
+				ctx, errors.NewInternalError(ctx, errs.Wrapf(
+					err, "could not delete Openshift resources associated with space %s", spaceID),
+				),
+			)
 		}
 	}
 
@@ -278,14 +282,22 @@ func deleteCodebases(
 	path := client.ListSpaceCodebasesPath(spaceID)
 	resp, err := cl.ListSpaceCodebases(ctx, path, nil, nil)
 	if err != nil {
-		return errors.NewInternalError(ctx,
-			fmt.Errorf("could not list codebases: %v", err))
+		log.Error(ctx, map[string]interface{}{
+			"space_id": spaceID,
+			"path":     path,
+			"err":      err,
+		}, "failed to list codebases")
+		return errs.Wrapf(err, "could not list codebases for space: %s", spaceID)
 	}
 	defer resp.Body.Close()
 
 	if 200 < resp.StatusCode && resp.StatusCode >= 300 {
 		formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"response": resp,
+			}, "failed to decode JSON formatted errors returned while listing codebases")
 			return errors.NewInternalError(ctx,
 				fmt.Errorf("could not decode JSON formatted errors returned while listing codebases: %v", err))
 		}
@@ -306,6 +318,10 @@ func deleteCodebases(
 		path = client.DeleteCodebasePath(*cb.ID)
 		resp, err := cl.DeleteCodebase(ctx, path)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"error":    err,
+				"response": resp,
+			}, "failed to delete codebase %s", cb.ID)
 			errorsList = append(errorsList,
 				errs.Wrapf(err, "could not delete codebase %s", cb.ID))
 			continue
@@ -313,6 +329,10 @@ func deleteCodebases(
 		if 200 < resp.StatusCode && resp.StatusCode >= 300 {
 			formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"error":    err,
+					"response": resp,
+				}, "failed to decode JSON formatted errors returned while deleting codebase %s", cb.ID)
 				errorsList = append(errorsList,
 					errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting codebase %s", cb.ID))
 				continue

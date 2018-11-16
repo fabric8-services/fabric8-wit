@@ -7,13 +7,10 @@ import (
 	"database/sql"
 	"net/http"
 	"net/url"
-	"reflect"
 	"sync"
 	"text/template"
 
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate/importer"
@@ -23,6 +20,7 @@ import (
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // AdvisoryLockID is a random number that should be used within the application
@@ -299,8 +297,8 @@ func GetMigrations() Migrations {
 		link.SystemWorkItemLinkTypeBugBlockerID.String(),
 		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
 		link.SystemWorkItemLinkTypeParentChildID.String(),
-		link.SystemWorkItemLinkCategorySystemID.String(),
-		link.SystemWorkItemLinkCategoryUserID.String())})
+		uuid.FromStringOrNil("B1482C65-A64D-4058-BEB0-62F7198CB0F4").String(),
+		uuid.FromStringOrNil("2F24724F-797C-4073-8B16-4BB8CE9E84A6").String())})
 
 	// Version 60
 	m = append(m, steps{ExecuteSQLFile("060-fixed-identities-username-idx.sql")})
@@ -367,8 +365,8 @@ func GetMigrations() Migrations {
 		link.SystemWorkItemLinkTypeBugBlockerID.String(),
 		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
 		link.SystemWorkItemLinkTypeParentChildID.String(),
-		link.SystemWorkItemLinkCategorySystemID.String(),
-		link.SystemWorkItemLinkCategoryUserID.String(),
+		uuid.FromStringOrNil("B1482C65-A64D-4058-BEB0-62F7198CB0F4").String(),
+		uuid.FromStringOrNil("2F24724F-797C-4073-8B16-4BB8CE9E84A6").String(),
 	)})
 
 	// Version 81
@@ -454,6 +452,18 @@ func GetMigrations() Migrations {
 
 	// Version 105
 	m = append(m, steps{ExecuteSQLFile("105-update-root-area-and-iteration-path-field.sql")})
+
+	// Version 106
+	m = append(m, steps{ExecuteSQLFile("106-remove-link-category-concept.sql")})
+
+	// Version 107
+	m = append(m, steps{ExecuteSQLFile("107-number-sequences-table.sql")})
+
+	// Version 108
+	m = append(m, steps{ExecuteSQLFile("108-number-column-for-area.sql")})
+
+	// Version 109
+	m = append(m, steps{ExecuteSQLFile("109-number-column-for-iteration.sql")})
 
 	// Version N
 	//
@@ -620,54 +630,10 @@ func NewMigrationContext(ctx context.Context) context.Context {
 	return ctx
 }
 
-func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkCat link.WorkItemLinkCategory) (*link.WorkItemLinkCategory, error) {
-	cat, err := linkCatRepo.Load(ctx, linkCat.ID)
-	cause := errs.Cause(err)
-	switch cause.(type) {
-	case errors.NotFoundError:
-		cat, err = linkCatRepo.Create(ctx, linkCat)
-		if err != nil {
-			return nil, errs.WithStack(err)
-		}
-	case nil:
-		log.Info(ctx, map[string]interface{}{
-			"category": linkCat,
-		}, "Work item link category %s exists, will update/overwrite the description", linkCat.Name)
-
-		if !reflect.DeepEqual(cat.Description, linkCat.Description) {
-			cat.Description = linkCat.Description
-			cat, err = linkCatRepo.Save(ctx, *cat)
-			if err != nil {
-				return nil, errs.WithStack(err)
-			}
-		}
-	}
-	return cat, nil
-}
-
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. bug etc.)
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 	populateLocker.Lock()
 	defer populateLocker.Unlock()
-
-	linkCatRepo := link.NewWorkItemLinkCategoryRepository(db)
-
-	// create link categories
-	linkCategories := []link.WorkItemLinkCategory{{
-		ID:          link.SystemWorkItemLinkCategorySystemID,
-		Name:        "system",
-		Description: ptr.String("The system category is reserved for link types that are to be manipulated by the system only."),
-	}, {
-		ID:          link.SystemWorkItemLinkCategoryUserID,
-		Name:        "user",
-		Description: ptr.String("The user category is reserved for link types that can to be manipulated by the user."),
-	}}
-	for _, linkCat := range linkCategories {
-		_, err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, linkCat)
-		if err != nil {
-			return errs.WithStack(err)
-		}
-	}
 
 	// Create or update space templates
 	templateFunctions := []func() (*importer.ImportHelper, error){

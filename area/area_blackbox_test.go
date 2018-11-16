@@ -49,11 +49,11 @@ func (s *TestAreaRepository) TestCreateAreaWithSameNameFail() {
 	assert.IsType(s.T(), errors.DataConflictError{}, errs.Cause(err))
 }
 
-func (s *TestAreaRepository) TestCreateArea() {
+func (s *TestAreaRepository) TestCreate() {
 	// given
 	repo := area.NewAreaRepository(s.DB)
 	name := "TestCreateArea"
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(2))
 	a := area.Area{
 		Name:    name,
 		SpaceID: fxt.Spaces[0].ID,
@@ -65,6 +65,19 @@ func (s *TestAreaRepository) TestCreateArea() {
 	require.NotEqual(s.T(), uuid.Nil, a.ID)
 	assert.True(s.T(), !a.CreatedAt.After(time.Now()), "Area was not created, CreatedAt after Now()?")
 	assert.Equal(s.T(), name, a.Name)
+	assert.Equal(s.T(), 1, a.Number)
+	s.T().Run("second area in same space gets a sequential number", func(t *testing.T) {
+		a := area.Area{Name: "second area", SpaceID: fxt.Spaces[0].ID}
+		err := repo.Create(context.Background(), &a)
+		require.NoError(t, err)
+		require.Equal(t, 2, a.Number)
+	})
+	s.T().Run("first area in another space starts numbering at 1", func(t *testing.T) {
+		a := area.Area{Name: "first area", SpaceID: fxt.Spaces[1].ID}
+		err := repo.Create(context.Background(), &a)
+		require.NoError(t, err)
+		require.Equal(t, 1, a.Number)
+	})
 }
 
 func (s *TestAreaRepository) TestExistsArea() {

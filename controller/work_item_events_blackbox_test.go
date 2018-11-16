@@ -493,11 +493,6 @@ func (s *TestEvent) TestListEvent() {
 				continue
 			}
 
-			// TODO(kwk): Once we got rid of the duration kind remove this skip
-			if kind == workitem.KindDuration {
-				continue
-			}
-
 			// TODO(kwk): Once the new type system enhancements are in, also
 			// test instant fields
 			if kind == workitem.KindInstant {

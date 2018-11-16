@@ -17,6 +17,8 @@ func TestTopology_String(t *testing.T) {
 		link.TopologyTree:            "tree",
 	}
 	for in, out := range inOut {
+		in := in
+		out := out
 		t.Run(in.String(), func(t *testing.T) {
 			t.Parallel()
 			require.Equal(t, out, in.String())
@@ -62,6 +64,8 @@ func TestTopology_Scan(t *testing.T) {
 	}
 
 	for i, td := range testDataArr {
+		i := i
+		td := td
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			t.Parallel()
 			var l link.Topology
@@ -87,6 +91,8 @@ func TestTopology_CheckValid(t *testing.T) {
 		link.Topology("foo"):         true,
 	}
 	for topo, expectError := range expectErrorArr {
+		topo := topo
+		expectError := expectError
 		t.Run(topo.String(), func(t *testing.T) {
 			t.Parallel()
 			err := topo.CheckValid()

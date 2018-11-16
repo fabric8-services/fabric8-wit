@@ -3,10 +3,10 @@ package link
 import (
 	"time"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	convert "github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -32,10 +32,13 @@ func (l WorkItemLink) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !uuid.Equal(l.ID, other.ID) {
+	if l.ID != other.ID {
 		return false
 	}
 	if l.Version != other.Version {
+		return false
+	}
+	if !convert.CascadeEqual(l.Lifecycle, other.Lifecycle) {
 		return false
 	}
 	if l.SourceID != other.SourceID {
@@ -48,6 +51,17 @@ func (l WorkItemLink) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler interface
+func (l WorkItemLink) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(WorkItemLink)
+	if !ok {
+		return false
+	}
+	l.Version = other.Version
+	l.Lifecycle = other.Lifecycle
+	return l.Equal(u)
 }
 
 // CheckValidForCreation returns an error if the work item link

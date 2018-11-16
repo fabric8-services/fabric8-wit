@@ -8,12 +8,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest/proxy"
@@ -260,21 +260,11 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		var err error
 		result, count, err = appl.SearchItems().SearchFullText(ctx.Context, *ctx.Q, &offset, &limit, ctx.SpaceID)
 		if err != nil {
-			cause := errs.Cause(err)
-			switch cause.(type) {
-			case errors.BadParameterError:
-				log.Error(ctx, map[string]interface{}{
-					"err":        err,
-					"expression": *ctx.Q,
-				}, "unable to list the work items")
-				return goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression: %s: %s", *ctx.Q, err))
-			default:
-				log.Error(ctx, map[string]interface{}{
-					"err":        err,
-					"expression": *ctx.Q,
-				}, "unable to list the work items")
-				return goa.ErrInternal(fmt.Sprintf("unable to list the work items expression: %s: %s", *ctx.Q, err))
-			}
+			log.Error(ctx, map[string]interface{}{
+				"err":        err,
+				"expression": *ctx.Q,
+			}, "unable to list the work items")
+			return errs.Wrapf(err, "unable to list the work items for expression: %s", *ctx.Q)
 		}
 		return nil
 	})

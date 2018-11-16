@@ -14,14 +14,13 @@ import (
 // constants for describing possible field types
 const (
 	// non-relational
-	KindString   Kind = "string"
-	KindInteger  Kind = "integer"
-	KindFloat    Kind = "float"
-	KindBoolean  Kind = "bool"
-	KindInstant  Kind = "instant"
-	KindDuration Kind = "duration"
-	KindURL      Kind = "url"
-	KindMarkup   Kind = "markup"
+	KindString  Kind = "string"
+	KindInteger Kind = "integer"
+	KindFloat   Kind = "float"
+	KindBoolean Kind = "bool"
+	KindInstant Kind = "instant"
+	KindURL     Kind = "url"
+	KindMarkup  Kind = "markup"
 	// relational
 	KindIteration   Kind = "iteration"
 	KindUser        Kind = "user"
@@ -70,8 +69,10 @@ type FieldType interface {
 	ConvertToModel(value interface{}) (interface{}, error)
 	// ConvertFromModel converts a field value for use in the REST API layer
 	ConvertFromModel(value interface{}) (interface{}, error)
-	// Implement the Equaler interface
+	// Equal implements the convert.Equaler interface
 	Equal(u convert.Equaler) bool
+	// EqualValue implements the convert.Equaler interface
+	EqualValue(u convert.Equaler) bool
 	// GetDefaultValue is called if a field's value is nil.
 	GetDefaultValue() interface{}
 	// SetDefaultValue returns a copy of the FieldType object at hand if there
@@ -136,7 +137,12 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 	if f.Description != other.Description {
 		return false
 	}
-	return f.Type.Equal(other.Type)
+	return convert.CascadeEqual(f.Type, other.Type)
+}
+
+// EqualValue implements the convert.Equaler interface
+func (f FieldDefinition) EqualValue(u convert.Equaler) bool {
+	return f.Equal(u)
 }
 
 // ConvertToModel converts a field value for use in the persistence layer
@@ -207,6 +213,11 @@ func (f rawFieldDef) Equal(u convert.Equaler) bool {
 	return true
 }
 
+// EqualValue implements the convert.Equaler interface
+func (f rawFieldDef) EqualValue(u convert.Equaler) bool {
+	return f.Equal(u)
+}
+
 // UnmarshalJSON implements encoding/json.Unmarshaler
 func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 	temp := rawFieldDef{}
@@ -275,7 +286,7 @@ func ConvertAnyToKind(any interface{}) (*Kind, error) {
 func ConvertStringToKind(k string) (*Kind, error) {
 	kind := Kind(k)
 	switch kind {
-	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoardColumn, KindBoolean:
+	case KindString, KindInteger, KindFloat, KindInstant, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoardColumn, KindBoolean:
 		return &kind, nil
 	}
 	return nil, errs.Errorf("kind '%s' is not a simple type", k)

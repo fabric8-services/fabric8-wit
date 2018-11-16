@@ -22,6 +22,10 @@ import (
 )
 
 var (
+	// SystemSpace used to be a concept space that existed to house certain work
+	// item types that would then be shared among all spaces. This concept was
+	// deprecated with the advent of space templates.
+	// TODO(kwk): Remove system space entirely.
 	SystemSpace = uuid.FromStringOrNil("2e0698d8-753e-4cef-bb7c-f027634824a2")
 	SpaceType   = "spaces"
 )
@@ -47,8 +51,10 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	lfEqual := p.Lifecycle.Equal(other.Lifecycle)
-	if !lfEqual {
+	if !p.Lifecycle.Equal(other.Lifecycle) {
+		return false
+	}
+	if p.ID != other.ID {
 		return false
 	}
 	if p.Version != other.Version {
@@ -67,6 +73,17 @@ func (p Space) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler
+func (p Space) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(Space)
+	if !ok {
+		return false
+	}
+	p.Version = other.Version
+	p.Lifecycle = other.Lifecycle
+	return p.Equal(u)
 }
 
 // GetETagData returns the field values to use to generate the ETag

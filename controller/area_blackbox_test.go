@@ -151,18 +151,22 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 	})
 }
 
-func (rest *TestAreaREST) TestShowArea() {
+func (rest *TestAreaREST) TestShow() {
 	rest.T().Run("Success", func(t *testing.T) {
 		// Setup
-		a := tf.NewTestFixture(t, rest.DB, tf.Areas(1)).Areas[0]
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Areas(1, tf.SetAreaNames("root")),
+		)
+		a := fxt.AreaByName("root")
 		svc, ctrl := rest.SecuredController()
-		t.Run("OK", func(t *testing.T) {
+		t.Run("root", func(t *testing.T) {
 			// when
 			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, nil)
 			safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			//then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.payload.golden.json"), area)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.headers.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok-root-area.res.payload.golden.json"), area)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok-root-area.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Using ExpiredIfModifedSince Header", func(t *testing.T) {

@@ -24,7 +24,6 @@ type workItemTypeSuite struct {
 	gormtestsupport.DBTestSuite
 	typeCtrl     *WorkitemtypeController
 	linkTypeCtrl *WorkItemLinkTypeController
-	linkCatCtrl  *WorkItemLinkCategoryController
 	spaceCtrl    *SpaceController
 	svc          *goa.Service
 	testDir      string
@@ -52,8 +51,6 @@ func (s *workItemTypeSuite) SetupTest() {
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.typeCtrl = NewWorkitemtypeController(s.svc, s.GormDB, s.Configuration)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, s.GormDB, s.Configuration)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, s.GormDB)
-
 }
 
 func (s *workItemTypeSuite) TestShow() {

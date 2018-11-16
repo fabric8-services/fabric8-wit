@@ -54,34 +54,24 @@
       },
       "id": "00000000-0000-0000-0000-000000000002",
       "relationships": {
-        "link_category": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000006",
-            "type": "workitemlinkcategories"
-          },
-          "links": {
-            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000006",
-            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000006"
-          }
-        },
         "space": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000007",
+            "id": "00000000-0000-0000-0000-000000000006",
             "type": "spaces"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000007",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000007"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000006",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000006"
           }
         },
         "space_template": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000008",
+            "id": "00000000-0000-0000-0000-000000000007",
             "type": "spacetemplates"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000008",
-            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000008"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000007",
+            "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000007"
           }
         }
       },
@@ -98,7 +88,7 @@
         "system.order": 1000,
         "system.remote_item_id": null,
         "system.state": "new",
-        "system.title": "work item 00000000-0000-0000-0000-000000000009",
+        "system.title": "work item 00000000-0000-0000-0000-000000000008",
         "system.updated_at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -112,13 +102,14 @@
         "assignees": {},
         "baseType": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000010",
+            "id": "00000000-0000-0000-0000-000000000009",
             "type": "workitemtypes"
           },
           "links": {
-            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000010"
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000009"
           }
         },
+        "boardcolumns": {},
         "children": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/children"
@@ -132,12 +123,12 @@
         },
         "creator": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000011",
+            "id": "00000000-0000-0000-0000-000000000010",
             "type": "users"
           },
           "links": {
-            "related": "http:///api/users/00000000-0000-0000-0000-000000000011",
-            "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000010",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000010"
           }
         },
         "events": {
@@ -153,15 +144,14 @@
         },
         "space": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000012",
+            "id": "00000000-0000-0000-0000-000000000011",
             "type": "spaces"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000012",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000012"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000011",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000011"
           }
         },
-        "system.boardcolumns": {},
         "workItemLinks": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/links"
@@ -181,7 +171,7 @@
         "system.order": 2000,
         "system.remote_item_id": null,
         "system.state": "new",
-        "system.title": "work item 00000000-0000-0000-0000-000000000013",
+        "system.title": "work item 00000000-0000-0000-0000-000000000012",
         "system.updated_at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -195,13 +185,14 @@
         "assignees": {},
         "baseType": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000010",
+            "id": "00000000-0000-0000-0000-000000000009",
             "type": "workitemtypes"
           },
           "links": {
-            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000010"
+            "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000009"
           }
         },
+        "boardcolumns": {},
         "children": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/children"
@@ -215,12 +206,12 @@
         },
         "creator": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000011",
+            "id": "00000000-0000-0000-0000-000000000010",
             "type": "users"
           },
           "links": {
-            "related": "http:///api/users/00000000-0000-0000-0000-000000000011",
-            "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000010",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000010"
           }
         },
         "events": {
@@ -236,15 +227,14 @@
         },
         "space": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000012",
+            "id": "00000000-0000-0000-0000-000000000011",
             "type": "spaces"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000012",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000012"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000011",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000011"
           }
         },
-        "system.boardcolumns": {},
         "workItemLinks": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/links"

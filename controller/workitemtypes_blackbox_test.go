@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
@@ -31,7 +31,6 @@ type workItemTypesSuite struct {
 	gormtestsupport.DBTestSuite
 	typeCtrl     *WorkitemtypesController
 	linkTypeCtrl *WorkItemLinkTypeController
-	linkCatCtrl  *WorkItemLinkCategoryController
 	spaceCtrl    *SpaceController
 	svc          *goa.Service
 	testDir      string
@@ -59,7 +58,6 @@ func (s *workItemTypesSuite) SetupTest() {
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.typeCtrl = NewWorkitemtypesController(s.svc, s.GormDB, s.Configuration)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, s.GormDB, s.Configuration)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, s.GormDB)
 }
 
 func (s *workItemTypesSuite) TestList() {

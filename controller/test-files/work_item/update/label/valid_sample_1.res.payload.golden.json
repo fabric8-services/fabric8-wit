@@ -7,8 +7,8 @@
       "system.description.markup": "Markdown",
       "system.description.rendered": "\u003cp\u003e\u003ccode\u003e(see function github.com/fabric8-services/fabric8-wit/controller_test.(*WorkItem2Suite).TestWI2UpdateFieldOfDifferentSimpleTypes.func1 in controller/workitem_blackbox_test.go)\u003c/code\u003e\u003c/p\u003e\n",
       "system.metastate": null,
-      "system.number": 10,
-      "system.order": 10000,
+      "system.number": 9,
+      "system.order": 9000,
       "system.remote_item_id": null,
       "system.state": "new",
       "system.title": "label_wi",
@@ -32,6 +32,7 @@
           "self": "http:///api/workitemtypes/00000000-0000-0000-0000-000000000003"
         }
       },
+      "boardcolumns": {},
       "children": {
         "links": {
           "related": "http:///api/workitems/00000000-0000-0000-0000-000000000002/children"
@@ -77,7 +78,6 @@
           "self": "http:///api/spaces/00000000-0000-0000-0000-000000000005"
         }
       },
-      "system.boardcolumns": {},
       "workItemLinks": {
         "links": {
           "related": "http:///api/workitems/00000000-0000-0000-0000-000000000002/links"

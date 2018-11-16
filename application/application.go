@@ -24,7 +24,6 @@ type Application interface {
 	TrackerQueries() remoteworkitem.TrackerQueryRepository
 	SearchItems() SearchRepository
 	Identities() account.IdentityRepository
-	WorkItemLinkCategories() link.WorkItemLinkCategoryRepository
 	WorkItemLinkTypes() link.WorkItemLinkTypeRepository
 	WorkItemLinks() link.WorkItemLinkRepository
 	Comments() comment.Repository

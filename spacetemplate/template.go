@@ -1,6 +1,7 @@
 package spacetemplate
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
@@ -79,14 +80,25 @@ func (s SpaceTemplate) Equal(u convert.Equaler) bool {
 	if s.Version != other.Version {
 		return false
 	}
+	if !convert.CascadeEqual(s.Lifecycle, other.Lifecycle) {
+		return false
+	}
 	if s.CanConstruct != other.CanConstruct {
 		return false
 	}
-	if s.Description == nil && other.Description == nil {
-		return true
+	if !reflect.DeepEqual(s.Description, other.Description) {
+		return false
 	}
-	if s.Description != nil && other.Description != nil {
-		return *s.Description == *other.Description
+	return true
+}
+
+// EqualValue implements convert.Equaler
+func (s SpaceTemplate) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(SpaceTemplate)
+	if !ok {
+		return false
 	}
-	return false
+	s.Version = other.Version
+	s.Lifecycle = other.Lifecycle
+	return s.Equal(u)
 }

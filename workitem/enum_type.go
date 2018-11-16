@@ -94,10 +94,10 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !t.SimpleType.Equal(other.SimpleType) {
+	if !convert.CascadeEqual(t.SimpleType, other.SimpleType) {
 		return false
 	}
-	if !t.BaseType.Equal(other.BaseType) {
+	if !convert.CascadeEqual(t.BaseType, other.BaseType) {
 		return false
 	}
 	if !t.RewritableValues {
@@ -109,6 +109,11 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler
+func (t EnumType) EqualValue(u convert.Equaler) bool {
+	return t.Equal(u)
 }
 
 // EqualEnclosing returns true if two EnumType objects are equal and/or the
@@ -157,10 +162,17 @@ func containsAll(a []interface{}, v []interface{}) bool {
 	return result
 }
 
+// ConvertFromModel implements the FieldType interface
 func (t EnumType) ConvertFromModel(value interface{}) (interface{}, error) {
-	converted, err := t.BaseType.ConvertToModel(value)
+	if value == nil {
+		return nil, nil
+	}
+	converted, err := t.BaseType.ConvertFromModel(value)
 	if err != nil {
-		return nil, fmt.Errorf("error converting enum value: %s", err.Error())
+		return nil, errs.Errorf("error converting enum value: %s", err.Error())
+	}
+	if !contains(t.Values, converted) {
+		return nil, errs.Errorf("value: %+v (%[1]T) is not part of allowed enum values: %+v", value, t.Values)
 	}
 	return converted, nil
 }

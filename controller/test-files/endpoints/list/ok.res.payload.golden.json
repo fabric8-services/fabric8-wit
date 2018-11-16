@@ -125,11 +125,6 @@
           "related": "http:///api/users"
         }
       },
-      "workitemlinkcategories": {
-        "links": {
-          "related": "http:///api/workitemlinkcategories"
-        }
-      },
       "workitemlinks": {
         "links": {
           "related": "http:///api/workitemlinks"

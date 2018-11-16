@@ -179,6 +179,19 @@ func SetIterationNames(names ...string) CustomizeIterationFunc {
 	}
 }
 
+// SetAreaNames takes the given names and uses them during creation of areas.
+// The length of requested areas and the number of names must match or the
+// NewFixture call will return an error.
+func SetAreaNames(names ...string) CustomizeAreaFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Areas) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of areas to create (%d)", len(names), len(fxt.Areas))
+		}
+		fxt.Areas[idx].Name = names[idx]
+		return nil
+	}
+}
+
 // PlaceIterationUnderRootIteration when asking for more than one iteration, all
 // but the first one will be placed under the first iteration (aka root
 // iteration).

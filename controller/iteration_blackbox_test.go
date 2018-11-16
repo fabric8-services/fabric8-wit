@@ -3,6 +3,13 @@ package controller_test
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -24,12 +31,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"net/http"
-	"net/url"
-	"path/filepath"
-	"strings"
-	"testing"
-	"time"
 )
 
 type TestIterationREST struct {
@@ -265,20 +266,47 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	assert.Contains(rest.T(), err.Error(), "type.name must match the regexp")
 }
 
-func (rest *TestIterationREST) TestShowIterationOK() {
-
+func (rest *TestIterationREST) TestShow() {
 	// given
-	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
-	itr := *fxt.Iterations[1]
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Iterations(2,
+			tf.SetIterationNames("root", "child"),
+			func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 1:
+					start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
+					if err != nil {
+						return err
+					}
+					fxt.Iterations[idx].StartAt = &start
+					fxt.Iterations[idx].EndAt = ptr.Time(start.Add(time.Hour * 24 * 365 * 100))
+				}
+				return nil
+			}),
+		tf.Areas(2),
+	)
 	svc, ctrl := rest.SecuredController()
-	// when
-	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, nil)
-	// then
-	assertIterationLinking(rest.T(), created.Data)
-	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
-	compareWithGoldenAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.iteration.golden.json"), created)
+	rest.T().Run("root iteration", func(t *testing.T) {
+		// when
+		_, i := test.ShowIterationOK(t, svc.Context, svc, ctrl, fxt.IterationByName("root").ID.String(), nil, nil)
+		// then
+		assertIterationLinking(t, i.Data)
+		require.NotNil(t, i.Data.Relationships.Workitems.Meta)
+		assert.Equal(t, 0, i.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+		assert.Equal(t, 0, i.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok-root-iteration.res.payload.golden.json"), i)
+	})
+	rest.T().Run("child iteration", func(t *testing.T) {
+		// when
+		_, i := test.ShowIterationOK(t, svc.Context, svc, ctrl, fxt.IterationByName("child").ID.String(), nil, nil)
+		// then
+		assertIterationLinking(t, i.Data)
+		require.NotNil(t, i.Data.Relationships.Workitems.Meta)
+		assert.Equal(t, 0, i.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+		assert.Equal(t, 0, i.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok-child-iteration.res.payload.golden.json"), i)
+	})
 }
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {

@@ -97,29 +97,6 @@ func makeIdentities(fxt *TestFixture) error {
 	return nil
 }
 
-func makeWorkItemLinkCategories(fxt *TestFixture) error {
-	if fxt.info[kindWorkItemLinkCategories] == nil {
-		return nil
-	}
-	fxt.WorkItemLinkCategories = make([]*link.WorkItemLinkCategory, fxt.info[kindWorkItemLinkCategories].numInstances)
-	wilcRepo := link.NewWorkItemLinkCategoryRepository(fxt.db)
-	for i := range fxt.WorkItemLinkCategories {
-		fxt.WorkItemLinkCategories[i] = &link.WorkItemLinkCategory{
-			Name:        testsupport.CreateRandomValidTestName("link category "),
-			Description: ptr.String("some description " + GetTestFileAndFunc()),
-		}
-		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemLinkCategories); err != nil {
-			return errs.WithStack(err)
-		}
-		cat, err := wilcRepo.Create(fxt.ctx, *fxt.WorkItemLinkCategories[i])
-		if err != nil {
-			return errs.Wrapf(err, "failed to create work item link category: %+v", fxt.WorkItemLinkCategories[i])
-		}
-		fxt.WorkItemLinkCategories[i] = cat
-	}
-	return nil
-}
-
 func makeSpaceTemplates(fxt *TestFixture) error {
 	if fxt.info[kindSpaceTemplates] == nil {
 		return nil
@@ -196,7 +173,6 @@ func makeWorkItemLinkTypes(fxt *TestFixture) error {
 		}
 		if !fxt.isolatedCreation {
 			fxt.WorkItemLinkTypes[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
-			fxt.WorkItemLinkTypes[i].LinkCategoryID = fxt.WorkItemLinkCategories[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemLinkTypes); err != nil {
 			return errs.WithStack(err)
@@ -204,9 +180,6 @@ func makeWorkItemLinkTypes(fxt *TestFixture) error {
 		if fxt.isolatedCreation {
 			if fxt.WorkItemLinkTypes[i].SpaceTemplateID == uuid.Nil {
 				return errs.New("you must specify a space template for each work item link type")
-			}
-			if fxt.WorkItemLinkTypes[i].LinkCategoryID == uuid.Nil {
-				return errs.New("you must specify a link category for each work item link type")
 			}
 		}
 		typ, err := wiltRepo.Create(fxt.ctx, *fxt.WorkItemLinkTypes[i])
