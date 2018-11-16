@@ -73,10 +73,9 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		}
 		var result []map[string]string
 		reader := csv.NewReader(strings.NewReader(csvStr))
-		// this lets the reader define the FieldPerRecord based on the header line
-		// (first line); subsequent records are required to have the same number of
-		// records
-		reader.FieldsPerRecord = 0
+		// the default FieldPerRecord value is 0, which means that after 
+		// the first line, subsequent records are required to have the 
+		// same number of fields
 		// parse header line
 		keys, err := reader.Read()
 		if err != nil {
@@ -145,7 +144,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		})
 		t.Run("header format", func(t *testing.T) {
 			require.NotEmpty(t, rw.Header().Get("Content-Disposition"))
-			r, _ := regexp.Compile("^attachment; filename='workitems-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}-[0-9]+.csv'$")
+			r, _ := regexp.Compile("^attachment; filename='workitems-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z-[0-9]+.csv'$")
 			require.True(t, r.MatchString(rw.Header().Get("Content-Disposition")))
 		})
 	})

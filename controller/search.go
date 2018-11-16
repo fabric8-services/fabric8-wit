@@ -188,9 +188,9 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 		wisCSV = wisCSV + "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
 	}
 	// to make filename dynamic, hash of the query expression
-	current_time := time.Now().Local()
-	// creating timestr according to ISO 8601 recommendations
-	timeStr := current_time.Format("2006-01-02T15:04:05")
+	current_time := time.Now().UTC()
+	// creating timestr according to RFC3339 recommendations
+	timeStr := current_time.Format(time.RFC3339)
 	hash := fnv.New32a()
 	hash.Write([]byte(*ctx.FilterExpression))
 	// return output
