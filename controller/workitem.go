@@ -15,6 +15,7 @@ import (
 
 	"context"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -580,7 +581,13 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	// the columns with a stable order
 	columnKeys := []string{}
 	columnLabels := []string{}
+	alreadyProcessedWITs := id.Map{}
 	for i := 0; i < len(wits); i++ {
+		// we only process each WIT once
+		if _, ok := alreadyProcessedWITs[wits[i].ID]; ok {
+			continue
+		}
+		alreadyProcessedWITs[wits[i].ID] = struct{}{}
 		// retrieve fields for all WITs
 		fieldLabels, fieldKeys, err := extractWorkItemTypeFields(wits[i])
 		if err != nil {
@@ -607,8 +614,7 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 		}
 	}
 	// the column mapping keys are the header line for the csv
-	headerLine := []string{}
-	headerLine = append(headerLine, columnLabels...)
+	headerLine := append([]string{}, columnLabels...)
 	csvGrid = append(csvGrid, headerLine)
 	// now iterate over the work items and retrieve the values according to the column mapping
 	for i := 0; i < len(wis); i++ {

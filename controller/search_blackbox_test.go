@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -33,7 +34,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
-	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -73,6 +73,10 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		}
 		var result []map[string]string
 		reader := csv.NewReader(strings.NewReader(csvStr))
+		// this lets the reader define the FieldPerRecord based on the header line
+		// (first line); subsequent records are required to have the same number of
+		// records
+		reader.FieldsPerRecord = 0
 		// parse header line
 		keys, err := reader.Read()
 		if err != nil {
@@ -85,9 +89,6 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 				break
 			} else if err != nil {
 				return nil, err
-			}
-			if len(line) != len(keys) {
-				return nil, errs.Errorf("Parsed CSV line length (%d) does not match key header line lenght (%d)", len(line), len(keys))
 			}
 			thisEntity := make(map[string]string)
 			for idx := range line {
@@ -133,12 +134,20 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		require.Len(t, entities, 1)
 		// do some consistency checks - a full serialization check is
 		// done down the line in the simple_type and compound type tests.
-		// simple type
-		require.Equal(t, fxt.WorkItems[0].Fields[workitem.SystemTitle], entities[0]["Title"])
-		// compound type
-		require.Equal(t, "important;backend", entities[0]["Labels"])
-		// resolved type
-		require.Equal(t, "New", entities[0]["State"])
+		t.Run("simple type", func(t *testing.T) {
+			require.Equal(t, fxt.WorkItems[0].Fields[workitem.SystemTitle], entities[0]["Title"])
+		})
+		t.Run("compound type", func(t *testing.T) {
+			require.Equal(t, "important;backend", entities[0]["Labels"])
+		})
+		t.Run("resolved type", func(t *testing.T) {
+			require.Equal(t, "New", entities[0]["State"])
+		})
+		t.Run("header format", func(t *testing.T) {
+			require.NotEmpty(t, rw.Header().Get("Content-Disposition"))
+			r, _ := regexp.Compile("^attachment; filename='workitems-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}-[0-9]+.csv'$")
+			require.True(t, r.MatchString(rw.Header().Get("Content-Disposition")))
+		})
 	})
 	s.T().Run("empty result", func(t *testing.T) {
 		newFixture(t, 1)
@@ -163,35 +172,41 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
 		rr := httptest.NewRecorder()
 		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
-		// fetch window 1
-		rw := test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(0))
-		// then
-		recorder := rw.(*httptest.ResponseRecorder)
-		recorder.Flush()
-		require.NotNil(t, recorder.Body)
-		bodyStr := recorder.Body.String()
 		moreMsg := "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
-		require.True(t, strings.Contains(bodyStr, moreMsg))
-		bodyStr = bodyStr[0 : len(bodyStr)-len(moreMsg)]
-		// deserialize and check consistency of header and entity lines.
-		entities1, err := deserialize(bodyStr)
-		require.NoError(t, err)
-		require.Len(t, entities1, 6)
-		// fetch window 2
-		rw = test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(5))
-		// then
-		recorder = rw.(*httptest.ResponseRecorder)
-		recorder.Flush()
-		require.NotNil(t, recorder.Body)
-		bodyStr = recorder.Body.String()
-		require.False(t, strings.Contains(bodyStr, moreMsg))
-		// deserialize and check consistency of header and entity lines.
-		entities2, err := deserialize(bodyStr)
-		require.NoError(t, err)
-		require.Len(t, entities2, 5)
-		// do some simple consistency checks, the paging is tested elsewhere.
-		// Just make sure we don't have the same entities returned.
-		require.NotEqual(t, entities1[0]["Number"], entities2[0]["Number"])
+		var entities1 []map[string]string
+		t.Run("window 1", func(t *testing.T) {
+			// fetch window 1
+			rw := test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(0))
+			// then
+			recorder := rw.(*httptest.ResponseRecorder)
+			recorder.Flush()
+			require.NotNil(t, recorder.Body)
+			bodyStr := recorder.Body.String()
+			require.True(t, strings.Contains(bodyStr, moreMsg))
+			bodyStr = bodyStr[0 : len(bodyStr)-len(moreMsg)]
+			// deserialize and check consistency of header and entity lines.
+			var err error
+			entities1, err = deserialize(bodyStr)
+			require.NoError(t, err)
+			require.Len(t, entities1, 6)
+		})
+		t.Run("window 2", func(t *testing.T) {
+			// fetch window 2
+			rw := test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(5))
+			// then
+			recorder := rw.(*httptest.ResponseRecorder)
+			recorder.Flush()
+			require.NotNil(t, recorder.Body)
+			bodyStr := recorder.Body.String()
+			require.False(t, strings.Contains(bodyStr, moreMsg))
+			// deserialize and check consistency of header and entity lines.
+			entities2, err := deserialize(bodyStr)
+			require.NoError(t, err)
+			require.Len(t, entities2, 5)
+			// do some simple consistency checks, the paging is tested elsewhere.
+			// Just make sure we don't have the same entities returned.
+			require.NotEqual(t, entities1[0]["Number"], entities2[0]["Number"])
+		})
 	})
 }
 

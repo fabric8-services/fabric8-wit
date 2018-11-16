@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -186,14 +187,15 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 		// we have more than limit+1 rows, so add a note to the bottom of the returned list
 		wisCSV = wisCSV + "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
 	}
-	// convert the string to []byte
-	wisCSVBytes := []byte(wisCSV)
 	// to make filename dynamic, hash of the query expression
+	current_time := time.Now().Local()
+	// creating timestr according to ISO 8601 recommendations
+	timeStr := current_time.Format("2006-01-02T15:04:05")
 	hash := fnv.New32a()
 	hash.Write([]byte(*ctx.FilterExpression))
 	// return output
-	ctx.ResponseData.Header().Set("Content-Disposiont", "attachment; filename='workitems-"+fmt.Sprint(hash.Sum32())+".csv'")
-	return ctx.OK(wisCSVBytes)
+	ctx.ResponseData.Header().Set("Content-Disposition", "attachment; filename='workitems-"+timeStr+"-"+fmt.Sprint(hash.Sum32())+".csv'")
+	return ctx.OK([]byte(wisCSV))
 }
 
 // Show runs the show action.
