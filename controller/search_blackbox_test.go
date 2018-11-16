@@ -73,8 +73,8 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		}
 		var result []map[string]string
 		reader := csv.NewReader(strings.NewReader(csvStr))
-		// the default FieldPerRecord value is 0, which means that after 
-		// the first line, subsequent records are required to have the 
+		// the default FieldPerRecord value is 0, which means that after
+		// the first line, subsequent records are required to have the
 		// same number of fields
 		// parse header line
 		keys, err := reader.Read()
