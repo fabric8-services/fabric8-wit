@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/label"
-	"github.com/fabric8-services/fabric8-wit/numbersequence"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
@@ -24,6 +23,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -110,6 +110,7 @@ type WorkItemRepository interface {
 func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
 	repository := &GormWorkItemRepository{
 		db:    db,
+		winr:  numbersequence.NewWorkItemNumberSequenceRepository(db),
 		witr:  &GormWorkItemTypeRepository{db},
 		wirr:  &GormRevisionRepository{db},
 		space: space.NewRepository(db),
@@ -120,6 +121,7 @@ func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
 // GormWorkItemRepository implements WorkItemRepository using gorm
 type GormWorkItemRepository struct {
 	db    *gorm.DB
+	winr  *numbersequence.GormWorkItemNumberSequenceRepository
 	witr  *GormWorkItemTypeRepository
 	wirr  *GormRevisionRepository
 	space *space.GormRepository
@@ -593,7 +595,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
 		var err error
-		if fieldName == SystemAssignees || fieldName == SystemLabels || fieldName == SystemBoardcolumns {
+		if fieldDef.Type.GetKind() == KindList {
 			switch fieldValue.(type) {
 			case []string:
 				if len(fieldValue.([]string)) == 0 {
@@ -711,13 +713,17 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		return nil, nil, errors.NewInternalError(ctx, err)
 	}
 	pos = pos + orderValue
+	number, err := r.winr.NextVal(ctx, spaceID)
+	if err != nil {
+		return nil, nil, errors.NewInternalError(ctx, err)
+	}
 	wi := WorkItemStorage{
 		Type:           typeID,
 		Fields:         Fields{},
 		ExecutionOrder: pos,
 		SpaceID:        spaceID,
+		Number:         *number,
 	}
-	wi.HumanFriendlyNumber = numbersequence.NewHumanFriendlyNumber(spaceID, wi.TableName())
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldDef.ReadOnly {
@@ -729,7 +735,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		if err != nil {
 			return nil, nil, errors.NewBadParameterError(fieldName, fieldValue) // TODO(kwk): Change errors pkg to consume the original error as well
 		}
-		if (fieldName == SystemAssignees || fieldName == SystemLabels || fieldName == SystemBoardcolumns) && fieldValue == nil {
+		if fieldDef.Type.GetKind() == KindList && fieldValue == nil {
 			delete(wi.Fields, fieldName)
 		}
 		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {

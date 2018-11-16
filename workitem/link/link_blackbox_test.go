@@ -2,9 +2,12 @@ package link_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/convert"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	uuid "github.com/satori/go.uuid"
@@ -12,49 +15,84 @@ import (
 )
 
 // TestWorkItemLink_Equal Tests equality of two work item links
-func TestWorkItemLink_Equal(t *testing.T) {
+func TestWorkItemLink_EqualAndEqualValue(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
+	now := time.Now()
 	a := link.WorkItemLink{
 		ID:         uuid.NewV4(),
 		SourceID:   uuid.NewV4(),
 		TargetID:   uuid.NewV4(),
 		LinkTypeID: uuid.NewV4(),
+		Lifecycle: gormsupport.Lifecycle{
+			CreatedAt: now,
+			UpdatedAt: now,
+			DeletedAt: nil,
+		},
 	}
 
-	// Test equality
-	b := a
-	require.True(t, a.Equal(b))
+	t.Run("equality", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		require.True(t, a.Equal(b))
+		require.True(t, a.EqualValue(b))
+	})
 
-	// Test types
-	c := convert.DummyEqualer{}
-	require.False(t, a.Equal(c))
+	t.Run("types", func(t *testing.T) {
+		t.Parallel()
+		b := convert.DummyEqualer{}
+		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
+	})
 
-	// Test ID
-	b = a
-	b.ID = uuid.NewV4()
-	require.False(t, a.Equal(b))
+	t.Run("ID", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.ID = uuid.NewV4()
+		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
+	})
 
-	// Test Version
-	b = a
-	b.Version += 1
-	require.False(t, a.Equal(b))
+	t.Run("version", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Version += 1
+		require.False(t, a.Equal(b))
+		require.True(t, a.EqualValue(b))
+	})
 
-	// Test SourceID
-	b = a
-	b.SourceID = uuid.NewV4()
-	require.False(t, a.Equal(b))
+	t.Run("lifecycle", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Lifecycle.CreatedAt = time.Now().Add(time.Hour * 10)
+		require.False(t, a.Equal(b))
+		require.True(t, a.EqualValue(b))
+	})
 
-	// Test TargetID
-	b = a
-	b.TargetID = uuid.NewV4()
-	require.False(t, a.Equal(b))
+	t.Run("source", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.SourceID = uuid.NewV4()
+		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
+	})
 
-	// Test LinkTypeID
-	b = a
-	b.LinkTypeID = uuid.NewV4()
-	require.False(t, a.Equal(b))
+	t.Run("target", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.TargetID = uuid.NewV4()
+		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
+	})
+
+	t.Run("link type", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.LinkTypeID = uuid.NewV4()
+		require.False(t, a.Equal(b))
+		require.False(t, a.EqualValue(b))
+	})
 }
 
 func TestWorkItemLinkCheckValidForCreation(t *testing.T) {

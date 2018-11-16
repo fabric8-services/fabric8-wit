@@ -3,8 +3,8 @@ package link_test
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	errs "github.com/pkg/errors"
@@ -152,7 +152,7 @@ func (s *typeRepoBlackBoxTest) TestLoad() {
 func (s *typeRepoBlackBoxTest) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
 		id := uuid.NewV4()
 		typ := link.WorkItemLinkType{
 			ID:              id,
@@ -161,7 +161,6 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 			ReverseName:     "reverse name",
 			ForwardName:     "forward name",
 			Topology:        link.TopologyTree,
-			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
@@ -170,15 +169,15 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 		require.NoError(t, err)
 		require.NotNil(t, createdType)
 		require.Equal(t, id, createdType.ID)
-		require.True(t, typ.Equal(*createdType))
+		require.True(t, typ.EqualValue(*createdType))
 		// check that loaded type is equal as well
 		loadedType, err := s.typeRepo.Load(s.Ctx, createdType.ID)
 		require.NoError(t, err)
-		require.True(t, typ.Equal(*loadedType))
+		require.True(t, typ.EqualValue(*loadedType))
 	})
 	s.T().Run("unknown topology (bad parameter error)", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
 		id := uuid.NewV4()
 		typ := link.WorkItemLinkType{
 			ID:              id,
@@ -187,7 +186,6 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 			ReverseName:     "reverse name",
 			ForwardName:     "forward name",
 			Topology:        link.Topology("foobar"),
-			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
@@ -199,7 +197,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 	})
 	s.T().Run("empty name (bad parameter error)", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
 		id := uuid.NewV4()
 		typ := link.WorkItemLinkType{
 			ID:              id,
@@ -208,7 +206,6 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 			ReverseName:     "reverse name",
 			ForwardName:     "forward name",
 			Topology:        link.Topology("foobar"),
-			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
@@ -278,7 +275,7 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 	})
 	s.T().Run("link type not found", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
 		id := uuid.NewV4()
 		modelToSave := link.WorkItemLinkType{
 			ID:              id,
@@ -287,7 +284,6 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 			ReverseName:     "reverse name",
 			ForwardName:     "forward name",
 			Topology:        link.TopologyTree,
-			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when

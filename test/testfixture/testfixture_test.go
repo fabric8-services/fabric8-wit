@@ -109,15 +109,6 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		// manual checking
 		require.Len(t, c.Identities, n)
 	})
-	t.Run("work item link categories", func(t *testing.T) {
-		// given
-		c, err := fxtCtor(db, tf.WorkItemLinkCategories(n))
-		// then
-		require.NoError(t, err)
-		require.Nil(t, c.Check())
-		// manual checking
-		require.Len(t, c.WorkItemLinkCategories, n)
-	})
 
 	t.Run("identities", func(t *testing.T) {
 		// given
@@ -162,7 +153,6 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		// manual checking
 		if !isolated {
 			require.Len(t, c.WorkItemLinkTypes, n)
-			require.Len(t, c.WorkItemLinkCategories, 1)
 			require.Len(t, c.Identities, 1)
 			require.Len(t, c.SpaceTemplates, 1)
 		}

@@ -80,6 +80,8 @@ type KubeClientInterface interface {
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
 	GetMetricsClient(envNS string) (Metrics, error)
 	WatchEventsInNamespace(nameSpace string) (*cache.FIFO, chan struct{})
+	GetDeploymentPodQuota(spaceName string, appName string, envName string) (*app.SimpleDeploymentPodLimitRange, error)
+	GetSpaceAndOtherEnvironmentUsage(spaceName string) ([]*app.SpaceAndOtherEnvironmentUsage, error)
 	Close()
 	KubeAccessControl
 }
@@ -162,6 +164,8 @@ var _ KubeClientInterface = (*kubeClient)(nil)
 
 // Receiver for default implementation of KubeRESTAPIGetter and MetricsGetter
 type defaultGetter struct{}
+
+const limitRangeName = "resource-limits"
 
 // NewKubeClient creates a KubeClientInterface given a configuration. The returned
 // KubeClientInterface must be closed using the Close method, when no longer needed.
@@ -1482,6 +1486,172 @@ func (kc *kubeClient) getPodsQuota(pods []*v1.Pod) (*app.PodsQuota, error) {
 	return result, nil
 }
 
+func (kc *kubeClient) GetDeploymentPodQuota(spaceName string, appName string, envName string) (*app.SimpleDeploymentPodLimitRange, error) {
+	// Find namespace for environment name
+	namespace, err := kc.getDeployableEnvironmentNamespace(envName)
+	if err != nil {
+		return nil, err
+	}
+	dcName, err := kc.getDeploymentConfigNameForApp(namespace, appName, spaceName)
+	if err != nil {
+		return nil, errs.Errorf("could not retrieve deployment with the given namespace %s, app name %s and space name %s", namespace, appName, spaceName)
+	}
+
+	deploymentConfig, err := kc.GetDeploymentConfig(namespace, dcName)
+	if err != nil {
+		return nil, errs.Errorf("could not retrieve deployment config with name %s for namespace %s", dcName, namespace)
+	} else if deploymentConfig == nil {
+		return nil, errors.NewNotFoundErrorFromString(fmt.Sprintf("no deployment config found named %s in %s", dcName, namespace))
+	}
+
+	spec, ok := deploymentConfig["spec"].(map[string]interface{})
+	if !ok {
+		return nil, errs.Errorf("spec is missing from deployment config %s: %+v", dcName, spec)
+	}
+
+	template, ok := spec["template"].(map[string]interface{})
+	if !ok {
+		return nil, errs.Errorf("template is missing from deployment config %s: %+v", dcName, template)
+	}
+
+	innerSpec, ok := template["spec"].(map[string]interface{})
+	if !ok {
+		return nil, errs.Errorf("inner spec is missing from deployment config %s: %+v", dcName, innerSpec)
+	}
+
+	// This should be checked, to see if maps[string]interface is appropriate type for iterable arr
+	containers, ok := innerSpec["containers"].([]interface{})
+	if !ok {
+		return nil, errs.Errorf("containers is missing from deployment config %s: %+v", dcName, containers)
+	}
+
+	numContainersMissingCPU := float64(0)
+	numContainersMissingMem := float64(0)
+	podCPULimit := float64(0)
+	podMemLimit := float64(0)
+
+	for _, containerItem := range containers {
+		container, ok := containerItem.(map[string]interface{})
+		if !ok {
+			return nil, errs.Errorf("containers array contains invalid container: %v", containerItem)
+		}
+		resourcesItem, pres := container["resources"]
+		if !pres {
+			numContainersMissingCPU++
+			numContainersMissingMem++
+			continue
+		}
+		resources, ok := resourcesItem.(map[string]interface{})
+		if !ok {
+			return nil, errs.Errorf("resources spec in pod template is invalid: %v", resourcesItem)
+		}
+		if len(resources) == 0 {
+			numContainersMissingCPU++
+			numContainersMissingMem++
+			continue
+		}
+
+		limits, ok := resources["limits"].(map[string]interface{})
+		if !ok {
+			return nil, errs.Errorf("limits is missing from deployment config %s: %+v", dcName, resources)
+		}
+
+		cpuLimit, err := getOptionalStringValue(limits, "cpucores")
+		if err != nil {
+			return nil, err
+		}
+		if len(cpuLimit) == 0 {
+			numContainersMissingCPU++
+		} else {
+			cpuQuantity, err := resource.ParseQuantity(cpuLimit)
+			if err != nil {
+				return nil, errs.Errorf("could not parse cpu quantity for %+v of %s ", container, dcName)
+			}
+
+			cpuValue, err := quantityToFloat64(cpuQuantity)
+			if err != nil {
+				return nil, errs.Errorf("could not convert cpu quantity %+v to float64 value", cpuQuantity)
+			}
+			podCPULimit += cpuValue
+		}
+
+		memLimit, err := getOptionalStringValue(limits, "memory")
+		if err != nil {
+			return nil, err
+		}
+		if len(memLimit) == 0 {
+			numContainersMissingMem++
+		} else {
+			memoryQuantity, err := resource.ParseQuantity(memLimit)
+			if err != nil {
+				return nil, errs.Errorf("could not parse memory quantity for %+v of %s ", container, dcName)
+			}
+
+			memoryValue, err := quantityToFloat64(memoryQuantity)
+			if err != nil {
+				return nil, errs.Errorf("could not convert memory quantity %+v to float64 value", memoryQuantity)
+			}
+
+			podMemLimit += memoryValue
+		}
+	}
+
+	if numContainersMissingCPU > 0 || numContainersMissingMem > 0 {
+		// Look up default resource limits using LimitRanges API
+		limitRange, err := kc.LimitRanges(namespace).Get(limitRangeName, metaV1.GetOptions{})
+		if err != nil {
+			log.Error(nil, map[string]interface{}{
+				"err":              err,
+				"namespace":        namespace,
+				"limit_range_name": limitRangeName,
+			}, "failed to get limit range")
+			return nil, convertError(errs.WithStack(err), "failed to get limit range %s in %s", limitRangeName, namespace)
+		}
+
+		var containerCPULimit, containerMemLimit *resource.Quantity
+		for _, limit := range limitRange.Spec.Limits {
+			if limit.Type == "Container" {
+				cpuQty, pres := limit.Default[v1.ResourceCPU]
+				if pres {
+					containerCPULimit = &cpuQty
+				}
+				memQty, pres := limit.Default[v1.ResourceMemory]
+				if pres {
+					containerMemLimit = &memQty
+				}
+			}
+		}
+
+		if containerCPULimit == nil || containerMemLimit == nil {
+			log.Error(nil, map[string]interface{}{
+				"limit_range": limitRange,
+				"namespace":   namespace,
+			}, "CPU or memory container limit missing from LimitRange")
+			return nil, errs.Errorf("CPU or memory container limit missing from LimitRange for namespace %s", namespace)
+		}
+
+		defaultCPULimit, err := quantityToFloat64(*containerCPULimit)
+		if err != nil {
+			return nil, errs.Errorf("could not convert cpu quantity %+v to float64 value", *containerCPULimit)
+		}
+		defaultMemLimit, err := quantityToFloat64(*containerMemLimit)
+		if err != nil {
+			return nil, errs.Errorf("could not convert memory quantity %+v to float64 value", *containerMemLimit)
+		}
+
+		// Apply default limit for each container that didn't specify CPU/memory limits
+		podCPULimit += defaultCPULimit * numContainersMissingCPU
+		podMemLimit += defaultMemLimit * numContainersMissingMem
+	}
+
+	return &app.SimpleDeploymentPodLimitRange{
+		Limits: &app.PodsQuota{
+			Cpucores: &podCPULimit,
+			Memory:   &podMemLimit,
+		},
+	}, nil
+}
+
 // Pod status constants
 const (
 	podRunning     = "Running"
@@ -2194,4 +2364,76 @@ func (kc *kubeClient) WatchEventsInNamespace(nameSpace string) (*cache.FIFO, cha
 	ref.RunUntil(stopCh)
 
 	return store, stopCh
+}
+
+func (kc *kubeClient) GetSpaceAndOtherEnvironmentUsage(spaceName string) ([]*app.SpaceAndOtherEnvironmentUsage, error) {
+
+	space, err := kc.GetSpace(spaceName)
+	if err != nil {
+		return nil, err
+	}
+
+	envs, err := kc.GetEnvironments()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*app.SpaceAndOtherEnvironmentUsage, 0, len(envs))
+	envMap := calculateEnvMap(space)
+	for _, env := range envs {
+		if env.Attributes.Name != nil && env.Attributes.Quota != nil {
+			envName := *env.Attributes.Name
+			otherUsage := *env.Attributes.Quota
+
+			spaceUsage, pres := envMap[envName]
+			if pres {
+				// Subtract usage by this space from total environment usage to determine
+				// usage by all other spaces combined
+				*otherUsage.Cpucores.Used -= *spaceUsage.Cpucores
+				*otherUsage.Memory.Used -= *spaceUsage.Memory
+			} else {
+				cpuUsage := float64(0)
+				memUsage := float64(0)
+				spaceUsage = &app.SpaceEnvironmentUsageQuota{
+					Cpucores: &cpuUsage,
+					Memory:   &memUsage,
+				}
+			}
+
+			usage := &app.SpaceAndOtherEnvironmentUsage{
+				Attributes: &app.SpaceAndOtherEnvironmentUsageAttributes{
+					Name:       &envName,
+					SpaceUsage: spaceUsage,
+					OtherUsage: &otherUsage,
+				},
+				ID:   envName,
+				Type: "environment",
+			}
+
+			result = append(result, usage)
+		}
+	}
+
+	return result, nil
+}
+
+func calculateEnvMap(space *app.SimpleSpace) map[string]*app.SpaceEnvironmentUsageQuota {
+	envMap := make(map[string]*app.SpaceEnvironmentUsageQuota)
+	for _, appl := range space.Attributes.Applications {
+		for _, dep := range appl.Attributes.Deployments {
+			if value, ok := envMap[dep.Attributes.Name]; ok {
+				*value.Cpucores += *dep.Attributes.PodsQuota.Cpucores
+				*value.Memory += *dep.Attributes.PodsQuota.Memory
+			} else {
+				cpucores := *dep.Attributes.PodsQuota.Cpucores
+				memory := *dep.Attributes.PodsQuota.Memory
+				envMap[dep.Attributes.Name] = &app.SpaceEnvironmentUsageQuota{
+					Cpucores: &cpucores,
+					Memory:   &memory,
+				}
+			}
+		}
+	}
+
+	return envMap
 }

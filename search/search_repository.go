@@ -9,13 +9,15 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+
 	"github.com/fabric8-services/fabric8-wit/closeable"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -266,6 +268,7 @@ func parseSearchString(ctx context.Context, rawSearchString string) (searchKeywo
 }
 
 func parseMap(queryMap map[string]interface{}, q *Query) {
+	childSet := false
 	for key, val := range queryMap {
 		switch concreteVal := val.(type) {
 		case []interface{}:
@@ -275,9 +278,20 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Name = key
 			s := string(concreteVal)
 			q.Value = &s
+			if q.Name == "iteration" || q.Name == "area" {
+				if !childSet {
+					q.Child = true
+				}
+			}
 		case bool:
 			s := concreteVal
-			q.Negate = s
+			if key == "negate" {
+				q.Negate = s
+			} else if key == "child" {
+				q.Child = s
+				childSet = true
+			}
+
 		case nil:
 			q.Name = key
 			q.Value = nil
@@ -378,6 +392,8 @@ type Query struct {
 	Children []Query
 	// The Options represent the query options provided by the user.
 	Options *QueryOptions
+	// Consider child iteration/area
+	Child bool
 }
 
 func isOperator(str string) bool {
@@ -436,7 +452,11 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				if q.Substring {
 					myexpr = append(myexpr, criteria.Substring(left, right))
 				} else {
-					myexpr = append(myexpr, criteria.Equals(left, right))
+					if q.Child {
+						myexpr = append(myexpr, criteria.Child(left, right))
+					} else {
+						myexpr = append(myexpr, criteria.Equals(left, right))
+					}
 				}
 			}
 		} else {
@@ -477,7 +497,11 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 					if child.Substring {
 						myexpr = append(myexpr, criteria.Substring(left, right))
 					} else {
-						myexpr = append(myexpr, criteria.Equals(left, right))
+						if child.Child {
+							myexpr = append(myexpr, criteria.Child(left, right))
+						} else {
+							myexpr = append(myexpr, criteria.Equals(left, right))
+						}
 					}
 				}
 			} else {
@@ -722,9 +746,13 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	rows, err := db.Rows()
 	defer closeable.Close(ctx, rows)
 	if err != nil {
+		if gormsupport.IsDataException(err) {
+			// Remove "pq: " from the original message and return it.
+			errMessage := strings.Replace(err.Error(), "pq: ", "", -1)
+			return nil, 0, errors.NewBadParameterErrorFromString(errMessage)
+		}
 		return nil, 0, errs.WithStack(err)
 	}
-
 	result := []workitem.WorkItemStorage{}
 	columns, err := rows.Columns()
 	if err != nil {

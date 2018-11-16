@@ -38,24 +38,23 @@ type TestFixture struct {
 	customLinkCreation bool // on when you've used WorkItemLinksCustom in your recipe
 	normalLinkCreation bool // on when you've used WorkItemLinks in your recipe
 
-	Users                  []*account.User                // Users (if any) that were created for this test fixture.
-	Identities             []*account.Identity            // Identities (if any) that were created for this test fixture.
-	Iterations             []*iteration.Iteration         // Iterations (if any) that were created for this test fixture.
-	Areas                  []*area.Area                   // Areas (if any) that were created for this test fixture.
-	Spaces                 []*space.Space                 // Spaces (if any) that were created for this test fixture.
-	Codebases              []*codebase.Codebase           // Codebases (if any) that were created for this test fixture.
-	WorkItems              []*workitem.WorkItem           // Work items (if any) that were created for this test fixture.
-	Comments               []*comment.Comment             // Comments (if any) that were created for this test fixture.
-	WorkItemTypes          []*workitem.WorkItemType       // Work item types (if any) that were created for this test fixture.
-	WorkItemLinkTypes      []*link.WorkItemLinkType       // Work item link types (if any) that were created for this test fixture.
-	WorkItemLinkCategories []*link.WorkItemLinkCategory   // Work item link categories (if any) that were created for this test fixture.
-	WorkItemLinks          []*link.WorkItemLink           // Work item links (if any) that were created for this test fixture.
-	Labels                 []*label.Label                 // Labels (if any) that were created for this test fixture.
-	Trackers               []*remoteworkitem.Tracker      // Remote work item tracker (if any) that were created for this test fixture.
-	Queries                []*query.Query                 // Queries (if any) that were created for this test fixture.
-	SpaceTemplates         []*spacetemplate.SpaceTemplate // Space templates (if any) that were created for this test fixture.
-	WorkItemTypeGroups     []*workitem.WorkItemTypeGroup  // Work item types groups (if any) that were created for this test fixture.
-	WorkItemBoards         []*workitem.Board              // Work item boards (if any) that were created for this test fixture.
+	Users              []*account.User                // Users (if any) that were created for this test fixture.
+	Identities         []*account.Identity            // Identities (if any) that were created for this test fixture.
+	Iterations         []*iteration.Iteration         // Iterations (if any) that were created for this test fixture.
+	Areas              []*area.Area                   // Areas (if any) that were created for this test fixture.
+	Spaces             []*space.Space                 // Spaces (if any) that were created for this test fixture.
+	Codebases          []*codebase.Codebase           // Codebases (if any) that were created for this test fixture.
+	WorkItems          []*workitem.WorkItem           // Work items (if any) that were created for this test fixture.
+	Comments           []*comment.Comment             // Comments (if any) that were created for this test fixture.
+	WorkItemTypes      []*workitem.WorkItemType       // Work item types (if any) that were created for this test fixture.
+	WorkItemLinkTypes  []*link.WorkItemLinkType       // Work item link types (if any) that were created for this test fixture.
+	WorkItemLinks      []*link.WorkItemLink           // Work item links (if any) that were created for this test fixture.
+	Labels             []*label.Label                 // Labels (if any) that were created for this test fixture.
+	Trackers           []*remoteworkitem.Tracker      // Remote work item tracker (if any) that were created for this test fixture.
+	Queries            []*query.Query                 // Queries (if any) that were created for this test fixture.
+	SpaceTemplates     []*spacetemplate.SpaceTemplate // Space templates (if any) that were created for this test fixture.
+	WorkItemTypeGroups []*workitem.WorkItemTypeGroup  // Work item types groups (if any) that were created for this test fixture.
+	WorkItemBoards     []*workitem.Board              // Work item boards (if any) that were created for this test fixture.
 }
 
 // NewFixture will create a test fixture by executing the recipies from the
@@ -155,24 +154,23 @@ func (fxt *TestFixture) Check() error {
 type kind string
 
 const (
-	kindUsers                  kind = "user"
-	kindIdentities             kind = "identity"
-	kindIterations             kind = "iteration"
-	kindAreas                  kind = "area"
-	kindSpaces                 kind = "space"
-	kindCodebases              kind = "codebase"
-	kindWorkItems              kind = "work_item"
-	kindComments               kind = "comment"
-	kindWorkItemTypes          kind = "work_item_type"
-	kindWorkItemLinkTypes      kind = "work_item_link_type"
-	kindWorkItemLinkCategories kind = "work_item_link_category"
-	kindWorkItemLinks          kind = "work_item_link"
-	kindLabels                 kind = "label"
-	kindTrackers               kind = "tracker"
-	kindQueries                kind = "query"
-	kindSpaceTemplates         kind = "space_template"
-	kindWorkItemTypeGroups     kind = "work_item_type_group"
-	kindWorkItemBoards         kind = "work_item_board"
+	kindUsers              kind = "user"
+	kindIdentities         kind = "identity"
+	kindIterations         kind = "iteration"
+	kindAreas              kind = "area"
+	kindSpaces             kind = "space"
+	kindCodebases          kind = "codebase"
+	kindWorkItems          kind = "work_item"
+	kindComments           kind = "comment"
+	kindWorkItemTypes      kind = "work_item_type"
+	kindWorkItemLinkTypes  kind = "work_item_link_type"
+	kindWorkItemLinks      kind = "work_item_link"
+	kindLabels             kind = "label"
+	kindTrackers           kind = "tracker"
+	kindQueries            kind = "query"
+	kindSpaceTemplates     kind = "space_template"
+	kindWorkItemTypeGroups kind = "work_item_type_group"
+	kindWorkItemBoards     kind = "work_item_board"
 )
 
 type createInfo struct {
@@ -225,7 +223,6 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		// make the objects that DON'T have any dependency
 		makeUsers,
 		makeTrackers,
-		makeWorkItemLinkCategories,
 		makeSpaceTemplates,
 		// actually make the objects that DO have dependencies
 		makeIdentities,

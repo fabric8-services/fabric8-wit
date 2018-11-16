@@ -61,13 +61,13 @@ func (witg WorkItemTypeGroup) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !uuid.Equal(witg.ID, other.ID) {
+	if witg.ID != other.ID {
 		return false
 	}
-	if !uuid.Equal(witg.SpaceTemplateID, other.SpaceTemplateID) {
+	if witg.SpaceTemplateID != other.SpaceTemplateID {
 		return false
 	}
-	if !witg.Lifecycle.Equal(other.Lifecycle) {
+	if !convert.CascadeEqual(witg.Lifecycle, other.Lifecycle) {
 		return false
 	}
 	if witg.Name != other.Name {
@@ -94,6 +94,16 @@ func (witg WorkItemTypeGroup) Equal(u convert.Equaler) bool {
 		}
 	}
 	return true
+}
+
+// EqualValue implements convert.Equaler interface
+func (witg WorkItemTypeGroup) EqualValue(u convert.Equaler) bool {
+	other, ok := u.(WorkItemTypeGroup)
+	if !ok {
+		return false
+	}
+	witg.Lifecycle = other.Lifecycle
+	return witg.Equal(u)
 }
 
 // GetETagData returns the field values to use to generate the ETag

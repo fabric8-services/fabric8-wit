@@ -154,7 +154,7 @@ func (s *workItemTypeGroupRepoTest) TestList() {
 	})
 }
 
-func TestWorkItemTypeGroup_Equal(t *testing.T) {
+func TestWorkItemTypeGroup_EqualAndEqualValue(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// given
@@ -176,47 +176,55 @@ func TestWorkItemTypeGroup_Equal(t *testing.T) {
 		t.Parallel()
 		b := a
 		assert.True(t, a.Equal(b))
+		assert.True(t, a.EqualValue(b))
 	})
 	t.Run("types", func(t *testing.T) {
 		t.Parallel()
 		b := convert.DummyEqualer{}
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("Lifecycle", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Lifecycle = gormsupport.Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
 		assert.False(t, a.Equal(b))
+		assert.True(t, a.EqualValue(b))
 	})
 	t.Run("Name", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Name = "bar"
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("Description", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Description = ptr.String("bar")
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("SpaceTemplateID", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.SpaceTemplateID = uuid.NewV4()
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("Bucket", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Bucket = workitem.BucketIteration
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("Icon", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Icon = "blabla"
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 	t.Run("TypeList", func(t *testing.T) {
 		t.Parallel()
@@ -224,8 +232,10 @@ func TestWorkItemTypeGroup_Equal(t *testing.T) {
 		// different IDs
 		b.TypeList = []uuid.UUID{uuid.NewV4(), uuid.NewV4(), uuid.NewV4()}
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 		// different length
 		b.TypeList = []uuid.UUID{uuid.NewV4(), uuid.NewV4()}
 		assert.False(t, a.Equal(b))
+		assert.False(t, a.EqualValue(b))
 	})
 }

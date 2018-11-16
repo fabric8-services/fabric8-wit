@@ -150,6 +150,7 @@ work_item_types:
         base_type:
           kind: string
         values:
+        - None
         - Done
         - Duplicate
         - Incomplete Description
