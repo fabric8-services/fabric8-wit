@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"time"
 	"context"
 	"encoding/csv"
 	"fmt"
@@ -73,10 +74,6 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		}
 		var result []map[string]string
 		reader := csv.NewReader(strings.NewReader(csvStr))
-		// the default FieldPerRecord value is 0, which means that after
-		// the first line, subsequent records are required to have the
-		// same number of fields
-		// parse header line
 		keys, err := reader.Read()
 		if err != nil {
 			return nil, err
@@ -144,8 +141,15 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		})
 		t.Run("header format", func(t *testing.T) {
 			require.NotEmpty(t, rw.Header().Get("Content-Disposition"))
-			r, _ := regexp.Compile("^attachment; filename='workitems-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z-[0-9]+.csv'$")
-			require.True(t, r.MatchString(rw.Header().Get("Content-Disposition")))
+			// extract time string from filename returned in the header
+			r, _ := regexp.Compile("^attachment; filename='workitems-(.*)-[0-9]+.csv'$")
+			timeStr := r.FindStringSubmatch(rw.Header().Get("Content-Disposition"))[1]
+			// parse the time string, make sure it is a real date according to RFC3339
+			parsedTime, err := time.Parse(time.RFC3339, timeStr)
+			require.NoError(t, err)
+			// check if the timestamp is consistent
+			currentTime := time.Now().UTC()
+			require.True(t, parsedTime.Before(currentTime) || parsedTime.Equal(currentTime))
 		})
 	})
 	s.T().Run("empty result", func(t *testing.T) {
