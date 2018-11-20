@@ -405,7 +405,7 @@ func GetMigrations() Migrations {
 		workitem.SystemPlannerItem.String(),
 	)})
 
-	// Version 90
+	// 	// Version 90
 	m = append(m, steps{ExecuteSQLFile("090-queries-version.sql")})
 
 	// Version 91
@@ -464,6 +464,9 @@ func GetMigrations() Migrations {
 
 	// Version 109
 	m = append(m, steps{ExecuteSQLFile("109-number-column-for-iteration.sql")})
+
+	// Version 110
+	m = append(m, steps{ExecuteSQLFile("110-trackerquery-to-use-uuid.sql")})
 
 	// Version N
 	//

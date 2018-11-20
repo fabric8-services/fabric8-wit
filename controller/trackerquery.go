@@ -1,16 +1,19 @@
 package controller
 
 import (
-	"fmt"
+	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
-	errs "github.com/pkg/errors"
 )
 
 type trackerQueryConfiguration interface {
@@ -40,19 +43,28 @@ func NewTrackerqueryController(service *goa.Service, db application.DB, schedule
 
 // Create runs the create action.
 func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) error {
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		tq, err := appl.TrackerQueries().Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, ctx.Payload.TrackerID, *ctx.Payload.Relationships.Space.Data.ID)
-		if err != nil {
-			cause := errs.Cause(err)
-			switch cause.(type) {
-			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
-				return goa.ErrBadRequest(err.Error())
-			default:
-				return goa.ErrInternal(err.Error())
-			}
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	err = validateCreateTrackerQueryPayload(ctx)
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		trackerQuery := remoteworkitem.TrackerQuery{
+			ID:        *ctx.Payload.Data.ID,
+			Query:     ctx.Payload.Data.Attributes.Query,
+			Schedule:  ctx.Payload.Data.Attributes.Schedule,
+			TrackerID: uuid.FromStringOrNil(*ctx.Payload.Data.Relationships.Tracker.Data.ID),
+			SpaceID:   uuid.FromStringOrNil(*ctx.Payload.Data.Relationships.Space.Data.ID),
 		}
-		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(tq.ID))
-		return ctx.Created(tq)
+		err := appl.TrackerQueries().Create(ctx.Context, &trackerQuery)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		res := &app.TrackerQuerySingle{
+			Data: convertTrackerQuery(appl, ctx.Request, trackerQuery),
+		}
+		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(trackerQuery.ID))
+		return ctx.Created(res)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -64,51 +76,57 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 
 // Show runs the show action.
 func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		tq, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		trackerquery, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			cause := errs.Cause(err)
-			switch cause.(type) {
-			case remoteworkitem.NotFoundError:
-				log.Error(ctx, map[string]interface{}{
-					"tracker_id": ctx.ID,
-				}, "tracker query controller not found")
-				return goa.ErrNotFound(err.Error())
-			default:
-				return errs.WithStack(err)
-			}
+			log.Error(ctx, map[string]interface{}{
+				"err":             err,
+				"trackerquery_id": ctx.ID,
+			}, "unable to load the tracker query by ID")
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.OK(tq)
+		result := &app.TrackerQuerySingle{
+			Data: convertTrackerQuery(appl, ctx.Request, *trackerquery),
+		}
+		return ctx.OK(result)
 	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
 	return nil
 }
 
 // Update runs the update action.
 func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) error {
-	err := application.Transactional(c.db, func(appl application.Application) error {
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	err = validateUpdateTrackerQueryPayload(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
 
-		toSave := app.TrackerQuery{
-			ID:            ctx.ID,
-			Query:         ctx.Payload.Query,
-			Schedule:      ctx.Payload.Schedule,
-			TrackerID:     ctx.Payload.TrackerID,
-			Relationships: ctx.Payload.Relationships,
+		tq, err := appl.TrackerQueries().Load(ctx.Context, *ctx.Payload.Data.ID)
+		if err != nil {
+			return err
 		}
-		tq, err := appl.TrackerQueries().Save(ctx.Context, toSave)
+		if &ctx.Payload.Data.Attributes.Query != nil {
+			tq.Query = ctx.Payload.Data.Attributes.Query
+		}
+		if &ctx.Payload.Data.Attributes.Schedule != nil {
+			tq.Schedule = ctx.Payload.Data.Attributes.Schedule
+		}
+		if &ctx.Payload.Data.Relationships.Tracker.Data.ID != nil {
+			tq.TrackerID = uuid.FromStringOrNil(*ctx.Payload.Data.Relationships.Tracker.Data.ID)
+		}
+		_, err = appl.TrackerQueries().Save(ctx.Context, *tq)
 
 		if err != nil {
-			cause := errs.Cause(err)
-			switch cause.(type) {
-			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
-				return goa.ErrBadRequest(err.Error())
-			default:
-				return goa.ErrInternal(err.Error())
-			}
+			return err
 		}
-		return ctx.OK(tq)
+		res := &app.TrackerQuerySingle{
+			Data: convertTrackerQuery(appl, ctx.Request, *tq),
+		}
+		return ctx.OK(res)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -120,38 +138,90 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 
 // Delete runs the delete action.
 func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) error {
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.TrackerQueries().Delete(ctx.Context, ctx.ID)
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		tq, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			cause := errs.Cause(err)
-			switch cause.(type) {
-			case remoteworkitem.NotFoundError:
-				return goa.ErrNotFound(err.Error())
-			default:
-				return goa.ErrInternal(err.Error())
-			}
+			return nil
 		}
-		return ctx.OK([]byte{})
+		return appl.TrackerQueries().Delete(ctx.Context, tq.ID)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return nil
+	return ctx.NoContent()
 }
 
 // List runs the list action.
 func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		result, err := appl.TrackerQueries().List(ctx.Context)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		trackerqueries, err := appl.TrackerQueries().List(ctx)
 		if err != nil {
-			return goa.ErrInternal(fmt.Sprintf("Error listing tracker queries: %s", err.Error()))
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.OK(result)
+		res := &app.TrackerQueryList{}
+		res.Data = ConvertTrackerQueries(appl, ctx.Request, trackerqueries)
+		return ctx.OK(res)
 	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
+}
+
+// ConvertTrackerQueries from internal to external REST representation
+func ConvertTrackerQueries(appl application.Application, request *http.Request, trackerqueries []remoteworkitem.TrackerQuery) []*app.TrackerQuery {
+	var ls = []*app.TrackerQuery{}
+	for _, i := range trackerqueries {
+		ls = append(ls, convertTrackerQuery(appl, request, i))
+	}
+	return ls
+}
+
+// ConvertTrackerQuery converts from internal to external REST representation
+func convertTrackerQuery(appl application.Application, request *http.Request, trackerquery remoteworkitem.TrackerQuery) *app.TrackerQuery {
+	trackerQueryStringType := remoteworkitem.APIStringTypeTrackerQuery
+	selfURL := rest.AbsoluteURL(request, app.TrackerqueryHref(trackerquery.ID))
+	t := &app.TrackerQuery{
+		Type: trackerQueryStringType,
+		ID:   &trackerquery.ID,
+		Attributes: &app.TrackerQueryAttributes{
+			Query:    trackerquery.Query,
+			Schedule: trackerquery.Schedule,
+		},
+		Links: &app.GenericLinks{
+			Self: &selfURL,
+		},
+	}
+	return t
+}
+
+func validateCreateTrackerQueryPayload(ctx *app.CreateTrackerqueryContext) error {
+	if ctx.Payload.Data.Attributes.Query == "" {
+		return errors.NewBadParameterError("Query", "").Expected("not nil")
+	}
+	if ctx.Payload.Data.Attributes.Schedule == "" {
+		return errors.NewBadParameterError("Schedule", "").Expected("not nil")
+	}
+	if ctx.Payload.Data.Relationships.Tracker.Data.ID == nil {
+		return errors.NewBadParameterError("TrackerID", nil).Expected("not nil")
+	}
+	return nil
+}
+
+func validateUpdateTrackerQueryPayload(ctx *app.UpdateTrackerqueryContext) error {
+	if ctx.Payload.Data.ID == nil {
+		return errors.NewBadParameterError("ID", nil).Expected("not nil")
+	}
+	if ctx.Payload.Data.Attributes.Query == "" {
+		return errors.NewBadParameterError("Query", "").Expected("not nil")
+	}
+	if ctx.Payload.Data.Attributes.Schedule == "" {
+		return errors.NewBadParameterError("Schedule", "").Expected("not nil")
+	}
+	if ctx.Payload.Data.Relationships.Tracker.Data.ID == nil {
+		return errors.NewBadParameterError("TrackerID", nil).Expected("not nil")
 	}
 	return nil
 }
