@@ -272,10 +272,10 @@ func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 
 	test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
-	// test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+	test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 
-	// _, list := test.ListTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, nil, nil)
-	// assert.NotNil(rest.T(), list.Data)
+	_, list := test.ListTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, nil, nil)
+	assert.NotNil(rest.T(), list.Data)
 }
 
 // This test ensures that ID returned by Show is valid.

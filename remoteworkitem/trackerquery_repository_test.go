@@ -244,7 +244,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	test.queryRepo.Create(ctx, &tq)
 
 	trackerqueries2, _ := test.queryRepo.List(ctx)
-	assert.Equal(t, len(trackerqueries1)+2, len(trackerqueries2))
+	assert.Equal(t, len(trackerqueries1)+4, len(trackerqueries2))
 	trackerqueries3, _ := test.queryRepo.List(ctx)
 	require.True(t, len(trackerqueries3) >= 2)
 	require.True(t, len(trackerqueries2) >= 2)
