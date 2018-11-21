@@ -4,3 +4,4 @@ ALTER TABLE tracker_queries ADD COLUMN trackerquery_id uuid DEFAULT uuid_generat
 -- Rename primary key of trackers table
 ALTER TABLE tracker_queries DROP COLUMN id CASCADE;
 ALTER TABLE tracker_queries RENAME COLUMN trackerquery_id TO id;
+ALTER TABLE tracker_queries ADD CONSTRAINT trackerqueries_pkey PRIMARY KEY (id);
