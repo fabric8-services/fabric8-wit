@@ -583,23 +583,24 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	columnKeys := []string{}
 	columnLabels := []string{}
 	alreadyProcessedWITs := id.Map{}
-	for i := 0; i < len(wits); i++ {
+	for _, wit := range wits {
 		// we only process each WIT once
-		if _, ok := alreadyProcessedWITs[wits[i].ID]; ok {
+		if _, ok := alreadyProcessedWITs[wit.ID]; ok {
 			continue
 		}
-		alreadyProcessedWITs[wits[i].ID] = struct{}{}
+		alreadyProcessedWITs[wit.ID] = struct{}{}
 		// retrieve fields for all WITs
-		fieldLabels, fieldKeys, err := extractWorkItemTypeFields(wits[i])
+		fieldLabels, fieldKeys, err := extractWorkItemTypeFields(wit)
 		if err != nil {
-			return "", errs.Wrapf(err, "failed to retrieve fields for work item type: %s", wits[i].ID)
+			return "", errs.Wrapf(err, "failed to retrieve fields for work item type: %s", wit.ID)
 		}
-		for j := 0; j < len(fieldLabels); j++ {
+		for idx, fieldLabel := range fieldLabels {
 			// check if the field is already in the column mapping
 			found := false
-			for k := 0; k < len(columnKeys); k++ {
-				if columnKeys[k] == fieldKeys[j] {
+			for _, columnKey := range columnKeys {
+				if columnKey == fieldKeys[idx] {
 					found = true
+					break
 				}
 			}
 			if !found {
@@ -609,8 +610,8 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 				// required to be unique, but for the usecase, if there is an equally
 				// named field label in a template, it is highly probable that this
 				// is intended to go into the same column.
-				columnKeys = append(columnKeys, fieldKeys[j])
-				columnLabels = append(columnLabels, fieldLabels[j])
+				columnKeys = append(columnKeys, fieldKeys[idx])
+				columnLabels = append(columnLabels, fieldLabel)
 			}
 		}
 	}

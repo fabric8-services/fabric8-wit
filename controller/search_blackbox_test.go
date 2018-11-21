@@ -118,7 +118,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
 		rr := httptest.NewRecorder()
 		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
-		rw := test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, nil, nil)
+		rw := test.WorkitemsCSVSearchOK(t, goaCtx, s.svc, s.controller, &filter, nil, nil, nil)
 		// then
 		recorder := rw.(*httptest.ResponseRecorder)
 		recorder.Flush()
@@ -140,6 +140,8 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			require.Equal(t, "New", entities[0]["State"])
 		})
 		t.Run("header format", func(t *testing.T) {
+			require.NotEmpty(t, rw.Header().Get("Content-Type"))
+			require.Equal(t, "text/csv", rw.Header().Get("Content-Type"))
 			require.NotEmpty(t, rw.Header().Get("Content-Disposition"))
 			// extract time string from filename returned in the header
 			r, _ := regexp.Compile("^attachment; filename='workitems-(.*)-[0-9]+.csv'$")
@@ -157,7 +159,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		filter := fmt.Sprintf(`{"space": "%s"}`, uuid.NewV4().String())
 		rr := httptest.NewRecorder()
 		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
-		rw := test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, nil, nil)
+		rw := test.WorkitemsCSVSearchOK(t, goaCtx, s.svc, s.controller, &filter, nil, nil, nil)
 		// then
 		recorder := rw.(*httptest.ResponseRecorder)
 		recorder.Flush()
@@ -178,7 +180,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		var entities1 []map[string]string
 		t.Run("window 1", func(t *testing.T) {
 			// fetch window 1
-			rw := test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(0))
+			rw := test.WorkitemsCSVSearchOK(t, goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(0))
 			// then
 			recorder := rw.(*httptest.ResponseRecorder)
 			recorder.Flush()
@@ -194,7 +196,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		})
 		t.Run("window 2", func(t *testing.T) {
 			// fetch window 2
-			rw := test.WorkitemsCSVSearchOK(s.T(), goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(5))
+			rw := test.WorkitemsCSVSearchOK(t, goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(5))
 			// then
 			recorder := rw.(*httptest.ResponseRecorder)
 			recorder.Flush()
