@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"time"
 	"context"
 	"encoding/csv"
 	"fmt"
@@ -15,6 +14,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 
