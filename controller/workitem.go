@@ -71,23 +71,21 @@ func NewNotifyingWorkitemController(service *goa.Service, db application.DB, not
 		config:       config}
 }
 
-// authorizeWorkitemTypeEditor returns true if the modifier is allowed to change
-// workitem type else it returns false.
-// Only space owner and workitem creator are allowed to change workitem type
-func (c *WorkitemController) authorizeWorkitemTypeEditor(ctx context.Context, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
+// WorkitemCreatorOrSpaceOwner checks if the modifier is space owner or workitem creator
+func (c *WorkitemController) WorkitemCreatorOrSpaceOwner(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID, editorID uuid.UUID) error {
 	// check if workitem editor is same as workitem creator
 	if editorID == creatorID {
-		return true, nil
+		return nil
 	}
 	space, err := c.db.Spaces().Load(ctx, spaceID)
 	if err != nil {
-		return false, errors.NewNotFoundError("space", spaceID.String())
+		return errors.NewNotFoundError("space", spaceID.String())
 	}
 	// check if workitem editor is same as space owner
-	if space != nil && editorID == space.OwnerID.String() {
-		return true, nil
+	if space != nil && editorID == space.OwnerID {
+		return nil
 	}
-	return false, errors.NewUnauthorizedError("user is not allowed to change workitem type")
+	return errors.NewForbiddenError("user is not a workitem creator or space owner")
 }
 
 // Returns true if the user is the work item creator or space collaborator
@@ -123,6 +121,14 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if creator == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
 	}
+	creatorIDStr, ok := creator.(string)
+	if !ok {
+		return jsonapi.JSONErrorResponse(ctx, errs.Errorf("failed to convert user to string: %+v (%[1]T)", creator))
+	}
+	creatorID, err := uuid.FromString(creatorIDStr)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	authorized, err := authorizeWorkitemEditor(ctx, c.db, wi.SpaceID, creator.(string), currentUserIdentityID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -134,12 +140,9 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil &&
 		ctx.Payload.Data.Relationships.BaseType.Data != nil && ctx.Payload.Data.Relationships.BaseType.Data.ID != wi.Type {
 
-		authorized, err := c.authorizeWorkitemTypeEditor(ctx, wi.SpaceID, creator.(string), currentUserIdentityID.String())
+		err := c.WorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		if !authorized {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to change the workitemtype"))
 		}
 		// Store new values of type and version
 		newType := ctx.Payload.Data.Relationships.BaseType
@@ -236,38 +239,51 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 
 // Delete does DELETE workitem
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
-	// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-	if true {
-		return ctx.MethodNotAllowed()
-	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
+
 	var wi *workitem.WorkItem
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		wi, err = appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
-			return errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", ctx.WiID))
+			return errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID))
 		}
 		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+
+	// Check if user is space owner or workitem creator. Only space owner or workitem creator are allowed to delete the workitem.
+	creator := wi.Fields[workitem.SystemCreator]
+	if creator == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
 	}
-	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
+	creatorIDStr, ok := creator.(string)
+	if !ok {
+		return jsonapi.JSONErrorResponse(ctx, errs.Errorf("failed to convert user to string: %+v (%[1]T)", creator))
+	}
+	creatorID, err := uuid.FromString(creatorIDStr)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	err = c.WorkitemCreatorOrSpaceOwner(ctx, wi.SpaceID, creatorID, *currentUserIdentityID)
+	if err != nil {
+		forbidden, _ := errors.IsForbiddenError(err)
+		if forbidden {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the workitem"))
+
+		}
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		if err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
-			return errs.Wrapf(err, "error deleting work item %s", ctx.WiID)
-		}
 		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
 			return errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.WiID)
+		}
+		if err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
+			return errs.Wrapf(err, "error deleting work item %s", ctx.WiID)
 		}
 		return nil
 	})
@@ -308,14 +324,6 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
 func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, witID uuid.UUID, spaceID uuid.UUID) error {
-	// load work item type to perform conversion according to a field type
-	wit, err := appl.WorkItemTypes().Load(ctx, witID)
-	if err != nil {
-		return errs.Wrapf(err, "failed to load work item type: %s", witID)
-	}
-	_ = wit
-
-	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
 		return err
@@ -365,14 +373,14 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 		}
 		target.Fields[workitem.SystemLabels] = ids
 	}
-	if source.Relationships != nil && source.Relationships.SystemBoardcolumns != nil {
+	if source.Relationships != nil && source.Relationships.Boardcolumns != nil {
 		// Pass empty array to remove all boardcolumns
 		// null is treated as bad param
-		if source.Relationships.SystemBoardcolumns.Data == nil {
+		if source.Relationships.Boardcolumns.Data == nil {
 			return errors.NewBadParameterError(workitem.SystemBoardcolumns, nil)
 		}
 		distinctIDs := map[uuid.UUID]struct{}{}
-		for _, d := range source.Relationships.SystemBoardcolumns.Data {
+		for _, d := range source.Relationships.Boardcolumns.Data {
 			columnUUID, err := uuid.FromString(*d.ID)
 			if err != nil {
 				return errors.NewBadParameterError(workitem.SystemBoardcolumns, *d.ID)
@@ -636,7 +644,7 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 		case workitem.SystemBoardcolumns:
 			if val != nil {
 				columnIDs := val.([]interface{})
-				op.Relationships.SystemBoardcolumns = &app.RelationGenericList{
+				op.Relationships.Boardcolumns = &app.RelationGenericList{
 					Data: ConvertBoardColumnsSimple(request, columnIDs),
 				}
 			}

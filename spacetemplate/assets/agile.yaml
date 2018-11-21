@@ -150,6 +150,7 @@ work_item_types:
         base_type:
           kind: string
         values:
+        - None
         - Done
         - Duplicate
         - Incomplete Description
@@ -426,6 +427,10 @@ work_item_type_groups:
   - *defectID
   - *impedimentID
   bucket: portfolio
+  description:
+    Work items describe and keep track of work that needs to be completed. They
+    can be assigned to collaborators within a space. It comprises the agile work
+    item types such as themes, epics, stories, tasks, defects and impediments.
   icon: fa fa-bullseye
 
 - name: Execution
@@ -446,7 +451,7 @@ work_item_link_types:
   name: Impedes
   description: One work item item impedes another one
   forward_name: impedes
-  forward_description: (TODO) write a forward description for "impedes"
+  forward_description: Select the work item that is impeded by this one.
   reverse_name: is impeded by
-  reverse_description: (TODO) write a reverse description for "is impeded by"
+  reverse_description: Select the work item that impedes this one.
   topology: dependency

@@ -35,7 +35,7 @@ var workItem = a.Type("WorkItem", func() {
 var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("assignees", relationGenericList, "This defines assignees of the Work Item")
 	a.Attribute("labels", relationGenericList, "List of labels attached to the Work Item")
-	a.Attribute("system.boardcolumns", relationGenericList, "List of board columns this Work Item is attached to")
+	a.Attribute("boardcolumns", relationGenericList, "List of board columns this Work Item is attached to")
 	a.Attribute("creator", relationGeneric, "This defines creator of the Work Item")
 	a.Attribute("baseType", relationBaseType, "This defines type of Work Item")
 	a.Attribute("comments", relationGeneric, "This defines comments on the Work Item")
@@ -152,9 +152,7 @@ var _ = a.Resource("workitem", func() {
 		a.Params(func() {
 			a.Param("wiID", d.UUID, "ID of the work item to delete")
 		})
-		a.Response(d.MethodNotAllowed)
 		a.Response(d.OK)
-		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)

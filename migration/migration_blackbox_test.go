@@ -153,12 +153,12 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration101", testMigration101TypeGroupHasDescriptionField)
 	t.Run("TestMigration102", testMigration102LinkTypeDescriptionFields)
 	t.Run("TestMigration103", testMigration103NotNullNotEmptyonEmail)
-	t.Run("TestMirgraion104", testMigration104IndexOnWIRevisionTable)
-	t.Run("TestMirgraion105", testMigration105UpdateRootIterationAreaPathField)
-	t.Run("TestMirgraion106", testMigration106RemoveLinkCategoryConcept)
-	t.Run("TestMirgraion107", testMigration107NumberSequencesTable)
-	t.Run("TestMirgraion108", testMigration108NumberColumnForArea)
-	t.Run("TestMirgraion109", testMigration109NumberColumnForIteration)
+	t.Run("TestMigration104", testMigration104IndexOnWIRevisionTable)
+	t.Run("TestMigration105", testMigration105UpdateRootIterationAreaPathField)
+	t.Run("TestMigration106", testMigration106RemoveLinkCategoryConcept)
+	t.Run("TestMigration107", testMigration107NumberSequencesTable)
+	t.Run("TestMigration108", testMigration108NumberColumnForArea)
+	t.Run("TestMigration109", testMigration109NumberColumnForIteration)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)

@@ -38,4 +38,3 @@ objects:
     feature.workitem.remote: "false"
     deployments.serviceurl: "http://core"
     codebase.serviceurl: "http://core"
-    analytics.gemini.serviceurl: "http://f8a-gemini-server.bayesian-production:5000"
