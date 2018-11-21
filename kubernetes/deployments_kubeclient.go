@@ -11,6 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
+	errs "github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	kubeErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -22,10 +26,6 @@ import (
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/log"
-	errs "github.com/pkg/errors"
 )
 
 // KubeClientConfig holds configuration data needed to create a new KubeClientInterface
@@ -794,13 +794,12 @@ func (oc *openShiftAPIClient) DeleteBuildConfig(namespace string, labels map[str
 
 	var params []string
 	for k, v := range labels {
-		params = append(params, k + "=" + v)
+		params = append(params, k+"="+v)
 	}
-
 
 	// The API server rejects deleting buildconfigs by label, so get all
 	// buildconfigs with the label, and delete one-by-one
-	bcList, err := oc.GetBuildConfigs(namespace, url.QueryEscape(strings.Join(params[:],",")))
+	bcList, err := oc.GetBuildConfigs(namespace, url.QueryEscape(strings.Join(params[:], ",")))
 	if err != nil {
 		return nil, err
 	}
@@ -820,7 +819,7 @@ func (oc *openShiftAPIClient) DeleteBuildConfig(namespace string, labels map[str
 	for _, bc := range bcs {
 		name, err := getName(bc)
 		if err != nil {
-		 	return nil, err
+			return nil, err
 		}
 
 		opts := getDeleteOption()
@@ -840,7 +839,7 @@ func getDeleteOption() *metaV1.DeleteOptions {
 	policy := metaV1.DeletePropagationForeground
 	opts := &metaV1.DeleteOptions{
 		TypeMeta: metaV1.TypeMeta{ // Normally set automatically by k8s client-go
-			Kind: "DeleteOptions",
+			Kind:       "DeleteOptions",
 			APIVersion: "v1",
 		},
 		PropagationPolicy: &policy,

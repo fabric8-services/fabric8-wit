@@ -2111,7 +2111,7 @@ func TestWatchEventsInNamespace(t *testing.T) {
 func TestDeleteBuildConfigs(t *testing.T) {
 	// DeleteOptions do not change
 	policy := metav1.DeletePropagationForeground
-	expectOpts := metav1.DeleteOptions {
+	expectOpts := metav1.DeleteOptions{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DeleteOptions",
 			APIVersion: "v1",
@@ -2130,7 +2130,7 @@ func TestDeleteBuildConfigs(t *testing.T) {
 	}{
 		{
 			testName:     "Valid BuildConfigs",
-			labels:       map[string]string {"space": "multiconfig"},
+			labels:       map[string]string{"space": "multiconfig"},
 			namespace:    "userns",
 			cassetteName: "deletebuildconfig-valid",
 			expectDeleteURLs: map[string]struct{}{
@@ -2139,18 +2139,18 @@ func TestDeleteBuildConfigs(t *testing.T) {
 		},
 		{
 			testName:     "Empty BuildConfig List",
-			labels:       map[string]string {"space": "emptybc"},
+			labels:       map[string]string{"space": "emptybc"},
 			namespace:    "userns",
 			cassetteName: "deletebuildconfig-valid",
-			shouldFail: false,
+			shouldFail:   false,
 		},
 		{
 			testName:     "No BuildConfig Resource",
-			labels:       map[string]string {"space": "nobc"},
+			labels:       map[string]string{"space": "nobc"},
 			namespace:    "userns",
 			cassetteName: "deletebuildconfig-invalid",
-			shouldFail: true,
-			errorChecker: func (err error)(bool, error) {
+			shouldFail:   true,
+			errorChecker: func(err error) (bool, error) {
 				return strings.Contains(err.Error(), "status code 404"), nil
 			},
 		},

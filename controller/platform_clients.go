@@ -1,15 +1,15 @@
 package controller
 
 import (
-	"github.com/fabric8-services/fabric8-wit/kubernetes"
-	"github.com/fabric8-services/fabric8-wit/configuration"
 	"context"
-	"os"
-	"net/url"
-	"github.com/goadesign/goa"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
+	"net/url"
+	"os"
 )
 
 // ClientGetter creates an instances of clients used by this controller
@@ -161,7 +161,6 @@ func (g *defaultClientGetter) GetOSClient(ctx context.Context) (kubernetes.OpenS
 	return oc, nil
 }
 
-
 func getK8sConfig(baseURLProvider kubernetes.BaseURLProvider, k8sNSName *string, g *defaultClientGetter) *kubernetes.KubeClientConfig {
 	/* Timeout used per HTTP request to Kubernetes/OpenShift API servers.
 	 * Communication with Hawkular currently uses a hard-coded 30 second
@@ -173,4 +172,3 @@ func getK8sConfig(baseURLProvider kubernetes.BaseURLProvider, k8sNSName *string,
 	}
 	return kubeConfig
 }
-

@@ -1,13 +1,13 @@
 package controller
 
 import (
-	"github.com/goadesign/goa"
-	errs "github.com/pkg/errors"
-	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 // pipeline implements the pipeline resource.

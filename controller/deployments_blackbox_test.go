@@ -103,7 +103,7 @@ func (fixture *deploymentsTestFixture) GetAndCheckOSIOClient(ctx context.Context
 }
 
 func (fixture *deploymentsTestFixture) GetOSClient(ctx context.Context) (kubernetes.OpenShiftRESTAPI, error) {
-	return &testOSClient {
+	return &testOSClient{
 		fixture: fixture,
 	}, nil
 }
