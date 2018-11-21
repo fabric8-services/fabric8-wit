@@ -49,7 +49,7 @@ const (
 )
 
 // NewToOldFieldNameMap is a temporary map which stores old field names.
-// TODO (ibrahim): Remove this when field name migration is completed.
+// TODO(ibrahim): Remove this when field name migration is completed.
 var NewToOldFieldNameMap = map[string]string{
 	SystemRemoteItemID:        "system.remote_item_id",
 	SystemNumber:              "system.number",
@@ -72,7 +72,7 @@ var NewToOldFieldNameMap = map[string]string{
 }
 
 // OldToNewFieldNameMap is a temporary map which stores old field names.
-// TODO (ibrahim): Remove this when field name migration is completed.
+// TODO(ibrahim): Remove this when field name migration is completed.
 var OldToNewFieldNameMap = map[string]string{
 	"system.remote_item_id":       SystemRemoteItemID,
 	"system.number":               SystemNumber,

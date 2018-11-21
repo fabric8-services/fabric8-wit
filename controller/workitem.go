@@ -154,7 +154,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 		// Ensure we do not have any other change in payload except type change
 		if (app.WorkItemRelationships{}) != *ctx.Payload.Data.Relationships || len(ctx.Payload.Data.Attributes) > 0 {
-			// Todo(ibrahim) - Change this error to 422 Unprocessable entity
+			// TODO(ibrahim) - Change this error to 422 Unprocessable entity
 			// error once we have this error in our error package. Please see
 			// https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r208842063
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterErrorFromString("cannot update type along with other fields"))
@@ -324,7 +324,7 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
 func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, witID uuid.UUID, spaceID uuid.UUID) error {
-	// Todo(ibrahim) : Remove this once field names are migrated
+	// TODO(ibrahim): Remove this once field names are migrated
 	replaceFieldNames(&source)
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
@@ -529,7 +529,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 // replaceFieldNames modifies the source to rename all system.* fields to
 // system_* fields. It uses the OldToNewFieldNameMap to find the correct new
 // name for the old field
-// TODO(ibrahim) - Remove these after fields are migrated
+// TODO(ibrahim): Remove these after fields are migrated
 func replaceFieldNames(source *app.WorkItem) {
 	attributeList := source.Attributes
 	for oldAttributeName := range attributeList {
@@ -743,7 +743,7 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 
 // addNewFieldNames adds new field names (system_) to the payload. The payload
 // contains system.* and system_* field names with the same value
-// TODO (ibrahim) - remove this once field name migration is completed
+// TODO(ibrahim): remove this once field name migration is completed
 func addNewFieldNames(wi *app.WorkItem) {
 	attributeList := wi.Attributes
 	for newAttributeName := range attributeList {
