@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"hash/fnv"
 	"net/url"
 	"path"
 	"regexp"
@@ -185,10 +184,8 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	currentTime := time.Now().UTC()
 	// creating timestr according to RFC3339 recommendations
 	timeStr := currentTime.Format(time.RFC3339)
-	hash := fnv.New32a()
-	hash.Write([]byte(*ctx.FilterExpression))
 	// return output
-	ctx.ResponseData.Header().Set("Content-Disposition", "attachment; filename='workitems-"+timeStr+"-"+fmt.Sprint(hash.Sum32())+".csv'")
+	ctx.ResponseData.Header().Set("Content-Disposition", "attachment; filename='workitems-"+timeStr+".csv'")
 	return ctx.OK([]byte(wisCSV))
 }
 

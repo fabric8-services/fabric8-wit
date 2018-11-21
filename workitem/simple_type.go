@@ -235,7 +235,7 @@ func (t SimpleType) ConvertToStringSlice(value interface{}) ([]string, error) {
 		if valueType.Kind() != timeType.Kind() {
 			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "time.Time", valueType.Name())
 		}
-		return []string{strconv.FormatInt((value.(time.Time).UnixNano()), 10)}, nil
+		return []string{(value.(time.Time)).Format(time.RFC3339)}, nil
 	case KindBoolean:
 		if valueType.Kind() != reflect.Bool {
 			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "boolean", valueType.Name())

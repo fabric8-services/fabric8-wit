@@ -133,6 +133,10 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		t.Run("simple type", func(t *testing.T) {
 			require.Equal(t, fxt.WorkItems[0].Fields[workitem.SystemTitle], entities[0]["Title"])
 		})
+		t.Run("golden file", func(t *testing.T) {
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok.res.payload.golden.json"), bodyStr)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok.res.headers.golden.json"), rw.Header())
+		})
 		t.Run("compound type", func(t *testing.T) {
 			require.Equal(t, "important;backend", entities[0]["Labels"])
 		})
@@ -144,7 +148,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			require.Equal(t, "text/csv", rw.Header().Get("Content-Type"))
 			require.NotEmpty(t, rw.Header().Get("Content-Disposition"))
 			// extract time string from filename returned in the header
-			r, _ := regexp.Compile("^attachment; filename='workitems-(.*)-[0-9]+.csv'$")
+			r, _ := regexp.Compile("^attachment; filename='workitems-(.*)\\.csv'$")
 			timeStr := r.FindStringSubmatch(rw.Header().Get("Content-Disposition"))[1]
 			// parse the time string, make sure it is a real date according to RFC3339
 			parsedTime, err := time.Parse(time.RFC3339, timeStr)
