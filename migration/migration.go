@@ -405,7 +405,7 @@ func GetMigrations() Migrations {
 		workitem.SystemPlannerItem.String(),
 	)})
 
-	// 	// Version 90
+	// Version 90
 	m = append(m, steps{ExecuteSQLFile("090-queries-version.sql")})
 
 	// Version 91
