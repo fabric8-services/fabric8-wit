@@ -17,13 +17,13 @@ work_item_types:
   icon: fa fa-bookmark
   can_construct: no
   fields:
-    "system.area": 
+    "system.area":
       label: Area
       description: The area to which the work item belongs
       type:
         kind: area
       required: no
-    "system.order": 
+    "system.order":
       label: Execution Order
       description: Execution Order of the workitem
       read_only: yes
@@ -41,7 +41,7 @@ work_item_types:
           kind: string
         # This will allow other WITs to overwrite the values of the state.
         rewritable_values: yes
-        values: 
+        values:
         - new
         - open
         - in progress
@@ -59,33 +59,33 @@ work_item_types:
           kind: string
         # This will allow other WITs to overwrite the values of the state.
         rewritable_values: no
-        # the sequence of the values need to match the sequence of the 
+        # the sequence of the values need to match the sequence of the
         # system.state attributes. This encapsulates the mapping.
-        values: 
+        values:
         - mNew
         - mOpen
         - mInprogress
         - mResolved
         - mClosed
-    "system.title": 
+    "system.title":
       label: Title
       description: The title text of the work item
       type:
         kind: string
       required: yes
-    "system.creator": 
+    "system.creator":
       label: Creator
       description: The user that created the work item
       type:
         kind: user
       required: yes
-    "system.codebase": 
+    "system.codebase":
       label: Codebase
       description: Contains codebase attributes to which this WI belongs to
       type:
         kind: codebase
       required: no
-    "system.assignees": 
+    "system.assignees":
       label: Assignees
       description: The users that are assigned to the work item
       type:
@@ -94,33 +94,33 @@ work_item_types:
         component_type:
           kind: user
       required: no
-    "system.iteration": 
+    "system.iteration":
       label: Iteration
       description: The iteration to which the work item belongs
       type:
         kind: iteration
       required: no
-    "system.created_at": 
+    "system.created_at":
       label: Created at
       description: The date and time when the work item was created
       read_only: yes
       type:
         kind: instant
       required: no
-    "system.updated_at": 
+    "system.updated_at":
       label: Updated at
       description: The date and time when the work item was last updated
       read_only: yes
       type:
         kind: instant
       required: no
-    "system.description": 
+    "system.description":
       label: Description
       description: A descriptive text of the work item
       type:
         kind: markup ## This is what's referred to as AsciiDoc in the spreadsheet
       required: no
-    "system.remote_item_id": 
+    "system.remote_item_id":
       label: Remote item
       description: The ID of the remote work item
       type:
@@ -158,25 +158,35 @@ work_item_link_types:
   name: Blocker
   description: One work item item blocks another one
   forward_name: blocks
-  forward_description: (TODO) write a forward description for "blocks"
+  forward_description: Select the work item that is blocked by this one.
   reverse_name: is blocked by
-  reverse_description: (TODO) write a reverse description for "is blocked by"
+  reverse_description: Select the work item that blocks this one.
   topology: network
 
 - id: "9B631885-83B1-4ABB-A340-3A9EDE8493FA"
   name: Related
   description: One work item relates to another one.
   forward_name: relates to
-  forward_description: (TODO) write a forward description for "relates to"
+  forward_description: |
+    Select the work item that this one relates to.
+    Theoretically there's no difference between "relates to" and "is related to";
+    we just haven't finished the implementation yet.
   reverse_name: is related to
-  reverse_description: (TODO) write a reverse description for "is related to"
+  reverse_description: |
+    Select the work item that is related to this one.
+    Theoretically there's no difference between "relates to" and "is related to";
+    we just haven't finished the implementation yet.
   topology: network
 
 - id: "25C326A7-6D03-4F5A-B23B-86A9EE4171E9"
   name: Parenting
   description: One work item is the parent of another one.
   forward_name: is parent of
-  forward_description: (TODO) write a forward description for "is parent of"
+  forward_description: |
+    Select the work item that is the parent of this one.
+    A work item can only have one parent.
   reverse_name: is child of
-  reverse_description: (TODO) write a reverse description for "is child of"
+  reverse_description: |
+    Select the work item that is a child of this one.
+    A work item can have multiple children.
   topology: tree
