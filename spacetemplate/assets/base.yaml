@@ -169,13 +169,9 @@ work_item_link_types:
   forward_name: relates to
   forward_description: |
     Select the work item that this one relates to.
-    # Theoretically there's no difference between "relates to" and "is related to";
-    # we just haven't finished the implementation yet.
   reverse_name: is related to
   reverse_description: |
     Select the work item that is related to this one.
-    # Theoretically there's no difference between "relates to" and "is related to";
-    # we just haven't finished the implementation yet.
   topology: network
 
 - id: "25C326A7-6D03-4F5A-B23B-86A9EE4171E9"
