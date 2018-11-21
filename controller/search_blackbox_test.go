@@ -148,8 +148,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			parsedTime, err := time.Parse(time.RFC3339, timeStr)
 			require.NoError(t, err)
 			// check if the timestamp is consistent
-			currentTime := time.Now().UTC()
-			require.True(t, parsedTime.Before(currentTime) || parsedTime.Equal(currentTime))
+			assert.WithinDuration(t, time.Now().UTC(), parsedTime, 10*time.Second)
 		})
 	})
 	s.T().Run("empty result", func(t *testing.T) {
