@@ -156,22 +156,16 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 		var err error
 		result, _, _, _, err = appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 		if err != nil {
-			cause := errs.Cause(err)
-			switch cause.(type) {
-			case errors.BadParameterError:
-				return goa.ErrBadRequest(fmt.Sprintf("bad parameter error searching work items for expression '%s': %s", *ctx.FilterExpression, err))
-			default:
-				log.Error(ctx, map[string]interface{}{
-					"err":               err,
-					"filter_expression": *ctx.FilterExpression,
-				}, "unable to list the work items")
-				return goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err))
-			}
+			log.Error(ctx, map[string]interface{}{
+				"err":               err,
+				"filter_expression": *ctx.FilterExpression,
+			}, "unable to list the work items")
+			return errs.Wrapf(err, "error executing filter expression for CSV filtering: %s", *ctx.FilterExpression)
 		}
 		return nil
 	})
 	if err != nil {
-		return goa.ErrBadRequest(fmt.Sprintf("error searching work items for expression '%s': %s", *ctx.FilterExpression, err))
+		return err
 	}
 	// Load all work item types
 	wits, err := loadWorkItemTypesFromArr(ctx.Context, c.db, result)
