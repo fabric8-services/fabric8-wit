@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"sort"
 	"bytes"
 	"encoding/csv"
 	"fmt"
@@ -613,6 +614,21 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 			}
 		}
 	}
+	// sort the column mapping to provide a consistent output column order
+	sortedLabels := make([]string, len(columnLabels))
+	sortedKeys := make([]string, len(columnKeys))
+	copy(sortedLabels, columnLabels)
+	sort.Strings(sortedLabels)
+	for idxSorted, sortLabel := range sortedLabels {
+		for idx, label := range columnLabels {
+			if label == sortLabel {
+				sortedKeys[idxSorted] = columnKeys[idx]
+				break
+			}
+		}
+	}
+	columnLabels = sortedLabels
+	columnKeys = sortedKeys
 	// the column mapping keys are the header line for the csv
 	headerLine := append([]string{}, columnLabels...)
 	csvGrid = append(csvGrid, headerLine)
