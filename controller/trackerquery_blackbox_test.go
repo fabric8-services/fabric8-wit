@@ -270,9 +270,12 @@ func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
 	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
 
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+	_, tq1 := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+	assert.NotNil(rest.T(), tq1)
 
-	test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
-	test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+	tqpayload2 := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+	_, tq2 := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload2)
+	assert.NotNil(rest.T(), tq2)
 
 	_, list := test.ListTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, nil, nil)
 	assert.NotNil(rest.T(), list.Data)

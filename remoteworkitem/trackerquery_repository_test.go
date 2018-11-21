@@ -212,20 +212,32 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 
 	trackerqueries1, _ := test.queryRepo.List(ctx)
 
+	// create tracker
 	tracker1 := remoteworkitem.Tracker{
 		URL:  "http://api.github.com",
 		Type: remoteworkitem.ProviderGithub,
 	}
 	err := test.trackerRepo.Create(ctx, &tracker1)
 	assert.Nil(t, err)
-	tq := remoteworkitem.TrackerQuery{
+
+	// create tracker queries
+	tq1 := remoteworkitem.TrackerQuery{
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
 		Schedule:  "15 * * * * *",
 		TrackerID: tracker1.ID,
 		SpaceID:   testFxt.Spaces[0].ID,
 	}
-	test.queryRepo.Create(ctx, &tq)
-	test.queryRepo.Create(ctx, &tq)
+	err = test.queryRepo.Create(ctx, &tq1)
+	assert.Nil(t, err)
+
+	tq2 := remoteworkitem.TrackerQuery{
+		Query:     "is:open is:issue user:arquillian",
+		Schedule:  "15 * * * * *",
+		TrackerID: tracker1.ID,
+		SpaceID:   testFxt.Spaces[0].ID,
+	}
+	err = test.queryRepo.Create(ctx, &tq2)
+	assert.Nil(t, err)
 
 	tracker2 := remoteworkitem.Tracker{
 		URL:  "http://issues.jboss.com",
@@ -233,15 +245,24 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	}
 	err = test.trackerRepo.Create(ctx, &tracker2)
 	assert.Nil(t, err)
-	tq = remoteworkitem.TrackerQuery{
+
+	tq3 := remoteworkitem.TrackerQuery{
 		Query:     "project = ARQ AND text ~ 'arquillian'",
 		Schedule:  "15 * * * * *",
 		TrackerID: tracker2.ID,
 		SpaceID:   testFxt.Spaces[0].ID,
 	}
-	test.queryRepo.Create(ctx, &tq)
-	tq.Query = "project = ARQ AND text ~ 'javadoc'"
-	test.queryRepo.Create(ctx, &tq)
+	err = test.queryRepo.Create(ctx, &tq3)
+	assert.Nil(t, err)
+
+	tq4 := remoteworkitem.TrackerQuery{
+		Query:     "project = ARQ AND text ~ 'javadoc'",
+		Schedule:  "15 * * * * *",
+		TrackerID: tracker2.ID,
+		SpaceID:   testFxt.Spaces[0].ID,
+	}
+	err = test.queryRepo.Create(ctx, &tq4)
+	assert.Nil(t, err)
 
 	trackerqueries2, _ := test.queryRepo.List(ctx)
 	assert.Equal(t, len(trackerqueries1)+4, len(trackerqueries2))
