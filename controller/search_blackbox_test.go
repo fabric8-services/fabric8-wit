@@ -148,7 +148,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			require.Equal(t, "text/csv", rw.Header().Get("Content-Type"))
 			require.NotEmpty(t, rw.Header().Get("Content-Disposition"))
 			// extract time string from filename returned in the header
-			r, _ := regexp.Compile("^attachment; filename='workitems-(.*)\\.csv'$")
+			r, _ := regexp.Compile(`^attachment; filename='workitems-(.*)\.csv'$`)
 			timeStr := r.FindStringSubmatch(rw.Header().Get("Content-Disposition"))[1]
 			// parse the time string, make sure it is a real date according to RFC3339
 			parsedTime, err := time.Parse(time.RFC3339, timeStr)
