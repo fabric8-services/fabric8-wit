@@ -190,7 +190,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
 	assert.NotNil(rest.T(), tqresult)
 }
 
-func (rest *TestTrackerQueryREST) TestGetTrackerQuery() {
+func (rest *TestTrackerQueryREST) TestShowTrackerQuery() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
