@@ -23,21 +23,34 @@ import (
 
 var updateGoldenFiles = flag.Bool("update", false, "when set, rewrite the golden files")
 
+// CompareOptions define how the comparison will take place
+type CompareOptions struct {
+	// Whether or not to ignore UUIDs when comparing or writing the golden file
+	// to disk
+	UUIDAgnostic bool
+	// Whether or not to ignore date/times when comparing or writing the golden
+	// file to disk
+	DateTimeAgnostic bool
+	// Whether or not to call JSON marshall on the actual object before
+	// comparing it against the content of the golden file or writing to the
+	// golden file. If this is false, then we will treat the actual object as a
+	// []byte or string.
+	MarshalInputAsJSON bool
+}
+
 // compareWithGolden compares the actual object against the one from a golden
-// file. The comparison is done by marshalling the output to JSON and comparing
-// on string level If the comparison fails, the given test will fail. If the
-// -update flag is given, that golden file is overwritten with the current
-// actual object. When adding new tests you first must run them with the -update
-// flag in order to create an initial golden version.
-func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, false)
+// file. If the comparison fails, the given test will fail. If the -update flag
+// is given, that golden file is overwritten with the current actual object.
+// When adding new tests you first must run them with the -update flag in order
+// to create an initial golden version.
+func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}, opts CompareOptions) {
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, opts)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 }
 
-// compareWithGoldenAgnostic does the same as compareWithGolden but after
-// marshalling the given objects to a JSON string it replaces UUIDs in both
+// compareWithGoldenAgnostic does the same as compareWithGolden but it replaces UUIDs in both
 // strings (the golden file as well as in the actual object) before comparing
 // the two strings. This should make the comparison UUID agnostic without
 // loosing the locality comparison. In other words, that means we replace each
@@ -48,7 +61,11 @@ func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
 // In addition to UUID replacement, we also replace all RFC3339 time strings
 // with "0001-01-01T00:00:00Z".
 func compareWithGoldenAgnostic(t *testing.T, goldenFile string, actualObj interface{}) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, true)
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, CompareOptions{
+		UUIDAgnostic:       true,
+		DateTimeAgnostic:   true,
+		MarshalInputAsJSON: true,
+	})
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -57,7 +74,10 @@ func compareWithGoldenAgnostic(t *testing.T, goldenFile string, actualObj interf
 // compareWithGoldenAgnosticUUID is only agnostic to UUIDs apart from that it is
 // the same as compareWithGoldenAgnostic.
 func compareWithGoldenAgnosticUUID(t *testing.T, goldenFile string, actualObj interface{}) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, false)
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, CompareOptions{
+		UUIDAgnostic:       true,
+		MarshalInputAsJSON: true,
+	})
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -66,20 +86,29 @@ func compareWithGoldenAgnosticUUID(t *testing.T, goldenFile string, actualObj in
 // compareWithGoldenAgnosticTime is only agnostic to times apart from that it is
 // the same as compareWithGoldenAgnostic.
 func compareWithGoldenAgnosticTime(t *testing.T, goldenFile string, actualObj interface{}) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, true)
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, CompareOptions{
+		DateTimeAgnostic:   true,
+		MarshalInputAsJSON: true,
+	})
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 }
 
-func testableCompareWithGolden(update bool, goldenFile string, actualObj interface{}, uuidAgnostic bool, timeAgnostic bool) error {
+func testableCompareWithGolden(update bool, goldenFile string, actualObj interface{}, opts CompareOptions) error {
 	absPath, err := filepath.Abs(goldenFile)
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	actual, err := json.MarshalIndent(actualObj, "", "  ")
-	if err != nil {
-		return errs.WithStack(err)
+	var actual []byte
+	if opts.MarshalInputAsJSON {
+		var err error
+		actual, err = json.MarshalIndent(actualObj, "", "  ")
+		if err != nil {
+			return errs.WithStack(err)
+		}
+	} else {
+		actual = []byte(actual)
 	}
 	if update {
 		// Make sure the directory exists where to write the file to
@@ -91,13 +120,13 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 		tmp := string(actual)
 		// Eliminate concrete UUIDs if requested. This makes adding changes to
 		// golden files much more easy in git.
-		if uuidAgnostic {
+		if opts.UUIDAgnostic {
 			tmp, err = replaceUUIDs(tmp)
 			if err != nil {
 				return errs.Wrap(err, "failed to replace UUIDs with more generic ones")
 			}
 		}
-		if timeAgnostic {
+		if ots.DateTimeAgnostic {
 			tmp, err = replaceTimes(tmp)
 			if err != nil {
 				return errs.Wrap(err, "failed to replace RFC3339 times with default time")
@@ -115,7 +144,7 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 
 	expectedStr := string(expected)
 	actualStr := string(actual)
-	if uuidAgnostic {
+	if opts.UUIDAgnostic {
 		expectedStr, err = replaceUUIDs(expectedStr)
 		if err != nil {
 			return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
@@ -125,7 +154,7 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 			return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
 		}
 	}
-	if timeAgnostic {
+	if opts.DateTimeAgnostic {
 		expectedStr, err = replaceTimes(expectedStr)
 		if err != nil {
 			return errs.Wrap(err, "failed to replace RFC3339 times with default time")
@@ -383,14 +412,28 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 		CreatedAt time.Time
 	}
 	dummy := Foo{Bar: "hello world", ID: uuid.NewV4()}
+	dummyStr := uuid.NewV4().String()
 
-	agnosticVals := []bool{false, true}
+	agnosticOpts := []CompareOptions{
+		{UUIDAgnostic: true, DateTimeAgnostic: true, MarshalInputAsJSON: true},
+		{UUIDAgnostic: true, DateTimeAgnostic: true, MarshalInputAsJSON: false},
+		{UUIDAgnostic: true, DateTimeAgnostic: false, MarshalInputAsJSON: true},
+		{UUIDAgnostic: true, DateTimeAgnostic: false, MarshalInputAsJSON: false},
+		{UUIDAgnostic: false, DateTimeAgnostic: true, MarshalInputAsJSON: true},
+		{UUIDAgnostic: false, DateTimeAgnostic: true, MarshalInputAsJSON: false},
+		{UUIDAgnostic: false, DateTimeAgnostic: false, MarshalInputAsJSON: true},
+		{UUIDAgnostic: false, DateTimeAgnostic: false, MarshalInputAsJSON: false},
+	}
 	for _, agnostic := range agnosticVals {
 		t.Run("file not found", func(t *testing.T) {
 			// given
 			f := "not_existing_file.golden.json"
 			// when
-			err := testableCompareWithGolden(false, f, dummy, agnostic, agnostic)
+			actualObj := dummy
+			if !opts.MarshalInputAsJSON {
+				actualObj = dummyStr
+			}
+			err := testableCompareWithGolden(false, f, data, opts)
 			// then
 			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
@@ -400,7 +443,11 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// given
 			f := "not/existing/folder/file.golden.json"
 			// when
-			err := testableCompareWithGolden(true, f, dummy, agnostic, agnostic)
+			data := dummy
+			if !opts.MarshalInputAsJSON {
+				data = dummyStr
+			}
+			err := testableCompareWithGolden(true, f, data, opts)
 			// then
 			// then double check that file exists and no error occurred
 			require.NoError(t, err)
@@ -412,7 +459,11 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// given
 			f := "test-files/codebase/show/ok_without_auth.golden.json"
 			// when
-			err := testableCompareWithGolden(false, f, dummy, agnostic, agnostic)
+			data := dummy
+			if !opts.MarshalInputAsJSON {
+				data = dummyStr
+			}
+			err := testableCompareWithGolden(false, f, data, opts)
 			// then
 			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
@@ -436,13 +487,13 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 		t.Run("comparing with the same object", func(t *testing.T) {
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, false, false)
+				err = testableCompareWithGolden(false, f, dummy, CompareOptions{MarshalInputAsJSON: true})
 				// then
 				require.NoError(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, true, true)
+				err = testableCompareWithGolden(false, f, dummy, CompareOptions{UUIDAgnostic: true, DateTimeAgnostic: true, MarshalInputAsJSON: true})
 				// then
 				require.NoError(t, err)
 			})
@@ -451,13 +502,13 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			dummy.ID = uuid.NewV4()
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, false, false)
+				err = testableCompareWithGolden(false, f, dummy, CompareOptions{MarshalInputAsJSON: true})
 				// then
 				require.Error(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, true, true)
+				err = testableCompareWithGolden(false, f, dummy, CompareOptions{UUIDAgnostic: true, DateTimeAgnostic: true, MarshalInputAsJSON: true})
 				// then
 				require.NoError(t, err)
 			})
@@ -466,13 +517,13 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			dummy.CreatedAt = time.Now()
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, false, false)
+				err = testableCompareWithGolden(false, f, dummy, CompareOptions{MarshalInputAsJSON: true})
 				// then
 				require.Error(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, true, true)
+				err = testableCompareWithGolden(false, f, dummy, CompareOptions{UUIDAgnostic: true, DateTimeAgnostic: true, MarshalInputAsJSON: true})
 				// then
 				require.NoError(t, err)
 			})
