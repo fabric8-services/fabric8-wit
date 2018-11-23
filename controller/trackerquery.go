@@ -48,6 +48,9 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 	err = validateCreateTrackerQueryPayload(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		trackerQuery := remoteworkitem.TrackerQuery{
 			ID:        *ctx.Payload.Data.ID,
