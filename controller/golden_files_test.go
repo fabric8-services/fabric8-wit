@@ -23,7 +23,8 @@ import (
 
 var updateGoldenFiles = flag.Bool("update", false, "when set, rewrite the golden files")
 
-// CompareOptions define how the comparison will take place
+// CompareOptions define how the comparison and golden file generation will take
+// place
 type CompareOptions struct {
 	// Whether or not to ignore UUIDs when comparing or writing the golden file
 	// to disk
@@ -50,11 +51,12 @@ func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}, o
 	}
 }
 
-// compareWithGoldenAgnostic does the same as compareWithGolden but it replaces UUIDs in both
-// strings (the golden file as well as in the actual object) before comparing
-// the two strings. This should make the comparison UUID agnostic without
-// loosing the locality comparison. In other words, that means we replace each
-// UUID with a more generic "00000000-0000-0000-0000-000000000001",
+// compareWithGoldenAgnostic does the same as compareWithGolden but it replaces
+// UUIDs in both strings (the golden file as well as in the actual object)
+// before comparing the two strings. This should make the comparison UUID
+// agnostic without loosing the locality comparison. In other words, that means
+// we replace each UUID with a more generic
+// "00000000-0000-0000-0000-000000000001",
 // "00000000-0000-0000-0000-000000000002", ...,
 // "00000000-0000-0000-0000-00000000000N" value.
 //
