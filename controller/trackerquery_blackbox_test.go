@@ -31,7 +31,6 @@ type TestTrackerQueryREST struct {
 	gormtestsupport.DBTestSuite
 	RwiScheduler *remoteworkitem.Scheduler
 	db           *gormapplication.GormDB
-	clean        func()
 }
 
 func TestRunTrackerQueryREST(t *testing.T) {
@@ -43,10 +42,6 @@ func (rest *TestTrackerQueryREST) SetupTest() {
 	rest.RwiScheduler = remoteworkitem.NewScheduler(rest.DB)
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestTrackerQueryREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestTrackerQueryREST) SecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
