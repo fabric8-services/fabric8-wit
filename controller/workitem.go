@@ -582,6 +582,10 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	// the columns with a stable order
 	columnKeys := []string{}
 	columnLabels := []string{}
+	// add the WIT name manually
+	const witNameKey = "_type"
+	columnKeys = append(columnKeys, witNameKey)
+	columnLabels = append(columnLabels, "_Type")
 	alreadyProcessedWITs := id.Map{}
 	for _, wit := range wits {
 		// we only process each WIT once
@@ -634,18 +638,19 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	headerLine := append([]string{}, columnLabels...)
 	csvGrid = append(csvGrid, headerLine)
 	// now iterate over the work items and retrieve the values according to the column mapping
-	for i := 0; i < len(wis); i++ {
+	for idx, thisWI := range wis {
 		wiLine := []string{}
 		// for each work item, iterate over the column mapping and retrieve values
-		fieldKeyValueMap, err := convertWorkItemFieldValues(ctx, app, &uuidStringCache, wits[i], wis[i])
+		fieldKeyValueMap, err := convertWorkItemFieldValues(ctx, app, &uuidStringCache, wits[idx], thisWI)
 		if err != nil {
-			return "", errs.Wrapf(err, "failed to retrieve field values for work item: %s", wis[i].ID)
+			return "", errs.Wrapf(err, "failed to retrieve field values for work item: %s", thisWI.ID)
 		}
-		for i := 0; i < len(columnKeys); i++ {
-			columnKey := columnKeys[i]
-			// check if this wi has the current column key
-			if fieldValue, ok := fieldKeyValueMap[columnKey]; ok {
-				// this column can be filled from the work item
+		for _, columnKey := range columnKeys {
+			// if this is the WIT type name key, set it
+			if columnKey == witNameKey {
+				wiLine = append(wiLine, wits[idx].Name)
+			} else if fieldValue, ok := fieldKeyValueMap[columnKey]; ok {
+				// key exists, this column can be filled from the work item
 				wiLine = append(wiLine, fieldValue)
 			} else {
 				// this column is not available in the work item, add an empty string

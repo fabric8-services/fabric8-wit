@@ -157,6 +157,25 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			assert.WithinDuration(t, time.Now().UTC(), parsedTime, 10*time.Second)
 		})
 	})
+	s.T().Run("multiple result", func(t *testing.T) {
+		fxt := newFixture(t, 5)
+		// when
+		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
+		rr := httptest.NewRecorder()
+		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
+		rw := test.WorkitemsCSVSearchOK(t, goaCtx, s.svc, s.controller, &filter, nil, nil, nil)
+		// then
+		recorder := rw.(*httptest.ResponseRecorder)
+		recorder.Flush()
+		require.NotNil(t, recorder.Body)
+		bodyStr := recorder.Body.String()
+		// deserialize and check consistency of header and entity lines.
+		entities, err := deserialize(bodyStr)
+		require.NoError(t, err)
+		require.Len(t, entities, 5)
+		compareWithGoldenOpts(t, filepath.Join(s.testDir, "csv", "ok-multi.res.payload.golden.csv"), bodyStr, compareOptions{UUIDAgnostic: true, DateTimeAgnostic: true})
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok-multi.res.headers.golden.json"), rw.Header())
+	})
 	s.T().Run("empty result", func(t *testing.T) {
 		newFixture(t, 1)
 		// when giving a non-existing SpaceID
