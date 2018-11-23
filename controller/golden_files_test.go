@@ -110,7 +110,7 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 			return errs.WithStack(err)
 		}
 	} else {
-		switch t := actual.(type) {
+		switch t := actualObj.(type) {
 		case []byte:
 			actual = t
 		case string:
@@ -133,7 +133,7 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 				return errs.Wrap(err, "failed to replace UUIDs with more generic ones")
 			}
 		}
-		if ots.DateTimeAgnostic {
+		if opts.DateTimeAgnostic {
 			tmp, err = replaceTimes(tmp)
 			if err != nil {
 				return errs.Wrap(err, "failed to replace RFC3339 times with default time")
@@ -431,14 +431,14 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 		{UUIDAgnostic: false, DateTimeAgnostic: false, MarshalInputAsJSON: true},
 		{UUIDAgnostic: false, DateTimeAgnostic: false, MarshalInputAsJSON: false},
 	}
-	for _, agnostic := range agnosticVals {
+	for _, opts := range agnosticOpts {
 		t.Run("file not found", func(t *testing.T) {
 			// given
 			f := "not_existing_file.golden.json"
 			// when
-			actualObj := dummy
+			var data interface{} = dummy
 			if !opts.MarshalInputAsJSON {
-				actualObj = dummyStr
+				data = dummyStr
 			}
 			err := testableCompareWithGolden(false, f, data, opts)
 			// then
@@ -450,7 +450,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// given
 			f := "not/existing/folder/file.golden.json"
 			// when
-			data := dummy
+			var data interface{} = dummy
 			if !opts.MarshalInputAsJSON {
 				data = dummyStr
 			}
@@ -466,7 +466,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// given
 			f := "test-files/codebase/show/ok_without_auth.golden.json"
 			// when
-			data := dummy
+			var data interface{} = dummy
 			if !opts.MarshalInputAsJSON {
 				data = dummyStr
 			}
