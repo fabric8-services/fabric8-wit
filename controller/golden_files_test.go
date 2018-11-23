@@ -44,8 +44,8 @@ type CompareOptions struct {
 // is given, that golden file is overwritten with the current actual object.
 // When adding new tests you first must run them with the -update flag in order
 // to create an initial golden version.
-func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}, opts CompareOptions) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, opts)
+func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, CompareOptions{MarshalInputAsJSON: true})
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
