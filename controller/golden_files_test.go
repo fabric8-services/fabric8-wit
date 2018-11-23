@@ -110,7 +110,12 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 			return errs.WithStack(err)
 		}
 	} else {
-		actual = []byte(actual)
+		switch t := actual.(type) {
+		case []byte:
+			actual = t
+		case string:
+			actual = []byte(t)
+		}
 	}
 	if update {
 		// Make sure the directory exists where to write the file to
