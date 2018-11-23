@@ -134,7 +134,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			require.Equal(t, fxt.WorkItems[0].Fields[workitem.SystemTitle], entities[0]["Title"])
 		})
 		t.Run("golden file", func(t *testing.T) {
-			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok.res.payload.golden.csv"), bodyStr)
+			compareWithGoldenOpts(t, filepath.Join(s.testDir, "csv", "ok.res.payload.golden.csv"), bodyStr, compareOptions{UUIDAgnostic: true, DateTimeAgnostic: true})
 			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok.res.headers.golden.json"), rw.Header())
 		})
 		t.Run("compound type", func(t *testing.T) {
