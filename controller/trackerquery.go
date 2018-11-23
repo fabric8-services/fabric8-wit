@@ -110,7 +110,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 
 		tq, err := appl.TrackerQueries().Load(ctx.Context, *ctx.Payload.Data.ID)
 		if err != nil {
-			return err
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		if &ctx.Payload.Data.Attributes.Query != nil {
 			tq.Query = ctx.Payload.Data.Attributes.Query
@@ -122,9 +122,8 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 			tq.TrackerID = uuid.FromStringOrNil(*ctx.Payload.Data.Relationships.Tracker.Data.ID)
 		}
 		_, err = appl.TrackerQueries().Save(ctx.Context, *tq)
-
 		if err != nil {
-			return err
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		res := &app.TrackerQuerySingle{
 			Data: convertTrackerQuery(appl, ctx.Request, *tq),
@@ -148,7 +147,7 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			return nil
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return appl.TrackerQueries().Delete(ctx.Context, tq.ID)
 	})
