@@ -122,12 +122,12 @@ func (m *GormCommentRepository) Delete(ctx context.Context, commentID uuid.UUID,
 	if err := tx.Error; err != nil {
 		return errors.NewInternalError(ctx, err)
 	}
-	m.db.Delete(c)
 	// save a revision of the deleted comment
 	if err := m.revisionRepository.Create(ctx, suppressorID, RevisionTypeDelete, c); err != nil {
 		return errs.Wrapf(err, "error while deleting work item")
 	}
-	return nil
+	tx = m.db.Delete(c)
+	return tx.Error
 }
 
 // List all comments related to a single item

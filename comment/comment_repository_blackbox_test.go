@@ -54,17 +54,20 @@ func (s *TestCommentRepository) createComments(comments []*comment.Comment, crea
 
 func (s *TestCommentRepository) TestCreateCommentWithParentComment() {
 	// parent comment
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
-	parentComment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
-	s.repo.Create(s.Ctx, parentComment, fxt.Identities[0].ID)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1))
+	_ = fxt
+	parentComment := newComment(fxt.WorkItems[0].ID, "Test A", rendering.SystemMarkupMarkdown)
+	err := s.repo.Create(s.Ctx, parentComment, fxt.Identities[0].ID)
+	require.NoError(s.T(), err)
 	// child comments
-	childComment := newComment(uuid.NewV4(), "Test Child A", rendering.SystemMarkupMarkdown)
+	childComment := newComment(fxt.WorkItems[0].ID, "Test Child A", rendering.SystemMarkupMarkdown)
 	childComment.ParentCommentID = id.NullUUID{
 		UUID:  parentComment.ID,
 		Valid: true,
 	}
 	// when
-	s.repo.Create(s.Ctx, childComment, fxt.Identities[0].ID)
+	err = s.repo.Create(s.Ctx, childComment, fxt.Identities[0].ID)
+	require.NoError(s.T(), err)
 	// then
 	require.NotNil(s.T(), childComment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), childComment.CreatedAt, "Comment was not created")
@@ -74,7 +77,7 @@ func (s *TestCommentRepository) TestCreateCommentWithParentComment() {
 	// now retrieving the stored child comment again and see if the parent reference was stored
 	var resultComment *comment.Comment
 	// when
-	resultComment, err := s.repo.Load(s.Ctx, childComment.ID)
+	resultComment, err = s.repo.Load(s.Ctx, childComment.ID)
 	// then
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), resultComment.ParentCommentID, "Parent comment id was not set, ID nil")

@@ -465,6 +465,9 @@ func GetMigrations() Migrations {
 	// Version 109
 	m = append(m, steps{ExecuteSQLFile("109-number-column-for-iteration.sql")})
 
+	// Version 110
+	m = append(m, steps{ExecuteSQLFile("110-cascading-soft-delete.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -565,7 +568,7 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 	// Apply all the updates of the next version
 	for j := range m[*nextVersion] {
 		if err := m[*nextVersion][j](tx); err != nil {
-			return errs.Errorf("failed to execute migration of step %d of version %d: %s\n", j, *nextVersion, err)
+			return errs.Errorf("failed to execute migration step %d of version %d: %s\n", j, *nextVersion, err)
 		}
 	}
 
