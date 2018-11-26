@@ -2,9 +2,10 @@
   "data": [
     {
       "attributes": {
-        "name": "system_state",
+        "name": "system.state",
         "newValue": "resolved",
         "oldValue": "new",
+        "onField": "system_state",
         "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },

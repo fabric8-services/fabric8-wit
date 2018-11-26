@@ -2,9 +2,9 @@
   "data": [
     {
       "attributes": {
-        "event_name": "float_single",
         "name": "float_single",
         "newValue": 0.1,
+        "onField": "float_single",
         "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },
@@ -34,10 +34,10 @@
     },
     {
       "attributes": {
-        "event_name": "float_single",
         "name": "float_single",
         "newValue": -1111.1,
         "oldValue": 0.1,
+        "onField": "float_single",
         "revisionId": "00000000-0000-0000-0000-000000000005",
         "timestamp": "0001-01-01T00:00:00Z"
       },

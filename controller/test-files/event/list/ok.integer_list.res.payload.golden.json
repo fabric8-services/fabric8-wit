@@ -2,12 +2,12 @@
   "data": [
     {
       "attributes": {
-        "event_name": "integer_list",
         "name": "integer_list",
         "newValue": [
           0,
           333
         ],
+        "onField": "integer_list",
         "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },
@@ -37,7 +37,6 @@
     },
     {
       "attributes": {
-        "event_name": "integer_list",
         "name": "integer_list",
         "newValue": [
           333,
@@ -47,6 +46,7 @@
           0,
           333
         ],
+        "onField": "integer_list",
         "revisionId": "00000000-0000-0000-0000-000000000005",
         "timestamp": "0001-01-01T00:00:00Z"
       },

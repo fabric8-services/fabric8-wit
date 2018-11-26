@@ -2,12 +2,12 @@
   "data": [
     {
       "attributes": {
-        "event_name": "markup_single",
         "name": "markup_single",
         "newValue": {
           "content": "plain text",
           "markup": "PlainText"
         },
+        "onField": "markup_single",
         "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },
@@ -37,7 +37,6 @@
     },
     {
       "attributes": {
-        "event_name": "markup_single",
         "name": "markup_single",
         "newValue": {
           "content": "default",
@@ -47,6 +46,7 @@
           "content": "plain text",
           "markup": "PlainText"
         },
+        "onField": "markup_single",
         "revisionId": "00000000-0000-0000-0000-000000000005",
         "timestamp": "0001-01-01T00:00:00Z"
       },
