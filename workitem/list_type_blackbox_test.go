@@ -193,7 +193,7 @@ func TestListType_ConvertToStringSlice(t *testing.T) {
 	tests := []struct {
 		name           string
 		list           ListType
-		defVal         interface{}
+		input          interface{}
 		expectedOutput []string
 		wantErr        bool
 	}{
@@ -203,6 +203,14 @@ func TestListType_ConvertToStringSlice(t *testing.T) {
 				ComponentType: SimpleType{Kind: KindString},
 			},
 			[]interface{}{},
+			[]string{},
+			false},
+		{"convert nil value",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			nil,
 			[]string{},
 			false},
 		{"convert single value",
@@ -290,7 +298,7 @@ func TestListType_ConvertToStringSlice(t *testing.T) {
 		tt := tt // needed for parallel running to capture range
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			output, err := tt.list.ConvertToStringSlice(tt.defVal)
+			output, err := tt.list.ConvertToStringSlice(tt.input)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

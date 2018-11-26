@@ -700,7 +700,7 @@ func convertWorkItemFieldValues(ctx context.Context, app application.Application
 		if err != nil {
 			return nil, errs.Wrapf(err, "failed to convert type value to string for field key: %s", fieldKey)
 		}
-		var convertedValue *string
+		var convertedValue string
 		// now retrieve and, if needed, resolve the id value.
 		switch fieldType.(type) {
 		case workitem.ListType:
@@ -712,10 +712,10 @@ func convertWorkItemFieldValues(ctx context.Context, app application.Application
 				if err != nil {
 					return nil, errs.Wrapf(err, "failed to convert compound type value to string for field key: %s", fieldKey)
 				}
-				converted = converted + delim + *elemConvertedValue
+				converted = converted + delim + elemConvertedValue
 				delim = ";"
 			}
-			convertedValue = ptr.String(converted)
+			convertedValue = converted
 		case workitem.EnumType:
 			kind := fieldType.(workitem.EnumType).BaseType.Kind
 			convertedValue, err = convertValueToString(ctx, app, uuidStringCache, fieldValueGeneric, fieldValueStrSlice, fieldKey, kind)
@@ -727,87 +727,87 @@ func convertWorkItemFieldValues(ctx context.Context, app application.Application
 		if err != nil {
 			return nil, errs.Wrapf(err, "failed to resolve type value to string for field key: %s", fieldKey)
 		}
-		fieldMap[fieldKey] = *convertedValue
+		fieldMap[fieldKey] = convertedValue
 	}
 	return fieldMap, nil
 }
 
 // convertValueToString converts a value to a string. This includes ID resolving if needed.
-func convertValueToString(ctx context.Context, app application.Application, uuidStringCache *map[string]string, fieldValueGeneric interface{}, fieldValueStrSlice []string, fieldKey string, kind workitem.Kind) (*string, error) {
+func convertValueToString(ctx context.Context, app application.Application, uuidStringCache *map[string]string, fieldValueGeneric interface{}, fieldValueStrSlice []string, fieldKey string, kind workitem.Kind) (string, error) {
 	if fieldValueGeneric != nil && len(fieldValueStrSlice) == 1 {
 		switch kind {
 		case workitem.KindUser:
 			cachedValue, ok := (*uuidStringCache)[fieldValueStrSlice[0]]
 			if ok {
-				return ptr.String(cachedValue), nil
+				return cachedValue, nil
 			}
 			userID, err := uuid.FromString(fieldValueStrSlice[0])
 			if err != nil {
-				return nil, errs.Wrapf(err, "failed to convert user type value to string for field key: %s, value %s", fieldKey, fieldValueStrSlice[0])
+				return "", errs.Wrapf(err, "failed to convert user type value to string for field key: %s, value %s", fieldKey, fieldValueStrSlice[0])
 			}
 			user, err := app.Identities().Load(ctx, userID)
 			if err != nil {
-				return nil, errs.Wrapf(err, "failed to retrieve user for field key: %s", fieldKey)
+				return "", errs.Wrapf(err, "failed to retrieve user for field key: %s", fieldKey)
 			}
 			(*uuidStringCache)[fieldValueStrSlice[0]] = user.Username
-			return ptr.String(user.Username), nil
+			return user.Username, nil
 		case workitem.KindIteration:
 			cachedValue, ok := (*uuidStringCache)[fieldValueStrSlice[0]]
 			if ok {
-				return ptr.String(cachedValue), nil
+				return cachedValue, nil
 			}
 			iterationID, err := uuid.FromString(fieldValueStrSlice[0])
 			if err != nil {
-				return nil, errs.Wrapf(err, "failed to convert iteration type value to string for field key: %s", fieldKey)
+				return "", errs.Wrapf(err, "failed to convert iteration type value to string for field key: %s", fieldKey)
 			}
 			iteration, err := app.Iterations().Load(ctx, iterationID)
 			if err != nil {
-				return nil, errs.Wrapf(err, "failed to retrieve iteration for field key: %s", fieldKey)
+				return "", errs.Wrapf(err, "failed to retrieve iteration for field key: %s", fieldKey)
 			}
 			(*uuidStringCache)[fieldValueStrSlice[0]] = iteration.Name
-			return ptr.String(iteration.Name), nil
+			return iteration.Name, nil
 		case workitem.KindArea:
 			cachedValue, ok := (*uuidStringCache)[fieldValueStrSlice[0]]
 			if ok {
-				return ptr.String(cachedValue), nil
+				return cachedValue, nil
 			}
 			areaID, err := uuid.FromString(fieldValueStrSlice[0])
 			if err != nil {
-				return nil, errs.Wrapf(err, "failed to convert area type value to string for field key: %s", fieldKey)
+				return "", errs.Wrapf(err, "failed to convert area type value to string for field key: %s", fieldKey)
 			}
 			area, err := app.Areas().Load(ctx, areaID)
 			if err != nil {
-				return nil, errs.Wrapf(err, "failed to retrieve area for field key: %s", fieldKey)
+				return "", errs.Wrapf(err, "failed to retrieve area for field key: %s", fieldKey)
 			}
 			(*uuidStringCache)[fieldValueStrSlice[0]] = area.Name
-			return ptr.String(area.Name), nil
+			return area.Name, nil
 		case workitem.KindLabel:
 			cachedValue, ok := (*uuidStringCache)[fieldValueStrSlice[0]]
 			if ok {
-				return ptr.String(cachedValue), nil
+				return cachedValue, nil
 			}
 			labelID, err := uuid.FromString(fieldValueStrSlice[0])
 			if err != nil {
-				return nil, errs.Wrapf(err, "failed to convert label type value to string for field key: %s", fieldKey)
+				return "", errs.Wrapf(err, "failed to convert label type value to string for field key: %s", fieldKey)
 			}
 			label, err := app.Labels().Load(ctx, labelID)
 			if err != nil {
-				return nil, errs.Wrapf(err, "failed to retrieve label for field key: %s", fieldKey)
+				return "", errs.Wrapf(err, "failed to retrieve label for field key: %s", fieldKey)
 			}
 			(*uuidStringCache)[fieldValueStrSlice[0]] = label.Name
-			return ptr.String(label.Name), nil
+			return label.Name, nil
 		default:
 			// the default case is also used for KindBoardcolumn as resolving the column is not provided by the
 			// factories and the resolved name also has limited use for the exported data.
-			return ptr.String(fieldValueStrSlice[0]), nil
+			return fieldValueStrSlice[0], nil
 		}
 	} else if len(fieldValueStrSlice) == 1 {
 		// the value is nil, we append the returned converted string (which is not nil in this case depending on the baseType!).
 		// this is an extra case because we may want to do some prosprocessing for some types here.
-		return ptr.String(fieldValueStrSlice[0]), nil
+		return fieldValueStrSlice[0], nil
 	} else {
 		// ConvertToStringSlice returned nil/empty array, which is a valid response. We add an empty string in this case.
-		return ptr.String(""), nil
+		return "", nil
 	}
 }
 

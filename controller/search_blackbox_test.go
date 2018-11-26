@@ -95,25 +95,34 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		// return results
 		return result, nil
 	}
-	newFixture := func(t *testing.T, n int) *testfixture.TestFixture {
+	newFixture := func(t *testing.T, n int, multi bool) *testfixture.TestFixture {
 		return tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(),
 			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
 				fxt.Spaces[0].SpaceTemplateID = spacetemplate.SystemAgileTemplateID
 				return nil
 			}),
-			tf.Labels(2, tf.SetLabelNames("important", "backend")),
+			tf.Labels(3, tf.SetLabelNames("important", "backend", "ui")),
 			tf.WorkItems(n, func(fxt *tf.TestFixture, idx int) error {
-				wi := fxt.WorkItems[idx]
-				wi.Type = uuid.FromStringOrNil("2853459d-60ef-4fbe-aaf4-eccb9f554b34") // Task
-				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("important").ID.String(), fxt.LabelByName("backend").ID.String()}
-				wi.Fields[workitem.SystemState] = interface{}("New")
-				wi.Fields["effort"] = 42.0 // Effort is in Task and Defect, will go in same column
+				if multi && idx%2 == 0 {
+					wi := fxt.WorkItems[idx]
+					wi.Type = uuid.FromStringOrNil("fce0921f-ea70-4513-bb91-31d3aa8017f1") // Defect
+					wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("ui").ID.String()}
+					wi.Fields[workitem.SystemState] = interface{}("New")
+					wi.Fields["effort"] = 23.0
+					wi.Fields["severity"] = interface{}("SEV1 - Urgent") // default is SEV3
+				} else {
+					wi := fxt.WorkItems[idx]
+					wi.Type = uuid.FromStringOrNil("2853459d-60ef-4fbe-aaf4-eccb9f554b34") // Task
+					wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("important").ID.String(), fxt.LabelByName("backend").ID.String()}
+					wi.Fields[workitem.SystemState] = interface{}("New")
+					wi.Fields["effort"] = 42.0
+				}
 				return nil
 			}),
 		)
 	}
 	s.T().Run("standard result", func(t *testing.T) {
-		fxt := newFixture(t, 1)
+		fxt := newFixture(t, 1, false)
 		// when
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
 		rr := httptest.NewRecorder()
@@ -133,7 +142,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		t.Run("simple type", func(t *testing.T) {
 			require.Equal(t, fxt.WorkItems[0].Fields[workitem.SystemTitle], entities[0]["Title"])
 		})
-		t.Run("golden file", func(t *testing.T) {
+		t.Run("golden file - single type", func(t *testing.T) {
 			compareWithGoldenOpts(t, filepath.Join(s.testDir, "csv", "ok.res.payload.golden.csv"), bodyStr, compareOptions{UUIDAgnostic: true, DateTimeAgnostic: true})
 			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok.res.headers.golden.json"), rw.Header())
 		})
@@ -158,7 +167,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		})
 	})
 	s.T().Run("multiple result", func(t *testing.T) {
-		fxt := newFixture(t, 5)
+		fxt := newFixture(t, 5, true)
 		// when
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
 		rr := httptest.NewRecorder()
@@ -177,7 +186,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok-multi.res.headers.golden.json"), rw.Header())
 	})
 	s.T().Run("empty result", func(t *testing.T) {
-		newFixture(t, 1)
+		newFixture(t, 1, false)
 		// when giving a non-existing SpaceID
 		filter := fmt.Sprintf(`{"space": "%s"}`, uuid.NewV4().String())
 		rr := httptest.NewRecorder()
@@ -194,7 +203,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		require.Len(t, entities, 0)
 	})
 	s.T().Run("paging", func(t *testing.T) {
-		fxt := newFixture(t, 10)
+		fxt := newFixture(t, 10, false)
 		// when
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
 		rr := httptest.NewRecorder()
