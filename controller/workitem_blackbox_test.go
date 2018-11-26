@@ -1087,7 +1087,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 
 	s.T().Run("disallow update of field along with type", func(t *testing.T) {
 		u.Data.Attributes[workitem.SystemTitle] = "xyz"
-		// TODO (ibrahim) - Check type of error once error 422 has been added.
+		// TODO(ibrahim): Check type of error once error 422 has been added.
 		//https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r210184092
 		test.UpdateWorkitemConflict(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
 	})
