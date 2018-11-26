@@ -1,5 +1,4 @@
-DROP table if exists field_name_map;
-create table field_name_map (
+create temporary table field_name_map (
     old_name text,
     new_name text
 );
@@ -23,6 +22,11 @@ insert into field_name_map values
     ('system.labels',               'system_labels'),
     ('system.boardcolumns',         'system_boardcolumns'),
     ('system.metastate',            'system_metastate');
+
+-- Lock table "work_item_type", "work_item", "work_item_revisions"
+LOCK work_item_types IN EXCLUSIVE MODE;
+LOCK work_items IN EXCLUSIVE MODE;
+LOCK work_item_revisions in EXCLUSIVE MODE;
 
 DO
 $$
