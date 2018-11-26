@@ -92,7 +92,8 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 		Type: event.APIStringTypeEvents,
 		ID:   uuid.NewV4(),
 		Attributes: &app.EventAttributes{
-			Name:       wiEvent.Name,
+			Name:       wiEvent.Name, // TODO(ibrahim): Get rid of Name field once field rename is completed
+			OnField:    wiEvent.Name,
 			Timestamp:  wiEvent.Timestamp,
 			RevisionID: wiEvent.RevisionID,
 		},
@@ -111,6 +112,12 @@ func ConvertEvent(ctx context.Context, appl application.Application, req *http.R
 				},
 			},
 		},
+	}
+
+	// Replace new field name with the old name
+	// TODO(ibrahim): remove this once the field rename is completed.
+	if oldFieldName, ok := workitem.NewToOldFieldNameMap[wiEvent.Name]; ok {
+		e.Attributes.Name = oldFieldName
 	}
 
 	if wiEvent.Name == event.WorkitemTypeChangeEvent {
