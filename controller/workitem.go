@@ -569,11 +569,15 @@ func getVersion(version interface{}) (int, error) {
 // []string object containing a set of CSV formatted data lines and a header line with labels.
 // This methods combines all CSV data of all WITs into a single CSV
 func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wits []workitem.WorkItemType, wis []workitem.WorkItem) (string, error) {
-	// uuidStringCache stores the UUID cache for ID resolvings of the CSV conversion
-	uuidStringCache := map[string]string{}
+	if len(wis) == 0 {
+		// nothing to do
+		return "", nil
+	}
 	if len(wits) != len(wis) {
 		return "", errs.Errorf("length mismatch of work items (%d) and work item types (%d)", len(wis), len(wits))
 	}
+	// uuidStringCache stores the UUID cache for ID resolvings of the CSV conversion
+	uuidStringCache := map[string]string{}
 	// csvGrid holds the final CSV in non-serialized form.
 	csvGrid := [][]string{}
 	// create the global column mapping by iterating over all fields of all WITs
@@ -582,10 +586,6 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	// the columns with a stable order
 	columnKeys := []string{}
 	columnLabels := []string{}
-	// add the WIT name manually
-	const witNameKey = "_type"
-	columnKeys = append(columnKeys, witNameKey)
-	columnLabels = append(columnLabels, "_Type")
 	alreadyProcessedWITs := id.Map{}
 	for _, wit := range wits {
 		// we only process each WIT once
@@ -634,6 +634,10 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	}
 	columnLabels = sortedLabels
 	columnKeys = sortedKeys
+	// add the WIT name manually as the first column
+	const witNameKey = "_type"
+	columnKeys = append([]string{witNameKey}, columnKeys...)
+	columnLabels = append([]string{"_Type"}, columnLabels...)
 	// the column mapping keys are the header line for the csv
 	headerLine := append([]string{}, columnLabels...)
 	csvGrid = append(csvGrid, headerLine)

@@ -414,7 +414,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		// when
 		convertedWIs, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
 		require.NoError(t, err)
-		require.Equal(t, "\n", convertedWIs)
+		require.Equal(t, "", convertedWIs)
 	})
 	rest.T().Run("fail - wrong WI count", func(t *testing.T) {
 		// given
