@@ -249,9 +249,9 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 
 	_, updated := test.UpdateTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, tqr.Data.ID.String(), &payload2)
 	assert.NotNil(t, tqr)
-	assert.Equal(t, updated.Data.ID, tqr.Data.ID)
-	assert.Equal(t, updated.Data.Attributes.Query, "is:open")
-	assert.Equal(t, updated.Data.Attributes.Schedule, "* * * * * *")
+	assert.Equal(t, tqr.Data.ID, updated.Data.ID)
+	assert.Equal(t, "is:open", updated.Data.Attributes.Query)
+	assert.Equal(t, "* * * * * *", updated.Data.Attributes.Schedule)
 }
 
 // This test ensures that List does not return NIL items.
@@ -289,7 +289,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
 
 	_, trackerquery := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 	_, created := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *trackerquery.Data.ID)
-	assert.Equal(t, created.Data.ID, trackerquery.Data.ID)
+	assert.Equal(t, trackerquery.Data.ID, created.Data.ID)
 }
 
 func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID) app.CreateTrackerqueryPayload {
