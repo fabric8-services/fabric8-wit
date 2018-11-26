@@ -7,10 +7,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
@@ -61,7 +61,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		}
 		err := appl.TrackerQueries().Create(ctx.Context, &trackerQuery)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return errs.Wrapf(err, "failed to create tracker query %s", ctx.Payload.Data)
 		}
 		res := &app.TrackerQuerySingle{
 			Data: convertTrackerQuery(appl, ctx.Request, trackerQuery),
@@ -70,7 +70,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		return ctx.Created(res)
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
+		return errs.Wrapf(err, "failed to create tracker query %s", ctx.Payload.Data)
 	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
@@ -82,11 +82,7 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		trackerquery, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"err":             err,
-				"trackerquery_id": ctx.ID,
-			}, "unable to load the tracker query by ID")
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return errs.Wrapf(err, "failed to load tracker query %s", ctx.ID)
 		}
 		result := &app.TrackerQuerySingle{
 			Data: convertTrackerQuery(appl, ctx.Request, *trackerquery),
@@ -110,7 +106,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 
 		tq, err := appl.TrackerQueries().Load(ctx.Context, *ctx.Payload.Data.ID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return errs.Wrapf(err, "failed to update tracker query %s", ctx.Payload.Data.ID)
 		}
 		if &ctx.Payload.Data.Attributes.Query != nil {
 			tq.Query = ctx.Payload.Data.Attributes.Query
@@ -123,7 +119,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		}
 		_, err = appl.TrackerQueries().Save(ctx.Context, *tq)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return errs.Wrapf(err, "failed to update tracker query %s", ctx.Payload.Data.ID)
 		}
 		res := &app.TrackerQuerySingle{
 			Data: convertTrackerQuery(appl, ctx.Request, *tq),
@@ -131,7 +127,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		return ctx.OK(res)
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
+		return errs.Wrapf(err, "failed to update tracker query %s", ctx.Payload.Data.ID)
 	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
@@ -147,12 +143,12 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return errs.Wrapf(err, "failed to delete tracker query %s", ctx.ID)
 		}
 		return appl.TrackerQueries().Delete(ctx.Context, tq.ID)
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
+		return errs.Wrapf(err, "failed to delete tracker query %s", ctx.ID)
 	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
@@ -164,7 +160,7 @@ func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		trackerqueries, err := appl.TrackerQueries().List(ctx)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return errs.Wrapf(err, "failed to list tracker queries")
 		}
 		res := &app.TrackerQueryList{}
 		res.Data = ConvertTrackerQueries(appl, ctx.Request, trackerqueries)
