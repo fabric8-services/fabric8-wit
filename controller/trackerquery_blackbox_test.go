@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
@@ -41,7 +40,6 @@ func (rest *TestTrackerQueryREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.RwiScheduler = remoteworkitem.NewScheduler(rest.DB)
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 }
 
 func (rest *TestTrackerQueryREST) SecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
@@ -182,12 +180,12 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
 	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
-	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
+	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
-	assert.NotNil(rest.T(), tqresult)
+	assert.NotNil(t, tqresult)
 }
 
 func (rest *TestTrackerQueryREST) TestShowTrackerQuery() {
@@ -196,15 +194,15 @@ func (rest *TestTrackerQueryREST) TestShowTrackerQuery() {
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
 	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
-	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
+	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 
 	_, tqr := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *tqresult.Data.ID)
-	assert.NotNil(rest.T(), tqr)
-	assert.Equal(rest.T(), tqresult.Data.ID, tqr.Data.ID)
+	assert.NotNil(t, tqr)
+	assert.Equal(t, tqresult.Data.ID, tqr.Data.ID)
 }
 
 func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
@@ -213,15 +211,15 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
 	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
-	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
+	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 
 	_, tqr := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *tqresult.Data.ID)
-	assert.NotNil(rest.T(), tqr)
-	assert.Equal(rest.T(), tqresult.Data.ID, tqr.Data.ID)
+	assert.NotNil(t, tqr)
+	assert.Equal(t, tqresult.Data.ID, tqr.Data.ID)
 
 	spaceID := space.SystemSpace.String()
 	trackerID := fxt.Trackers[0].ID.String()
@@ -249,10 +247,10 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	}
 
 	_, updated := test.UpdateTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, tqr.Data.ID.String(), &payload2)
-	assert.NotNil(rest.T(), tqr)
-	assert.Equal(rest.T(), updated.Data.ID, tqr.Data.ID)
-	assert.Equal(rest.T(), updated.Data.Attributes.Query, "is:open")
-	assert.Equal(rest.T(), updated.Data.Attributes.Schedule, "* * * * * *")
+	assert.NotNil(t, tqr)
+	assert.Equal(t, updated.Data.ID, tqr.Data.ID)
+	assert.Equal(t, updated.Data.Attributes.Query, "is:open")
+	assert.Equal(t, updated.Data.Attributes.Schedule, "* * * * * *")
 }
 
 // This test ensures that List does not return NIL items.
@@ -262,18 +260,18 @@ func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
 	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
-	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
+	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 	_, tq1 := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
-	assert.NotNil(rest.T(), tq1)
+	assert.NotNil(t, tq1)
 
 	tqpayload2 := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 	_, tq2 := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload2)
-	assert.NotNil(rest.T(), tq2)
+	assert.NotNil(t, tq2)
 
 	_, list := test.ListTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, nil, nil)
-	assert.NotNil(rest.T(), list.Data)
+	assert.NotNil(t, list.Data)
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -284,13 +282,13 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
 	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
-	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
+	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 
 	_, trackerquery := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 	_, created := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *trackerquery.Data.ID)
-	assert.Equal(rest.T(), created.Data.ID, trackerquery.Data.ID)
+	assert.Equal(t, created.Data.ID, trackerquery.Data.ID)
 }
 
 func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID) app.CreateTrackerqueryPayload {
