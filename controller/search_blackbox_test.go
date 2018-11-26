@@ -64,6 +64,7 @@ func (s *searchControllerTestSuite) SetupTest() {
 }
 
 func (s *searchControllerTestSuite) TestSearchWorkItems() {
+	// TODO(ibrahim): Remove this once database is migrated for field renames.
 	s.T().Skip("Skip this test until database is fixed for field rename. This is also a full text search test")
 	// given
 	q := "specialwordforsearch"
@@ -84,6 +85,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItems() {
 }
 
 func (s *searchControllerTestSuite) TestSearchPagination() {
+	// TODO(ibrahim): Remove this once database is migrated for field renames.
 	s.T().Skip("Skip this test until database is fixed for field rename. This is also a full text search test")
 	// given
 	q := "specialwordforsearch2"
@@ -125,6 +127,7 @@ func (s *searchControllerTestSuite) TestSearchWithEmptyValue() {
 }
 
 func (s *searchControllerTestSuite) TestSearchWithDomainPortCombination() {
+	// TODO(ibrahim): Remove this once database is migrated for field renames.
 	s.T().Skip("Skip this test until database is fixed for field rename. This is also a full text search test")
 	description := "http://localhost:8080/detail/154687364529310 is related issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
@@ -146,6 +149,7 @@ func (s *searchControllerTestSuite) TestSearchWithDomainPortCombination() {
 }
 
 func (s *searchControllerTestSuite) TestSearchURLWithoutPort() {
+	// TODO(ibrahim): Remove this once database is migrated for field renames.
 	s.T().Skip("Skip this test until database is fixed for field rename. This is also a full text search test")
 	description := "This issue is related to http://localhost/detail/876394"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
@@ -167,6 +171,7 @@ func (s *searchControllerTestSuite) TestSearchURLWithoutPort() {
 }
 
 func (s *searchControllerTestSuite) TestUnregisteredURLWithPort() {
+	// TODO(ibrahim): Remove this once database is migrated for field renames.
 	s.T().Skip("Skip this test until database is fixed for field rename. This is also a full text search test")
 
 	description := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
@@ -271,6 +276,7 @@ func (s *searchControllerTestSuite) TestAutoRegisterHostURL() {
 }
 
 func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {
+	// TODO(ibrahim): Remove this once database is migrated for field renames.
 	s.T().Skip("Skip this test until database is fixed for field rename. This is also a full text search test")
 
 	fxt := tf.NewTestFixture(s.T(), s.DB,
@@ -320,6 +326,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {
 }
 
 func (s *searchControllerTestSuite) TestFullTextSearch() {
+	// TODO(ibrahim): Remove this once database is migrated for field renames.
 	s.T().Skip("SKIP Full Text Search tests until database is migrated for field rename")
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.CreateWorkItemEnvironment(),
@@ -341,6 +348,7 @@ func (s *searchControllerTestSuite) TestFullTextSearch() {
 }
 
 func (s *searchControllerTestSuite) TestSearchWorkItemsWithoutSpaceContext() {
+	// TODO(ibrahim): Remove this once database is migrated for field renames.
 	s.T().Skip("Skip this test until database is fixed for field rename. This is also a full text search test")
 
 	// given 2 spaces with 10 workitems in the first and 5 in the second space
