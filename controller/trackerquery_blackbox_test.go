@@ -222,7 +222,7 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	assert.Equal(t, tqresult.Data.ID, tqr.Data.ID)
 
 	spaceID := space.SystemSpace.String()
-	trackerID := fxt.Trackers[0].ID.String()
+	trackerID := fxt.Trackers[0].ID
 	payload2 := app.UpdateTrackerqueryPayload{
 		Data: &app.TrackerQuery{
 			ID: tqr.Data.ID,
@@ -236,9 +236,10 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 						ID: &spaceID,
 					},
 				},
-				Tracker: &app.RelationGeneric{
-					Data: &app.GenericData{
-						ID: &trackerID,
+				Tracker: &app.RelationKindUUID{
+					Data: &app.DataKindUUID{
+						ID:   trackerID,
+						Type: remoteworkitem.APIStringTypeTrackers,
 					},
 				},
 			},
@@ -294,7 +295,6 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
 func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID) app.CreateTrackerqueryPayload {
 	trackerQueryId := uuid.NewV4()
 	space := spaceID.String()
-	tracker := trackerID.String()
 	return app.CreateTrackerqueryPayload{
 		Data: &app.TrackerQuery{
 			ID: &trackerQueryId,
@@ -308,9 +308,10 @@ func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID) app.Cr
 						ID: &space,
 					},
 				},
-				Tracker: &app.RelationGeneric{
-					Data: &app.GenericData{
-						ID: &tracker,
+				Tracker: &app.RelationKindUUID{
+					Data: &app.DataKindUUID{
+						ID:   trackerID,
+						Type: remoteworkitem.APIStringTypeTrackers,
 					},
 				},
 			},

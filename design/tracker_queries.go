@@ -37,7 +37,7 @@ var trackerQueryAttributes = a.Type("TrackerQueryAttributes", func() {
 })
 
 var trackerQueryRelationships = a.Type("TrackerQueryRelations", func() {
-	a.Attribute("tracker", relationGeneric, "This defines the related tracker")
+	a.Attribute("tracker", relationKindUUID, "This defines the related tracker")
 	a.Attribute("space", relationGeneric, "This defines the owning space")
 })
 
