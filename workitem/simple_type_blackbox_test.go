@@ -376,7 +376,7 @@ func getFieldTypeConversionToStringTestData() []stringConvertTestData {
 		}, {
 			"ok - simple type instant",
 			time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC),
-			"1258490098651387237",
+			"2009-11-17T20:34:58Z",
 			SimpleType{Kind: KindInstant},
 			true,
 		}, {
