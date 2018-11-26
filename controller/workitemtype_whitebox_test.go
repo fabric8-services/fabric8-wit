@@ -117,6 +117,7 @@ func TestConvertTypeFromModel(t *testing.T) {
 	assert.Equal(t, expected.Data.Attributes.Fields, result.Attributes.Fields)
 }
 
+// TODO(ibrahim): Remove this test once field name rename is completed
 func TestConvertTypeFromModelFieldNames(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
