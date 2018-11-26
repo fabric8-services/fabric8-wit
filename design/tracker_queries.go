@@ -30,7 +30,7 @@ var trackerQueryAttributes = a.Type("TrackerQueryAttributes", func() {
 	a.Attribute("query", d.String, "search query", func() {
 		a.Example("is:open is:issue")
 	})
-	a.Attribute("schedule", d.String, "Schedule to fetch and import", func() {
+	a.Attribute("schedule", d.String, "Schedule to fetch and import. See also https://godoc.org/github.com/robfig/cron", func() {
 		a.Example("0 0/15 * * * *")
 	})
 	a.Required("query", "schedule")
