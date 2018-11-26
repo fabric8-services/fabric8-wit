@@ -87,14 +87,9 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 			Type:        &ct,
 		}
 		// Add old field name (system.*)
-		// Todo (ibraim) - Remove this once field name migration is completed
+		// TODO(ibraim): Remove this once field name migration is completed
 		if newName, ok := workitem.NewToOldFieldNameMap[name]; ok {
-			converted.Attributes.Fields[newName] = &app.FieldDefinition{
-				Required:    def.Required,
-				Label:       def.Label,
-				Description: def.Description,
-				Type:        &ct,
-			}
+			converted.Attributes.Fields[newName] = converted.Attributes.Fields[name]
 		}
 	}
 	if len(t.ChildTypeIDs) > 0 {
