@@ -159,6 +159,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration107", testMigration107NumberSequencesTable)
 	t.Run("TestMigration108", testMigration108NumberColumnForArea)
 	t.Run("TestMigration109", testMigration109NumberColumnForIteration)
+	t.Run("TestMigration110", testMigration110TrackerQueryID)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1381,6 +1382,21 @@ func testMigration108NumberColumnForArea(t *testing.T) {
 func testMigration109NumberColumnForIteration(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:110], 110)
 	require.True(t, dialect.HasColumn("iterations", "number"))
+}
+
+func testMigration110TrackerQueryID(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:111], 111)
+	exists := func(t *testing.T, table string, constraint_name string) bool {
+		q := fmt.Sprintf("select constraint_name from information_schema.table_constraints where table_name = '%s' and constraint_type = '%s';", table, constraint_name)
+		row := sqlDB.QueryRow(q)
+		require.NotNil(t, row)
+
+		var pkey_constraint string
+		err := row.Scan(&pkey_constraint)
+		require.NoError(t, err, "%+v", err)
+		return pkey_constraint == "trackerqueries_pkey"
+	}
+	require.True(t, exists(t, "tracker_queries", "PRIMARY KEY"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
