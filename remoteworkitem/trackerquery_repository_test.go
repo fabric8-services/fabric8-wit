@@ -45,7 +45,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 
-	testFxt := tf.NewTestFixture(test.T(), test.DB, tf.Spaces(1))
+	testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
 	tq := remoteworkitem.TrackerQuery{
 		Query:     "abc",
@@ -83,7 +83,7 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
-		testFxt := tf.NewTestFixture(test.T(), test.DB, tf.Spaces(1))
+		testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
 		tracker := remoteworkitem.Tracker{
 			URL:  "http://issues.jboss.com",
@@ -123,7 +123,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
-	testFxt := tf.NewTestFixture(test.T(), test.DB, tf.Spaces(1))
+	testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
 	query, err := test.queryRepo.Load(ctx, uuid.NewV4())
 	require.Nil(t, query)
@@ -175,7 +175,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
-	testFxt := tf.NewTestFixture(test.T(), test.DB, tf.Spaces(1))
+	testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
 	err := test.queryRepo.Delete(ctx, uuid.NewV4())
 	require.Error(t, err)
@@ -213,7 +213,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
-	testFxt := tf.NewTestFixture(test.T(), test.DB, tf.Spaces(1))
+	testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
 	trackerqueries1, _ := test.queryRepo.List(ctx)
 
