@@ -41,37 +41,50 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 	t := test.T()
 	resource.Require(t, resource.Database)
 
-	req := &http.Request{Host: "localhost"}
-	params := url.Values{}
-	ctx := goa.NewContext(context.Background(), nil, req, params)
+	t.Run("tracker query create - fail", func(t *testing.T) {
+		req := &http.Request{Host: "localhost"}
+		params := url.Values{}
+		ctx := goa.NewContext(context.Background(), nil, req, params)
 
-	testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+		testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
-	tq := remoteworkitem.TrackerQuery{
-		Query:     "abc",
-		Schedule:  "xyz",
-		TrackerID: uuid.NewV4(),
-		SpaceID:   testFxt.Spaces[0].ID,
-	}
+		tq := remoteworkitem.TrackerQuery{
+			Query:     "abc",
+			Schedule:  "xyz",
+			TrackerID: uuid.NewV4(),
+			SpaceID:   testFxt.Spaces[0].ID,
+		}
+		err := test.queryRepo.Create(ctx, &tq)
+		require.Error(t, err)
+		assert.IsType(t, errors.InternalError{}, err)
+	})
 
-	err := test.queryRepo.Create(ctx, &tq)
-	require.Error(t, err)
-	assert.IsType(t, errors.InternalError{}, err)
+	t.Run("tracker query create - success", func(t *testing.T) {
+		req := &http.Request{Host: "localhost"}
+		params := url.Values{}
+		ctx := goa.NewContext(context.Background(), nil, req, params)
 
-	tracker := remoteworkitem.Tracker{
-		URL:  "http://issues.jboss.com",
-		Type: remoteworkitem.ProviderJira,
-	}
-	err = test.trackerRepo.Create(ctx, &tracker)
+		tracker := remoteworkitem.Tracker{
+			URL:  "http://issues.jboss.com",
+			Type: remoteworkitem.ProviderJira,
+		}
+		err := test.trackerRepo.Create(ctx, &tracker)
+		testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
-	tq.TrackerID = tracker.ID
+		tq := remoteworkitem.TrackerQuery{
+			Query:     "abc",
+			Schedule:  "xyz",
+			TrackerID: tracker.ID,
+			SpaceID:   testFxt.Spaces[0].ID,
+		}
+		err = test.queryRepo.Create(ctx, &tq)
+		require.NoError(t, err)
 
-	err = test.queryRepo.Create(ctx, &tq)
-	require.NoError(t, err)
+		tq2, err := test.queryRepo.Load(ctx, tq.ID)
+		require.NoError(t, err)
+		assert.Equal(t, tq.ID, tq2.ID)
+	})
 
-	tq2, err := test.queryRepo.Load(ctx, tq.ID)
-	require.NoError(t, err)
-	assert.Equal(t, tq.ID, tq2.ID)
 }
 
 func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
