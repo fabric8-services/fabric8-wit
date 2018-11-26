@@ -365,7 +365,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItem() {
 			oldFieldName, ok := workitem.NewToOldFieldNameMap[attr]
 			if ok {
 				// Check old and new field have the same value
-				assert.Equal(t, convertedWI.Attributes[attr], convertedWI.Attributes[oldFieldName])
+				assert.Equal(t, convertedWI.Attributes[oldFieldName], convertedWI.Attributes[attr])
 				// If the payload had a value, both fields should have this value
 				val, ok := wi.Fields[attr]
 				if ok {

@@ -2,8 +2,7 @@
   "data": [
     {
       "attributes": {
-        "event_name": "system_state",
-        "name": "system.state",
+        "name": "system_state",
         "newValue": "resolved",
         "oldValue": "new",
         "revisionId": "00000000-0000-0000-0000-000000000001",

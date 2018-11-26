@@ -692,6 +692,7 @@ func (s *searchRepositoryBlackboxTest) TestFilter() {
 }
 
 func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
+	// TODO(ibrahim): Remove this once database is migrated for field renames.
 	s.T().Skip("SKIP these tests until database is migrated to support new field names")
 	var start, limit int = 0, 100
 	s.T().Run("by title", func(t *testing.T) {

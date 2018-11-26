@@ -1087,7 +1087,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 
 	s.T().Run("disallow update of field along with type", func(t *testing.T) {
 		u.Data.Attributes[workitem.SystemTitle] = "xyz"
-		// TODO (ibrahim) - Check type of error once error 422 has been added.
+		// TODO(ibrahim): Check type of error once error 422 has been added.
 		//https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r210184092
 		test.UpdateWorkitemConflict(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
 	})
@@ -2284,8 +2284,8 @@ func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI 
 	require.NotNil(t, fetchedWI.Data.Relationships.Labels.Links)
 	assert.Contains(t, *fetchedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Empty(t, fetchedWI.Data.Relationships.Labels.Data)
-	require.NotNil(t, fetchedWI.Data.Relationships.SystemBoardcolumns)
-	assert.Empty(t, fetchedWI.Data.Relationships.SystemBoardcolumns.Data)
+	require.NotNil(t, fetchedWI.Data.Relationships.Boardcolumns)
+	assert.Empty(t, fetchedWI.Data.Relationships.Boardcolumns.Data)
 }
 
 func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (etag string, lastModified string, cacheControl string) {
