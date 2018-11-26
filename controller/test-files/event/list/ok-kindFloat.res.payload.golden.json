@@ -5,6 +5,7 @@
         "name": "myFloatType",
         "newValue": 2.99,
         "oldValue": 1.99,
+        "onField": "myFloatType",
         "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },

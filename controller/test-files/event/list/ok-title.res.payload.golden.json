@@ -2,9 +2,10 @@
   "data": [
     {
       "attributes": {
-        "name": "system_title",
+        "name": "system.title",
         "newValue": "New Title",
         "oldValue": "work item 00000000-0000-0000-0000-000000000001",
+        "onField": "system_title",
         "revisionId": "00000000-0000-0000-0000-000000000002",
         "timestamp": "0001-01-01T00:00:00Z"
       },
