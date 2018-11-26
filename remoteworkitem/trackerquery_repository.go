@@ -69,7 +69,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID uuid.UUID) (*T
 			"err":             tx.Error,
 			"trackerquery_id": ID,
 		}, "unable to load the trackerquery by ID")
-		return nil, errors.NewInternalError(ctx, tx.Error)
+		return nil, errors.NewInternalError(ctx, errs.Wrapf(tx.Error, "failed to load the trackerquery by ID: %s", ID))
 	}
 	return &res, nil
 }
