@@ -152,6 +152,153 @@
             "type": {
               "kind": "instant"
             }
+          },
+          "system_area": {
+            "description": "The area to which the work item belongs",
+            "label": "Area",
+            "required": false,
+            "type": {
+              "kind": "area"
+            }
+          },
+          "system_assignees": {
+            "description": "The users that are assigned to the work item",
+            "label": "Assignees",
+            "required": false,
+            "type": {
+              "componentType": "user",
+              "kind": "list"
+            }
+          },
+          "system_boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
+          "system_codebase": {
+            "description": "Contains codebase attributes to which this WI belongs to",
+            "label": "Codebase",
+            "required": false,
+            "type": {
+              "kind": "codebase"
+            }
+          },
+          "system_created_at": {
+            "description": "The date and time when the work item was created",
+            "label": "Created at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
+          },
+          "system_creator": {
+            "description": "The user that created the work item",
+            "label": "Creator",
+            "required": true,
+            "type": {
+              "kind": "user"
+            }
+          },
+          "system_description": {
+            "description": "A descriptive text of the work item",
+            "label": "Description",
+            "required": false,
+            "type": {
+              "kind": "markup"
+            }
+          },
+          "system_iteration": {
+            "description": "The iteration to which the work item belongs",
+            "label": "Iteration",
+            "required": false,
+            "type": {
+              "kind": "iteration"
+            }
+          },
+          "system_labels": {
+            "description": "List of labels attached to the work item",
+            "label": "Labels",
+            "required": false,
+            "type": {
+              "componentType": "label",
+              "kind": "list"
+            }
+          },
+          "system_metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
+            }
+          },
+          "system_number": {
+            "description": "The unique number that was given to this workitem within its space.",
+            "label": "Number",
+            "required": false,
+            "type": {
+              "kind": "integer"
+            }
+          },
+          "system_order": {
+            "description": "Execution Order of the workitem",
+            "label": "Execution Order",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
+          "system_remote_item_id": {
+            "description": "The ID of the remote work item",
+            "label": "Remote item",
+            "required": false,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system_state": {
+            "description": "The state of the work item",
+            "label": "State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "new",
+                "open",
+                "in progress",
+                "resolved",
+                "closed"
+              ]
+            }
+          },
+          "system_title": {
+            "description": "The title text of the work item",
+            "label": "Title",
+            "required": true,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system_updated_at": {
+            "description": "The date and time when the work item was last updated",
+            "label": "Updated at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
           }
         },
         "icon": "fa fa-question",
@@ -356,6 +503,165 @@
             "type": {
               "kind": "instant"
             }
+          },
+          "system_area": {
+            "description": "The area to which the work item belongs",
+            "label": "Area",
+            "required": false,
+            "type": {
+              "kind": "area"
+            }
+          },
+          "system_assignees": {
+            "description": "The users that are assigned to the work item",
+            "label": "Assignees",
+            "required": false,
+            "type": {
+              "componentType": "user",
+              "kind": "list"
+            }
+          },
+          "system_boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
+          "system_codebase": {
+            "description": "Contains codebase attributes to which this WI belongs to",
+            "label": "Codebase",
+            "required": false,
+            "type": {
+              "kind": "codebase"
+            }
+          },
+          "system_created_at": {
+            "description": "The date and time when the work item was created",
+            "label": "Created at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
+          },
+          "system_creator": {
+            "description": "The user that created the work item",
+            "label": "Creator",
+            "required": true,
+            "type": {
+              "kind": "user"
+            }
+          },
+          "system_description": {
+            "description": "A descriptive text of the work item",
+            "label": "Description",
+            "required": false,
+            "type": {
+              "kind": "markup"
+            }
+          },
+          "system_iteration": {
+            "description": "The iteration to which the work item belongs",
+            "label": "Iteration",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "None",
+                "Done",
+                "Duplicate",
+                "Incomplete Description",
+                "Can not Reproduce",
+                "Deferred",
+                "Won't Fix",
+                "Out of Date",
+                "Verified"
+              ]
+            }
+          },
+          "system_labels": {
+            "description": "List of labels attached to the work item",
+            "label": "Labels",
+            "required": false,
+            "type": {
+              "componentType": "label",
+              "kind": "list"
+            }
+          },
+          "system_metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
+            }
+          },
+          "system_number": {
+            "description": "The unique number that was given to this workitem within its space.",
+            "label": "Number",
+            "required": false,
+            "type": {
+              "kind": "integer"
+            }
+          },
+          "system_order": {
+            "description": "Execution Order of the workitem",
+            "label": "Execution Order",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
+          "system_remote_item_id": {
+            "description": "The ID of the remote work item",
+            "label": "Remote item",
+            "required": false,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system_state": {
+            "description": "The state of the impediment.",
+            "label": "State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "New",
+                "Open",
+                "In Progress",
+                "Resolved",
+                "Closed"
+              ]
+            }
+          },
+          "system_title": {
+            "description": "The title text of the work item",
+            "label": "Title",
+            "required": true,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system_updated_at": {
+            "description": "The date and time when the work item was last updated",
+            "label": "Updated at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
           }
         },
         "icon": "fa fa-stumbleupon",
@@ -442,7 +748,6 @@
               "baseType": "string",
               "kind": "enum",
               "values": [
-                "None",
                 "Done",
                 "Duplicate",
                 "Incomplete Description",
@@ -587,406 +892,6 @@
           },
           "system_state": {
             "description": "The state of the defect.",
-            "label": "State",
-            "required": true,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "New",
-                "Open",
-                "In Progress",
-                "Resolved",
-                "Closed"
-              ]
-            }
-          },
-          "system_title": {
-            "description": "The title text of the work item",
-            "label": "Title",
-            "required": true,
-            "type": {
-              "kind": "string"
-            }
-          },
-          "system_updated_at": {
-            "description": "The date and time when the work item was last updated",
-            "label": "Updated at",
-            "required": false,
-            "type": {
-              "kind": "instant"
-            }
-          }
-        },
-        "icon": "fa fa-bug",
-        "name": "Defect",
-        "updated-at": "0001-01-01T00:00:00Z",
-        "version": 0
-      },
-      "id": "fce0921f-ea70-4513-bb91-31d3aa8017f1",
-      "relationships": {
-        "space": {
-          "data": {
-            "id": "2e0698d8-753e-4cef-bb7c-f027634824a2",
-            "type": "spaces"
-          },
-          "links": {
-            "related": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2",
-            "self": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2"
-          }
-        },
-        "space_template": {
-          "data": {
-            "id": "f405fa41-a8bb-46db-8800-2dbe13da1418",
-            "type": "spacetemplates"
-          },
-          "links": {
-            "related": "http:///api/spacetemplates/f405fa41-a8bb-46db-8800-2dbe13da1418",
-            "self": "http:///api/spacetemplates/f405fa41-a8bb-46db-8800-2dbe13da1418"
-          }
-        }
-      },
-      "type": "workitemtypes"
-    },
-    {
-      "attributes": {
-        "can-construct": true,
-        "created-at": "0001-01-01T00:00:00Z",
-        "description": "Work assigned to team members to implement a story. They are generally measured in units of 0.5 days, for example, four hours, eight hours, sixteen hours.\n",
-        "fields": {
-          "effort": {
-            "description": "The effort needed to implement this user story.\n",
-            "label": "Effort",
-            "required": false,
-            "type": {
-              "kind": "float"
-            }
-          },
-          "system_area": {
-            "description": "The area to which the work item belongs",
-            "label": "Area",
-            "required": false,
-            "type": {
-              "kind": "area"
-            }
-          },
-          "system_assignees": {
-            "description": "The users that are assigned to the work item",
-            "label": "Assignees",
-            "required": false,
-            "type": {
-              "componentType": "user",
-              "kind": "list"
-            }
-          },
-          "system_boardcolumns": {
-            "description": "List of boardcolumns this work item is attached to",
-            "label": "Boardcolumns",
-            "required": false,
-            "type": {
-              "componentType": "boardcolumn",
-              "kind": "list"
-            }
-          },
-          "system_codebase": {
-            "description": "Contains codebase attributes to which this WI belongs to",
-            "label": "Codebase",
-            "required": false,
-            "type": {
-              "kind": "codebase"
-            }
-          },
-          "system_created_at": {
-            "description": "The date and time when the work item was created",
-            "label": "Created at",
-            "required": false,
-            "type": {
-              "kind": "instant"
-            }
-          },
-          "system_creator": {
-            "description": "The user that created the work item",
-            "label": "Creator",
-            "required": true,
-            "type": {
-              "kind": "user"
-            }
-          },
-          "system_description": {
-            "description": "A descriptive text of the work item",
-            "label": "Description",
-            "required": false,
-            "type": {
-              "kind": "markup"
-            }
-          },
-          "system_iteration": {
-            "description": "The iteration to which the work item belongs",
-            "label": "Iteration",
-            "required": false,
-            "type": {
-              "kind": "iteration"
-            }
-          },
-          "system_labels": {
-            "description": "List of labels attached to the work item",
-            "label": "Labels",
-            "required": false,
-            "type": {
-              "componentType": "label",
-              "kind": "list"
-            }
-          },
-          "system_metastate": {
-            "description": "The meta-state of the work item",
-            "label": "Meta State",
-            "required": false,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "mNew",
-                "mOpen",
-                "mInprogress",
-                "mResolved",
-                "mClosed"
-              ]
-            }
-          },
-          "system_number": {
-            "description": "The unique number that was given to this workitem within its space.",
-            "label": "Number",
-            "required": false,
-            "type": {
-              "kind": "integer"
-            }
-          },
-          "system_order": {
-            "description": "Execution Order of the workitem",
-            "label": "Execution Order",
-            "required": false,
-            "type": {
-              "kind": "float"
-            }
-          },
-          "system_remote_item_id": {
-            "description": "The ID of the remote work item",
-            "label": "Remote item",
-            "required": false,
-            "type": {
-              "kind": "string"
-            }
-          },
-          "system_state": {
-            "description": "The state of the Task.",
-            "label": "State",
-            "required": true,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "New",
-                "Open",
-                "In Progress",
-                "Resolved",
-                "Closed"
-              ]
-            }
-          },
-          "system_title": {
-            "description": "The title text of the work item",
-            "label": "Title",
-            "required": true,
-            "type": {
-              "kind": "string"
-            }
-          },
-          "system_updated_at": {
-            "description": "The date and time when the work item was last updated",
-            "label": "Updated at",
-            "required": false,
-            "type": {
-              "kind": "instant"
-            }
-          }
-        },
-        "icon": "fa fa-tasks",
-        "name": "Task",
-        "updated-at": "0001-01-01T00:00:00Z",
-        "version": 0
-      },
-      "id": "2853459d-60ef-4fbe-aaf4-eccb9f554b34",
-      "relationships": {
-        "space": {
-          "data": {
-            "id": "2e0698d8-753e-4cef-bb7c-f027634824a2",
-            "type": "spaces"
-          },
-          "links": {
-            "related": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2",
-            "self": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2"
-          }
-        },
-        "space_template": {
-          "data": {
-            "id": "f405fa41-a8bb-46db-8800-2dbe13da1418",
-            "type": "spacetemplates"
-          },
-          "links": {
-            "related": "http:///api/spacetemplates/f405fa41-a8bb-46db-8800-2dbe13da1418",
-            "self": "http:///api/spacetemplates/f405fa41-a8bb-46db-8800-2dbe13da1418"
-          }
-        }
-      },
-      "type": "workitemtypes"
-    },
-    {
-      "attributes": {
-        "can-construct": true,
-        "created-at": "0001-01-01T00:00:00Z",
-        "description": "Incremental work or requirements identified to deliver a product feature. Typically, it is expressed from the user's perspective in the following format - As a user, I want to achieve an objective, so that this purpose is met.\n",
-        "fields": {
-          "acceptance_criteria": {
-            "description": "The acceptance criteria describes rules for checking if a chunk of work is completed.\n",
-            "label": "Acceptance criteria",
-            "required": false,
-            "type": {
-              "kind": "markup"
-            }
-          },
-          "component": {
-            "description": "The component for this area of work.\n",
-            "label": "Component",
-            "required": false,
-            "type": {
-              "kind": "string"
-            }
-          },
-          "storypoints": {
-            "description": "The effort needed to implement this user story.\n",
-            "label": "Storypoints",
-            "required": false,
-            "type": {
-              "kind": "float"
-            }
-          },
-          "system_area": {
-            "description": "The area to which the work item belongs",
-            "label": "Area",
-            "required": false,
-            "type": {
-              "kind": "area"
-            }
-          },
-          "system_assignees": {
-            "description": "The users that are assigned to the work item",
-            "label": "Assignees",
-            "required": false,
-            "type": {
-              "componentType": "user",
-              "kind": "list"
-            }
-          },
-          "system_boardcolumns": {
-            "description": "List of boardcolumns this work item is attached to",
-            "label": "Boardcolumns",
-            "required": false,
-            "type": {
-              "componentType": "boardcolumn",
-              "kind": "list"
-            }
-          },
-          "system_codebase": {
-            "description": "Contains codebase attributes to which this WI belongs to",
-            "label": "Codebase",
-            "required": false,
-            "type": {
-              "kind": "codebase"
-            }
-          },
-          "system_created_at": {
-            "description": "The date and time when the work item was created",
-            "label": "Created at",
-            "required": false,
-            "type": {
-              "kind": "instant"
-            }
-          },
-          "system_creator": {
-            "description": "The user that created the work item",
-            "label": "Creator",
-            "required": true,
-            "type": {
-              "kind": "user"
-            }
-          },
-          "system_description": {
-            "description": "A descriptive text of the work item",
-            "label": "Description",
-            "required": false,
-            "type": {
-              "kind": "markup"
-            }
-          },
-          "system_iteration": {
-            "description": "The iteration to which the work item belongs",
-            "label": "Iteration",
-            "required": false,
-            "type": {
-              "kind": "iteration"
-            }
-          },
-          "system_labels": {
-            "description": "List of labels attached to the work item",
-            "label": "Labels",
-            "required": false,
-            "type": {
-              "componentType": "label",
-              "kind": "list"
-            }
-          },
-          "system_metastate": {
-            "description": "The meta-state of the work item",
-            "label": "Meta State",
-            "required": false,
-            "type": {
-              "baseType": "string",
-              "kind": "enum",
-              "values": [
-                "mNew",
-                "mOpen",
-                "mInprogress",
-                "mResolved",
-                "mClosed"
-              ]
-            }
-          },
-          "system_number": {
-            "description": "The unique number that was given to this workitem within its space.",
-            "label": "Number",
-            "required": false,
-            "type": {
-              "kind": "integer"
-            }
-          },
-          "system_order": {
-            "description": "Execution Order of the workitem",
-            "label": "Execution Order",
-            "required": false,
-            "type": {
-              "kind": "float"
-            }
-          },
-          "system_remote_item_id": {
-            "description": "The ID of the remote work item",
-            "label": "Remote item",
-            "required": false,
-            "type": {
-              "kind": "string"
-            }
-          },
-          "system_state": {
-            "description": "The state of the story item.",
             "label": "State",
             "required": true,
             "type": {
@@ -1203,7 +1108,156 @@
             }
           },
           "system_state": {
-            "description": "The state of the Epic.",
+            "description": "The state of the Task.",
+            "label": "State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "New",
+                "Open",
+                "In Progress",
+                "Resolved",
+                "Deferred",
+                "No Plan to Implement",
+                "Closed"
+              ]
+            }
+          },
+          "system_title": {
+            "description": "The title text of the work item",
+            "label": "Title",
+            "required": true,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system_updated_at": {
+            "description": "The date and time when the work item was last updated",
+            "label": "Updated at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
+          },
+          "system_area": {
+            "description": "The area to which the work item belongs",
+            "label": "Area",
+            "required": false,
+            "type": {
+              "kind": "area"
+            }
+          },
+          "system_assignees": {
+            "description": "The users that are assigned to the work item",
+            "label": "Assignees",
+            "required": false,
+            "type": {
+              "componentType": "user",
+              "kind": "list"
+            }
+          },
+          "system_boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
+          "system_codebase": {
+            "description": "Contains codebase attributes to which this WI belongs to",
+            "label": "Codebase",
+            "required": false,
+            "type": {
+              "kind": "codebase"
+            }
+          },
+          "system_created_at": {
+            "description": "The date and time when the work item was created",
+            "label": "Created at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
+          },
+          "system_creator": {
+            "description": "The user that created the work item",
+            "label": "Creator",
+            "required": true,
+            "type": {
+              "kind": "user"
+            }
+          },
+          "system_description": {
+            "description": "A descriptive text of the work item",
+            "label": "Description",
+            "required": false,
+            "type": {
+              "kind": "markup"
+            }
+          },
+          "system_iteration": {
+            "description": "The iteration to which the work item belongs",
+            "label": "Iteration",
+            "required": false,
+            "type": {
+              "kind": "iteration"
+            }
+          },
+          "system_labels": {
+            "description": "List of labels attached to the work item",
+            "label": "Labels",
+            "required": false,
+            "type": {
+              "componentType": "label",
+              "kind": "list"
+            }
+          },
+          "system_metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
+            }
+          },
+          "system_number": {
+            "description": "The unique number that was given to this workitem within its space.",
+            "label": "Number",
+            "required": false,
+            "type": {
+              "kind": "integer"
+            }
+          },
+          "system_order": {
+            "description": "Execution Order of the workitem",
+            "label": "Execution Order",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
+          "system_remote_item_id": {
+            "description": "The ID of the remote work item",
+            "label": "Remote item",
+            "required": false,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system_state": {
+            "description": "The state of the story item.",
             "label": "State",
             "required": true,
             "type": {
@@ -1303,6 +1357,155 @@
             "required": false,
             "type": {
               "kind": "string"
+            }
+          },
+          "system_area": {
+            "description": "The area to which the work item belongs",
+            "label": "Area",
+            "required": false,
+            "type": {
+              "kind": "area"
+            }
+          },
+          "system_assignees": {
+            "description": "The users that are assigned to the work item",
+            "label": "Assignees",
+            "required": false,
+            "type": {
+              "componentType": "user",
+              "kind": "list"
+            }
+          },
+          "system_boardcolumns": {
+            "description": "List of boardcolumns this work item is attached to",
+            "label": "Boardcolumns",
+            "required": false,
+            "type": {
+              "componentType": "boardcolumn",
+              "kind": "list"
+            }
+          },
+          "system_codebase": {
+            "description": "Contains codebase attributes to which this WI belongs to",
+            "label": "Codebase",
+            "required": false,
+            "type": {
+              "kind": "codebase"
+            }
+          },
+          "system_created_at": {
+            "description": "The date and time when the work item was created",
+            "label": "Created at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
+          },
+          "system_creator": {
+            "description": "The user that created the work item",
+            "label": "Creator",
+            "required": true,
+            "type": {
+              "kind": "user"
+            }
+          },
+          "system_description": {
+            "description": "A descriptive text of the work item",
+            "label": "Description",
+            "required": false,
+            "type": {
+              "kind": "markup"
+            }
+          },
+          "system_iteration": {
+            "description": "The iteration to which the work item belongs",
+            "label": "Iteration",
+            "required": false,
+            "type": {
+              "kind": "iteration"
+            }
+          },
+          "system_labels": {
+            "description": "List of labels attached to the work item",
+            "label": "Labels",
+            "required": false,
+            "type": {
+              "componentType": "label",
+              "kind": "list"
+            }
+          },
+          "system_metastate": {
+            "description": "The meta-state of the work item",
+            "label": "Meta State",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "mNew",
+                "mOpen",
+                "mInprogress",
+                "mResolved",
+                "mClosed"
+              ]
+            }
+          },
+          "system_number": {
+            "description": "The unique number that was given to this workitem within its space.",
+            "label": "Number",
+            "required": false,
+            "type": {
+              "kind": "integer"
+            }
+          },
+          "system_order": {
+            "description": "Execution Order of the workitem",
+            "label": "Execution Order",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
+          "system_remote_item_id": {
+            "description": "The ID of the remote work item",
+            "label": "Remote item",
+            "required": false,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system_state": {
+            "description": "The state of the Epic.",
+            "label": "State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "New",
+                "Open",
+                "In Progress",
+                "Deferred",
+                "No Plan to Implement",
+                "Resolved",
+                "Closed"
+              ]
+            }
+          },
+          "system_title": {
+            "description": "The title text of the work item",
+            "label": "Title",
+            "required": true,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system_updated_at": {
+            "description": "The date and time when the work item was last updated",
+            "label": "Updated at",
+            "required": false,
+            "type": {
+              "kind": "instant"
             }
           },
           "system_area": {
