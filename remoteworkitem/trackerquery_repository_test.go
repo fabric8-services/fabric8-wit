@@ -55,6 +55,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 	}
 
 	err := test.queryRepo.Create(ctx, &tq)
+	require.Error(t, err)
 	assert.IsType(t, errors.InternalError{}, err)
 
 	tracker := remoteworkitem.Tracker{
@@ -66,10 +67,10 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 	tq.TrackerID = tracker.ID
 
 	err = test.queryRepo.Create(ctx, &tq)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	tq2, err := test.queryRepo.Load(ctx, tq.ID)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, tq.ID, tq2.ID)
 }
 
@@ -98,10 +99,10 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 			SpaceID:   testFxt.Spaces[0].ID,
 		}
 		err = test.queryRepo.Create(ctx, &query)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 
 		err = test.queryRepo.CheckExists(ctx, query.ID)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("tracker query doesn't exist", func(t *testing.T) {
@@ -125,8 +126,9 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	testFxt := tf.NewTestFixture(test.T(), test.DB, tf.Spaces(1))
 
 	query, err := test.queryRepo.Load(ctx, uuid.NewV4())
+	require.Nil(t, query)
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
-	assert.Nil(t, query)
 
 	tracker := remoteworkitem.Tracker{
 		URL:  "http://issues.jboss.com",
@@ -147,13 +149,13 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	}
 	err = test.queryRepo.Create(ctx, &query1)
 	query2, err := test.queryRepo.Load(ctx, query1.ID)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, query1.ID, query2.ID)
 
 	query1.Query = "def"
 	query1.Schedule = "rwd"
 	query3, err := test.queryRepo.Save(ctx, query1)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, query1.ID, query3.ID)
 
 	err = test.trackerRepo.Delete(ctx, uuid.NewV4())
@@ -161,8 +163,9 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 
 	query1.TrackerID = uuid.NewV4()
 	query4, err := test.queryRepo.Save(ctx, query1)
+	require.Nil(t, query4)
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
-	assert.Nil(t, query4)
 }
 
 func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
@@ -175,6 +178,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	testFxt := tf.NewTestFixture(test.T(), test.DB, tf.Spaces(1))
 
 	err := test.queryRepo.Delete(ctx, uuid.NewV4())
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
 
 	tracker := remoteworkitem.Tracker{
@@ -189,17 +193,17 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 		SpaceID:   testFxt.Spaces[0].ID,
 	}
 	err = test.queryRepo.Create(ctx, tq)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	err = test.queryRepo.Delete(ctx, tq.ID)
 	require.NoError(t, err)
 
 	tq, err = test.queryRepo.Load(ctx, tq.ID)
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
-	assert.Nil(t, tq)
 
 	tq, err = test.queryRepo.Load(ctx, uuid.NewV4())
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
-	assert.Nil(t, tq)
 }
 
 func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
@@ -219,7 +223,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		Type: remoteworkitem.ProviderGithub,
 	}
 	err := test.trackerRepo.Create(ctx, &tracker1)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// create tracker queries
 	tq1 := remoteworkitem.TrackerQuery{
@@ -229,7 +233,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		SpaceID:   testFxt.Spaces[0].ID,
 	}
 	err = test.queryRepo.Create(ctx, &tq1)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	tq2 := remoteworkitem.TrackerQuery{
 		Query:     "is:open is:issue user:arquillian",
@@ -238,14 +242,14 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		SpaceID:   testFxt.Spaces[0].ID,
 	}
 	err = test.queryRepo.Create(ctx, &tq2)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	tracker2 := remoteworkitem.Tracker{
 		URL:  "http://issues.jboss.com",
 		Type: remoteworkitem.ProviderJira,
 	}
 	err = test.trackerRepo.Create(ctx, &tracker2)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	tq3 := remoteworkitem.TrackerQuery{
 		Query:     "project = ARQ AND text ~ 'arquillian'",
@@ -254,7 +258,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		SpaceID:   testFxt.Spaces[0].ID,
 	}
 	err = test.queryRepo.Create(ctx, &tq3)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	tq4 := remoteworkitem.TrackerQuery{
 		Query:     "project = ARQ AND text ~ 'javadoc'",
@@ -263,7 +267,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		SpaceID:   testFxt.Spaces[0].ID,
 	}
 	err = test.queryRepo.Create(ctx, &tq4)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	trackerqueries2, _ := test.queryRepo.List(ctx)
 	assert.Equal(t, len(trackerqueries1)+4, len(trackerqueries2))
