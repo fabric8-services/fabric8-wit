@@ -351,43 +351,31 @@ Test out the build by executing CLI commands in a different terminal.
 
 NOTE: The CLI needs the API Server which was started on executing `make dev`  to be up and running. Please do not kill the process. Alternatively if you haven't run `make dev` you could just start the server by running `./bin/alm`.
 
-Generate a token for future use.
+* Generate a token for future use.
 ----
-./bin/wit-cli generate login -H localhost:8080 --pp
-----
-
-You should get Token in response, save this token in your favourite editor as you need to use this token for POST API calls
-
-Create a work item type (using above token).
-----
-./bin/wit-cli create workitemtype --key "<GENERATED TOKEN>" --payload '{"fields":{"system.owner":{"type":{"kind":"user"},"required":true},"system.state":{"type":{"kind":"string"},"required":false}},"name":"Epic"}' -H localhost:8080 --pp
-----
-Note: Work Item Type `Name` is unique. If one tries to create another work item type with same name, error will be trown.
-
-Retrieve the work item type.
-
-----
-$ ./bin/wit-cli show workitemtype --name "Epic" -H localhost:8080
+$ bin/wit-cli generate login -H localhost:8080 --pp
 ----
 
-List all available work item types.
+You should get access_token in response, set it as env to ease future call:
 ----
-$ ./bin/wit-cli list workitemtype -H localhost:8080 --pp
-----
-
-Create a work item.
-
-Based on WorkItemType created above, we can create WorkItem.
-We need to use name of work item type in the `type` field below.
-
-----
-$ ./bin/wit-cli create workitem --key "<GENERATED TOKEN>" --payload '{"type": "Epic", "fields": { "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
+$ export KEY=<ACCESS_TOKEN>
 ----
 
-Retrieve the work item.
-
+* Create a space
 ----
-$ ./bin/wit-cli show workitem --id 1 -H localhost:8080 --pp
+$ bin/wit-cli create space -H localhost:8080 --key $KEY --payload '{"data": {"name": "MY_SPACE","path": "","attributes": {"name": "MY_SPACE","description": "description"},"type": "spaces","privateSpace": false}}'
+----
+Note the spaceID to be used in next request.
+
+* Create a workitem for your newly created space
+----
+$ bin/wit-cli create workitems -H localhost:8080 --key $KEY --spaceID 564a1296-887e-47fe-9e56-40a39995f585 --payload '{"data":{"attributes":{"system.title":"test","system.description":"","system.state":"New"},"relationships":{"baseType":{"data":{"id":"2c169431-a55d-49eb-af74-cc19e895356f","type":"workitemtypes"}}},"type":"workitems"}}
+----
+where baseTYpe in the payload refer to a work item type.
+
+* List all workitems for a given space:
+----
+$ bin/wit-cli list workitems -H localhost:8080 --pp --spaceID 564a1296-887e-47fe-9e56-40a39995f585
 ----
 
 === Reset Database
