@@ -197,10 +197,10 @@ func convertTrackerQuery(appl application.Application, request *http.Request, tr
 
 func validateCreateTrackerQueryPayload(ctx *app.CreateTrackerqueryContext) error {
 	if ctx.Payload.Data.Attributes.Query == "" {
-		return errors.NewBadParameterError("Query", "").Expected("not nil")
+		return errors.NewBadParameterError("Query", "").Expected("not empty")
 	}
 	if ctx.Payload.Data.Attributes.Schedule == "" {
-		return errors.NewBadParameterError("Schedule", "").Expected("not nil")
+		return errors.NewBadParameterError("Schedule", "").Expected("not empty")
 	}
 	if ctx.Payload.Data.Relationships.Tracker.Data.ID == uuid.Nil {
 		return errors.NewBadParameterError("TrackerID", nil).Expected("not nil")
@@ -213,10 +213,10 @@ func validateUpdateTrackerQueryPayload(ctx *app.UpdateTrackerqueryContext) error
 		return errors.NewBadParameterError("ID", nil).Expected("not nil")
 	}
 	if ctx.Payload.Data.Attributes.Query == "" {
-		return errors.NewBadParameterError("Query", "").Expected("not nil")
+		return errors.NewBadParameterError("Query", "").Expected("not empty")
 	}
 	if ctx.Payload.Data.Attributes.Schedule == "" {
-		return errors.NewBadParameterError("Schedule", "").Expected("not nil")
+		return errors.NewBadParameterError("Schedule", "").Expected("not empty")
 	}
 	if ctx.Payload.Data.Relationships.Tracker.Data.ID == uuid.Nil {
 		return errors.NewBadParameterError("TrackerID", nil).Expected("not nil")
