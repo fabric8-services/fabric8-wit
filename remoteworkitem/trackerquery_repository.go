@@ -31,7 +31,7 @@ func NewTrackerQueryRepository(db *gorm.DB) *GormTrackerQueryRepository {
 // TrackerQueryRepository encapsulate storage & retrieval of tracker queries
 type TrackerQueryRepository interface {
 	repository.Exister
-	Create(ctx context.Context, tq *TrackerQuery) error
+	Create(ctx context.Context, tq TrackerQuery) (*TrackerQuery, error)
 	Save(ctx context.Context, tq TrackerQuery) (*TrackerQuery, error)
 	Load(ctx context.Context, ID uuid.UUID) (*TrackerQuery, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
@@ -40,16 +40,11 @@ type TrackerQueryRepository interface {
 
 // Create creates a new tracker query in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormTrackerQueryRepository) Create(ctx context.Context, tq *TrackerQuery) error {
+func (r *GormTrackerQueryRepository) Create(ctx context.Context, tq TrackerQuery) (*TrackerQuery, error) {
 	if err := r.db.Create(&tq).Error; err != nil {
-		return errors.NewInternalError(ctx, r.db.Error)
+		return nil, errors.NewInternalError(ctx, r.db.Error)
 	}
-
-	log.Info(ctx, map[string]interface{}{
-		"tracker_query": tq,
-	}, "Created tracker query")
-
-	return nil
+	return &tq, nil
 }
 
 // Load returns the tracker query for the given id

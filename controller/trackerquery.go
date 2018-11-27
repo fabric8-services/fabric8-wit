@@ -59,14 +59,14 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 			TrackerID: ctx.Payload.Data.Relationships.Tracker.Data.ID,
 			SpaceID:   uuid.FromStringOrNil(*ctx.Payload.Data.Relationships.Space.Data.ID),
 		}
-		err := appl.TrackerQueries().Create(ctx.Context, &trackerQuery)
+		tq, err := appl.TrackerQueries().Create(ctx.Context, trackerQuery)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create tracker query %s", ctx.Payload.Data)
 		}
 		res := &app.TrackerQuerySingle{
-			Data: convertTrackerQuery(appl, ctx.Request, trackerQuery),
+			Data: convertTrackerQuery(appl, ctx.Request, *tq),
 		}
-		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(trackerQuery.ID))
+		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(tq.ID))
 		return ctx.Created(res)
 	})
 	if err != nil {
