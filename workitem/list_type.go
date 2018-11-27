@@ -96,6 +96,31 @@ func (t ListType) ConvertFromModel(value interface{}) (interface{}, error) {
 	}, t.ComponentType, value)
 }
 
+// ConvertToStringSlice implements the FieldType interface
+func (t ListType) ConvertToStringSlice(value interface{}) ([]string, error) {
+	if value == nil {
+		return []string{}, nil
+	}
+	valueList, err := ConvertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
+		return fieldType.ConvertToStringSlice(value)
+	}, t.ComponentType, value)
+	if err != nil {
+		return nil, errs.Wrapf(err, "failed to convert list type to string slice")
+	}
+	if (len(valueList)) == 0 {
+		return []string{}, nil
+	}
+	buffer := make([]string, len(valueList))
+	for i := range valueList {
+		strValueList := valueList[i].([]string)
+		if len(strValueList) != 1 {
+			return nil, errs.Errorf("string conversion of base type did not return exactly one value")
+		}
+		buffer[i] = strValueList[0]
+	}
+	return buffer, nil
+}
+
 type Converter func(FieldType, interface{}) (interface{}, error)
 
 const (

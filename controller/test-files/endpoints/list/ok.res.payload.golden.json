@@ -85,6 +85,11 @@
           "related": "http:///api/search/users"
         }
       },
+      "search_workitems_csv": {
+        "links": {
+          "related": "http:///api/search/workitems/csv"
+        }
+      },
       "spaces": {
         "links": {
           "related": "http:///api/spaces"

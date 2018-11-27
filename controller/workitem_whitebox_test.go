@@ -1,7 +1,11 @@
 package controller
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
+	"io"
+	"strconv"
 	"testing"
 
 	"net/http"
@@ -13,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
@@ -326,6 +331,112 @@ func (rest *TestWorkItemREST) TestConvertWorkItems() {
 		_, err := ConvertWorkItems(request, wits, wis)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "length mismatch")
+	})
+}
+
+func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
+	rest.T().Run("ok - result set", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(),
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[0].SpaceTemplateID = spacetemplate.SystemAgileTemplateID
+				return nil
+			}),
+			tf.Labels(3, tf.SetLabelNames("important", "backend", "ui")),
+			tf.WorkItems(3, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				if idx < 2 {
+					wi.Type = uuid.FromStringOrNil("2853459d-60ef-4fbe-aaf4-eccb9f554b34") // Task
+					wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("important").ID.String(), fxt.LabelByName("backend").ID.String()}
+					wi.Fields[workitem.SystemState] = interface{}("New")
+					wi.Fields["effort"] = 42.0 // Effort is in Task and Defect, will go in same column
+				} else {
+					wi.Type = uuid.FromStringOrNil("fce0921f-ea70-4513-bb91-31d3aa8017f1") // Defect
+					wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("ui").ID.String()}
+					wi.Fields[workitem.SystemState] = interface{}("New")
+					wi.Fields["effort"] = 23.0
+					wi.Fields["severity"] = interface{}("SEV1 - Urgent") // default is SEV3
+				}
+				return nil
+			}),
+		)
+		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, fxt.WorkItems)
+		require.NoError(t, err)
+		// when
+		convertedWIs, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
+		require.NoError(t, err)
+		// parse the resulting CSV
+		var entities []map[string]string
+		csvReader := csv.NewReader(bytes.NewBufferString(convertedWIs))
+		// read header line
+		parsedHeaderKeys, err := csvReader.Read()
+		require.NoError(t, err)
+		// read the entities from the CSV
+		for {
+			line, err := csvReader.Read()
+			if err == io.EOF {
+				break
+			} else {
+				require.NoError(t, err)
+			}
+			entity := make(map[string]string)
+			for idx := range line {
+				entity[parsedHeaderKeys[idx]] = line[idx]
+			}
+			entities = append(entities, entity)
+		}
+		require.Len(t, entities, 3)
+		// now run tests on the maps.
+		// check a common field available through the base type.
+		require.Equal(t, strconv.Itoa(fxt.WorkItems[0].Fields[workitem.SystemNumber].(int)), entities[0]["Number"])
+		require.Equal(t, strconv.Itoa(fxt.WorkItems[1].Fields[workitem.SystemNumber].(int)), entities[1]["Number"])
+		require.Equal(t, strconv.Itoa(fxt.WorkItems[2].Fields[workitem.SystemNumber].(int)), entities[2]["Number"])
+		// check a field that is available in both types, but redefined in each type
+		entity0Effort, err := strconv.ParseFloat(entities[0]["Effort"], 64)
+		require.NoError(t, err)
+		require.Equal(t, fxt.WorkItems[0].Fields["effort"], entity0Effort)
+		entity1Effort, err := strconv.ParseFloat(entities[1]["Effort"], 64)
+		require.NoError(t, err)
+		require.Equal(t, fxt.WorkItems[1].Fields["effort"], entity1Effort)
+		entity2Effort, err := strconv.ParseFloat(entities[2]["Effort"], 64)
+		require.NoError(t, err)
+		require.Equal(t, fxt.WorkItems[2].Fields["effort"], entity2Effort)
+		// check a field that is only available in one type
+		require.Equal(t, "", entities[0]["Severity"])                                  // entity 0 does not has this field
+		require.Equal(t, "", entities[1]["Severity"])                                  // entity 1 does not has this field
+		require.Equal(t, fxt.WorkItems[2].Fields["severity"], entities[2]["Severity"]) // entity 1 has this field
+	})
+	rest.T().Run("ok - empty result set", func(t *testing.T) {
+		// given
+		wis := []workitem.WorkItem{}
+		wits := []workitem.WorkItemType{}
+		// when
+		convertedWIs, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
+		require.NoError(t, err)
+		require.Equal(t, "", convertedWIs)
+	})
+	rest.T().Run("fail - wrong WI count", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(3))
+		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, fxt.WorkItems)
+		require.NoError(t, err)
+		wis = wis[1:]
+		// when
+		_, err = ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
+		require.Error(t, err)
+	})
+	rest.T().Run("fail - wrong WIT count", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(3))
+		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, fxt.WorkItems)
+		require.NoError(t, err)
+		wits = wits[1:]
+		// when
+		_, err = ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis)
+		require.Error(t, err)
 	})
 }
 

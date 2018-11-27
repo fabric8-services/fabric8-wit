@@ -186,3 +186,125 @@ func TestListType_SetDefaultValue(t *testing.T) {
 		})
 	}
 }
+
+func TestListType_ConvertToStringSlice(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	tests := []struct {
+		name           string
+		list           ListType
+		input          interface{}
+		expectedOutput []string
+		wantErr        bool
+	}{
+		{"convert empty value",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			[]interface{}{},
+			[]string{},
+			false},
+		{"convert nil value",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			nil,
+			[]string{},
+			false},
+		{"convert single value",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			[]interface{}{"entry"},
+			[]string{"entry"},
+			false},
+		{"convert multiple values",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			[]interface{}{"one", "two", "three"},
+			[]string{"one", "two", "three"},
+			false},
+		{"convert single value - integer",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindInteger},
+			},
+			[]interface{}{42},
+			[]string{"42"},
+			false},
+		{"convert multiple values - integer",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindInteger},
+			},
+			[]interface{}{1, 2, 3},
+			[]string{"1", "2", "3"},
+			false},
+		{"convert single value - float",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindFloat},
+			},
+			[]interface{}{42.5},
+			[]string{"42.500000"},
+			false},
+		{"convert multiple values - float",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindFloat},
+			},
+			[]interface{}{1.4, 2.3, 3.2},
+			[]string{"1.400000", "2.300000", "3.200000"},
+			false},
+		{"convert single value - label",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindLabel},
+			},
+			[]interface{}{"somelabel"},
+			[]string{"somelabel"},
+			false},
+		{"convert multiple values - float",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindLabel},
+			},
+			[]interface{}{"someLabel1", "someLabel2", "someLabel3"},
+			[]string{"someLabel1", "someLabel2", "someLabel3"},
+			false},
+		{"nil value",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			nil,
+			[]string{},
+			false},
+		{"fail - invalid type",
+			ListType{
+				SimpleType:    SimpleType{Kind: KindList},
+				ComponentType: SimpleType{Kind: KindString},
+			},
+			1,
+			[]string{},
+			true},
+	}
+	for _, tt := range tests {
+		tt := tt // needed for parallel running to capture range
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			output, err := tt.list.ConvertToStringSlice(tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedOutput, output)
+			}
+		})
+	}
+}
