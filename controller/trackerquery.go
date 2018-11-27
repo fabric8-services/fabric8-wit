@@ -7,6 +7,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -52,12 +53,35 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
+		err = appl.Spaces().CheckExists(ctx, *ctx.Payload.Data.Relationships.Space.Data.ID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"space_id": ctx.Payload.Data.Relationships.Space.Data.ID,
+			}, "unable to load space")
+			return errors.NewBadParameterError("space", ctx.Payload.Data.Relationships.Space.Data.ID.String()).Expected("valid space ID")
+		}
+
+		err = appl.Trackers().CheckExists(ctx, ctx.Payload.Data.Relationships.Tracker.Data.ID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":        err,
+				"tracker_id": ctx.Payload.Data.Relationships.Tracker.Data.ID,
+			}, "unable to load tracker")
+			return errors.NewBadParameterError("tracker", ctx.Payload.Data.Relationships.Tracker.Data.ID.String()).Expected("valid tracker ID")
+		}
+		return nil
+	})
+	if err != nil {
+		return errs.Wrapf(err, "failed to create tracker query %s", ctx.Payload.Data)
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		trackerQuery := remoteworkitem.TrackerQuery{
 			ID:        *ctx.Payload.Data.ID,
 			Query:     ctx.Payload.Data.Attributes.Query,
 			Schedule:  ctx.Payload.Data.Attributes.Schedule,
 			TrackerID: ctx.Payload.Data.Relationships.Tracker.Data.ID,
-			SpaceID:   uuid.FromStringOrNil(*ctx.Payload.Data.Relationships.Space.Data.ID),
+			SpaceID:   *ctx.Payload.Data.Relationships.Space.Data.ID,
 		}
 		tq, err := appl.TrackerQueries().Create(ctx.Context, trackerQuery)
 		if err != nil {
