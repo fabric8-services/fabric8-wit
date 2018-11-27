@@ -93,6 +93,8 @@ type FieldType interface {
 	// is a string field, then we check if the value v has only one element and
 	// return that instead of the whole list.
 	ConvertToModelWithType(other FieldType, v interface{}) (interface{}, error)
+	// ConvertToStringSlice converts the given value to a string slice representation.
+	ConvertToStringSlice(value interface{}) ([]string, error)
 }
 
 // FieldDefinition describes type & other restrictions of a field
