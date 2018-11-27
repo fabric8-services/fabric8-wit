@@ -6,6 +6,7 @@ import (
 )
 
 var _ = a.Resource("pipelines", func() {
+	a.Parent("space")
 	a.BasePath("/pipelines")
 
 	// An auth token is required to call the auth API to get an OpenShift auth token.
@@ -15,11 +16,7 @@ var _ = a.Resource("pipelines", func() {
 		a.Routing(
 			a.DELETE(""),
 		)
-		a.Description("Delete pipelines")
-		a.Params(func() {
-			a.Param("space", d.String, "Name of the space")
-			a.Required("space")
-		})
+		a.Description("Delete pipelines under given space")
 		a.Response(d.OK)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)

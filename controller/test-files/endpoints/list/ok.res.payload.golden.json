@@ -60,11 +60,6 @@
           "related": "http:///api/logout"
         }
       },
-      "pipelines": {
-        "links": {
-          "related": "http:///api/pipelines"
-        }
-      },
       "render": {
         "links": {
           "related": "http:///api/render"
