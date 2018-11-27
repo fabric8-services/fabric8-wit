@@ -371,7 +371,7 @@ Note the spaceID to be used in next request.
 ----
 $ bin/wit-cli create workitems -H localhost:8080 --key $KEY --spaceID 564a1296-887e-47fe-9e56-40a39995f585 --payload '{"data":{"attributes":{"system.title":"test","system.description":"","system.state":"New"},"relationships":{"baseType":{"data":{"id":"2c169431-a55d-49eb-af74-cc19e895356f","type":"workitemtypes"}}},"type":"workitems"}}
 ----
-where baseTYpe in the payload refer to a work item type.
+where baseType in the payload refer to a work item type.
 
 * List all workitems for a given space:
 ----
