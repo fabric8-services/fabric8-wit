@@ -47,6 +47,24 @@ var _ = a.Resource("search", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
+	a.Action("workitemsCSV", func() {
+		a.Routing(
+			a.GET("/workitems/csv"),
+		)
+		a.Description("Search by ID, URL, full text capability")
+		a.Params(func() {
+			a.Param("page[offset]", d.Integer, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("filter[parentexists]", d.Boolean, "if false list work items without any parent")
+			a.Param("filter[expression]", d.String, "Filter expression in JSON format", func() {
+				a.Example(`{$AND: [{"space": "f73988a2-1916-4572-910b-2df23df4dcc3"}, {"state": "NEW"}]}`)
+			})
+		})
+		a.Response(d.OK, "text/csv")
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
 	a.Action("spaces", func() {
 		a.Routing(
 			a.GET("spaces"),
