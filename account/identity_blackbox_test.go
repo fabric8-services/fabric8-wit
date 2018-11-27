@@ -86,6 +86,18 @@ func (s *IdentityRepositoryTestSuite) TestOKToDelete() {
 	}
 }
 
+func (s *IdentityRepositoryTestSuite) TestOKToObfuscate() {
+	// given
+	identity := createAndLoad(s)
+	// when
+	err := s.repo.Obfuscate(s.Ctx, identity.ID)
+	// then
+	require.NoError(s.T(), err, "Could not obfuscate identity")
+	newIdentity, err := s.repo.Load(s.Ctx, identity.ID)
+	require.NoError(s.T(), err, "Could not retrieve identity")
+	require.Equal(s.T(), "XXXXXX", newIdentity.Username)
+}
+
 func (s *IdentityRepositoryTestSuite) TestOKToLoad() {
 	createAndLoad(s)
 }

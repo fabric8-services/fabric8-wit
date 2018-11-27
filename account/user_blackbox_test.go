@@ -51,6 +51,24 @@ func (s *userBlackBoxTest) TestOKToDelete() {
 	}
 }
 
+func (s *userBlackBoxTest) TestOKToObfuscate() {
+	// given
+	user := createAndLoadUser(s)
+	// when
+	err := s.repo.Obfuscate(s.Ctx, user.ID)
+	// then
+	require.NoError(s.T(), err, "Could not obfuscate identity")
+	newUser, err := s.repo.Load(s.Ctx, user.ID)
+	require.NoError(s.T(), err, "Could not retrieve identity")
+	require.Equal(s.T(), "XXXXXX", newUser.Email)
+	require.Equal(s.T(), "XXXXXX", newUser.FullName)
+	require.Equal(s.T(), "XXXXXX", newUser.ImageURL)
+	require.Equal(s.T(), "XXXXXX", newUser.Bio)
+	require.Equal(s.T(), "XXXXXX", newUser.URL)
+	require.Nil(s.T(), newUser.ContextInformation)
+	require.Equal(s.T(), "XXXXXX", newUser.Company)
+}
+
 func (s *userBlackBoxTest) TestOKToLoad() {
 	t := s.T()
 	resource.Require(t, resource.Database)
