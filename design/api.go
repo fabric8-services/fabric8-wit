@@ -36,6 +36,10 @@ var _ = a.API("wit", func() {
 		a.ContentType("application/vnd.api+json")
 	})
 
+	a.Trait("csv-media-type", func() {
+		a.ContentType("text/csv")
+	})
+
 	a.Trait("conditional", func() {
 		a.Headers(func() {
 			a.Header("If-Modified-Since", d.String)
