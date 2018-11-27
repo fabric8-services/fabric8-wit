@@ -237,7 +237,7 @@ func (t SimpleType) ConvertToStringSlice(value interface{}) ([]string, error) {
 		}
 		timeVal, ok := value.(time.Time)
 		if !ok {
-			return nil, errs.Errorf("value %v (%[1]T) should be of type %s, but is of type %s", value, "time.Time", reflect.TypeOf(value))
+			return nil, errs.Errorf(`value should be of type "time.Time" but is of type "%[1]T": %[1]+v`, value)
 		}
 		return []string{timeVal.Format(time.RFC3339)}, nil
 	case KindBoolean:
