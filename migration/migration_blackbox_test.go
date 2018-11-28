@@ -1386,21 +1386,21 @@ func testMigration109NumberColumnForIteration(t *testing.T) {
 
 func testMigration110RenameFields(t *testing.T) {
 	// setup
-	user_id := uuid.NewV4()
-	identity_id := uuid.NewV4()
-	space_template_id := uuid.NewV4()
-	space_id := uuid.NewV4()
-	work_item_type_id := uuid.NewV4()
-	work_item_id := uuid.NewV4()
-	work_item_revision_id := uuid.NewV4()
-	require.Nil(t, runSQLscript(sqlDB, "110-rename-fields.sql",
-		user_id.String(),
-		identity_id.String(),
-		space_template_id.String(),
-		space_id.String(),
-		work_item_type_id.String(),
-		work_item_id.String(),
-		work_item_revision_id.String(),
+	userID := uuid.NewV4()
+	identityID := uuid.NewV4()
+	space_templateID := uuid.NewV4()
+	spaceID := uuid.NewV4()
+	work_item_typeID := uuid.NewV4()
+	work_itemID := uuid.NewV4()
+	work_item_revisionID := uuid.NewV4()
+	require.NoError(t, runSQLscript(sqlDB, "110-rename-fields.sql",
+		userID.String(),
+		identityID.String(),
+		space_templateID.String(),
+		spaceID.String(),
+		work_item_typeID.String(),
+		work_itemID.String(),
+		work_item_revisionID.String(),
 	))
 	expectWorkItemFieldsToBe := func(t *testing.T, tableName string, columnName string, entity_id uuid.UUID, expectedFields string) {
 		row := sqlDB.QueryRow(fmt.Sprintf("SELECT %s FROM %s WHERE id = '%s'", columnName, tableName, entity_id.String()))
@@ -1414,15 +1414,15 @@ func testMigration110RenameFields(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:111], 111)
 	expectedWITFields := `{"foo.bar": {"Type": {"Kind": "string"}}, "system_area": {"Type": {"Kind": "area"}}, "system_order": {"Type": {"Kind": "float"}}}`
 	// Ensure workitem type fields are renamed
-	expectWorkItemFieldsToBe(t, "work_item_types", "fields", work_item_type_id, expectedWITFields)
+	expectWorkItemFieldsToBe(t, "work_item_types", "fields", work_item_typeID, expectedWITFields)
 
 	// Ensure workitem fields are renamed
 	expectedWIFields := `{"foo.bar": 123, "system_title": "Work item 1", "system_number": 1234}`
-	expectWorkItemFieldsToBe(t, "work_items", "fields", work_item_id, expectedWIFields)
+	expectWorkItemFieldsToBe(t, "work_items", "fields", work_itemID, expectedWIFields)
 
 	// Ensure workitem_revision fields are renamed
 	// The fieldvalue should be same as that of workitem
-	expectWorkItemFieldsToBe(t, "work_item_revisions", "work_item_fields", work_item_revision_id, expectedWIFields)
+	expectWorkItemFieldsToBe(t, "work_item_revisions", "work_item_fields", work_item_revisionID, expectedWIFields)
 
 }
 
