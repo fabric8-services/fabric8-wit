@@ -46,13 +46,13 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
 
-		testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
 		tq := remoteworkitem.TrackerQuery{
 			Query:     "abc",
 			Schedule:  "xyz",
 			TrackerID: uuid.NewV4(),
-			SpaceID:   testFxt.Spaces[0].ID,
+			SpaceID:   fxt.Spaces[0].ID,
 		}
 		res, err := test.queryRepo.Create(ctx, tq)
 		require.Nil(t, res)
@@ -70,13 +70,13 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 			Type: remoteworkitem.ProviderJira,
 		}
 		err := test.trackerRepo.Create(ctx, &tracker)
-		testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
 		tq := remoteworkitem.TrackerQuery{
 			Query:     "abc",
 			Schedule:  "xyz",
 			TrackerID: tracker.ID,
-			SpaceID:   testFxt.Spaces[0].ID,
+			SpaceID:   fxt.Spaces[0].ID,
 		}
 		res, err := test.queryRepo.Create(ctx, tq)
 		require.NotNil(t, res)
