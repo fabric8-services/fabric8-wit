@@ -77,11 +77,13 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		trackerQuery := remoteworkitem.TrackerQuery{
-			ID:        *ctx.Payload.Data.ID,
 			Query:     ctx.Payload.Data.Attributes.Query,
 			Schedule:  ctx.Payload.Data.Attributes.Schedule,
 			TrackerID: ctx.Payload.Data.Relationships.Tracker.Data.ID,
 			SpaceID:   *ctx.Payload.Data.Relationships.Space.Data.ID,
+		}
+		if ctx.Payload.Data.ID != nil {
+			trackerQuery.ID = *ctx.Payload.Data.ID
 		}
 		tq, err := appl.TrackerQueries().Create(ctx.Context, trackerQuery)
 		if err != nil {

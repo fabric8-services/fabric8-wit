@@ -277,19 +277,29 @@ func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
 
 // This test ensures that ID returned by Show is valid.
 // refer : https://github.com/fabric8-services/fabric8-wit/issues/189
-func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
+func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
 	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
-	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
-	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+	rest.T().Run("valid - success", func(t *testing.T) {
+		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+		_, trackerquery := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+		require.NotNil(t, trackerquery)
 
-	_, trackerquery := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
-	_, created := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *trackerquery.Data.ID)
-	assert.Equal(t, trackerquery.Data.ID, created.Data.ID)
+		_, result := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *trackerquery.Data.ID)
+		require.NotNil(t, result)
+		assert.Equal(t, trackerquery.Data.ID, result.Data.ID)
+	})
+	rest.T().Run("invalid - fail", func(t *testing.T) {
+		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+		invalidID := uuid.Nil
+		tqpayload.Data.ID = &invalidID
+		_, trackerquery := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+		require.Nil(t, trackerquery)
+	})
 }
 
 func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID) app.CreateTrackerqueryPayload {
