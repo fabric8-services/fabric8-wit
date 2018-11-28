@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -133,6 +134,60 @@ func (a WorkItemInterfaceSlice) Swap(i, j int) {
 // Ensure WorkItemInterfaceSlice implements the sort.Interface
 var _ sort.Interface = WorkItemInterfaceSlice{}
 var _ sort.Interface = (*WorkItemInterfaceSlice)(nil)
+
+// WorkitemsCSV converts workitems to CSV format.
+func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) error {
+	if ctx.FilterExpression == nil {
+		return goa.ErrBadRequest(fmt.Sprintf("bad parameter error exporting work items as CSV: param 'filter[expression]' missing"))
+	}
+	var result []workitem.WorkItem
+	offset := 0
+	if ctx.PageOffset != nil {
+		offset = *(ctx.PageOffset)
+	}
+	limit := 1000
+	if ctx.PageLimit != nil {
+		limit = *(ctx.PageLimit)
+	}
+	// we use a overflow entry to see if there is more than the window size.
+	limit++
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		result, _, _, _, err = appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":               err,
+				"filter_expression": *ctx.FilterExpression,
+			}, "unable to list the work items")
+			return errs.Wrapf(err, "error executing filter expression for CSV filtering: %s", *ctx.FilterExpression)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// Load all work item types
+	wits, err := loadWorkItemTypesFromArr(ctx.Context, c.db, result)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("error loading work items types while searching work items for expression '%s': %s", *ctx.FilterExpression, err))
+	}
+	// Convert them to CSV format the return value contains the final CSV
+	wisCSV, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, result)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
+	}
+	if len(result) >= limit {
+		// we have more than limit+1 rows, so add a note to the bottom of the returned list
+		wisCSV = wisCSV + "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
+	}
+	// to make filename dynamic, hash of the query expression
+	currentTime := time.Now().UTC()
+	// creating timestr according to RFC3339 recommendations
+	timeStr := currentTime.Format(time.RFC3339)
+	// return output
+	ctx.ResponseData.Header().Set("Content-Disposition", "attachment; filename='workitems-"+timeStr+".csv'")
+	return ctx.OK([]byte(wisCSV))
+}
 
 // Show runs the show action.
 func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
