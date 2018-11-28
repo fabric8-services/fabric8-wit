@@ -69,7 +69,7 @@ type UserRepository interface {
 	Save(ctx context.Context, u *User) error
 	List(ctx context.Context) ([]User, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
-	Obfuscate(ctx context.Context, ID uuid.UUID) error
+	Obfuscate(ctx context.Context, ID uuid.UUID, randomStr string) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]User, error)
 }
 
@@ -158,17 +158,16 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // Obfuscate soft delete sensitive data related to an identity.
-func (m *GormUserRepository) Obfuscate(ctx context.Context, id uuid.UUID) error {
+func (m *GormUserRepository) Obfuscate(ctx context.Context, id uuid.UUID, randomStr string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "obfuscate"}, time.Now())
-	obfStr := "XXXXXX"
 	obj := User{ID: id}
-	obj.Email = obfStr
-	obj.FullName = obfStr
-	obj.ImageURL = obfStr
-	obj.Bio = obfStr
-	obj.URL = obfStr
+	obj.Email = randomStr
+	obj.FullName = randomStr
+	obj.ImageURL = randomStr
+	obj.Bio = randomStr
+	obj.URL = randomStr
 	obj.ContextInformation = nil
-	obj.Company = obfStr
+	obj.Company = randomStr
 	db := m.db.Save(obj)
 
 	if db.Error != nil {

@@ -80,7 +80,7 @@ type IdentityRepository interface {
 	Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error)
 	Save(ctx context.Context, identity *Identity) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	Obfuscate(ctx context.Context, id uuid.UUID) error
+	Obfuscate(ctx context.Context, id uuid.UUID, randomStr string) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Identity, error)
 	List(ctx context.Context) ([]Identity, error)
 	IsValid(context.Context, uuid.UUID) bool
@@ -206,12 +206,11 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 }
 
 // Obfuscate soft delete sensitive data related to an identity.
-func (m *GormIdentityRepository) Obfuscate(ctx context.Context, id uuid.UUID) error {
+func (m *GormIdentityRepository) Obfuscate(ctx context.Context, id uuid.UUID, randomStr string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "obfuscate"}, time.Now())
-    obfStr := "XXXXXX"
 	obj := Identity{ID: id}
-	obj.Username = obfStr
-	obj.ProfileURL = &obfStr
+	obj.Username = randomStr
+	obj.ProfileURL = &randomStr
 	db := m.db.Save(obj)
 
 	if db.Error != nil {

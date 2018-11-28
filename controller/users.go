@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/http"
 
 	idpackage "github.com/fabric8-services/fabric8-common/id"
@@ -48,6 +49,51 @@ func NewUsersController(service *goa.Service, db application.DB, config UsersCon
 		db:         db,
 		config:     config,
 	}
+}
+func randString(n int) string {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Int63() % int64(len(letterBytes))]
+	}
+	return string(b)
+}
+
+// Obfuscate runs the obfuscate action to soft delete sensitive data associated with an user.
+func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
+	isSvcAccount, err := isServiceAccount(ctx, serviceNameAuth)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to determine if account is a service account")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err))
+
+	}
+	if !isSvcAccount {
+		log.Error(ctx, map[string]interface{}{
+			"identity_id": ctx.ID,
+		}, "account used to call create api is not a service account")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errs.New("a non-service account tried to create a user.")))
+	}
+	u, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to convert user id in valid uuid")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("invalid user id")))
+
+	}
+	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
+		obfStr := randString(12)
+		if err := appl.Users().Obfuscate(ctx, u, obfStr); err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if err := appl.Identities().Obfuscate(ctx, u, obfStr); err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.OK([]byte{})
+	})
+	return returnResponse
 }
 
 // Show runs the show action.

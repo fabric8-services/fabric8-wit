@@ -50,6 +50,51 @@ func (s *TestUsersSuite) SecuredServiceAccountController(identity account.Identi
 	return svc, NewUsersController(svc, s.GormDB, s.Configuration)
 }
 
+func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountBadRequest() {
+	// given
+	user := s.createRandomUser("TestObfuscateUserAsServiceAccountBadRequest")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	secureService, secureController := s.SecuredServiceAccountController(identity)
+	// when
+	idAsString := "bad-uuid"
+	test.ObfuscateUsersBadRequest(s.T(), secureService.Context, secureService, secureController, idAsString)
+}
+
+func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountOK() {
+	// given
+	user := s.createRandomUser("TestObfuscateUserAsServiceAccountOK")
+	identity := s.createRandomIdentityObject(user, account.KeycloakIDP)
+	// when
+	secureService, secureController := s.SecuredServiceAccountController(identity)
+
+	test.ObfuscateUsersOK(s.T(), secureService.Context, secureService, secureController, (user.ID).String())
+}
+
+func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountNotFound() {
+	// given
+	user := s.createRandomUser("TestObfuscateUserAsServiceAccountNotFound")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+
+	// when
+	secureService, secureController := s.SecuredServiceAccountController(identity)
+	idAsString := uuid.NewV4().String() // will never be found.
+	test.ObfuscateUsersNotFound(s.T(), secureService.Context, secureService, secureController, idAsString)
+
+}
+
+func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountUnauthorized() {
+	// given
+	user := s.createRandomUser("TestObfuscateUserAsSvcAcUnauthorized")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+
+	// when
+	secureService, secureController := s.SecuredController(identity)
+
+	idAsString := (identity.ID).String()
+	test.ObfuscateUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, idAsString)
+
+}
+
 func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {
 	// given
 	user := s.createRandomUser("TestUpdateUserAsSvcAcUnauthorized")

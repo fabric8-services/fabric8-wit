@@ -177,6 +177,23 @@ var _ = a.Resource("users", func() {
 		a.Response(d.OK)
 	})
 
+	a.Action("obfuscate", func() {
+		a.Routing(
+			a.PUT("/:id"),
+		)
+		a.Description("Soft delete user for the given ID.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Response(d.OK)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
+	})
+
 	a.Action("updateUserAsServiceAccount", func() {
 		a.Security("jwt")
 		a.Routing(
