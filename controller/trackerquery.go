@@ -70,6 +70,22 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 			}, "unable to load tracker")
 			return errors.NewBadParameterError("tracker", ctx.Payload.Data.Relationships.Tracker.Data.ID.String()).Expected("valid tracker ID")
 		}
+		if ctx.Payload.Data.ID != nil {
+			// check if tracker query id exists
+			err = appl.TrackerQueries().CheckExists(ctx, *ctx.Payload.Data.ID)
+			if err == nil {
+				log.Error(ctx, map[string]interface{}{
+					"err":             err,
+					"trackerquery_id": ctx.Payload.Data.Relationships.Tracker.Data.ID,
+				}, "unable to load trackerquery")
+				return errors.NewBadParameterError("trackerquery", ctx.Payload.Data.ID.String()).Expected("valid trackerquery ID")
+			}
+
+			// check if tracker query id is uuid.Nil
+			if *ctx.Payload.Data.ID == uuid.Nil {
+				return errors.NewBadParameterError("trackerquery", ctx.Payload.Data.ID.String()).Expected("valid trackerquery ID")
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -82,9 +98,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 			TrackerID: ctx.Payload.Data.Relationships.Tracker.Data.ID,
 			SpaceID:   *ctx.Payload.Data.Relationships.Space.Data.ID,
 		}
-		if ctx.Payload.Data.ID != nil {
-			trackerQuery.ID = *ctx.Payload.Data.ID
-		}
+		trackerQuery.ID = *ctx.Payload.Data.ID
 		tq, err := appl.TrackerQueries().Create(ctx.Context, trackerQuery)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create tracker query %s", ctx.Payload.Data)
@@ -230,6 +244,9 @@ func validateCreateTrackerQueryPayload(ctx *app.CreateTrackerqueryContext) error
 	}
 	if ctx.Payload.Data.Relationships.Tracker.Data.ID == uuid.Nil {
 		return errors.NewBadParameterError("TrackerID", nil).Expected("not nil")
+	}
+	if *ctx.Payload.Data.Relationships.Space.Data.ID == uuid.Nil {
+		return errors.NewBadParameterError("SpaceID", nil).Expected("not nil")
 	}
 	return nil
 }

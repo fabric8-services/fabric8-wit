@@ -297,8 +297,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 		invalidID := uuid.Nil
 		tqpayload.Data.ID = &invalidID
-		_, trackerquery := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
-		require.Nil(t, trackerquery)
+		test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 	})
 }
 
