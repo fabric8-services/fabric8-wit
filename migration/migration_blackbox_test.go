@@ -1386,17 +1386,20 @@ func testMigration109NumberColumnForIteration(t *testing.T) {
 
 func testMigration110TrackerQueryID(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:111], 111)
-	exists := func(t *testing.T, table string, constraint_name string) bool {
+	check_tq_constraint := func(t *testing.T, table string, constraint_name string) bool {
 		q := fmt.Sprintf("select constraint_name from information_schema.table_constraints where table_name = '%s' and constraint_type = '%s';", table, constraint_name)
 		row := sqlDB.QueryRow(q)
 		require.NotNil(t, row)
 
-		var pkey_constraint string
-		err := row.Scan(&pkey_constraint)
+		var tq_constraint string
+		err := row.Scan(&tq_constraint)
 		require.NoError(t, err, "%+v", err)
-		return pkey_constraint == "trackerqueries_pkey"
+		if tq_constraint == "trackerqueries_pkey" {
+			return true
+		}
+		return false
 	}
-	require.True(t, exists(t, "tracker_queries", "PRIMARY KEY"))
+	require.True(t, check_tq_constraint(t, "tracker_queries", "PRIMARY KEY"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
