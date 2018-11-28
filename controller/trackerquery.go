@@ -73,7 +73,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		return nil
 	})
 	if err != nil {
-		return errs.Wrapf(err, "failed to create tracker query %s", ctx.Payload.Data)
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		trackerQuery := remoteworkitem.TrackerQuery{
@@ -96,7 +96,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		return ctx.Created(res)
 	})
 	if err != nil {
-		return errs.Wrapf(err, "failed to create tracker query %s", ctx.Payload.Data)
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
@@ -153,7 +153,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		return ctx.OK(res)
 	})
 	if err != nil {
-		return errs.Wrapf(err, "failed to update tracker query %s", ctx.Payload.Data.ID)
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
@@ -174,7 +174,7 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 		return appl.TrackerQueries().Delete(ctx.Context, tq.ID)
 	})
 	if err != nil {
-		return errs.Wrapf(err, "failed to delete tracker query %s", ctx.ID)
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
