@@ -104,7 +104,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 			return errs.Wrapf(err, "failed to create tracker query %s", ctx.Payload.Data)
 		}
 		res := &app.TrackerQuerySingle{
-			Data: convertTrackerQuery(appl, ctx.Request, *tq),
+			Data: convertTrackerQueryToApp(appl, ctx.Request, *tq),
 		}
 		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(tq.ID))
 		return ctx.Created(res)
@@ -125,7 +125,7 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 			return errs.Wrapf(err, "failed to load tracker query %s", ctx.ID)
 		}
 		result := &app.TrackerQuerySingle{
-			Data: convertTrackerQuery(appl, ctx.Request, *trackerquery),
+			Data: convertTrackerQueryToApp(appl, ctx.Request, *trackerquery),
 		}
 		return ctx.OK(result)
 	})
@@ -162,7 +162,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 			return errs.Wrapf(err, "failed to update tracker query %s", ctx.Payload.Data.ID)
 		}
 		res := &app.TrackerQuerySingle{
-			Data: convertTrackerQuery(appl, ctx.Request, *tq),
+			Data: convertTrackerQueryToApp(appl, ctx.Request, *tq),
 		}
 		return ctx.OK(res)
 	})
@@ -203,22 +203,22 @@ func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
 			return errs.Wrapf(err, "failed to list tracker queries")
 		}
 		res := &app.TrackerQueryList{}
-		res.Data = ConvertTrackerQueries(appl, ctx.Request, trackerqueries)
+		res.Data = ConvertTrackerQueriesToApp(appl, ctx.Request, trackerqueries)
 		return ctx.OK(res)
 	})
 }
 
-// ConvertTrackerQueries from internal to external REST representation
-func ConvertTrackerQueries(appl application.Application, request *http.Request, trackerqueries []remoteworkitem.TrackerQuery) []*app.TrackerQuery {
+// ConvertTrackerQueriesToApp from internal to external REST representation
+func ConvertTrackerQueriesToApp(appl application.Application, request *http.Request, trackerqueries []remoteworkitem.TrackerQuery) []*app.TrackerQuery {
 	var ls = []*app.TrackerQuery{}
 	for _, i := range trackerqueries {
-		ls = append(ls, convertTrackerQuery(appl, request, i))
+		ls = append(ls, convertTrackerQueryToApp(appl, request, i))
 	}
 	return ls
 }
 
-// ConvertTrackerQuery converts from internal to external REST representation
-func convertTrackerQuery(appl application.Application, request *http.Request, trackerquery remoteworkitem.TrackerQuery) *app.TrackerQuery {
+// ConvertTrackerQueryToApp converts from internal to external REST representation
+func convertTrackerQueryToApp(appl application.Application, request *http.Request, trackerquery remoteworkitem.TrackerQuery) *app.TrackerQuery {
 	trackerQueryStringType := remoteworkitem.APIStringTypeTrackerQuery
 	selfURL := rest.AbsoluteURL(request, app.TrackerqueryHref(trackerquery.ID))
 	t := &app.TrackerQuery{
