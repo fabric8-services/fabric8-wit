@@ -302,10 +302,10 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 }
 
 func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID) app.CreateTrackerqueryPayload {
-	trackerQueryId := uuid.NewV4()
+	trackerQueryID := uuid.NewV4()
 	return app.CreateTrackerqueryPayload{
 		Data: &app.TrackerQuery{
-			ID: &trackerQueryId,
+			ID: &trackerQueryID,
 			Attributes: &app.TrackerQueryAttributes{
 				Query:    "is:open is:issue user:arquillian author:aslakknutsen",
 				Schedule: "15 * * * * *",
