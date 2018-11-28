@@ -1411,7 +1411,22 @@ func testMigration110RenameFields(t *testing.T) {
 		require.Equal(t, expectedFields, actualFields)
 	}
 
+	// When
+	expectedWITFieldsOld := `{"foo.bar": {"Type": {"Kind": "string"}}, "system.area": {"Type": {"Kind": "area"}}, "system.order": {"Type": {"Kind": "float"}}}`
+	// Ensure workitem type has old fields
+	expectWorkItemFieldsToBe(t, "work_item_types", "fields", work_item_typeID, expectedWITFieldsOld)
+
+	// Ensure workitem has old fields
+	expectedWIFieldsOld := `{"foo.bar": 123, "system.title": "Work item 1", "system.number": 1234}`
+	expectWorkItemFieldsToBe(t, "work_items", "fields", work_itemID, expectedWIFieldsOld)
+
+	// Ensure workitem_revision has old fields
+	// The fieldvalue should be same as that of workitem
+	expectWorkItemFieldsToBe(t, "work_item_revisions", "work_item_fields", work_item_revisionID, expectedWIFieldsOld)
+
 	migrateToVersion(t, sqlDB, migrations[:111], 111)
+
+	// Then
 	expectedWITFields := `{"foo.bar": {"Type": {"Kind": "string"}}, "system_area": {"Type": {"Kind": "area"}}, "system_order": {"Type": {"Kind": "float"}}}`
 	// Ensure workitem type fields are renamed
 	expectWorkItemFieldsToBe(t, "work_item_types", "fields", work_item_typeID, expectedWITFields)
