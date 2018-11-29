@@ -173,7 +173,28 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	// retrieve the spaceID from the returned first result entry
 	spaceID := wiResult[0].SpaceID
 	// retieve all WITs for this space
-	wits, err := getAllWorkItemTypesBySpaceID(ctx.Context, c.db, spaceID)
+	var wits []workitem.WorkItemType
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		thisSpace, err := appl.Spaces().Load(ctx.Context, spaceID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":     err,
+				"spaceID": spaceID,
+			}, "unable to retrieve space")
+			return errs.Wrapf(err, "error retrieving space for spaceID: %s", spaceID.String())
+		}
+		spaceTemplateID := thisSpace.SpaceTemplateID
+		wits, err = appl.WorkItemTypes().List(ctx.Context, spaceTemplateID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":     err,
+				"spaceID": spaceID,
+			}, "unable to retrieve work item types")
+			return errs.Wrapf(err, "error retrieving work item types for spaceID: %s", spaceID.String())
+		}
+		return nil
+	})
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error retrieving work item types for expression '%s': %s", *ctx.FilterExpression, err))
 	}
@@ -238,33 +259,6 @@ func getWorkItemsByFilterExpression(ctx context.Context, db application.DB, filt
 				"filter_expression": filterExpression,
 			}, "unable to list the work items")
 			return errs.Wrapf(err, "error executing filter expression for CSV filtering: %s", filterExpression)
-		}
-		return nil
-	})
-	return result, err
-}
-
-// getAllWorkItemTypesBySpaceID retrieves all Work Items for a given spaceID
-func getAllWorkItemTypesBySpaceID(ctx context.Context, db application.DB, spaceID uuid.UUID) ([]workitem.WorkItemType, error) {
-	var result []workitem.WorkItemType
-	err := application.Transactional(db, func(appl application.Application) error {
-		var err error
-		thisSpace, err := appl.Spaces().Load(ctx, spaceID)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"err":     err,
-				"spaceID": spaceID,
-			}, "unable to retrieve space")
-			return errs.Wrapf(err, "error retrieving space for spaceID: %s", spaceID.String())
-		}
-		spaceTemplateID := thisSpace.SpaceTemplateID
-		result, err = appl.WorkItemTypes().List(ctx, spaceTemplateID)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"err":     err,
-				"spaceID": spaceID,
-			}, "unable to retrieve work item types")
-			return errs.Wrapf(err, "error retrieving work item types for spaceID: %s", spaceID.String())
 		}
 		return nil
 	})
