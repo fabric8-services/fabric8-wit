@@ -88,10 +88,10 @@
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
         "description": "One work item relates to another one.",
-        "forward_description": "Select the work item that this one relates to.\nTheoretically there's no difference between \"relates to\" and \"is related to\";\nwe just haven't finished the implementation yet.\n",
+        "forward_description": "Select the work item that this one relates to.\n",
         "forward_name": "relates to",
         "name": "Related",
-        "reverse_description": "Select the work item that is related to this one.\nTheoretically there's no difference between \"relates to\" and \"is related to\";\nwe just haven't finished the implementation yet.\n",
+        "reverse_description": "Select the work item that is related to this one.\n",
         "reverse_name": "is related to",
         "topology": "network",
         "updated-at": "0001-01-01T00:00:00Z",
