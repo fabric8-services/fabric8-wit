@@ -531,6 +531,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		)
 		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
 		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, []*workitem.WorkItem{fxt.WorkItems[0]})
+		require.NoError(t, err)
 		_, _, err = ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, true)
 		require.Error(t, err)
 	})

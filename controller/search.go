@@ -224,7 +224,7 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	// write them out to the client
 	ctx.ResponseWriter.Write([]byte(wisCSV))
 	// page over the database, convert and send in chunks to the client
-	wiResultWindow := []workitem.WorkItem{}
+	var wiResultWindow []workitem.WorkItem
 	// we already fetched limit entries, so set offset
 	offset = offset + limit
 	// now iterate as long as the returned item count reaches the limit
