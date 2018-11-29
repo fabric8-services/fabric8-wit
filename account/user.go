@@ -157,19 +157,18 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// Obfuscate soft delete sensitive data related to an identity.
+// Obfuscate soft delete sensitive data related to a user.
 func (m *GormUserRepository) Obfuscate(ctx context.Context, id uuid.UUID, randomStr string) error {
-	defer goa.MeasureSince([]string{"goa", "db", "identity", "obfuscate"}, time.Now())
-	//obj := User{ID: id}
+	defer goa.MeasureSince([]string{"goa", "db", "user", "obfuscate"}, time.Now())
 	obj, err := m.Load(ctx, id)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"identity_id": id,
 			"err":         err,
-		}, "unable to load the identity")
+		}, "unable to load the user")
 		return errs.WithStack(err)
 	}
-	obj.Email = randomStr + "@example.com"
+	obj.Email = randomStr + "@mail.com"
 	obj.FullName = randomStr
 	obj.ImageURL = randomStr
 	obj.Bio = randomStr
@@ -180,18 +179,18 @@ func (m *GormUserRepository) Obfuscate(ctx context.Context, id uuid.UUID, random
 
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"identity_id": id,
+			"user_id": id,
 			"err":         db.Error,
-		}, "unable to obfuscate the identity")
+		}, "unable to obfuscate the user")
 		return errs.WithStack(db.Error)
 	}
 	if db.RowsAffected == 0 {
-		return errors.NewNotFoundError("identity", id.String())
+		return errors.NewNotFoundError("user", id.String())
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"identity_id": id,
-	}, "Identity obfuscated!")
+		"user_id": id,
+	}, "User obfuscated!")
 
 	return nil
 }

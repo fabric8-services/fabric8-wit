@@ -59,7 +59,8 @@ func randString(n int) string {
 	return string(b)
 }
 
-// Obfuscate runs the obfuscate action to soft delete sensitive data associated with an user.
+// Obfuscate runs the obfuscate action to soft delete sensitive data associated
+// with an user and her associated identity.
 func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 	isSvcAccount, err := isServiceAccount(ctx, serviceNameAuth)
 	if err != nil {
