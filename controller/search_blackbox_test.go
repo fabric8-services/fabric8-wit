@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -166,8 +167,8 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			assert.WithinDuration(t, time.Now().UTC(), parsedTime, 10*time.Second)
 		})
 	})
-	s.T().Run("multiple result", func(t *testing.T) {
-		fxt := newFixture(t, 5, true)
+	s.T().Run("multiple results and chunking", func(t *testing.T) {
+		fxt := newFixture(t, 500, true)
 		// when
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
 		rr := httptest.NewRecorder()
@@ -181,9 +182,26 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		// deserialize and check consistency of header and entity lines.
 		entities, err := deserialize(bodyStr)
 		require.NoError(t, err)
-		require.Len(t, entities, 5)
+		require.Len(t, entities, 500)
 		compareWithGoldenOpts(t, filepath.Join(s.testDir, "csv", "ok-multi.res.payload.golden.csv"), bodyStr, compareOptions{UUIDAgnostic: true, DateTimeAgnostic: true})
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok-multi.res.headers.golden.json"), rw.Header())
+		// additional check if the result is equivalent to the created WIs - the golden file is hard to check at this size
+		foundNumbers := []int{}
+		expectedNumbers := []int{}
+		for _, sourceWIT := range fxt.WorkItems {
+			number, ok := sourceWIT.Fields[workitem.SystemNumber].(int)
+			expectedNumbers = append(expectedNumbers, number)
+			require.True(t, ok)
+			numberStr := strconv.Itoa(number)
+			for _, entity := range entities {
+				if entity["Number"] == numberStr {
+					foundNumbers = append(foundNumbers, number)
+					break
+				}
+			}
+		}
+		require.Len(t, foundNumbers, 500)
+		require.Equal(t, expectedNumbers, foundNumbers)
 	})
 	s.T().Run("empty result", func(t *testing.T) {
 		newFixture(t, 1, false)
@@ -209,7 +227,6 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		rr := httptest.NewRecorder()
 		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
 		moreMsg := "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
-		var entities1 []map[string]string
 		t.Run("window 1", func(t *testing.T) {
 			// fetch window 1
 			rw := test.WorkitemsCSVSearchOK(t, goaCtx, s.svc, s.controller, &filter, nil, ptr.Int(5), ptr.Int(0))
@@ -220,11 +237,9 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			bodyStr := recorder.Body.String()
 			require.True(t, strings.Contains(bodyStr, moreMsg))
 			bodyStr = bodyStr[0 : len(bodyStr)-len(moreMsg)]
-			// deserialize and check consistency of header and entity lines.
-			var err error
-			entities1, err = deserialize(bodyStr)
+			_, err := deserialize(bodyStr)
 			require.NoError(t, err)
-			require.Len(t, entities1, 6)
+			compareWithGoldenOpts(t, filepath.Join(s.testDir, "csv", "ok-paging-page1.res.payload.golden.csv"), bodyStr, compareOptions{UUIDAgnostic: true, DateTimeAgnostic: true})
 		})
 		t.Run("window 2", func(t *testing.T) {
 			// fetch window 2
@@ -235,13 +250,9 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			require.NotNil(t, recorder.Body)
 			bodyStr := recorder.Body.String()
 			require.False(t, strings.Contains(bodyStr, moreMsg))
-			// deserialize and check consistency of header and entity lines.
-			entities2, err := deserialize(bodyStr)
+			_, err := deserialize(bodyStr)
 			require.NoError(t, err)
-			require.Len(t, entities2, 5)
-			// do some simple consistency checks, the paging is tested elsewhere.
-			// Just make sure we don't have the same entities returned.
-			require.NotEqual(t, entities1[0]["Number"], entities2[0]["Number"])
+			compareWithGoldenOpts(t, filepath.Join(s.testDir, "csv", "ok-paging-page2.res.payload.golden.csv"), bodyStr, compareOptions{UUIDAgnostic: true, DateTimeAgnostic: true})
 		})
 	})
 }

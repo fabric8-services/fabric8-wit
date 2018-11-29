@@ -1,7 +1,9 @@
 package controller
 
 import (
+	"context"
 	"fmt"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"net/url"
 	"path"
 	"regexp"
@@ -140,53 +142,133 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	if ctx.FilterExpression == nil {
 		return goa.ErrBadRequest(fmt.Sprintf("bad parameter error exporting work items as CSV: param 'filter[expression]' missing"))
 	}
-	var result []workitem.WorkItem
+	if ctx.PageLimit != nil && *(ctx.PageLimit) > 1000 {
+		// the window size is too large
+		return goa.ErrBadRequest("maximum limit value is 1000")
+	}
+	// set page size from query or use default
+	limit := 100
+	if ctx.PageLimit != nil {
+		// we add an overflow indicator element
+		limit = *(ctx.PageLimit) + 1
+	}
 	offset := 0
 	if ctx.PageOffset != nil {
 		offset = *(ctx.PageOffset)
 	}
-	limit := 1000
+	// retrieve the first work item to get the spaceID
+	wiResult, err := getWorkItemsByFilterExpression(*ctx, c.db, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("error searching work items for expression '%s': %s", *ctx.FilterExpression, err))
+	}
+	// set header data, adding timestamp to the filename
+	currentTime := time.Now().UTC()
+	timeStr := currentTime.Format(time.RFC3339)
+	ctx.ResponseData.Header().Set("Content-Disposition", "attachment; filename='workitems-"+timeStr+".csv'")
+	// see if we have a non-empty result set
+	if len(wiResult) == 0 {
+		// empty result, nothing matched the filter expression, we're done
+		return ctx.OK([]byte(""))
+	}
+	// retrieve the spaceID from the returned first result entry
+	spaceID := wiResult[0].SpaceID
+	// retieve all WITs for this space
+	wits, err := getAllWorkItemTypesBySpaceID(ctx.Context, c.db, spaceID)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("error retrieving work item types for expression '%s': %s", *ctx.FilterExpression, err))
+	}
 	if ctx.PageLimit != nil {
-		limit = *(ctx.PageLimit)
-	}
-	// we use a overflow entry to see if there is more than the window size.
-	limit++
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		var err error
-		result, _, _, _, err = appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"err":               err,
-				"filter_expression": *ctx.FilterExpression,
-			}, "unable to list the work items")
-			return errs.Wrapf(err, "error executing filter expression for CSV filtering: %s", *ctx.FilterExpression)
+		// if the overflow entry is in the result set, then there is more than this window, add a note to the bottom of the returned list
+		moreMessage := ""
+		if len(wiResult) >= limit {
+			// there is an overflow, slice off the overflow item and add the message
+			wiResult = wiResult[:len(wiResult)-1]
+			moreMessage = "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
 		}
-		return nil
-	})
-	if err != nil {
-		return err
+		// Convert them to CSV format the return value contains the final CSV
+		wisCSV, _, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResult, true)
+		if err != nil {
+			return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
+		}
+		// add the note to the bottom of the result csv (if there is a note)
+		wisCSV = wisCSV + moreMessage
+		// return to client
+		return ctx.OK([]byte(wisCSV))
 	}
-	// Load all work item types
-	wits, err := loadWorkItemTypesFromArr(ctx.Context, c.db, result)
-	if err != nil {
-		return goa.ErrBadRequest(fmt.Sprintf("error loading work items types while searching work items for expression '%s': %s", *ctx.FilterExpression, err))
-	}
-	// Convert them to CSV format the return value contains the final CSV
-	wisCSV, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, result)
+	// we want to retrieve everything, first serialize the work items we already got
+	wisCSV, _, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResult, true)
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
 	}
-	if len(result) >= limit {
-		// we have more than limit+1 rows, so add a note to the bottom of the returned list
-		wisCSV = wisCSV + "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
+	// write them out to the client
+	ctx.ResponseWriter.Write([]byte(wisCSV))
+	// page over the database, convert and send in chunks to the client
+	wiResultWindow := []workitem.WorkItem{}
+	// we already fetched limit entries, so set offset
+	offset = offset + limit
+	// now iterate as long as the returned item count reaches the limit
+	for {
+		wiResultWindow, err = getWorkItemsByFilterExpression(ctx.Context, c.db, *ctx.FilterExpression, ctx.FilterParentexists, ptr.Int(offset), ptr.Int(limit))
+		if err != nil {
+			return goa.ErrBadRequest(fmt.Sprintf("error retrieving work item types for expression '%s': %s", *ctx.FilterExpression, err))
+		}
+		wisCSV, _, err = ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResultWindow, false)
+		if err != nil {
+			return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
+		}
+		ctx.ResponseWriter.Write([]byte(wisCSV))
+		if len(wiResultWindow) < limit {
+			break
+		}
+		offset = offset + len(wiResultWindow)
 	}
-	// to make filename dynamic, hash of the query expression
-	currentTime := time.Now().UTC()
-	// creating timestr according to RFC3339 recommendations
-	timeStr := currentTime.Format(time.RFC3339)
-	// return output
-	ctx.ResponseData.Header().Set("Content-Disposition", "attachment; filename='workitems-"+timeStr+".csv'")
-	return ctx.OK([]byte(wisCSV))
+	// finally, return the result
+	return ctx.OK(nil)
+}
+
+// getWorkItemsByFilterExpression retrieves Work Items for a given expression and parameters
+func getWorkItemsByFilterExpression(ctx context.Context, db application.DB, filterExpression string, filterParentexists *bool, offset *int, limit *int) ([]workitem.WorkItem, error) {
+	var result []workitem.WorkItem
+	err := application.Transactional(db, func(appl application.Application) error {
+		var err error
+		result, _, _, _, err = appl.SearchItems().Filter(ctx, filterExpression, filterParentexists, offset, limit)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":               err,
+				"filter_expression": filterExpression,
+			}, "unable to list the work items")
+			return errs.Wrapf(err, "error executing filter expression for CSV filtering: %s", filterExpression)
+		}
+		return nil
+	})
+	return result, err
+}
+
+// getAllWorkItemTypesBySpaceID retrieves all Work Items for a given spaceID
+func getAllWorkItemTypesBySpaceID(ctx context.Context, db application.DB, spaceID uuid.UUID) ([]workitem.WorkItemType, error) {
+	var result []workitem.WorkItemType
+	err := application.Transactional(db, func(appl application.Application) error {
+		var err error
+		thisSpace, err := appl.Spaces().Load(ctx, spaceID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":     err,
+				"spaceID": spaceID,
+			}, "unable to retrieve space")
+			return errs.Wrapf(err, "error retrieving space for spaceID: %s", spaceID.String())
+		}
+		spaceTemplateID := thisSpace.SpaceTemplateID
+		result, err = appl.WorkItemTypes().List(ctx, spaceTemplateID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":     err,
+				"spaceID": spaceID,
+			}, "unable to retrieve work item types")
+			return errs.Wrapf(err, "error retrieving work item types for spaceID: %s", spaceID.String())
+		}
+		return nil
+	})
+	return result, err
 }
 
 // Show runs the show action.
