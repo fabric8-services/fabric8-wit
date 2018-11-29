@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -9,7 +10,6 @@ import (
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
-	"fmt"
 )
 
 // pipeline implements the pipeline resource.
