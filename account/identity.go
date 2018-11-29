@@ -225,8 +225,8 @@ func (m *GormIdentityRepository) Obfuscate(ctx context.Context, userId uuid.UUID
 	obj, err := m.LoadWithUserId(ctx, id.NullUUID{UUID: userId, Valid: true})
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"user_id":     userId,
-			"err":         err,
+			"user_id": userId,
+			"err":     err,
 		}, "unable to retrieve the identity associated to this user id")
 		return errs.WithStack(err)
 	}
@@ -236,7 +236,7 @@ func (m *GormIdentityRepository) Obfuscate(ctx context.Context, userId uuid.UUID
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
 			"user_id": userId,
-			"err":         db.Error,
+			"err":     db.Error,
 		}, "unable to obfuscate the identity")
 		return errs.WithStack(db.Error)
 	}

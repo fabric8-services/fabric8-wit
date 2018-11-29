@@ -18,7 +18,7 @@ import (
 
 type IdentityRepositoryTestSuite struct {
 	gormtestsupport.DBTestSuite
-	repo account.IdentityRepository
+	repo     account.IdentityRepository
 	repoUser account.UserRepository
 }
 
@@ -94,7 +94,7 @@ func randString(n int) string {
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[rand.Int63() % int64(len(letterBytes))]
+		b[i] = letterBytes[rand.Int63()%int64(len(letterBytes))]
 	}
 	return string(b)
 }
@@ -188,7 +188,7 @@ func createAndLoadUserAndIdentities(s *IdentityRepositoryTestSuite) *account.Ide
 		ID:           uuid.NewV4(),
 		Username:     "someuserTestIdentity2",
 		ProviderType: account.KeycloakIDP,
-		UserID: 	  id.NullUUID{UUID:createdUser.ID, Valid: true},
+		UserID:       id.NullUUID{UUID: createdUser.ID, Valid: true},
 	}
 
 	err = s.repo.Create(s.Ctx, identity)

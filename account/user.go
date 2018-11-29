@@ -180,7 +180,7 @@ func (m *GormUserRepository) Obfuscate(ctx context.Context, id uuid.UUID, random
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
 			"user_id": id,
-			"err":         db.Error,
+			"err":     db.Error,
 		}, "unable to obfuscate the user")
 		return errs.WithStack(db.Error)
 	}
