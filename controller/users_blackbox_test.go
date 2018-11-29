@@ -63,7 +63,7 @@ func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountBadRequest() {
 func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountOK() {
 	// given
 	user := s.createRandomUser("TestObfuscateUserAsServiceAccountOK")
-	identity := s.createRandomIdentityObject(user, account.KeycloakIDP)
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when
 	secureService, secureController := s.SecuredServiceAccountController(identity)
 

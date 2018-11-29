@@ -110,6 +110,19 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 	return &native, errs.WithStack(err)
 }
 
+// LoadWithUserId returns a single Identity as a Database Model
+func (m *GormIdentityRepository) LoadWithUserId(ctx context.Context, userId id.NullUUID) (*Identity, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "identity", "loadWithUserId"}, time.Now())
+
+	var native Identity
+	err := m.db.Table(m.TableName()).Where("user_id = ?", userId).Find(&native).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, errs.WithStack(errors.NewNotFoundError("identity", userId.UUID.String()))
+	}
+
+	return &native, errs.WithStack(err)
+}
+
 // CheckExists returns nil if the given ID exists otherwise returns an error
 func (m *GormIdentityRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "exists"}, time.Now())
@@ -206,26 +219,33 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 }
 
 // Obfuscate soft delete sensitive data related to an identity.
-func (m *GormIdentityRepository) Obfuscate(ctx context.Context, id uuid.UUID, randomStr string) error {
+func (m *GormIdentityRepository) Obfuscate(ctx context.Context, userId uuid.UUID, randomStr string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "obfuscate"}, time.Now())
-	obj := Identity{ID: id}
+
+	obj, err := m.LoadWithUserId(ctx, id.NullUUID{UUID: userId, Valid: true})
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"user_id":     userId,
+			"err":         err,
+		}, "unable to retrieve the identity associated to this user id")
+		return errs.WithStack(err)
+	}
 	obj.Username = randomStr
 	obj.ProfileURL = &randomStr
 	db := m.db.Save(obj)
-
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"identity_id": id,
+			"user_id": userId,
 			"err":         db.Error,
 		}, "unable to obfuscate the identity")
 		return errs.WithStack(db.Error)
 	}
 	if db.RowsAffected == 0 {
-		return errors.NewNotFoundError("identity", id.String())
+		return errors.NewNotFoundError("identity", userId.String())
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"identity_id": id,
+		"user_id": userId,
 	}, "Identity obfuscated!")
 
 	return nil

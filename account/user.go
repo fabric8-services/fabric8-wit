@@ -160,8 +160,16 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // Obfuscate soft delete sensitive data related to an identity.
 func (m *GormUserRepository) Obfuscate(ctx context.Context, id uuid.UUID, randomStr string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "obfuscate"}, time.Now())
-	obj := User{ID: id}
-	obj.Email = randomStr
+	//obj := User{ID: id}
+	obj, err := m.Load(ctx, id)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"identity_id": id,
+			"err":         err,
+		}, "unable to load the identity")
+		return errs.WithStack(err)
+	}
+	obj.Email = randomStr + "@example.com"
 	obj.FullName = randomStr
 	obj.ImageURL = randomStr
 	obj.Bio = randomStr
