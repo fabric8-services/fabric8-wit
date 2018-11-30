@@ -1,6 +1,7 @@
 
 ----------------------------------------------------------------------------------------------------
 --- Copied from 082-iteration-related-changed.sql
+--- All instances of 'system.iteration' are replaced with 'system_iteration'
 ----------------------------------------------------------------------------------------------------
 
 -- looks very similar to step 071 but here we replace the 
@@ -68,6 +69,8 @@ CREATE TRIGGER workitem_soft_delete_trigger AFTER UPDATE ON work_items
 
 ----------------------------------------------------------------------------------------------------
 --- Taken from 065-workitem-id-unique-per-space.sql
+--- All instances of 'system.title', 'system.description' are replaced with
+--- 'system_title' and 'system_description'
 ----------------------------------------------------------------------------------------------------
 
 
