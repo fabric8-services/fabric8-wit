@@ -61,7 +61,7 @@ func (s *userBlackBoxTest) TestOKToObfuscate() {
 	require.NoError(s.T(), err, "Could not obfuscate identity")
 	newUser, err := s.repo.Load(s.Ctx, user.ID)
 	require.NoError(s.T(), err, "Could not retrieve identity")
-	require.Equal(s.T(), objStr+"mail.com", newUser.Email)
+	require.Equal(s.T(), objStr+"@mail.com", newUser.Email)
 	require.Equal(s.T(), objStr, newUser.FullName)
 	require.Equal(s.T(), objStr, newUser.ImageURL)
 	require.Equal(s.T(), objStr, newUser.Bio)
