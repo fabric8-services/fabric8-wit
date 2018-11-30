@@ -86,11 +86,61 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 	}
 	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
 		obfStr := randString(12)
-		if err := appl.Users().Obfuscate(ctx, u, obfStr); err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+
+		// Obfuscate User
+		users, err := appl.Users().Query(account.UserFilterByID(u))
+		if err != nil || len(users) != 1 {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": u,
+				"err":     err,
+			}, "unable to load the user")
+			return errs.WithStack(err)
 		}
-		if err := appl.Identities().Obfuscate(ctx, u, obfStr); err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+		user := users[0]
+		user.Email = obfStr + "@mail.com"
+		user.FullName = obfStr
+		user.ImageURL = obfStr
+		user.Bio = obfStr
+		user.URL = obfStr
+		user.ContextInformation = nil
+		user.Company = obfStr
+		if err := appl.Users().Save(ctx.Context, &user); err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": u,
+				"err":     err,
+			}, "unable to obfuscate the user")
+			return errs.WithStack(err)
+		}
+
+		log.Debug(ctx, map[string]interface{}{
+			"user_id": u,
+		}, "User obfuscated!")
+
+		// Obfuscate associated identity
+		identities, err := appl.Identities().Query(account.IdentityFilterByUserID(u))
+		if err != nil || len(identities) == 0 {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": u,
+				"err":     err,
+			}, "unable to retrieve the identity associated to this user id")
+			return errs.WithStack(err)
+		}
+		for _, identity := range identities {
+			identity.Username = obfStr
+			identity.ProfileURL = &obfStr
+
+			if err := appl.Identities().Save(ctx.Context, &identity); err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"user_id": u,
+					"err":     err,
+				}, "unable to obfuscate the identity")
+				return errs.WithStack(err)
+			}
+
+			log.Debug(ctx, map[string]interface{}{
+				"user_id": u,
+			}, "Identity obfuscated!")
+
 		}
 		return ctx.OK([]byte{})
 	})

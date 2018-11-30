@@ -80,7 +80,6 @@ type IdentityRepository interface {
 	Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error)
 	Save(ctx context.Context, identity *Identity) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	Obfuscate(ctx context.Context, id uuid.UUID, randomStr string) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Identity, error)
 	List(ctx context.Context) ([]Identity, error)
 	IsValid(context.Context, uuid.UUID) bool
@@ -201,42 +200,6 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 	log.Debug(ctx, map[string]interface{}{
 		"identity_id": id,
 	}, "Identity deleted!")
-
-	return nil
-}
-
-// Obfuscate soft delete sensitive data related to an identity.
-func (m *GormIdentityRepository) Obfuscate(ctx context.Context, userID uuid.UUID, randomStr string) error {
-	defer goa.MeasureSince([]string{"goa", "db", "identity", "obfuscate"}, time.Now())
-
-	obj, err := m.Query(IdentityFilterByUserID(userID))
-	if err != nil || len(obj) == 0 {
-		log.Error(ctx, map[string]interface{}{
-			"user_id": userID,
-			"err":     err,
-		}, "unable to retrieve the identity associated to this user id")
-		return errs.WithStack(err)
-	}
-	for _, identity := range obj {
-		identity.Username = randomStr
-		identity.ProfileURL = &randomStr
-		db := m.db.Save(identity)
-		if db.Error != nil {
-			log.Error(ctx, map[string]interface{}{
-				"user_id": userID,
-				"err":     db.Error,
-			}, "unable to obfuscate the identity")
-			return errs.WithStack(db.Error)
-		}
-		if db.RowsAffected == 0 {
-			return errors.NewNotFoundError("identity", userID.String())
-		}
-
-		log.Debug(ctx, map[string]interface{}{
-			"user_id": userID,
-		}, "Identity obfuscated!")
-
-	}
 
 	return nil
 }

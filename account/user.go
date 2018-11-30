@@ -69,7 +69,6 @@ type UserRepository interface {
 	Save(ctx context.Context, u *User) error
 	List(ctx context.Context) ([]User, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
-	Obfuscate(ctx context.Context, ID uuid.UUID, randomStr string) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]User, error)
 }
 
@@ -153,44 +152,6 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	log.Debug(ctx, map[string]interface{}{
 		"user_id": id,
 	}, "User deleted!")
-
-	return nil
-}
-
-// Obfuscate soft delete sensitive data related to a user.
-func (m *GormUserRepository) Obfuscate(ctx context.Context, id uuid.UUID, randomStr string) error {
-	defer goa.MeasureSince([]string{"goa", "db", "user", "obfuscate"}, time.Now())
-	obj, err := m.Load(ctx, id)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"identity_id": id,
-			"err":         err,
-		}, "unable to load the user")
-		return errs.WithStack(err)
-	}
-	obj.Email = randomStr + "@mail.com"
-	obj.FullName = randomStr
-	obj.ImageURL = randomStr
-	obj.Bio = randomStr
-	obj.URL = randomStr
-	obj.ContextInformation = nil
-	obj.Company = randomStr
-	db := m.db.Save(obj)
-
-	if db.Error != nil {
-		log.Error(ctx, map[string]interface{}{
-			"user_id": id,
-			"err":     db.Error,
-		}, "unable to obfuscate the user")
-		return errs.WithStack(db.Error)
-	}
-	if db.RowsAffected == 0 {
-		return errors.NewNotFoundError("user", id.String())
-	}
-
-	log.Debug(ctx, map[string]interface{}{
-		"user_id": id,
-	}, "User obfuscated!")
 
 	return nil
 }

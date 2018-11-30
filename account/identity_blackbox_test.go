@@ -1,7 +1,6 @@
 package account_test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
@@ -87,29 +86,6 @@ func (s *IdentityRepositoryTestSuite) TestOKToDelete() {
 	for _, ident := range identities {
 		require.NotEqual(s.T(), "someuserTestIdentity", ident.Username)
 	}
-}
-
-func randString(n int) string {
-	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Int63()%int64(len(letterBytes))]
-	}
-	return string(b)
-}
-
-func (s *IdentityRepositoryTestSuite) TestOKToObfuscate() {
-	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
-	identity := fxt.Identities[0]
-	obfStr := randString(6)
-	// when
-	err := s.repo.Obfuscate(s.Ctx, identity.UserID.UUID, obfStr)
-	// then
-	require.NoError(s.T(), err, "Could not obfuscate identity")
-	newIdentity, err := s.repo.Load(s.Ctx, identity.ID)
-	require.NoError(s.T(), err, "Could not retrieve identity")
-	require.Equal(s.T(), obfStr, newIdentity.Username)
 }
 
 func (s *IdentityRepositoryTestSuite) TestOKToLoad() {
