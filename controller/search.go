@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"net/url"
 	"path"
 	"regexp"
@@ -12,6 +11,8 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-common/id"
+
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
