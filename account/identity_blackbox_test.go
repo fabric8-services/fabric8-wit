@@ -1,7 +1,6 @@
 package account_test
 
 import (
-	"github.com/fabric8-services/fabric8-common/id"
 	"math/rand"
 	"testing"
 
@@ -10,7 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -101,7 +100,8 @@ func randString(n int) string {
 
 func (s *IdentityRepositoryTestSuite) TestOKToObfuscate() {
 	// given
-	identity := createAndLoadUserAndIdentities(s)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	identity := fxt.Identities[0]
 	obfStr := randString(6)
 	// when
 	err := s.repo.Obfuscate(s.Ctx, identity.UserID.UUID, obfStr)
@@ -158,40 +158,6 @@ func createAndLoad(s *IdentityRepositoryTestSuite) *account.Identity {
 	}
 
 	err := s.repo.Create(s.Ctx, identity)
-	require.NoError(s.T(), err, "Could not create identity")
-	// when
-	idnt, err := s.repo.Load(s.Ctx, identity.ID)
-	// then
-	require.NoError(s.T(), err, "Could not load identity")
-	require.Equal(s.T(), "someuserTestIdentity2", idnt.Username)
-	return idnt
-}
-
-func createAndLoadUserAndIdentities(s *IdentityRepositoryTestSuite) *account.Identity {
-	user := &account.User{
-		ID:       uuid.NewV4(),
-		Email:    "someuser@TestUser" + uuid.NewV4().String(),
-		FullName: "someuserTestUser" + uuid.NewV4().String(),
-		ImageURL: "someImageUrl" + uuid.NewV4().String(),
-		Bio:      "somebio" + uuid.NewV4().String(),
-		URL:      "someurl" + uuid.NewV4().String(),
-		ContextInformation: account.ContextInformation{
-			"space":        uuid.NewV4(),
-			"last_visited": "http://www.google.com",
-			"myid":         "71f343e3-2bfa-4ec6-86d4-79b91476acfc",
-		},
-	}
-	err := s.repoUser.Create(s.Ctx, user)
-	createdUser, err := s.repoUser.Load(s.Ctx, user.ID)
-
-	identity := &account.Identity{
-		ID:           uuid.NewV4(),
-		Username:     "someuserTestIdentity2",
-		ProviderType: account.KeycloakIDP,
-		UserID:       id.NullUUID{UUID: createdUser.ID, Valid: true},
-	}
-
-	err = s.repo.Create(s.Ctx, identity)
 	require.NoError(s.T(), err, "Could not create identity")
 	// when
 	idnt, err := s.repo.Load(s.Ctx, identity.ID)

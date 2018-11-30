@@ -181,7 +181,7 @@ var _ = a.Resource("users", func() {
 		a.Routing(
 			a.PUT("/:id"),
 		)
-		a.Description("Soft delete user for the given ID.")
+		a.Description("Invalidate user details for the given userID.")
 		a.Params(func() {
 			a.Param("id", d.String, "id")
 		})
@@ -191,7 +191,6 @@ var _ = a.Resource("users", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
-		a.Response(d.Conflict, JSONAPIErrors)
 	})
 
 	a.Action("updateUserAsServiceAccount", func() {

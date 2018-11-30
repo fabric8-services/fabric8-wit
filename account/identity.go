@@ -17,7 +17,7 @@ import (
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 const (
@@ -105,19 +105,6 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 	err := m.db.Table(m.TableName()).Where("id = ?", id).Find(&native).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, errs.WithStack(errors.NewNotFoundError("identity", id.String()))
-	}
-
-	return &native, errs.WithStack(err)
-}
-
-// LoadWithUserId returns a single Identity as a Database Model
-func (m *GormIdentityRepository) LoadWithUserId(ctx context.Context, userId id.NullUUID) (*Identity, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "identity", "loadWithUserId"}, time.Now())
-
-	var native Identity
-	err := m.db.Table(m.TableName()).Where("user_id = ?", userId).Find(&native).Error
-	if err == gorm.ErrRecordNotFound {
-		return nil, errs.WithStack(errors.NewNotFoundError("identity", userId.UUID.String()))
 	}
 
 	return &native, errs.WithStack(err)
@@ -219,34 +206,37 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 }
 
 // Obfuscate soft delete sensitive data related to an identity.
-func (m *GormIdentityRepository) Obfuscate(ctx context.Context, userId uuid.UUID, randomStr string) error {
+func (m *GormIdentityRepository) Obfuscate(ctx context.Context, userID uuid.UUID, randomStr string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "obfuscate"}, time.Now())
 
-	obj, err := m.LoadWithUserId(ctx, id.NullUUID{UUID: userId, Valid: true})
-	if err != nil {
+	obj, err := m.Query(IdentityFilterByUserID(userID))
+	if err != nil || len(obj) == 0 {
 		log.Error(ctx, map[string]interface{}{
-			"user_id": userId,
+			"user_id": userID,
 			"err":     err,
 		}, "unable to retrieve the identity associated to this user id")
 		return errs.WithStack(err)
 	}
-	obj.Username = randomStr
-	obj.ProfileURL = &randomStr
-	db := m.db.Save(obj)
-	if db.Error != nil {
-		log.Error(ctx, map[string]interface{}{
-			"user_id": userId,
-			"err":     db.Error,
-		}, "unable to obfuscate the identity")
-		return errs.WithStack(db.Error)
-	}
-	if db.RowsAffected == 0 {
-		return errors.NewNotFoundError("identity", userId.String())
-	}
+	for _, identity := range obj {
+		identity.Username = randomStr
+		identity.ProfileURL = &randomStr
+		db := m.db.Save(identity)
+		if db.Error != nil {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": userID,
+				"err":     db.Error,
+			}, "unable to obfuscate the identity")
+			return errs.WithStack(db.Error)
+		}
+		if db.RowsAffected == 0 {
+			return errors.NewNotFoundError("identity", userID.String())
+		}
 
-	log.Debug(ctx, map[string]interface{}{
-		"user_id": userId,
-	}, "Identity obfuscated!")
+		log.Debug(ctx, map[string]interface{}{
+			"user_id": userID,
+		}, "Identity obfuscated!")
+
+	}
 
 	return nil
 }
