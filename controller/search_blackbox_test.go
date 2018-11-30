@@ -168,7 +168,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		})
 	})
 	s.T().Run("multiple results and chunking", func(t *testing.T) {
-		fxt := newFixture(t, 520, true)
+		fxt := newFixture(t, 242, true)
 		// when
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
 		rr := httptest.NewRecorder()
@@ -182,7 +182,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		// deserialize and check consistency of header and entity lines.
 		entities, err := deserialize(bodyStr)
 		require.NoError(t, err)
-		require.Len(t, entities, 520)
+		require.Len(t, entities, 242)
 		compareWithGoldenOpts(t, filepath.Join(s.testDir, "csv", "ok-multi.res.payload.golden.csv"), bodyStr, compareOptions{UUIDAgnostic: true, DateTimeAgnostic: true})
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok-multi.res.headers.golden.json"), rw.Header())
 		// additional check if the result is equivalent to the created WIs - the golden file is hard to check at this size
@@ -200,7 +200,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 				}
 			}
 		}
-		require.Len(t, foundNumbers, 520)
+		require.Len(t, foundNumbers, 242)
 		require.Equal(t, expectedNumbers, foundNumbers)
 	})
 	s.T().Run("empty result", func(t *testing.T) {
