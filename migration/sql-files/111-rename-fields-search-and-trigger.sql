@@ -4,10 +4,6 @@
 --- All instances of 'system.iteration' are replaced with 'system_iteration'
 ----------------------------------------------------------------------------------------------------
 
--- looks very similar to step 071 but here we replace the 
--- `WHERE i.id::text = NEW.Fields->>'system_iteration'` comparison with 
--- `WHERE i.id = (NEW.Fields->>'system_iteration')::uuid` to use the 
--- index of iterations on the `id` column (primary key)
 drop trigger if exists workitem_link_iteration_trigger on work_items;
 drop function if exists iteration_set_relationship_timestamp_on_workitem_linking();
 drop trigger if exists workitem_unlink_iteration_trigger on work_items;
@@ -17,7 +13,7 @@ drop function if exists iteration_set_relationship_timestamp_on_workitem_deletio
 
 -- trigger and function when a workitem is linked to an iteration
 CREATE FUNCTION iteration_set_relationship_timestamp_on_workitem_linking() RETURNS trigger AS $$
-    -- trigger to fill the `relationships_changed_at` column when an interation is set
+    -- trigger to fill the `relationships_changed_at` column when an iteration is set
     BEGIN
         UPDATE iterations i SET relationships_changed_at = NEW.updated_at 
         WHERE NEW.Fields->>'system_iteration' IS NOT NULL AND i.id = (NEW.Fields->>'system_iteration')::uuid;
@@ -35,7 +31,7 @@ CREATE TRIGGER workitem_link_iteration_trigger AFTER UPDATE ON work_items
 
 -- trigger and function when an iteration is unset for a workitem 
 CREATE FUNCTION iteration_set_relationship_timestamp_on_workitem_unlinking() RETURNS trigger AS $$
-    -- trigger to fill the `relationships_changed_at` column when an interation is set
+    -- trigger to fill the `relationships_changed_at` column when an iteration is set
     BEGIN
         UPDATE iterations i SET relationships_changed_at = NEW.updated_at 
         WHERE OLD.Fields->>'system_iteration' IS NOT NULL AND i.id = (OLD.Fields->>'system_iteration')::uuid;
@@ -53,7 +49,7 @@ CREATE TRIGGER workitem_unlink_iteration_trigger AFTER UPDATE ON work_items
 
 -- trigger and function when a workitem that is soft-deleted was linked to an iteration
 CREATE FUNCTION iteration_set_relationship_timestamp_on_workitem_deletion() RETURNS trigger AS $$
-    -- trigger to fill the `relationships_changed_at` column when an interation is set
+    -- trigger to fill the `relationships_changed_at` column when an iteration is set
     BEGIN
         UPDATE iterations i SET relationships_changed_at = NEW.deleted_at 
         WHERE OLD.Fields->>'system_iteration' IS NOT NULL AND i.id = (OLD.Fields->>'system_iteration')::uuid;
