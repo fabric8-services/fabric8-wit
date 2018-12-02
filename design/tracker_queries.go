@@ -39,6 +39,7 @@ var trackerQueryAttributes = a.Type("TrackerQueryAttributes", func() {
 var trackerQueryRelationships = a.Type("TrackerQueryRelations", func() {
 	a.Attribute("tracker", relationKindUUID, "This defines the related tracker")
 	a.Attribute("space", relationSpaces, "This defines the owning space")
+	a.Attribute("baseType", relationBaseType, "This defines type of Work Item")
 })
 
 var trackerQueryList = JSONList(

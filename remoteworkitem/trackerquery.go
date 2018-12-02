@@ -17,7 +17,8 @@ type TrackerQuery struct {
 	// TrackerID is a foreign key for a tracker
 	TrackerID uuid.UUID `gorm:"ForeignKey:Tracker"`
 	// SpaceID is a foreign key for a space
-	SpaceID uuid.UUID `gorm:"ForeignKey:Space"`
+	SpaceID        uuid.UUID `gorm:"ForeignKey:Space"`
+	WorkItemTypeID uuid.UUID `gorm:"ForeignKey:WorkItemType"`
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name

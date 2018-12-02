@@ -179,11 +179,10 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
 	resource.Require(t, resource.Database)
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
 	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
-	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
-
+	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
 	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 	assert.NotNil(t, tqresult)
 }
@@ -193,13 +192,12 @@ func (rest *TestTrackerQueryREST) TestShowTrackerQuery() {
 	resource.Require(t, resource.Database)
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
 	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
-	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
-
 	_, tqr := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *tqresult.Data.ID)
 	assert.NotNil(t, tqr)
 	assert.Equal(t, tqresult.Data.ID, tqr.Data.ID)
@@ -210,10 +208,10 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	resource.Require(t, resource.Database)
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
 	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
-	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 
@@ -221,8 +219,6 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	assert.NotNil(t, tqr)
 	assert.Equal(t, tqresult.Data.ID, tqr.Data.ID)
 
-	spaceID := space.SystemSpace
-	trackerID := fxt.Trackers[0].ID
 	payload2 := app.UpdateTrackerqueryPayload{
 		Data: &app.TrackerQuery{
 			ID: tqr.Data.ID,
@@ -233,13 +229,20 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 			Relationships: &app.TrackerQueryRelations{
 				Space: &app.RelationSpaces{
 					Data: &app.RelationSpacesData{
-						ID: &spaceID,
+						ID:   &fxt.Spaces[0].ID,
+						Type: &space.SpaceType,
 					},
 				},
 				Tracker: &app.RelationKindUUID{
 					Data: &app.DataKindUUID{
-						ID:   trackerID,
+						ID:   fxt.Trackers[0].ID,
 						Type: remoteworkitem.APIStringTypeTrackers,
+					},
+				},
+				BaseType: &app.RelationBaseType{
+					Data: &app.BaseTypeData{
+						ID:   fxt.WorkItemTypes[0].ID,
+						Type: APIStringTypeWorkItemType,
 					},
 				},
 			},
@@ -260,14 +263,14 @@ func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
 	resource.Require(t, resource.Database)
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
 	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
-	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
 	_, tq1 := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 	assert.NotNil(t, tq1)
 
-	tqpayload2 := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+	tqpayload2 := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
 	_, tq2 := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload2)
 	assert.NotNil(t, tq2)
 
@@ -282,10 +285,10 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 	resource.Require(t, resource.Database)
 
 	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
 
 	rest.T().Run("valid - success", func(t *testing.T) {
-		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
 		_, trackerquery := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 		require.NotNil(t, trackerquery)
 
@@ -294,14 +297,14 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 		assert.Equal(t, trackerquery.Data.ID, result.Data.ID)
 	})
 	rest.T().Run("invalid - fail", func(t *testing.T) {
-		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
 		invalidID := uuid.Nil
 		tqpayload.Data.ID = &invalidID
 		test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 	})
 }
 
-func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID) app.CreateTrackerqueryPayload {
+func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID, witID uuid.UUID) app.CreateTrackerqueryPayload {
 	trackerQueryID := uuid.NewV4()
 	return app.CreateTrackerqueryPayload{
 		Data: &app.TrackerQuery{
@@ -313,13 +316,20 @@ func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID) app.Cr
 			Relationships: &app.TrackerQueryRelations{
 				Space: &app.RelationSpaces{
 					Data: &app.RelationSpacesData{
-						ID: &spaceID,
+						ID:   &spaceID,
+						Type: &space.SpaceType,
 					},
 				},
 				Tracker: &app.RelationKindUUID{
 					Data: &app.DataKindUUID{
 						ID:   trackerID,
 						Type: remoteworkitem.APIStringTypeTrackers,
+					},
+				},
+				BaseType: &app.RelationBaseType{
+					Data: &app.BaseTypeData{
+						ID:   witID,
+						Type: APIStringTypeWorkItemType,
 					},
 				},
 			},

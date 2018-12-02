@@ -33,24 +33,24 @@ func Upload(db *gorm.DB, tID uuid.UUID, item TrackerItemContent) error {
 }
 
 // Map a remote work item into an WIT work item and persist it into the database.
-func ConvertToWorkItemModel(ctx context.Context, db *gorm.DB, tID uuid.UUID, item TrackerItemContent, providerType string, spaceID uuid.UUID) (*workitem.WorkItem, error) {
+func ConvertToWorkItemModel(ctx context.Context, db *gorm.DB, item TrackerItemContent, tq TrackerSchedule) (*workitem.WorkItem, error) {
 	remoteID := item.ID
 	content := string(item.Content)
-	trackerItem := TrackerItem{Item: content, RemoteItemID: remoteID, TrackerID: tID}
+	trackerItem := TrackerItem{Item: content, RemoteItemID: remoteID, TrackerID: tq.TrackerID}
 	// Converting the remote item to a local work item
-	remoteTrackerItemConvertFunc, ok := RemoteWorkItemImplRegistry[providerType]
+	remoteTrackerItemConvertFunc, ok := RemoteWorkItemImplRegistry[tq.TrackerType]
 	if !ok {
-		return nil, BadParameterError{parameter: providerType, value: providerType}
+		return nil, BadParameterError{parameter: tq.TrackerType, value: tq.TrackerType}
 	}
 	remoteTrackerItem, err := remoteTrackerItemConvertFunc(trackerItem)
 	if err != nil {
 		return nil, InternalError{simpleError{message: fmt.Sprintf(" Error parsing the tracker data: %s", err.Error())}}
 	}
-	remoteWorkItem, err := Map(remoteTrackerItem, RemoteWorkItemKeyMaps[providerType])
+	remoteWorkItem, err := Map(remoteTrackerItem, RemoteWorkItemKeyMaps[tq.TrackerType])
 	if err != nil {
 		return nil, ConversionError{simpleError{message: fmt.Sprintf("Error mapping to local work item: %s", err.Error())}}
 	}
-	workItem, err := lookupIdentities(ctx, db, remoteWorkItem, providerType, spaceID)
+	workItem, err := lookupIdentities(ctx, db, remoteWorkItem, tq)
 	if err != nil {
 		return nil, InternalError{simpleError{message: fmt.Sprintf("Error bind assignees: %s", err.Error())}}
 	}
@@ -58,14 +58,14 @@ func ConvertToWorkItemModel(ctx context.Context, db *gorm.DB, tID uuid.UUID, ite
 }
 
 // lookupIdentities looks up creator and assignee remote identities to local identities (already existing or to be created)
-func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType string, spaceID uuid.UUID) (*workitem.WorkItem, error) {
+func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWorkItem, tq TrackerSchedule) (*workitem.WorkItem, error) {
 	identityRepository := account.NewIdentityRepository(db)
 	//spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
 	workItem := workitem.WorkItem{
 		// ID:      remoteWorkItem.ID,
-		Type:    remoteWorkItem.Type,
+		Type:    tq.WorkItemTypeID,
 		Fields:  make(map[string]interface{}),
-		SpaceID: spaceID,
+		SpaceID: tq.SpaceID,
 	}
 	// copy all fields from remoteworkitem into result workitem
 	for fieldName, fieldValue := range remoteWorkItem.Fields {
@@ -77,7 +77,7 @@ func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWor
 			}
 			creatorLogin := fieldValue.(string)
 			creatorProfileURL := remoteWorkItem.Fields[remoteCreatorProfileURL].(string)
-			identity, err := identityRepository.Lookup(context.Background(), creatorLogin, creatorProfileURL, providerType)
+			identity, err := identityRepository.Lookup(context.Background(), creatorLogin, creatorProfileURL, tq.TrackerType)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to create identity during lookup")
 			}
@@ -97,7 +97,7 @@ func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWor
 			assigneeProfileURLs := remoteWorkItem.Fields[RemoteAssigneeProfileURLs].([]string)
 			for i, assigneeLogin := range assigneeLogins {
 				assigneeProfileURL := assigneeProfileURLs[i]
-				identity, err := identityRepository.Lookup(context.Background(), assigneeLogin, assigneeProfileURL, providerType)
+				identity, err := identityRepository.Lookup(context.Background(), assigneeLogin, assigneeProfileURL, tq.TrackerType)
 				if err != nil {
 					return nil, err
 				}
@@ -149,7 +149,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*work
 		}
 	} else {
 		log.Info(nil, nil, "Workitem does not exist, will be created")
-		resultWorkItem, _, err = wir.Create(ctx, workItem.SpaceID, workitem.SystemBug, workItem.Fields, creator)
+		resultWorkItem, _, err = wir.Create(ctx, workItem.SpaceID, workItem.Type, workItem.Fields, creator)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

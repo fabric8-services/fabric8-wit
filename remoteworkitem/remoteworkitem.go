@@ -74,7 +74,7 @@ var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 	},
 	ProviderJira: {
 		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      remoteTitle,
-		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupJiraWiki}}: remoteDescription,
+		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}: remoteDescription,
 		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   remoteState,
 		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         remoteItemID,
 		AttributeMapper{AttributeExpression(JiraCreatorLogin), StringConverter{}}:                               remoteCreatorLogin,

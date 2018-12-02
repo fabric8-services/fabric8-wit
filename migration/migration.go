@@ -468,6 +468,8 @@ func GetMigrations() Migrations {
 	// Version 110
 	m = append(m, steps{ExecuteSQLFile("110-trackerquery-to-use-uuid.sql")})
 
+	// Version 111
+	m = append(m, steps{ExecuteSQLFile("111-add-wit-to-trackerquery.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
