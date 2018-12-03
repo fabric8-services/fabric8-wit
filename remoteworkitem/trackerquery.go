@@ -15,10 +15,10 @@ type TrackerQuery struct {
 	// Schedule to fetch and import remote tracker items
 	Schedule string
 	// TrackerID is a foreign key for a tracker
-	TrackerID uuid.UUID `gorm:"ForeignKey:Tracker"`
+	TrackerID uuid.UUID `gorm:"ForeignKey:TrackerID"`
 	// SpaceID is a foreign key for a space
-	SpaceID        uuid.UUID `gorm:"ForeignKey:Space"`
-	WorkItemTypeID uuid.UUID `gorm:"ForeignKey:WorkItemType"`
+	SpaceID        uuid.UUID `gorm:"ForeignKey:SpaceID"`
+	WorkItemTypeID uuid.UUID `gorm:"ForeignKey:WorkItemTypeID"`
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
