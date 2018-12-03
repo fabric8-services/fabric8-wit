@@ -322,6 +322,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryValidWIT() {
 			Type: remoteworkitem.ProviderJira,
 		}
 		err := test.trackerRepo.Create(ctx, &tracker)
+		require.NoError(t, err)
 		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1), tf.WorkItemTypes(1))
 
 		tq := remoteworkitem.TrackerQuery{
@@ -350,6 +351,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryValidWIT() {
 			Type: remoteworkitem.ProviderJira,
 		}
 		err := test.trackerRepo.Create(ctx, &tracker)
+		require.NoError(t, err)
 		fxt := tf.NewTestFixture(t, test.DB,
 			tf.SpaceTemplates(2),
 			tf.Spaces(1),
