@@ -16,7 +16,6 @@ import (
 
 	"context"
 
-	"github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -567,14 +566,12 @@ func getVersion(version interface{}) (int, error) {
 
 // ConvertWorkItemsToCSV is responsible for converting given []WorkItem model object into a
 // []string object containing a set of CSV formatted data lines and a header line with labels.
-// This methods combines all CSV data of all WITs into a single CSV
-func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wits []workitem.WorkItemType, wis []workitem.WorkItem) (string, error) {
+// This methods combines all CSV data of all WITs into a single CSV and returns the CSV as well
+// as the field headers as a seperate slice
+func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, allWits []workitem.WorkItemType, wis []workitem.WorkItem, includeHeaderLine bool) (string, []string, error) {
 	if len(wis) == 0 {
 		// nothing to do
-		return "", nil
-	}
-	if len(wits) != len(wis) {
-		return "", errs.Errorf("length mismatch of work items (%d) and work item types (%d)", len(wis), len(wits))
+		return "", []string{}, nil
 	}
 	// uuidStringCache stores the UUID cache for ID resolvings of the CSV conversion
 	uuidStringCache := map[string]string{}
@@ -586,17 +583,19 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	// the columns with a stable order
 	columnKeys := []string{}
 	columnLabels := []string{}
-	alreadyProcessedWITs := id.Map{}
-	for _, wit := range wits {
+	// the wits given should be a unique set, but we make sure we process each wit only once
+	// also, we re-use this map as a reference map later
+	alreadyProcessedWITs := make(map[uuid.UUID]workitem.WorkItemType)
+	for _, wit := range allWits {
 		// we only process each WIT once
 		if _, ok := alreadyProcessedWITs[wit.ID]; ok {
 			continue
 		}
-		alreadyProcessedWITs[wit.ID] = struct{}{}
+		alreadyProcessedWITs[wit.ID] = wit
 		// retrieve fields for all WITs
 		fieldLabels, fieldKeys, err := extractWorkItemTypeFields(wit)
 		if err != nil {
-			return "", errs.Wrapf(err, "failed to retrieve fields for work item type: %s", wit.ID)
+			return "", []string{}, errs.Wrapf(err, "failed to retrieve fields for work item type: %s", wit.ID)
 		}
 		for idx, fieldLabel := range fieldLabels {
 			// check if the field is already in the column mapping
@@ -639,20 +638,25 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	columnKeys = append([]string{witNameKey}, columnKeys...)
 	columnLabels = append([]string{"_Type"}, columnLabels...)
 	// the column mapping keys are the header line for the csv
-	headerLine := append([]string{}, columnLabels...)
-	csvGrid = append(csvGrid, headerLine)
+	if includeHeaderLine {
+		headerLine := append([]string{}, columnLabels...)
+		csvGrid = append(csvGrid, headerLine)
+	}
 	// now iterate over the work items and retrieve the values according to the column mapping
-	for idx, thisWI := range wis {
+	for _, thisWI := range wis {
 		wiLine := []string{}
 		// for each work item, iterate over the column mapping and retrieve values
-		fieldKeyValueMap, err := convertWorkItemFieldValues(ctx, app, &uuidStringCache, wits[idx], thisWI)
+		if _, ok := alreadyProcessedWITs[thisWI.Type]; !ok {
+			return "", []string{}, errs.Errorf("encountered work item %s with unknown work item type %s", thisWI.ID, thisWI.Type)
+		}
+		fieldKeyValueMap, err := convertWorkItemFieldValues(ctx, app, &uuidStringCache, alreadyProcessedWITs[thisWI.Type], thisWI)
 		if err != nil {
-			return "", errs.Wrapf(err, "failed to retrieve field values for work item: %s", thisWI.ID)
+			return "", []string{}, errs.Wrapf(err, "failed to retrieve field values for work item: %s", thisWI.ID)
 		}
 		for _, columnKey := range columnKeys {
 			// if this is the WIT type name key, set it
 			if columnKey == witNameKey {
-				wiLine = append(wiLine, wits[idx].Name)
+				wiLine = append(wiLine, alreadyProcessedWITs[thisWI.Type].Name)
 			} else if fieldValue, ok := fieldKeyValueMap[columnKey]; ok {
 				// key exists, this column can be filled from the work item
 				wiLine = append(wiLine, fieldValue)
@@ -669,10 +673,10 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, wit
 	w := csv.NewWriter(buf)
 	err := w.WriteAll(csvGrid)
 	if err != nil {
-		return "", errs.Wrapf(err, "failed to serialize to CSV format")
+		return "", []string{}, errs.Wrapf(err, "failed to serialize to CSV format")
 	}
 	// done, return serialized result.
-	return buf.String(), nil
+	return buf.String(), columnLabels, nil
 }
 
 // extractWorkItemTypeFields extracts the field information for a wit; it returns slices for
