@@ -234,7 +234,7 @@ func (s *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 						Type: remoteworkitem.APIStringTypeTrackers,
 					},
 				},
-				BaseType: &app.RelationBaseType{
+				WorkItemType: &app.RelationBaseType{
 					Data: &app.BaseTypeData{
 						ID:   fxt.WorkItemTypes[0].ID,
 						Type: APIStringTypeWorkItemType,
@@ -348,7 +348,7 @@ func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID, witID 
 						Type: remoteworkitem.APIStringTypeTrackers,
 					},
 				},
-				BaseType: &app.RelationBaseType{
+				WorkItemType: &app.RelationBaseType{
 					Data: &app.BaseTypeData{
 						ID:   witID,
 						Type: APIStringTypeWorkItemType,

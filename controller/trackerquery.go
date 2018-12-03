@@ -97,7 +97,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 			Schedule:       ctx.Payload.Data.Attributes.Schedule,
 			TrackerID:      ctx.Payload.Data.Relationships.Tracker.Data.ID,
 			SpaceID:        *ctx.Payload.Data.Relationships.Space.Data.ID,
-			WorkItemTypeID: ctx.Payload.Data.Relationships.BaseType.Data.ID,
+			WorkItemTypeID: ctx.Payload.Data.Relationships.WorkItemType.Data.ID,
 		}
 		if ctx.Payload.Data.ID != nil {
 			trackerQuery.ID = *ctx.Payload.Data.ID
@@ -155,8 +155,8 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		if &ctx.Payload.Data.Relationships.Tracker.Data.ID != nil {
 			tq.TrackerID = ctx.Payload.Data.Relationships.Tracker.Data.ID
 		}
-		if ctx.Payload.Data.Relationships.BaseType.Data.ID != uuid.Nil {
-			tq.WorkItemTypeID = ctx.Payload.Data.Relationships.BaseType.Data.ID
+		if ctx.Payload.Data.Relationships.WorkItemType.Data.ID != uuid.Nil {
+			tq.WorkItemTypeID = ctx.Payload.Data.Relationships.WorkItemType.Data.ID
 		}
 		_, err = appl.TrackerQueries().Save(ctx.Context, *tq)
 		if err != nil {
@@ -249,7 +249,7 @@ func validateCreateTrackerQueryPayload(ctx *app.CreateTrackerqueryContext) error
 	if *ctx.Payload.Data.Relationships.Space.Data.ID == uuid.Nil {
 		return errors.NewBadParameterError("SpaceID", nil).Expected("not nil")
 	}
-	if ctx.Payload.Data.Relationships.BaseType.Data.ID == uuid.Nil {
+	if ctx.Payload.Data.Relationships.WorkItemType.Data.ID == uuid.Nil {
 		return errors.NewBadParameterError("Workitemtype_id", nil).Expected("not nil")
 	}
 	return nil
