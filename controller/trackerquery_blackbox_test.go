@@ -304,7 +304,6 @@ func (s *TestTrackerQueryREST) TestInvalidWITinTrackerQuery() {
 	resource.Require(t, resource.Database)
 	s.T().Run("nil WIT in trackerquery payload", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
-			tf.SpaceTemplates(2),
 			tf.Spaces(1),
 			tf.Trackers(1),
 		)
