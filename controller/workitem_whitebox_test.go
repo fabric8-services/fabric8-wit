@@ -495,9 +495,8 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 			line, err := csvReader.Read()
 			if err == io.EOF {
 				break
-			} else {
-				require.NoError(t, err)
 			}
+			require.NoError(t, err)
 			entity := make(map[string]string)
 			for idx := range line {
 				entity[fieldKeys[idx]] = line[idx]
