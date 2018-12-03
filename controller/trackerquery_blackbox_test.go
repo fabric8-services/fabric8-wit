@@ -36,20 +36,20 @@ func TestRunTrackerQueryREST(t *testing.T) {
 	suite.Run(t, &TestTrackerQueryREST{DBTestSuite: gormtestsupport.NewDBTestSuite()})
 }
 
-func (rest *TestTrackerQueryREST) SetupTest() {
-	rest.DBTestSuite.SetupTest()
-	rest.RwiScheduler = remoteworkitem.NewScheduler(rest.DB)
-	rest.db = gormapplication.NewGormDB(rest.DB)
+func (s *TestTrackerQueryREST) SetupTest() {
+	s.DBTestSuite.SetupTest()
+	s.RwiScheduler = remoteworkitem.NewScheduler(s.DB)
+	s.db = gormapplication.NewGormDB(s.DB)
 }
 
-func (rest *TestTrackerQueryREST) SecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
+func (s *TestTrackerQueryREST) SecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
 	svc := testsupport.ServiceAsUser("TrackerQuery-Service", testsupport.TestIdentity)
-	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration), NewTrackerqueryController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
+	return svc, NewTrackerController(svc, s.db, s.RwiScheduler, s.Configuration), NewTrackerqueryController(svc, s.db, s.RwiScheduler, s.Configuration)
 }
 
-func (rest *TestTrackerQueryREST) UnSecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
+func (s *TestTrackerQueryREST) UnSecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
 	svc := goa.New("TrackerQuery-Service")
-	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration), NewTrackerqueryController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
+	return svc, NewTrackerController(svc, s.db, s.RwiScheduler, s.Configuration), NewTrackerqueryController(svc, s.db, s.RwiScheduler, s.Configuration)
 }
 
 func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
@@ -164,22 +164,22 @@ func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
-func (rest *TestTrackerQueryREST) TestUnauthorizeTrackerQueryCUD() {
-	UnauthorizeCreateUpdateDeleteTest(rest.T(), getTrackerQueryTestData, func() *goa.Service {
+func (s *TestTrackerQueryREST) TestUnauthorizeTrackerQueryCUD() {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), getTrackerQueryTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedTrackerQuery-Service")
 	}, func(service *goa.Service) error {
-		controller := NewTrackerqueryController(service, rest.GormDB, rest.RwiScheduler, rest.Configuration)
+		controller := NewTrackerqueryController(service, s.GormDB, s.RwiScheduler, s.Configuration)
 		app.MountTrackerqueryController(service, controller)
 		return nil
 	})
 }
 
-func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
-	t := rest.T()
+func (s *TestTrackerQueryREST) TestCreateTrackerQuery() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
-	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
+	svc, _, trackerQueryCtrl := s.SecuredController()
+	fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
 	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
@@ -187,12 +187,12 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
 	assert.NotNil(t, tqresult)
 }
 
-func (rest *TestTrackerQueryREST) TestShowTrackerQuery() {
-	t := rest.T()
+func (s *TestTrackerQueryREST) TestShowTrackerQuery() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
-	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
+	svc, _, trackerQueryCtrl := s.SecuredController()
+	fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
 	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
@@ -203,12 +203,12 @@ func (rest *TestTrackerQueryREST) TestShowTrackerQuery() {
 	assert.Equal(t, tqresult.Data.ID, tqr.Data.ID)
 }
 
-func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
-	t := rest.T()
+func (s *TestTrackerQueryREST) TestUpdateTrackerQuery() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
-	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
+	svc, _, trackerQueryCtrl := s.SecuredController()
+	fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
 	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
@@ -258,12 +258,12 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 }
 
 // This test ensures that List does not return NIL items.
-func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
-	t := rest.T()
+func (s *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
-	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
+	svc, _, trackerQueryCtrl := s.SecuredController()
+	fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
 	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
 
 	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
@@ -280,14 +280,14 @@ func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
 
 // This test ensures that ID returned by Show is valid.
 // refer : https://github.com/fabric8-services/fabric8-wit/issues/189
-func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {
-	t := rest.T()
+func (s *TestTrackerQueryREST) TestCreateTrackerQueryID() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
-	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
+	svc, _, trackerQueryCtrl := s.SecuredController()
+	fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
 
-	rest.T().Run("valid - success", func(t *testing.T) {
+	s.T().Run("valid - success", func(t *testing.T) {
 		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
 		_, trackerquery := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 		require.NotNil(t, trackerquery)
@@ -296,7 +296,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 		require.NotNil(t, result)
 		assert.Equal(t, trackerquery.Data.ID, result.Data.ID)
 	})
-	rest.T().Run("invalid - fail", func(t *testing.T) {
+	s.T().Run("invalid - fail", func(t *testing.T) {
 		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
 		invalidID := uuid.Nil
 		tqpayload.Data.ID = &invalidID
@@ -304,23 +304,23 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 	})
 }
 
-func (rest *TestTrackerQueryREST) TestInvalidWITinTrackerQuery() {
-	t := rest.T()
+func (s *TestTrackerQueryREST) TestInvalidWITinTrackerQuery() {
+	t := s.T()
 	resource.Require(t, resource.Database)
-	rest.T().Run("nil WIT in trackerquery payload", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, rest.DB,
+	s.T().Run("nil WIT in trackerquery payload", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
 			tf.SpaceTemplates(2),
 			tf.Spaces(1),
 			tf.Trackers(1),
 		)
-		svc, _, trackerQueryCtrl := rest.SecuredController()
+		svc, _, trackerQueryCtrl := s.SecuredController()
 
 		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, uuid.Nil)
 		test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 	})
 
-	rest.T().Run("disallow creation if WIT belongs to different spacetemplate", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, rest.DB,
+	s.T().Run("disallow creation if WIT belongs to different spacetemplate", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
 			tf.SpaceTemplates(2),
 			tf.Spaces(1),
 			tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
@@ -329,7 +329,7 @@ func (rest *TestTrackerQueryREST) TestInvalidWITinTrackerQuery() {
 			}),
 			tf.Trackers(1),
 		)
-		svc, _, trackerQueryCtrl := rest.SecuredController()
+		svc, _, trackerQueryCtrl := s.SecuredController()
 
 		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
 		test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
