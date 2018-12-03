@@ -304,6 +304,38 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 	})
 }
 
+func (rest *TestTrackerQueryREST) TestInvalidWITinTrackerQuery() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	rest.T().Run("nil WIT in trackerquery payload", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.SpaceTemplates(2),
+			tf.Spaces(1),
+			tf.Trackers(1),
+		)
+		svc, _, trackerQueryCtrl := rest.SecuredController()
+
+		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, uuid.Nil)
+		test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+	})
+
+	rest.T().Run("disallow creation if WIT belongs to different spacetemplate", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.SpaceTemplates(2),
+			tf.Spaces(1),
+			tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypes[idx].SpaceTemplateID = fxt.SpaceTemplates[1].ID
+				return nil
+			}),
+			tf.Trackers(1),
+		)
+		svc, _, trackerQueryCtrl := rest.SecuredController()
+
+		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
+		test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+	})
+}
+
 func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID, witID uuid.UUID) app.CreateTrackerqueryPayload {
 	trackerQueryID := uuid.NewV4()
 	return app.CreateTrackerqueryPayload{

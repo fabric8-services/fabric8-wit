@@ -307,3 +307,69 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	require.True(t, len(trackerqueries2) >= 2)
 	assert.Equal(t, trackerqueries2[1], trackerqueries3[1])
 }
+
+func (test *TestTrackerQueryRepository) TestTrackerQueryValidWIT() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("valid WIT - success", func(t *testing.T) {
+		req := &http.Request{Host: "localhost"}
+		params := url.Values{}
+		ctx := goa.NewContext(context.Background(), nil, req, params)
+
+		tracker := remoteworkitem.Tracker{
+			URL:  "http://issues.jboss.com",
+			Type: remoteworkitem.ProviderJira,
+		}
+		err := test.trackerRepo.Create(ctx, &tracker)
+		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1), tf.WorkItemTypes(1))
+
+		tq := remoteworkitem.TrackerQuery{
+			Query:          "abc",
+			Schedule:       "xyz",
+			TrackerID:      tracker.ID,
+			SpaceID:        fxt.Spaces[0].ID,
+			WorkItemTypeID: fxt.WorkItemTypes[0].ID,
+		}
+		res, err := test.queryRepo.Create(ctx, tq)
+		require.NoError(t, err)
+		require.NotNil(t, res)
+
+		res2, err := test.queryRepo.Load(ctx, res.ID)
+		require.NoError(t, err)
+		assert.Equal(t, res.ID, res2.ID)
+	})
+
+	t.Run("invalid WIT - fail", func(t *testing.T) {
+		req := &http.Request{Host: "localhost"}
+		params := url.Values{}
+		ctx := goa.NewContext(context.Background(), nil, req, params)
+
+		tracker := remoteworkitem.Tracker{
+			URL:  "http://issues.jboss.com",
+			Type: remoteworkitem.ProviderJira,
+		}
+		err := test.trackerRepo.Create(ctx, &tracker)
+		fxt := tf.NewTestFixture(t, test.DB,
+			tf.SpaceTemplates(2),
+			tf.Spaces(1),
+			tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypes[idx].SpaceTemplateID = fxt.SpaceTemplates[1].ID
+				return nil
+			}),
+			tf.Trackers(1),
+		)
+
+		tq := remoteworkitem.TrackerQuery{
+			Query:          "abc",
+			Schedule:       "xyz",
+			TrackerID:      tracker.ID,
+			SpaceID:        fxt.Spaces[0].ID,
+			WorkItemTypeID: fxt.WorkItemTypes[0].ID,
+		}
+		res, err := test.queryRepo.Create(ctx, tq)
+		assert.NotNil(t, err)
+		require.IsType(t, errors.BadParameterError{}, err)
+		assert.Nil(t, res)
+	})
+}

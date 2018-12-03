@@ -99,7 +99,9 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 			SpaceID:        *ctx.Payload.Data.Relationships.Space.Data.ID,
 			WorkItemTypeID: ctx.Payload.Data.Relationships.BaseType.Data.ID,
 		}
-		trackerQuery.ID = *ctx.Payload.Data.ID
+		if ctx.Payload.Data.ID != nil {
+			trackerQuery.ID = *ctx.Payload.Data.ID
+		}
 		tq, err := appl.TrackerQueries().Create(ctx.Context, trackerQuery)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create tracker query %s", ctx.Payload.Data)
