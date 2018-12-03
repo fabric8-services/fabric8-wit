@@ -14,7 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
@@ -227,12 +227,7 @@ func (s *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 				Schedule: "* * * * * *",
 			},
 			Relationships: &app.TrackerQueryRelations{
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						ID:   &fxt.Spaces[0].ID,
-						Type: &space.SpaceType,
-					},
-				},
+				Space: app.NewSpaceRelation(fxt.Spaces[0].ID, rest.AbsoluteURL(nil, app.SpaceHref(fxt.Spaces[0].ID.String()))),
 				Tracker: &app.RelationKindUUID{
 					Data: &app.DataKindUUID{
 						ID:   fxt.Trackers[0].ID,
@@ -346,12 +341,7 @@ func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID, witID 
 				Schedule: "15 * * * * *",
 			},
 			Relationships: &app.TrackerQueryRelations{
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						ID:   &spaceID,
-						Type: &space.SpaceType,
-					},
-				},
+				Space: app.NewSpaceRelation(spaceID, rest.AbsoluteURL(nil, app.SpaceHref(spaceID.String()))),
 				Tracker: &app.RelationKindUUID{
 					Data: &app.DataKindUUID{
 						ID:   trackerID,
