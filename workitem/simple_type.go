@@ -3,6 +3,7 @@ package workitem
 import (
 	"math"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -171,6 +172,114 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "boolean", valueType.Name())
 		}
 		return value, nil
+	default:
+		return nil, errs.Errorf("unexpected type constant: '%s'", t.GetKind())
+	}
+}
+
+// ConvertToStringSlice implements the FieldType interface
+func (t SimpleType) ConvertToStringSlice(value interface{}) ([]string, error) {
+	if value == nil {
+		// if a value is nil, we return empty string.
+		return []string{""}, nil
+	}
+	valueType := reflect.TypeOf(value)
+	switch t.GetKind() {
+	case KindString, KindUser, KindIteration, KindArea, KindLabel, KindBoardColumn:
+		if valueType.Kind() != reflect.String {
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "string", valueType.Name())
+		}
+		return []string{value.(string)}, nil
+	case KindURL:
+		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) {
+			return []string{value.(string)}, nil
+		}
+		return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %q", value, "URL", valueType.Name())
+	case KindFloat:
+		if valueType.Kind() != reflect.Float64 {
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %q", value, "float64", valueType.Name())
+		}
+		fval, ok := value.(float64)
+		if !ok {
+			return nil, errs.Errorf("failed to cast value %+v (%[1]T) to float64", value)
+		}
+		return []string{strconv.FormatFloat(fval, 'f', 6, 64)}, nil
+	case KindInteger:
+		// NOTE(kwk): This will change soon to be more consistent.
+		switch valueType.Kind() {
+		case reflect.Int:
+			ival, ok := value.(int)
+			if !ok {
+				return nil, errs.Errorf("failed to cast value %+v (%[1]T) to int", value)
+			}
+			return []string{strconv.Itoa(ival)}, nil
+		case reflect.Int64:
+			ival, ok := value.(int64)
+			if !ok {
+				return nil, errs.Errorf("failed to cast value %+v (%[1]T) to int64", value)
+			}
+			return []string{strconv.FormatInt((ival), 10)}, nil
+		case reflect.Float64:
+			fval, ok := value.(float64)
+			if !ok {
+				return nil, errs.Errorf("failed to cast value %+v (%[1]T) to float64", value)
+			}
+			if fval != math.Trunc(fval) {
+				return nil, errs.Errorf("float64 value %+v (%[1]T) has digits after the decimal point and therefore cannot be represented by an integer", value)
+			}
+			return []string{strconv.FormatFloat(fval, 'f', 0, 64)}, nil
+		default:
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s ", value, "int or float", valueType.Name())
+		}
+	case KindInstant:
+		if valueType.Kind() != timeType.Kind() {
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "time.Time", valueType.Name())
+		}
+		timeVal, ok := value.(time.Time)
+		if !ok {
+			return nil, errs.Errorf(`value should be of type "time.Time" but is of type "%[1]T": %[1]+v`, value)
+		}
+		return []string{timeVal.Format(time.RFC3339)}, nil
+	case KindBoolean:
+		if valueType.Kind() != reflect.Bool {
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "boolean", valueType.Name())
+		}
+		if value.(bool) {
+			return []string{"true"}, nil
+		}
+		return []string{"false"}, nil
+	case KindMarkup:
+		// 'markup' is just a string in the API layer for now:
+		// it corresponds to the MarkupContent.Content field. The MarkupContent.Markup is set to the default value
+		switch value.(type) {
+		case rendering.MarkupContent:
+			markupContent := value.(rendering.MarkupContent)
+			if !rendering.IsMarkupSupported(markupContent.Markup) {
+				return nil, errs.Errorf("value %v (%[1]T) has no valid markup type %s", value, markupContent.Markup)
+			}
+			return []string{markupContent.Content}, nil
+		case map[string]interface{}:
+			markupContent := rendering.NewMarkupContentFromValue(value)
+			if !rendering.IsMarkupSupported(markupContent.Markup) {
+				return nil, errs.Errorf("value %v (%[1]T) has no valid markup type %s", value, markupContent.Markup)
+			}
+			return []string{markupContent.Content}, nil
+		default:
+			return nil, errs.Errorf("value %v (%[1]T) should be rendering.MarkupContent, but is %s", value, valueType)
+		}
+	case KindCodebase:
+		switch value.(type) {
+		case codebase.Content:
+			cb := value.(codebase.Content)
+			if err := cb.IsValid(); err != nil {
+				return nil, errs.Wrapf(err, "value %v (%[1]T) is invalid %s", value, cb)
+			}
+			return []string{cb.Repository + "#" + cb.Branch + "#" + cb.FileName + ":" + strconv.Itoa(cb.LineNumber)}, nil
+		default:
+			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "CodebaseContent", valueType)
+		}
+	// Note: the KindEnum and KindList cases are omitted as they are not used. We may want to remove them
+	// from ConvertToModel() as well.
 	default:
 		return nil, errs.Errorf("unexpected type constant: '%s'", t.GetKind())
 	}

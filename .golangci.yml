@@ -1,0 +1,13 @@
+# https://github.com/golangci/golangci/wiki/Configuration
+
+linters:
+  fast: true
+  disable:
+    # typecheck errors due to https://github.com/goadesign/goa/issues/1850,
+    # need to update to goagen >= 1.4.0
+    - typecheck
+
+service:
+  project-path: github.com/fabric8-services/fabric8-wit
+  prepare:
+    - make deps generate

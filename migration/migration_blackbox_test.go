@@ -159,7 +159,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration107", testMigration107NumberSequencesTable)
 	t.Run("TestMigration108", testMigration108NumberColumnForArea)
 	t.Run("TestMigration109", testMigration109NumberColumnForIteration)
-	t.Run("TestMigration110", testMigration110RenameFields)
+	t.Run("TestMigration110", testMigration110TrackerQueryID)
+	t.Run("TestMigration111", testMigration111RenameFields)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1384,7 +1385,25 @@ func testMigration109NumberColumnForIteration(t *testing.T) {
 	require.True(t, dialect.HasColumn("iterations", "number"))
 }
 
-func testMigration110RenameFields(t *testing.T) {
+func testMigration110TrackerQueryID(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:111], 111)
+	checkTqConstraint := func(t *testing.T, table string, constraintName string) bool {
+		q := fmt.Sprintf("select constraint_name from information_schema.table_constraints where table_name = '%s' and constraint_type = '%s';", table, constraintName)
+		row := sqlDB.QueryRow(q)
+		require.NotNil(t, row)
+
+		var tqConstraint string
+		err := row.Scan(&tqConstraint)
+		require.NoError(t, err, "%+v", err)
+		if tqConstraint == "trackerqueries_pkey" {
+			return true
+		}
+		return false
+	}
+	require.True(t, checkTqConstraint(t, "tracker_queries", "PRIMARY KEY"))
+}
+
+func testMigration111RenameFields(t *testing.T) {
 	// setup
 	userID := uuid.NewV4()
 	identityID := uuid.NewV4()
@@ -1439,7 +1458,6 @@ func testMigration110RenameFields(t *testing.T) {
 	// The fieldvalue should be same as that of workitem
 	expectWorkItemFieldsToBe(t, "work_item_revisions", "work_item_fields", work_item_revisionID, expectedWIFields)
 
-}
 
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used

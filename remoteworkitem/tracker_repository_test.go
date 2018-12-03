@@ -41,6 +41,7 @@ func (test *TestTrackerRepository) TestTrackerCreate() {
 	}
 
 	err := test.repo.Create(context.Background(), &tracker)
+	require.Error(t, err)
 	assert.IsType(t, remoteworkitem.BadParameterError{}, err)
 
 	tracker = remoteworkitem.Tracker{
@@ -76,6 +77,7 @@ func (test *TestTrackerRepository) TestExistsTracker() {
 	t.Run("tracker doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		err := test.repo.CheckExists(context.Background(), uuid.NewV4())
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
@@ -86,14 +88,16 @@ func (test *TestTrackerRepository) TestTrackerSave() {
 	resource.Require(t, resource.Database)
 
 	tracker1, err := test.repo.Save(context.Background(), &remoteworkitem.Tracker{})
-	assert.IsType(t, errors.NotFoundError{}, err)
 	assert.Nil(t, tracker1)
+	require.Error(t, err)
+	assert.IsType(t, errors.NotFoundError{}, err)
 
 	fxt := tf.NewTestFixture(t, test.DB, tf.Trackers(1))
 	fxt.Trackers[0].Type = "blabla"
 	tracker3, err := test.repo.Save(context.Background(), fxt.Trackers[0])
+	require.Nil(t, tracker3)
+	require.Error(t, err)
 	assert.IsType(t, errors.BadParameterError{}, err)
-	assert.Nil(t, tracker3)
 
 	tracker4 := &remoteworkitem.Tracker{
 		ID:   uuid.NewV4(),
@@ -101,21 +105,25 @@ func (test *TestTrackerRepository) TestTrackerSave() {
 		Type: remoteworkitem.ProviderJira,
 	}
 	tracker4, err = test.repo.Save(context.Background(), tracker4)
+	assert.Nil(t, tracker4)
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
 
 	tracker5 := &remoteworkitem.Tracker{
 		ID: uuid.FromStringOrNil("e0022d1-ad23-4f1b-9ee2-93f5d9269d1e"),
 	}
 	tracker5, err = test.repo.Save(context.Background(), tracker5)
-	assert.IsType(t, errors.NotFoundError{}, err)
 	assert.Nil(t, tracker5)
+	require.Error(t, err)
+	assert.IsType(t, errors.NotFoundError{}, err)
 
 	tracker6 := &remoteworkitem.Tracker{
 		ID: uuid.NewV4(),
 	}
 	tracker7, err := test.repo.Save(context.Background(), tracker6)
+	require.Nil(t, tracker7)
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
-	assert.Nil(t, tracker7)
 }
 
 func (test *TestTrackerRepository) TestTrackerDelete() {
@@ -123,12 +131,14 @@ func (test *TestTrackerRepository) TestTrackerDelete() {
 	resource.Require(t, resource.Database)
 
 	err := test.repo.Delete(context.Background(), uuid.NewV4())
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
 
 	// guard against other test leaving stuff behind
 	err = test.repo.Delete(context.Background(), uuid.NewV4())
 
 	err = test.repo.Delete(context.Background(), uuid.NewV4())
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
 
 	fxt := tf.NewTestFixture(t, test.DB, tf.Trackers(1))
@@ -136,12 +146,14 @@ func (test *TestTrackerRepository) TestTrackerDelete() {
 	require.NoError(t, err)
 
 	tracker2, err := test.repo.Load(context.Background(), fxt.Trackers[0].ID)
+	require.Nil(t, tracker2)
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
-	assert.Nil(t, tracker2)
 
 	tracker3, err := test.repo.Load(context.Background(), uuid.NewV4())
+	require.Nil(t, tracker3)
+	require.Error(t, err)
 	assert.IsType(t, errors.NotFoundError{}, err)
-	assert.Nil(t, tracker3)
 }
 
 func (test *TestTrackerRepository) TestTrackerList() {

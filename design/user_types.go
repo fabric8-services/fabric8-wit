@@ -34,37 +34,3 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 
 	a.Required("type", "fields", "version", "executionorder")
 })
-
-// CreateTrackerQueryAlternatePayload defines the structure of tracker query payload for create
-var CreateTrackerQueryAlternatePayload = a.Type("CreateTrackerQueryAlternatePayload", func() {
-	a.Attribute("query", d.String, "Search query", func() {
-		a.Example("is:open is:issue user:wit")
-		a.MinLength(1)
-	})
-	a.Attribute("schedule", d.String, "Schedule for fetch and import", func() {
-		a.Example("0 0/15 * * * *")
-		a.Pattern("^[\\d]+|[\\d]+[\\/][\\d]+|\\*|\\-|\\?\\s{0,6}$")
-		a.MinLength(1)
-	})
-	a.Attribute("trackerID", d.UUID, "Tracker ID")
-	a.Attribute("relationships", trackerQueryRelationships)
-
-	a.Required("query", "schedule", "trackerID")
-})
-
-// UpdateTrackerQueryAlternatePayload defines the structure of tracker query payload for update
-var UpdateTrackerQueryAlternatePayload = a.Type("UpdateTrackerQueryAlternatePayload", func() {
-	a.Attribute("query", d.String, "Search query", func() {
-		a.Example("is:open is:issue user:wit")
-		a.MinLength(1)
-	})
-	a.Attribute("schedule", d.String, "Schedule for fetch and import", func() {
-		a.Example("0 0/15 * * * *")
-		a.Pattern("^[\\d]+|[\\d]+[\\/][\\d]+|\\*|\\-|\\?\\s{0,6}$")
-		a.MinLength(1)
-	})
-	a.Attribute("trackerID", d.UUID, "Tracker ID")
-	a.Attribute("relationships", trackerQueryRelationships)
-
-	a.Required("query", "schedule", "trackerID")
-})
