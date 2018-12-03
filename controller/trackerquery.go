@@ -141,12 +141,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	err = validateUpdateTrackerQueryPayload(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-
 		tq, err := appl.TrackerQueries().Load(ctx.Context, *ctx.Payload.Data.ID)
 		if err != nil {
 			return errs.Wrapf(err, "failed to update tracker query %s", ctx.Payload.Data.ID)
@@ -160,8 +155,8 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		if &ctx.Payload.Data.Relationships.Tracker.Data.ID != nil {
 			tq.TrackerID = ctx.Payload.Data.Relationships.Tracker.Data.ID
 		}
-		if ctx.Payload.Data.Relationships.BaseType.Data.ID == uuid.Nil {
-			return errors.NewBadParameterError("Workitemtype_id", nil).Expected("not nil")
+		if ctx.Payload.Data.Relationships.BaseType.Data.ID != uuid.Nil {
+			tq.WorkItemTypeID = ctx.Payload.Data.Relationships.BaseType.Data.ID
 		}
 		_, err = appl.TrackerQueries().Save(ctx.Context, *tq)
 		if err != nil {
@@ -256,22 +251,6 @@ func validateCreateTrackerQueryPayload(ctx *app.CreateTrackerqueryContext) error
 	}
 	if ctx.Payload.Data.Relationships.BaseType.Data.ID == uuid.Nil {
 		return errors.NewBadParameterError("Workitemtype_id", nil).Expected("not nil")
-	}
-	return nil
-}
-
-func validateUpdateTrackerQueryPayload(ctx *app.UpdateTrackerqueryContext) error {
-	if ctx.Payload.Data.ID == nil {
-		return errors.NewBadParameterError("ID", nil).Expected("not nil")
-	}
-	if ctx.Payload.Data.Attributes.Query == "" {
-		return errors.NewBadParameterError("Query", "").Expected("not empty")
-	}
-	if ctx.Payload.Data.Attributes.Schedule == "" {
-		return errors.NewBadParameterError("Schedule", "").Expected("not empty")
-	}
-	if ctx.Payload.Data.Relationships.Tracker.Data.ID == uuid.Nil {
-		return errors.NewBadParameterError("TrackerID", nil).Expected("not nil")
 	}
 	return nil
 }
