@@ -1412,7 +1412,7 @@ func testMigration111RenameFields(t *testing.T) {
 	work_item_typeID := uuid.NewV4()
 	work_itemID := uuid.NewV4()
 	work_item_revisionID := uuid.NewV4()
-	require.NoError(t, runSQLscript(sqlDB, "110-rename-fields.sql",
+	require.NoError(t, runSQLscript(sqlDB, "111-rename-fields.sql",
 		userID.String(),
 		identityID.String(),
 		space_templateID.String(),
@@ -1457,7 +1457,7 @@ func testMigration111RenameFields(t *testing.T) {
 	// Ensure workitem_revision fields are renamed
 	// The fieldvalue should be same as that of workitem
 	expectWorkItemFieldsToBe(t, "work_item_revisions", "work_item_fields", work_item_revisionID, expectedWIFields)
-
+}
 
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
