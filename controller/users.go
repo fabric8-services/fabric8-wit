@@ -50,16 +50,16 @@ func NewUsersController(service *goa.Service, db application.DB, config UsersCon
 		config:     config,
 	}
 }
-func randString(n int) string {
+func randString(length int) string {
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Int63()%int64(len(letterBytes))]
+	randomStr := make([]byte, length)
+	for i := range randomStr {
+		randomStr[i] = letterBytes[rand.Int63()%int64(len(letterBytes))]
 	}
-	return string(b)
+	return string(randomStr)
 }
 
-// Obfuscate runs the obfuscate action to soft delete sensitive data associated
+// Obfuscate runs the obfuscate action to invalidate the sensitive data associated
 // with an user and her associated identity.
 func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 	isSvcAccount, err := isServiceAccount(ctx, serviceNameAuth)
@@ -73,8 +73,8 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 	if !isSvcAccount {
 		log.Error(ctx, map[string]interface{}{
 			"identity_id": ctx.ID,
-		}, "account used to call create api is not a service account")
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errs.New("a non-service account tried to create a user.")))
+		}, "account used to call obfuscate API is not a service account")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errs.New("account used to call obfuscate API is not a service account")))
 	}
 	u, err := uuid.FromString(ctx.ID)
 	if err != nil {
@@ -84,7 +84,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("invalid user id")))
 
 	}
-	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		obfStr := randString(12)
 
 		// Obfuscate User
@@ -142,9 +142,12 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 			}, "Identity obfuscated!")
 
 		}
-		return ctx.OK([]byte{})
+		return nil
 	})
-	return returnResponse
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK([]byte{})
 }
 
 // Show runs the show action.

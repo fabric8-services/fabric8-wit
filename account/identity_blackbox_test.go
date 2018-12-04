@@ -17,7 +17,6 @@ import (
 type IdentityRepositoryTestSuite struct {
 	gormtestsupport.DBTestSuite
 	repo     account.IdentityRepository
-	repoUser account.UserRepository
 }
 
 func TestIdentityRepository(t *testing.T) {
@@ -27,7 +26,6 @@ func TestIdentityRepository(t *testing.T) {
 func (s *IdentityRepositoryTestSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.repo = account.NewIdentityRepository(s.DB)
-	s.repoUser = account.NewUserRepository(s.DB)
 }
 
 func (s *IdentityRepositoryTestSuite) TestQuery() {
