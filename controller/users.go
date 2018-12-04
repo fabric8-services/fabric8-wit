@@ -89,12 +89,19 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 
 		// Obfuscate User
 		users, err := appl.Users().Query(account.UserFilterByID(u))
-		if err != nil || len(users) != 1 {
+		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"user_id": u,
 				"err":     err,
 			}, "unable to load the user")
-			return errs.WithStack(err)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err))
+		}
+		if len(users) != 1 {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": u,
+				"err":     err,
+			}, "unable to find the user")
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(errs.New("unable to find the user")))
 		}
 		user := users[0]
 		user.Email = obfStr + "@mail.com"
@@ -109,7 +116,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 				"user_id": u,
 				"err":     err,
 			}, "unable to obfuscate the user")
-			return errs.WithStack(err)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err))
 		}
 
 		log.Debug(ctx, map[string]interface{}{
@@ -118,12 +125,19 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 
 		// Obfuscate associated identity
 		identities, err := appl.Identities().Query(account.IdentityFilterByUserID(u))
-		if err != nil || len(identities) == 0 {
+		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"user_id": u,
 				"err":     err,
 			}, "unable to retrieve the identity associated to this user id")
-			return errs.WithStack(err)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err))
+		}
+		if len(identities) == 0 {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": u,
+				"err":     err,
+			}, "unable to retrieve the identity associated to this user id")
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(errs.New("unable to find the user")))
 		}
 		for _, identity := range identities {
 			identity.Username = obfStr
@@ -134,7 +148,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 					"user_id": u,
 					"err":     err,
 				}, "unable to obfuscate the identity")
-				return errs.WithStack(err)
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err))
 			}
 
 			log.Debug(ctx, map[string]interface{}{
