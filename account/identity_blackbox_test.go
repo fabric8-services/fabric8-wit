@@ -16,7 +16,7 @@ import (
 
 type IdentityRepositoryTestSuite struct {
 	gormtestsupport.DBTestSuite
-	repo     account.IdentityRepository
+	repo account.IdentityRepository
 }
 
 func TestIdentityRepository(t *testing.T) {
