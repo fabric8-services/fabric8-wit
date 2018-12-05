@@ -5,32 +5,32 @@
 #  * https://blog.github.com/2017-07-06-introducing-code-owners/
 #  * https://help.github.com/articles/about-codeowners/
 
-/.github/ @kwk
-/.make/ @kwk
-/controller/golden_files_test.go @kwk
-/controller/space_template*.go @kwk
-/controller/test-files/space_templates/ @kwk
-/controller/test-files/work_item/ @kwk
-/controller/work_item*.go @kwk
-/controller/workitem*.go @kwk
-/convert/ @kwk
-/criteria/ @kwk
-/design/space_template.go @kwk
-/design/work_item*.go @kwk
-/design/workitem*.go @kwk
-/docs/debugging.adoc @kwk
-/errors/ @kwk
-/gormsupport/ @kwk
-/gormtestsupport/ @kwk
-/jsonapi/ @kwk
-/migration/ @kwk
-/numbersequence/ @kwk
-/ptr/ @kwk
-/spacetemplates/ @kwk
-/test/testfixture/ @kwk
-/workitem/* @kwk
-/workitem/link/* @kwk
-Dockerfile.builder @kwk
-cico_run_coverage.sh @kwk
-cico_run_tests.sh @kwk
-cico_setup.sh @kwk
+/.github/ @kwk @fabric8-services/fabric8-wit-team
+/.make/ @kwk @fabric8-services/fabric8-wit-team
+/controller/golden_files_test.go @kwk @fabric8-services/fabric8-wit-team
+/controller/space_template*.go @kwk @fabric8-services/fabric8-wit-team
+/controller/test-files/space_templates/ @kwk @fabric8-services/fabric8-wit-team
+/controller/test-files/work_item/ @kwk @fabric8-services/fabric8-wit-team
+/controller/work_item*.go @kwk @fabric8-services/fabric8-wit-team
+/controller/workitem*.go @kwk @fabric8-services/fabric8-wit-team
+/convert/ @kwk @fabric8-services/fabric8-wit-team
+/criteria/ @kwk @fabric8-services/fabric8-wit-team
+/design/space_template.go @kwk @fabric8-services/fabric8-wit-team
+/design/work_item*.go @kwk @fabric8-services/fabric8-wit-team
+/design/workitem*.go @kwk @fabric8-services/fabric8-wit-team
+/docs/debugging.adoc @kwk @fabric8-services/fabric8-wit-team
+/errors/ @kwk @fabric8-services/fabric8-wit-team
+/gormsupport/ @kwk @fabric8-services/fabric8-wit-team
+/gormtestsupport/ @kwk @fabric8-services/fabric8-wit-team
+/jsonapi/ @kwk @fabric8-services/fabric8-wit-team
+/migration/ @kwk @fabric8-services/fabric8-wit-team
+/numbersequence/ @kwk @fabric8-services/fabric8-wit-team
+/ptr/ @kwk @fabric8-services/fabric8-wit-team
+/spacetemplates/ @kwk @fabric8-services/fabric8-wit-team
+/test/testfixture/ @kwk @fabric8-services/fabric8-wit-team
+/workitem/* @kwk @fabric8-services/fabric8-wit-team
+/workitem/link/* @kwk @fabric8-services/fabric8-wit-team
+Dockerfile.builder @kwk @fabric8-services/fabric8-wit-team
+cico_run_coverage.sh @kwk @fabric8-services/fabric8-wit-team
+cico_run_tests.sh @kwk @fabric8-services/fabric8-wit-team
+cico_setup.sh @kwk @fabric8-services/fabric8-wit-team
