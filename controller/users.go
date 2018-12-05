@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"math/rand"
 	"net/http"
 
@@ -67,22 +68,21 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "failed to determine if account is a service account")
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err))
+		return jsonapi.JSONErrorResponse(ctx, err)
 
 	}
 	if !isSvcAccount {
 		log.Error(ctx, map[string]interface{}{
 			"identity_id": ctx.ID,
 		}, "account used to call obfuscate API is not a service account")
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errs.New("account used to call obfuscate API is not a service account")))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("account used to call obfuscate API is not a service account"))
 	}
 	u, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "failed to convert user id in valid uuid")
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("invalid user id")))
-
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("invalid user id", ctx.ID).Expected("user id should be a UUID"))
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		obfStr := randString(12)
@@ -94,14 +94,14 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 				"user_id": u,
 				"err":     err,
 			}, "unable to load the user")
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err))
+			return err
 		}
 		if len(users) != 1 {
 			log.Error(ctx, map[string]interface{}{
 				"user_id": u,
 				"err":     err,
 			}, "unable to find the user")
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(errs.New("unable to find the user")))
+			return errors.NewNotFoundError("unable to find the user", u.String())
 		}
 		user := users[0]
 		user.Email = obfStr + "@mail.com"
@@ -116,7 +116,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 				"user_id": u,
 				"err":     err,
 			}, "unable to obfuscate the user")
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err))
+			return err
 		}
 
 		log.Debug(ctx, map[string]interface{}{
@@ -130,14 +130,14 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 				"user_id": u,
 				"err":     err,
 			}, "unable to retrieve the identity associated to this user id")
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err))
+			return err
 		}
 		if len(identities) == 0 {
 			log.Error(ctx, map[string]interface{}{
 				"user_id": u,
 				"err":     err,
 			}, "unable to retrieve the identity associated to this user id")
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(errs.New("unable to find the user")))
+			return errors.NewNotFoundError("unable to find the user", u.String())
 		}
 		for _, identity := range identities {
 			identity.Username = obfStr
@@ -148,7 +148,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 					"user_id": u,
 					"err":     err,
 				}, "unable to obfuscate the identity")
-				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err))
+				return err
 			}
 
 			log.Debug(ctx, map[string]interface{}{
