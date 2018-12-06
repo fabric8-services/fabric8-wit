@@ -127,8 +127,8 @@ work_item_types:
         kind: string
       required: no
     "system_remote_item_url":
-      label: URL to remote work item
-      description: Deep-link that points to the remote system's version of this work item
+      label: Remote URL
+      description: URL to remote work item
       type:
         kind: url
       required: no
