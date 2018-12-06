@@ -13,6 +13,8 @@
         "system.state": "new",
         "system.title": "B",
         "system.updated_at": "0001-01-01T00:00:00Z",
+        "system_remote_item_url": null,
+        "system_remote_tracker_id": null,
         "version": 0
       },
       "id": "00000000-0000-0000-0000-000000000001",
@@ -105,6 +107,8 @@
         "system.state": "new",
         "system.title": "C",
         "system.updated_at": "0001-01-01T00:00:00Z",
+        "system_remote_item_url": null,
+        "system_remote_tracker_id": null,
         "version": 0
       },
       "id": "00000000-0000-0000-0000-000000000006",
@@ -199,6 +203,8 @@
         "system.state": "new",
         "system.title": "A",
         "system.updated_at": "0001-01-01T00:00:00Z",
+        "system_remote_item_url": null,
+        "system_remote_tracker_id": null,
         "version": 0
       },
       "id": "00000000-0000-0000-0000-000000000004",
@@ -286,6 +292,8 @@
         "system.state": "new",
         "system.title": "E",
         "system.updated_at": "0001-01-01T00:00:00Z",
+        "system_remote_item_url": null,
+        "system_remote_tracker_id": null,
         "version": 0
       },
       "id": "00000000-0000-0000-0000-000000000007",
