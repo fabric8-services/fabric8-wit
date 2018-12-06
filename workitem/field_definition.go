@@ -290,7 +290,7 @@ func ConvertAnyToKind(any interface{}) (*Kind, error) {
 func ConvertStringToKind(k string) (*Kind, error) {
 	kind := Kind(k)
 	switch kind {
-	case KindString, KindInteger, KindFloat, KindInstant, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoardColumn, KindBoolean:
+	case KindString, KindInteger, KindFloat, KindInstant, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoardColumn, KindBoolean, KindRemoteTracker:
 		return &kind, nil
 	}
 	return nil, errs.Errorf("kind '%s' is not a simple type", k)
