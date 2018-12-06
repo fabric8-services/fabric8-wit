@@ -101,7 +101,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 				"user_id": u,
 				"err":     err,
 			}, "unable to find the user")
-			return errors.NewNotFoundError("unable to find the user", u.String())
+			return errors.NewNotFoundError("user", u.String())
 		}
 		user := users[0]
 		user.Email = obfStr + "@mail.com"
@@ -130,14 +130,14 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 				"user_id": u,
 				"err":     err,
 			}, "unable to retrieve the identity associated to this user id")
-			return err
+			return errors.NewNotFoundError("user", u.String())
 		}
 		if len(identities) == 0 {
 			log.Error(ctx, map[string]interface{}{
 				"user_id": u,
 				"err":     err,
 			}, "unable to retrieve the identity associated to this user id")
-			return errors.NewNotFoundError("unable to find the user", u.String())
+			return errors.NewNotFoundError("user", u.String())
 		}
 		for _, identity := range identities {
 			identity.Username = obfStr

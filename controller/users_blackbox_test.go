@@ -15,6 +15,7 @@ import (
 
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -66,8 +67,23 @@ func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountOK() {
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when
 	secureService, secureController := s.SecuredServiceAccountController(identity)
-
 	test.ObfuscateUsersOK(s.T(), secureService.Context, secureService, secureController, (user.ID).String())
+	// then
+	obfUser, err := s.userRepo.Load(context.Background(), user.ID)
+	require.NoError(s.T(), err)
+	obsString := obfUser.FullName
+	assert.Equal(s.T(), len(obsString), 12)
+	assert.Equal(s.T(), obfUser.Email, obsString+"@mail.com")
+	assert.Equal(s.T(), obfUser.FullName, obsString)
+	assert.Equal(s.T(), obfUser.ImageURL, obsString)
+	assert.Equal(s.T(), obfUser.Bio, obsString)
+	assert.Equal(s.T(), obfUser.URL, obsString)
+	assert.Equal(s.T(), obfUser.Company, obsString)
+	assert.Nil(s.T(), obfUser.ContextInformation)
+	obfIdentity, err := s.identityRepo.Load(context.Background(), identity.ID)
+	require.NoError(s.T(), err)
+	assert.Equal(s.T(), obfIdentity.Username, obsString)
+	assert.Equal(s.T(), obfIdentity.ProfileURL, &obsString)
 }
 
 func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountNotFound() {
