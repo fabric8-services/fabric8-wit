@@ -126,6 +126,18 @@ work_item_types:
       type:
         kind: string
       required: no
+    "system_remote_item_url":
+      label: URL to remote work item
+      description: Deep-link that points to the remote system's version of this work item
+      type:
+        kind: url
+      required: no
+    "system_remote_tracker_id":
+      label: Remote Tracker
+      description: Reference to the tracker that manages this work item
+      type:
+        kind: remotetracker
+      required: no
     "system.labels":
       label: Labels
       description: List of labels attached to the work item

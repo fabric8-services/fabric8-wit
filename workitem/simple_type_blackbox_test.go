@@ -1,12 +1,14 @@
 package workitem_test
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	. "github.com/fabric8-services/fabric8-wit/workitem"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -314,6 +316,36 @@ func getFieldTypeConversionToStringTestData() []stringConvertTestData {
 			SimpleType{Kind: KindArea},
 			true,
 		}, {
+			"ok - simple type remotetracker (as string)",
+			"a1f105d8-dfca-4088-bcc0-595a5c4f20f0",
+			"a1f105d8-dfca-4088-bcc0-595a5c4f20f0",
+			SimpleType{Kind: KindRemoteTracker},
+			true,
+		}, {
+			"ok - simple type remotetracker (as uuid object)",
+			uuid.FromStringOrNil("5cea5b4b-d6cf-4d39-89dd-94ee53b8f58a"),
+			"5cea5b4b-d6cf-4d39-89dd-94ee53b8f58a",
+			SimpleType{Kind: KindRemoteTracker},
+			true,
+		}, {
+			"err - simple type remotetracker (as empty string)",
+			"",
+			"00000000-0000-0000-0000-000000000000",
+			SimpleType{Kind: KindRemoteTracker},
+			false,
+		}, {
+			"ok - simple type remotetracker (as nil UUID string)",
+			"00000000-0000-0000-0000-000000000000",
+			"00000000-0000-0000-0000-000000000000",
+			SimpleType{Kind: KindRemoteTracker},
+			true,
+		}, {
+			"ok - simple type remotetracker (as nil UUID object )",
+			uuid.Nil,
+			"00000000-0000-0000-0000-000000000000",
+			SimpleType{Kind: KindRemoteTracker},
+			true,
+		}, {
 			"ok - simple type boardcolumn",
 			"foo6",
 			"foo6",
@@ -412,6 +444,41 @@ func TestConvertToStringSlice(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, convertedVal, 1)
 			require.Equal(t, d.targetValue, convertedVal[0])
+		})
+	}
+}
+
+func TestAnyToUUID(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		value interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    uuid.UUID
+		wantErr bool
+	}{
+		{"ok - UUID object", args{uuid.FromStringOrNil("4152e619-7c9b-49fa-a535-c751fc279752")}, uuid.FromStringOrNil("4152e619-7c9b-49fa-a535-c751fc279752"), false},
+		{"ok - UUID string", args{"1ce67ec3-9b38-4ad9-ae69-f653d62bfb6d"}, uuid.FromStringOrNil("1ce67ec3-9b38-4ad9-ae69-f653d62bfb6d"), false},
+		{"ok - UUID nil object", args{uuid.Nil}, uuid.Nil, false},
+		{"ok - UUID nil string", args{"00000000-0000-0000-0000-000000000000"}, uuid.Nil, false},
+		{"err - empty string", args{""}, uuid.Nil, true},
+		{"err - arbitrary string", args{"foo"}, uuid.Nil, true},
+		{"err - int", args{1234}, uuid.Nil, true},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := AnyToUUID(tt.args.value)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("AnyToUUID() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("AnyToUUID() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }

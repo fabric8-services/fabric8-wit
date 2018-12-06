@@ -22,12 +22,13 @@ const (
 	KindURL     Kind = "url"
 	KindMarkup  Kind = "markup"
 	// relational
-	KindIteration   Kind = "iteration"
-	KindUser        Kind = "user"
-	KindLabel       Kind = "label"
-	KindBoardColumn Kind = "boardcolumn"
-	KindArea        Kind = "area"
-	KindCodebase    Kind = "codebase"
+	KindIteration     Kind = "iteration"
+	KindUser          Kind = "user"
+	KindLabel         Kind = "label"
+	KindBoardColumn   Kind = "boardcolumn"
+	KindArea          Kind = "area"
+	KindCodebase      Kind = "codebase"
+	KindRemoteTracker Kind = "remotetracker"
 	// composite
 	KindEnum Kind = "enum"
 	KindList Kind = "list"
@@ -50,6 +51,7 @@ func (k Kind) IsRelational() bool {
 		KindLabel,
 		KindBoardColumn,
 		KindArea,
+		KindRemoteTracker,
 		KindCodebase:
 		return true
 	}
