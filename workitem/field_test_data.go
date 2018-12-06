@@ -103,8 +103,8 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 		},
 		KindRemoteTracker: {
 			Valid: []interface{}{
-				"00000000-0000-0000-0000-000000000000",
-				"55d5d809-56f0-4d31-9607-04755b793c4a",
+				// "00000000-0000-0000-0000-000000000000",
+				// "55d5d809-56f0-4d31-9607-04755b793c4a",
 				uuid.FromStringOrNil("8f48eb9a-f9cb-428f-a803-7845a96f1d07"),
 				uuid.Nil,
 			},
