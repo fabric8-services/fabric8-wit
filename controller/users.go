@@ -88,7 +88,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 		obfStr := randString(12)
 
 		// Obfuscate User
-		users, err := appl.Users().Query(account.UserFilterByID(u))
+		user, err := appl.Users().Load(ctx.Context, u)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"user_id": u,
@@ -96,14 +96,6 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 			}, "unable to load the user")
 			return err
 		}
-		if len(users) != 1 {
-			log.Error(ctx, map[string]interface{}{
-				"user_id": u,
-				"err":     err,
-			}, "unable to find the user")
-			return errors.NewNotFoundError("user", u.String())
-		}
-		user := users[0]
 		user.Email = obfStr + "@mail.com"
 		user.FullName = obfStr
 		user.ImageURL = obfStr
@@ -111,7 +103,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 		user.URL = obfStr
 		user.ContextInformation = nil
 		user.Company = obfStr
-		if err := appl.Users().Save(ctx.Context, &user); err != nil {
+		if err := appl.Users().Save(ctx.Context, user); err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"user_id": u,
 				"err":     err,
