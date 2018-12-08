@@ -91,6 +91,10 @@ COVERAGE_MODE ?= set
 # But if you want you can enable that by setting GO_TEST_VERBOSITY_FLAG=-v
 GO_TEST_VERBOSITY_FLAG ?= 
 
+# Set the test binaries, that can be run in parallel.
+# The default is the number of CPUs available.
+GO_TEST_BINARIES_PARALLEL_FLAG ?= -p 1
+
 # By default use the "localhost" or specify manually during make invocation:
 #
 # 	F8_POSTGRES_HOST=somehost make test-integration
@@ -169,7 +173,7 @@ test-integration: prebuild-check clean-coverage-integration migrate-database $(C
 test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_BINARIES_PARALLEL_FLAG) $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
 test-integration-benchmark: prebuild-check migrate-database $(SOURCES)
 	$(call log-info,"Running benchmarks: $@")
