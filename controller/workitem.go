@@ -711,7 +711,7 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 					}
 					if len(childsStr) > 0 {
 						sort.Strings(childsStr)
-						wiLine = append(wiLine, strings.Join(childsStr, ";"))
+						wiLine = append(wiLine, strings.Join(childsStr, "\n"))
 					} else {
 						wiLine = append(wiLine, "")
 					}
