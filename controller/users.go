@@ -88,7 +88,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 		obfStr := randString(12)
 
 		// Obfuscate User
-		user, err := appl.Users().Load(ctx.Context, u)
+		user, err := appl.Users().Load(ctx, u)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"user_id": u,
@@ -103,7 +103,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 		user.URL = obfStr
 		user.ContextInformation = nil
 		user.Company = obfStr
-		if err := appl.Users().Save(ctx.Context, user); err != nil {
+		if err := appl.Users().Save(ctx, user); err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"user_id": u,
 				"err":     err,
@@ -135,7 +135,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 			identity.Username = obfStr
 			identity.ProfileURL = &obfStr
 
-			if err := appl.Identities().Save(ctx.Context, &identity); err != nil {
+			if err := appl.Identities().Save(ctx, &identity); err != nil {
 				log.Error(ctx, map[string]interface{}{
 					"user_id": u,
 					"err":     err,
@@ -322,7 +322,7 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 
 		var user *account.User
 		if identity.UserID.Valid {
-			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
+			user, err = appl.Users().Load(ctx, identity.UserID.UUID)
 			if err != nil {
 				return errs.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID))
 			}
