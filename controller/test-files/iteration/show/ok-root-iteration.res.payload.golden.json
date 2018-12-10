@@ -7,6 +7,7 @@
       "name": "root",
       "number": 1,
       "parent_path": "/",
+      "parent_path_resolved": "/",
       "resolved_parent_path": "/",
       "state": "new",
       "updated-at": "0001-01-01T00:00:00Z",

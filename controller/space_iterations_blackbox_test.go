@@ -540,7 +540,10 @@ func assertIterations(t *testing.T, data []*app.Iteration, fatherIteration, chil
 			require.NotNil(t, iterationItem.Relationships.Parent)
 			assert.Equal(t, fatherIteration.ID.String(), *iterationItem.Relationships.Parent.Data.ID)
 			assert.Equal(t, expectedParentPath, *iterationItem.Attributes.ParentPath)
+			// TODO(sahil143): Remove the following line once iteration
+			// parent path rename is completed
 			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ResolvedParentPath)
+			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ParentPathResolved)
 		}
 		if *iterationItem.ID == grandChildIteration.ID {
 			t.Log("grandChildIteration:", iterationItem.ID, *iterationItem.Attributes.Name, *iterationItem.Attributes.ParentPath, *iterationItem.Relationships.Parent.Data.ID)
@@ -549,8 +552,10 @@ func assertIterations(t *testing.T, data []*app.Iteration, fatherIteration, chil
 			require.NotNil(t, iterationItem.Relationships.Parent)
 			assert.Equal(t, childIteration.ID.String(), *iterationItem.Relationships.Parent.Data.ID)
 			assert.Equal(t, expectedParentPath, *iterationItem.Attributes.ParentPath)
+			// TODO(sahil143): Remove the following line once iteration
+			// parent path rename is completed
 			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ResolvedParentPath)
-
+			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ParentPathResolved)
 		}
 	}
 }

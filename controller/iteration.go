@@ -551,7 +551,11 @@ func parentPathResolver(itrMap iterationIDMap) IterationConvertFunc {
 		if pathResolved == "" {
 			pathResolved = iteration.PathSepInService
 		}
+		// TODO(sahil143): Remove the following line once iteration
+		// parent path rename is completed
 		appIteration.Attributes.ResolvedParentPath = &pathResolved
+		appIteration.Attributes.ParentPathResolved = &pathResolved
+
 	}
 }
 
