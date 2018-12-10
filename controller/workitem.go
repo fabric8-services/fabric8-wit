@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"strings"
 	"bytes"
 	"encoding/csv"
 	"fmt"
@@ -568,7 +569,7 @@ func getVersion(version interface{}) (int, error) {
 // []string object containing a set of CSV formatted data lines and a header line with labels.
 // This methods combines all CSV data of all WITs into a single CSV and returns the CSV as well
 // as the field headers as a seperate slice
-func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, allWits []workitem.WorkItemType, wis []workitem.WorkItem, includeHeaderLine bool) (string, []string, error) {
+func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []workitem.WorkItemType, wis []workitem.WorkItem, childLinks link.WorkItemLinkList, parents link.AncestorList, idNumberMap *map[string]string, includeHeaderLine bool) (string, []string, error) {
 	if len(wis) == 0 {
 		// nothing to do
 		return "", []string{}, nil
@@ -633,6 +634,14 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, all
 	}
 	columnLabels = sortedLabels
 	columnKeys = sortedKeys
+	// add the childs numbers manually as the third column
+	const childsNumbersKey = "_childs"
+	columnKeys = append([]string{childsNumbersKey}, columnKeys...)
+	columnLabels = append([]string{"_Childs"}, columnLabels...)
+	// add the parent number manually as the second column
+	const parentNumberKey = "_parent"
+	columnKeys = append([]string{parentNumberKey}, columnKeys...)
+	columnLabels = append([]string{"_Parent"}, columnLabels...)
 	// add the WIT name manually as the first column
 	const witNameKey = "_type"
 	columnKeys = append([]string{witNameKey}, columnKeys...)
@@ -644,12 +653,20 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, all
 	}
 	// now iterate over the work items and retrieve the values according to the column mapping
 	for _, thisWI := range wis {
+		// first, add the current work item number to the number cache
+		number := thisWI.Fields[workitem.SystemNumber]
+		numberInt, ok := number.(int)
+		if !ok {
+			return "", []string{}, errs.Errorf("error converting number field value to string for work item: %s", thisWI.ID)
+		}
+		(*idNumberMap)[thisWI.ID.String()] = strconv.Itoa(numberInt)
+		// create the line buffer
 		wiLine := []string{}
 		// for each work item, iterate over the column mapping and retrieve values
 		if _, ok := alreadyProcessedWITs[thisWI.Type]; !ok {
 			return "", []string{}, errs.Errorf("encountered work item %s with unknown work item type %s", thisWI.ID, thisWI.Type)
 		}
-		fieldKeyValueMap, err := convertWorkItemFieldValues(ctx, app, &uuidStringCache, alreadyProcessedWITs[thisWI.Type], thisWI)
+		fieldKeyValueMap, err := convertWorkItemFieldValues(ctx, db, &uuidStringCache, alreadyProcessedWITs[thisWI.Type], thisWI)
 		if err != nil {
 			return "", []string{}, errs.Wrapf(err, "failed to retrieve field values for work item: %s", thisWI.ID)
 		}
@@ -657,7 +674,52 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, all
 			// if this is the WIT type name key, set it
 			if columnKey == witNameKey {
 				wiLine = append(wiLine, alreadyProcessedWITs[thisWI.Type].Name)
-			} else if fieldValue, ok := fieldKeyValueMap[columnKey]; ok {
+			} else if columnKey == parentNumberKey {
+				parentNumberStr := ""
+				// lookup the anchestor entry, resolve the number and set it
+				if parents != nil {
+					for _, thisParentEntry := range parents {
+						if thisParentEntry.DirectChildID == thisWI.ID {
+							parentNumberStr, err = resolveNumberByWorkItemID(ctx, db, thisParentEntry.ID)
+							if err != nil {
+								return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for parent of work item: %s", thisWI.ID)
+							}
+							// add the resolved id to the cache
+							(*idNumberMap)[thisParentEntry.ID.String()] = parentNumberStr
+							break
+						}
+					}
+					wiLine = append(wiLine, parentNumberStr)
+				} else {
+					// no parents available
+					wiLine = append(wiLine, "")
+				}
+			} else if columnKey == childsNumbersKey {
+					// lookup the child links, resolve the numbers and add them here
+					if childLinks != nil {
+						childsStr := []string{}
+						for _, childLink := range childLinks {
+							if childLink.SourceID == thisWI.ID {
+								childNumberStr, err := resolveNumberByWorkItemID(ctx, db, childLink.TargetID)
+								if err != nil {
+									return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for childs of work item: %s (child %s)", thisWI.ID, childLink.TargetID)
+								}
+								childsStr = append(childsStr, childNumberStr)
+								// add the resolved id to the cache
+								(*idNumberMap)[childLink.TargetID.String()] = childNumberStr
+							}
+						}
+						if len(childsStr) > 0 {
+							sort.Strings(childsStr)
+							wiLine = append(wiLine, strings.Join(childsStr, ";"))
+						} else {
+							wiLine = append(wiLine, "")
+						}
+					} else {
+							// no childs available
+							wiLine = append(wiLine, "")
+					}
+				} else if fieldValue, ok := fieldKeyValueMap[columnKey]; ok {
 				// key exists, this column can be filled from the work item
 				wiLine = append(wiLine, fieldValue)
 			} else {
@@ -677,6 +739,30 @@ func ConvertWorkItemsToCSV(ctx context.Context, app application.Application, all
 	}
 	// done, return serialized result.
 	return buf.String(), columnLabels, nil
+}
+
+// resolveNumberByWorkItemID retrieves the work item number for a work item ID
+func resolveNumberByWorkItemID(ctx context.Context, db application.DB, workItemID uuid.UUID) (string, error) {
+	var numberInt int 
+	err := application.Transactional(db, func(appl application.Application) error {
+		var err error
+		thisWorkItem, err := appl.WorkItems().LoadByID(ctx, workItemID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+				"workItemID": workItemID,
+			}, "unable to retrieve space")
+			return errs.Wrapf(err, "error retrieving number for workItemID: %s", workItemID.String())
+		}
+		number := (*thisWorkItem).Fields[workitem.SystemNumber]
+		var ok bool
+		numberInt, ok = number.(int)
+		if !ok {
+			return errs.Errorf("error converting number for workItemID: %s", workItemID.String())
+		}
+		return nil
+	})
+	return strconv.Itoa(numberInt), err
 }
 
 // extractWorkItemTypeFields extracts the field information for a wit; it returns slices for
