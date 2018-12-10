@@ -263,6 +263,9 @@ func getWorkItemsByFilterExpression(ctx context.Context, db application.DB, filt
 		// add tree option to query if not already present
 		var reqJSON interface{}
 		err = json.Unmarshal([]byte(filterExpression), &reqJSON)
+		if err != nil {
+			return errs.Errorf("error unmarshalling query expression for CSV filtering: %s", filterExpression)
+		}
 		reqMap := reqJSON.(map[string]interface{})
 		isTreeView := false
 		opts, ok := reqMap["$OPTS"]
