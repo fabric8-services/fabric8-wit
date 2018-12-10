@@ -222,7 +222,26 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		require.Len(t, foundNumbers, 242)
 		require.Equal(t, expectedNumbers, foundNumbers)
 	})
-	s.T().Run("parents and childs", func(t *testing.T) {
+	s.T().Run("parents and childs with user provided tree option", func(t *testing.T) {
+		fxt := newFixture(t, 242, true, true)
+		// when
+		filter := fmt.Sprintf(`{"space": "%s", "$OPTS":{"tree-view":true}}`, fxt.WorkItems[0].SpaceID)
+		rr := httptest.NewRecorder()
+		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
+		rw := test.WorkitemsCSVSearchOK(t, goaCtx, s.svc, s.controller, &filter, nil, nil, nil)
+		// then
+		recorder := rw.(*httptest.ResponseRecorder)
+		recorder.Flush()
+		require.NotNil(t, recorder.Body)
+		bodyStr := recorder.Body.String()
+		// deserialize and check consistency of header and entity lines.
+		entities, err := deserialize(bodyStr)
+		require.NoError(t, err)
+		require.Len(t, entities, 242)
+		compareWithGoldenOpts(t, filepath.Join(s.testDir, "csv", "ok-parentchilds.res.payload.golden.csv"), bodyStr, compareOptions{UUIDAgnostic: true, DateTimeAgnostic: true})
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok-parentchilds.res.headers.golden.json"), rw.Header())
+	})
+	s.T().Run("parents and childs without user provided tree option", func(t *testing.T) {
 		fxt := newFixture(t, 242, true, true)
 		// when
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
