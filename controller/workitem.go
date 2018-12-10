@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"strings"
 	"bytes"
 	"encoding/csv"
 	"fmt"
@@ -9,6 +8,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -695,31 +695,31 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 					wiLine = append(wiLine, "")
 				}
 			} else if columnKey == childsNumbersKey {
-					// lookup the child links, resolve the numbers and add them here
-					if childLinks != nil {
-						childsStr := []string{}
-						for _, childLink := range childLinks {
-							if childLink.SourceID == thisWI.ID {
-								childNumberStr, err := resolveNumberByWorkItemID(ctx, db, childLink.TargetID)
-								if err != nil {
-									return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for childs of work item: %s (child %s)", thisWI.ID, childLink.TargetID)
-								}
-								childsStr = append(childsStr, childNumberStr)
-								// add the resolved id to the cache
-								(*idNumberMap)[childLink.TargetID.String()] = childNumberStr
+				// lookup the child links, resolve the numbers and add them here
+				if childLinks != nil {
+					childsStr := []string{}
+					for _, childLink := range childLinks {
+						if childLink.SourceID == thisWI.ID {
+							childNumberStr, err := resolveNumberByWorkItemID(ctx, db, childLink.TargetID)
+							if err != nil {
+								return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for childs of work item: %s (child %s)", thisWI.ID, childLink.TargetID)
 							}
+							childsStr = append(childsStr, childNumberStr)
+							// add the resolved id to the cache
+							(*idNumberMap)[childLink.TargetID.String()] = childNumberStr
 						}
-						if len(childsStr) > 0 {
-							sort.Strings(childsStr)
-							wiLine = append(wiLine, strings.Join(childsStr, ";"))
-						} else {
-							wiLine = append(wiLine, "")
-						}
-					} else {
-							// no childs available
-							wiLine = append(wiLine, "")
 					}
-				} else if fieldValue, ok := fieldKeyValueMap[columnKey]; ok {
+					if len(childsStr) > 0 {
+						sort.Strings(childsStr)
+						wiLine = append(wiLine, strings.Join(childsStr, ";"))
+					} else {
+						wiLine = append(wiLine, "")
+					}
+				} else {
+					// no childs available
+					wiLine = append(wiLine, "")
+				}
+			} else if fieldValue, ok := fieldKeyValueMap[columnKey]; ok {
 				// key exists, this column can be filled from the work item
 				wiLine = append(wiLine, fieldValue)
 			} else {
@@ -743,13 +743,13 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 
 // resolveNumberByWorkItemID retrieves the work item number for a work item ID
 func resolveNumberByWorkItemID(ctx context.Context, db application.DB, workItemID uuid.UUID) (string, error) {
-	var numberInt int 
+	var numberInt int
 	err := application.Transactional(db, func(appl application.Application) error {
 		var err error
 		thisWorkItem, err := appl.WorkItems().LoadByID(ctx, workItemID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"err": err,
+				"err":        err,
 				"workItemID": workItemID,
 			}, "unable to retrieve space")
 			return errs.Wrapf(err, "error retrieving number for workItemID: %s", workItemID.String())

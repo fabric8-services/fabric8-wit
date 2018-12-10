@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"encoding/json"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"path"
@@ -278,7 +278,7 @@ func getWorkItemsByFilterExpression(ctx context.Context, db application.DB, filt
 		if !isTreeView {
 			// not present, add it to the query
 			(reqMap["$OPTS"].(map[string]interface{}))["tree-view"] = true
-		} 		
+		}
 		updatedFilterExpression, err := json.Marshal(reqMap)
 		if err != nil {
 			return errs.Errorf("error adding tree opt to query expression for CSV filtering: %s", filterExpression)

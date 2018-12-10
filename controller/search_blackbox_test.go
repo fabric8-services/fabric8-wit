@@ -138,7 +138,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			}))
 			require.NoError(t, err)
 			fxt.WorkItemLinks = fxtWithLinks.WorkItemLinks
-		}		
+		}
 		return fxt
 	}
 	s.T().Run("standard result", func(t *testing.T) {

@@ -18,9 +18,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
-	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
