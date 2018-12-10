@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"math/rand"
 	"net/http"
 
 	idpackage "github.com/fabric8-services/fabric8-common/id"
@@ -48,6 +50,110 @@ func NewUsersController(service *goa.Service, db application.DB, config UsersCon
 		db:         db,
 		config:     config,
 	}
+}
+func randString(length int) string {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	randomStr := make([]byte, length)
+	for i := range randomStr {
+		randomStr[i] = letterBytes[rand.Int63()%int64(len(letterBytes))]
+	}
+	return string(randomStr)
+}
+
+// Obfuscate runs the obfuscate action to invalidate the sensitive data associated
+// with an user and her associated identity.
+func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
+	isSvcAccount, err := isServiceAccount(ctx, serviceNameAuth)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to determine if account is a service account")
+		return jsonapi.JSONErrorResponse(ctx, err)
+
+	}
+	if !isSvcAccount {
+		log.Error(ctx, map[string]interface{}{
+			"identity_id": ctx.ID,
+		}, "account used to call obfuscate API is not a service account")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("account used to call obfuscate API is not a service account"))
+	}
+	u, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to convert user id in valid uuid")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("invalid user id", ctx.ID).Expected("user id should be a UUID"))
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		obfStr := randString(12)
+
+		// Obfuscate User
+		user, err := appl.Users().Load(ctx, u)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": u,
+				"err":     err,
+			}, "unable to load the user")
+			return err
+		}
+		user.Email = obfStr + "@mail.com"
+		user.FullName = obfStr
+		user.ImageURL = obfStr
+		user.Bio = obfStr
+		user.URL = obfStr
+		user.ContextInformation = nil
+		user.Company = obfStr
+		if err := appl.Users().Save(ctx, user); err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": u,
+				"err":     err,
+			}, "unable to obfuscate the user")
+			return err
+		}
+
+		log.Debug(ctx, map[string]interface{}{
+			"user_id": u,
+		}, "User obfuscated!")
+
+		// Obfuscate associated identity
+		identities, err := appl.Identities().Query(account.IdentityFilterByUserID(u))
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": u,
+				"err":     err,
+			}, "unable to retrieve the identity associated to this user id")
+			return errors.NewNotFoundError("user", u.String())
+		}
+		if len(identities) == 0 {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": u,
+				"err":     err,
+			}, "unable to retrieve the identity associated to this user id")
+			return errors.NewNotFoundError("user", u.String())
+		}
+		for _, identity := range identities {
+			identity.Username = obfStr
+			identity.ProfileURL = &obfStr
+
+			if err := appl.Identities().Save(ctx, &identity); err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"user_id": u,
+					"err":     err,
+				}, "unable to obfuscate the identity")
+				return err
+			}
+
+			log.Debug(ctx, map[string]interface{}{
+				"user_id": u,
+			}, "Identity obfuscated!")
+
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK([]byte{})
 }
 
 // Show runs the show action.
@@ -216,7 +322,7 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 
 		var user *account.User
 		if identity.UserID.Valid {
-			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
+			user, err = appl.Users().Load(ctx, identity.UserID.UUID)
 			if err != nil {
 				return errs.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID))
 			}
