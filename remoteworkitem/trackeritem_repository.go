@@ -50,15 +50,15 @@ func ConvertToWorkItemModel(ctx context.Context, db *gorm.DB, item TrackerItemCo
 	if err != nil {
 		return nil, ConversionError{simpleError{message: fmt.Sprintf("Error mapping to local work item: %s", err.Error())}}
 	}
-	workItem, err := setLocalWorkItemFields(ctx, db, remoteWorkItem, tq)
+	workItem, err := setWorkItemFields(ctx, db, remoteWorkItem, tq)
 	if err != nil {
 		return nil, InternalError{simpleError{message: fmt.Sprintf("Error bind assignees: %s", err.Error())}}
 	}
 	return upsert(ctx, db, *workItem)
 }
 
-// setLocalWorkItemFields sets fields of local workitem
-func setLocalWorkItemFields(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWorkItem, tq TrackerSchedule) (*workitem.WorkItem, error) {
+// setWorkItemFields retrieves data from remoteWorkItem structure and sets it to relevant fields in work item model
+func setWorkItemFields(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWorkItem, tq TrackerSchedule) (*workitem.WorkItem, error) {
 	identityRepository := account.NewIdentityRepository(db)
 	//spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
 	workItem := workitem.WorkItem{
