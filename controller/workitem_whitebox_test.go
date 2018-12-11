@@ -410,6 +410,8 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		require.Equal(t, "", entities[0]["Severity"])                                  // entity 0 does not has this field
 		require.Equal(t, "", entities[1]["Severity"])                                  // entity 1 does not has this field
 		require.Equal(t, fxt.WorkItems[2].Fields["severity"], entities[2]["Severity"]) // entity 1 has this field
+		require.Equal(t, "important\nbackend", entities[0]["Labels"])
+		require.Equal(t, "important\nbackend", entities[1]["Labels"])
 	})
 	rest.T().Run("ok - no header line", func(t *testing.T) {
 		// given

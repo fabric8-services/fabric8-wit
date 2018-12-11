@@ -803,7 +803,7 @@ func convertWorkItemFieldValues(ctx context.Context, app application.Application
 					return nil, errs.Wrapf(err, "failed to convert compound type value to string for field key: %s", fieldKey)
 				}
 				converted = converted + delim + elemConvertedValue
-				delim = ";"
+				delim = "\n"
 			}
 			convertedValue = converted
 		case workitem.EnumType:
