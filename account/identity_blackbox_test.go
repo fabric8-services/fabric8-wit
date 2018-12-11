@@ -8,7 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -128,7 +128,8 @@ func createAndLoad(s *IdentityRepositoryTestSuite) *account.Identity {
 	identity := &account.Identity{
 		ID:           uuid.NewV4(),
 		Username:     "someuserTestIdentity2",
-		ProviderType: account.KeycloakIDP}
+		ProviderType: account.KeycloakIDP,
+	}
 
 	err := s.repo.Create(s.Ctx, identity)
 	require.NoError(s.T(), err, "Could not create identity")
