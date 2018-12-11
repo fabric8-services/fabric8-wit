@@ -130,7 +130,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-common"
-  revision = "51e44b47e514721ddaa3fca99e5fb5bc1a6e7eb2"
+  revision = "3aef932c6fdeb74b56b27420ee9dd94452a17997"
 
 [[constraint]]
   name = "github.com/jstemmer/go-junit-report"

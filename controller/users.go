@@ -3,21 +3,20 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"math/rand"
 	"net/http"
 
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 	idpackage "github.com/fabric8-services/fabric8-common/id"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/token"
-
-	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
@@ -158,7 +157,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 
 // Show runs the show action.
 func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
-	return proxy.RouteHTTP(ctx, c.config.GetAuthShortServiceHostName())
+	return httpsupport.RouteHTTP(ctx, c.config.GetAuthShortServiceHostName())
 }
 
 // CreateUserAsServiceAccount updates a user when requested using a service account token
@@ -398,12 +397,12 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 
 // Update updates the authorized user based on the provided Token
 func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
-	return proxy.RouteHTTP(ctx, c.config.GetAuthShortServiceHostName())
+	return httpsupport.RouteHTTP(ctx, c.config.GetAuthShortServiceHostName())
 }
 
 // List runs the list action.
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
-	return proxy.RouteHTTP(ctx, c.config.GetAuthShortServiceHostName())
+	return httpsupport.RouteHTTP(ctx, c.config.GetAuthShortServiceHostName())
 }
 
 // ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List

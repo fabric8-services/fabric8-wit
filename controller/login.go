@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
@@ -13,7 +14,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/login"
 
-	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
 )
 
@@ -49,7 +49,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 
 // Refresh obtain a new access token using the refresh token.
 func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
-	return proxy.RouteHTTPToPath(ctx, c.configuration.GetAuthShortServiceHostName(), authservice.RefreshTokenPath())
+	return httpsupport.RouteHTTPToPath(ctx, c.configuration.GetAuthShortServiceHostName(), authservice.RefreshTokenPath())
 }
 
 func redirectLocation(params url.Values, location string) (string, error) {
@@ -77,5 +77,5 @@ func redirectWithParams(ctx redirectContext, config auth.ServiceConfiguration, h
 
 // Generate generates access tokens in Dev Mode
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
-	return proxy.RouteHTTPToPath(ctx, c.configuration.GetAuthServiceURL(), authservice.GenerateTokenPath())
+	return httpsupport.RouteHTTPToPath(ctx, c.configuration.GetAuthServiceURL(), authservice.GenerateTokenPath())
 }
