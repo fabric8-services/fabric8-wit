@@ -167,7 +167,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok.res.headers.golden.json"), rw.Header())
 		})
 		t.Run("compound type", func(t *testing.T) {
-			require.Equal(t, "important;backend", entities[0]["Labels"])
+			require.Equal(t, "important\nbackend", entities[0]["Labels"])
 		})
 		t.Run("resolved type", func(t *testing.T) {
 			require.Equal(t, "New", entities[0]["State"])

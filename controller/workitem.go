@@ -635,9 +635,9 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 	columnLabels = sortedLabels
 	columnKeys = sortedKeys
 	// add the childs numbers manually as the third column
-	const childsNumbersKey = "_childs"
+	const childsNumbersKey = "_children"
 	columnKeys = append([]string{childsNumbersKey}, columnKeys...)
-	columnLabels = append([]string{"_Childs"}, columnLabels...)
+	columnLabels = append([]string{"_Children"}, columnLabels...)
 	// add the parent number manually as the second column
 	const parentNumberKey = "_parent"
 	columnKeys = append([]string{parentNumberKey}, columnKeys...)
