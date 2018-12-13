@@ -634,7 +634,7 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 	}
 	columnLabels = sortedLabels
 	columnKeys = sortedKeys
-	// add the childs numbers manually as the third column
+	// add the children numbers manually as the third column
 	const childsNumbersKey = "_children"
 	columnKeys = append([]string{childsNumbersKey}, columnKeys...)
 	columnLabels = append([]string{"_Children"}, columnLabels...)
@@ -680,33 +680,41 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 				if parents != nil {
 					for _, thisParentEntry := range parents {
 						if thisParentEntry.DirectChildID == thisWI.ID {
-							parentNumberStr, err = resolveNumberByWorkItemID(ctx, db, thisParentEntry.ID)
-							if err != nil {
-								return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for parent of work item: %s", thisWI.ID)
+							parentID := thisParentEntry.ID.String()
+							// check cache and if found use the cached number
+							parentNumberStr, ok = checkNumberCache(idNumberMap, parentID)
+							if !ok {
+								parentNumberStr, err = resolveNumberByWorkItemID(ctx, db, thisParentEntry.ID)
+								if err != nil {
+									return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for parent of work item: %s", thisWI.ID)
+								}
+								// add the resolved id to the cache
+								(*idNumberMap)[parentID] = parentNumberStr
 							}
-							// add the resolved id to the cache
-							(*idNumberMap)[thisParentEntry.ID.String()] = parentNumberStr
 							break
 						}
 					}
-					wiLine = append(wiLine, parentNumberStr)
-				} else {
-					// no parents available
-					wiLine = append(wiLine, "")
 				}
+				// Append parentNumberStr to the line. If parents == nil, append
+				// empty string ("") to the line.
+				wiLine = append(wiLine, parentNumberStr)
 			} else if columnKey == childsNumbersKey {
 				// lookup the child links, resolve the numbers and add them here
 				if childLinks != nil {
 					childsStr := []string{}
 					for _, childLink := range childLinks {
 						if childLink.SourceID == thisWI.ID {
-							childNumberStr, err := resolveNumberByWorkItemID(ctx, db, childLink.TargetID)
-							if err != nil {
-								return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for childs of work item: %s (child %s)", thisWI.ID, childLink.TargetID)
+							childID := childLink.TargetID.String()
+							childNumberStr, ok := checkNumberCache(idNumberMap, childID)
+							if !ok {
+								childNumberStr, err = resolveNumberByWorkItemID(ctx, db, childLink.TargetID)
+								if err != nil {
+									return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for childs of work item: %s (child %s)", thisWI.ID, childLink.TargetID)
+								}
+								// add the resolved id to the cache
+								(*idNumberMap)[childID] = childNumberStr	
 							}
 							childsStr = append(childsStr, childNumberStr)
-							// add the resolved id to the cache
-							(*idNumberMap)[childLink.TargetID.String()] = childNumberStr
 						}
 					}
 					if len(childsStr) > 0 {
@@ -739,6 +747,16 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 	}
 	// done, return serialized result.
 	return buf.String(), columnLabels, nil
+}
+
+// checkNumberCache looks the given ID up and returns the value
+func checkNumberCache(idNumberMap *map[string]string, entryID string) (string, bool) {
+	for key, value := range *idNumberMap {
+		if key == entryID {
+			return value, true
+		}
+	}
+	return "", false
 }
 
 // resolveNumberByWorkItemID retrieves the work item number for a work item ID
