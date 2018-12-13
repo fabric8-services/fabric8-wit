@@ -87,7 +87,7 @@
 # mode can be: set, count, or atomic
 COVERAGE_MODE ?= set
 
-# By default no go test off calls will use the -v switch when running tests.
+# By default no go test calls will use the -v switch when running tests.
 # But if you want you can enable that by setting GO_TEST_VERBOSITY_FLAG=-v
 GO_TEST_VERBOSITY_FLAG ?= 
 
