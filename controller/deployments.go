@@ -83,7 +83,7 @@ func (g *defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (Opensh
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"FABRIC8_WIT_API_URL": witURLStr,
-				"err": err,
+				"err":                 err,
 			}, "cannot parse FABRIC8_WIT_API_URL: %s", witURLStr)
 			return nil, errs.Wrapf(err, "cannot parse FABRIC8_WIT_API_URL: %s", witURLStr)
 		}
