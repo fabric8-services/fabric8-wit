@@ -7,7 +7,7 @@ space_template:
     scenarios that are described in the language and from the viewpoint of the
     user. Scenarios deliver particular value propositions and are realized
     through experiences.
-  can_construct: yes
+  can_construct: no
 
 work_item_types:
 
