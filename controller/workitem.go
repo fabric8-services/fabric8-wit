@@ -569,7 +569,7 @@ func getVersion(version interface{}) (int, error) {
 // []string object containing a set of CSV formatted data lines and a header line with labels.
 // This methods combines all CSV data of all WITs into a single CSV and returns the CSV as well
 // as the field headers as a seperate slice
-func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []workitem.WorkItemType, wis []workitem.WorkItem, childLinks link.WorkItemLinkList, parents link.AncestorList, idNumberMap *map[string]string, includeHeaderLine bool) (string, []string, error) {
+func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []workitem.WorkItemType, wis []workitem.WorkItem, childLinks link.WorkItemLinkList, parents link.AncestorList, idNumberMap map[string]string, includeHeaderLine bool) (string, []string, error) {
 	if len(wis) == 0 {
 		// nothing to do
 		return "", []string{}, nil
@@ -659,7 +659,7 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 		if !ok {
 			return "", []string{}, errs.Errorf("error converting number field value to string for work item: %s", thisWI.ID)
 		}
-		(*idNumberMap)[thisWI.ID.String()] = strconv.Itoa(numberInt)
+		idNumberMap[thisWI.ID.String()] = strconv.Itoa(numberInt)
 		// create the line buffer
 		wiLine := []string{}
 		// for each work item, iterate over the column mapping and retrieve values
@@ -689,7 +689,7 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 									return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for parent of work item: %s", thisWI.ID)
 								}
 								// add the resolved id to the cache
-								(*idNumberMap)[parentID] = parentNumberStr
+								idNumberMap[parentID] = parentNumberStr
 							}
 							break
 						}
@@ -712,7 +712,7 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 									return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for childs of work item: %s (child %s)", thisWI.ID, childLink.TargetID)
 								}
 								// add the resolved id to the cache
-								(*idNumberMap)[childID] = childNumberStr	
+								idNumberMap[childID] = childNumberStr	
 							}
 							childsStr = append(childsStr, childNumberStr)
 						}
@@ -750,8 +750,8 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 }
 
 // checkNumberCache looks the given ID up and returns the value
-func checkNumberCache(idNumberMap *map[string]string, entryID string) (string, bool) {
-	for key, value := range *idNumberMap {
+func checkNumberCache(idNumberMap map[string]string, entryID string) (string, bool) {
+	for key, value := range idNumberMap {
 		if key == entryID {
 			return value, true
 		}

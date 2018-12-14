@@ -366,7 +366,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, fxt.WorkItems)
 		require.NoError(t, err)
 		// when
-		convertedWIs, fieldKeys, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, link.WorkItemLinkList{}, link.AncestorList{}, &idNumberCache, true)
+		convertedWIs, fieldKeys, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, link.WorkItemLinkList{}, link.AncestorList{}, idNumberCache, true)
 		require.NoError(t, err)
 		// parse the resulting CSV
 		var entities []map[string]string
@@ -436,7 +436,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, fxt.WorkItems)
 		require.NoError(t, err)
 		// when
-		convertedWIs, fieldKeys, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, link.WorkItemLinkList{}, link.AncestorList{}, &idNumberCache, false)
+		convertedWIs, fieldKeys, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, link.WorkItemLinkList{}, link.AncestorList{}, idNumberCache, false)
 		require.NoError(t, err)
 		// parse the resulting CSV
 		var entities []map[string]string
@@ -467,7 +467,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		wits := []workitem.WorkItemType{}
 		idNumberCache := make(map[string]string)
 		// when
-		convertedWIs, _, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, link.WorkItemLinkList{}, link.AncestorList{}, &idNumberCache, true)
+		convertedWIs, _, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, link.WorkItemLinkList{}, link.AncestorList{}, idNumberCache, true)
 		require.NoError(t, err)
 		require.Equal(t, "", convertedWIs)
 	})
@@ -493,7 +493,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
 		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, []*workitem.WorkItem{fxt.WorkItems[0], fxt.WorkItems[2]})
 		require.NoError(t, err)
-		convertedWIs, fieldKeys, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, link.WorkItemLinkList{}, link.AncestorList{}, &idNumberCache, false)
+		convertedWIs, fieldKeys, err := ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, link.WorkItemLinkList{}, link.AncestorList{}, idNumberCache, false)
 		require.NoError(t, err)
 		// parse the resulting CSV
 		var entities []map[string]string
@@ -539,7 +539,7 @@ func (rest *TestWorkItemREST) TestConvertWorkItemsToCSV() {
 		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
 		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.GormDB, []*workitem.WorkItem{fxt.WorkItems[0]})
 		require.NoError(t, err)
-		_, _, err = ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, link.WorkItemLinkList{}, link.AncestorList{}, &idNumberCache, true)
+		_, _, err = ConvertWorkItemsToCSV(rest.Ctx, rest.GormDB, wits, wis, link.WorkItemLinkList{}, link.AncestorList{}, idNumberCache, true)
 		require.Error(t, err)
 	})
 }

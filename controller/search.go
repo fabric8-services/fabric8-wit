@@ -211,7 +211,7 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 			moreMessage = "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
 		}
 		// Convert them to CSV format the return value contains the final CSV
-		wisCSV, _, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResult, childsResult, parentsResult, &idNumberCache, true)
+		wisCSV, _, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResult, childsResult, parentsResult, idNumberCache, true)
 		if err != nil {
 			return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
 		}
@@ -221,7 +221,7 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 		return ctx.OK([]byte(wisCSV))
 	}
 	// we want to retrieve everything, first serialize the work items we already got
-	wisCSV, _, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResult, childsResult, parentsResult, &idNumberCache, true)
+	wisCSV, _, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResult, childsResult, parentsResult, idNumberCache, true)
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
 	}
@@ -239,7 +239,7 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 		if err != nil {
 			return goa.ErrBadRequest(fmt.Sprintf("error retrieving work item types for expression '%s': %s", *ctx.FilterExpression, err))
 		}
-		wisCSV, _, err = ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResultWindow, childLinksWindow, parentWindow, &idNumberCache, false)
+		wisCSV, _, err = ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResultWindow, childLinksWindow, parentWindow, idNumberCache, false)
 		if err != nil {
 			return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
 		}
