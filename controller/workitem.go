@@ -653,12 +653,12 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 	}
 	// now iterate over the work items and retrieve the values according to the column mapping
 	for _, thisWI := range wis {
-		// first, add the current work item number to the number cache
 		number := thisWI.Fields[workitem.SystemNumber]
 		numberInt, ok := number.(int)
 		if !ok {
 			return "", []string{}, errs.Errorf("error converting number field value to string for work item: %s", thisWI.ID)
 		}
+		// add the current work item number to the number cache
 		idNumberMap[thisWI.ID.String()] = strconv.Itoa(numberInt)
 		// create the line buffer
 		wiLine := []string{}
@@ -712,7 +712,7 @@ func ConvertWorkItemsToCSV(ctx context.Context, db application.DB, allWits []wor
 									return "", []string{}, errs.Wrapf(err, "failed to retrieve number attribute for childs of work item: %s (child %s)", thisWI.ID, childLink.TargetID)
 								}
 								// add the resolved id to the cache
-								idNumberMap[childID] = childNumberStr	
+								idNumberMap[childID] = childNumberStr
 							}
 							childsStr = append(childsStr, childNumberStr)
 						}
@@ -763,16 +763,15 @@ func checkNumberCache(idNumberMap map[string]string, entryID string) (string, bo
 func resolveNumberByWorkItemID(ctx context.Context, db application.DB, workItemID uuid.UUID) (string, error) {
 	var numberInt int
 	err := application.Transactional(db, func(appl application.Application) error {
-		var err error
 		thisWorkItem, err := appl.WorkItems().LoadByID(ctx, workItemID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":        err,
 				"workItemID": workItemID,
-			}, "unable to retrieve space")
+			}, "error retrieving number for workItemID")
 			return errs.Wrapf(err, "error retrieving number for workItemID: %s", workItemID.String())
 		}
-		number := (*thisWorkItem).Fields[workitem.SystemNumber]
+		number := thisWorkItem.Fields[workitem.SystemNumber]
 		var ok bool
 		numberInt, ok = number.(int)
 		if !ok {
