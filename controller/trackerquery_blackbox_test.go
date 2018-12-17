@@ -242,10 +242,10 @@ func (s *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	}
 
 	_, updated := test.UpdateTrackerqueryOK(s.T(), svc.Context, svc, trackerQueryCtrl, tqr.Data.ID.String(), &payload2)
-	assert.NotNil(s.T(), tqr)
-	assert.Equal(s.T(), tqr.Data.ID, updated.Data.ID)
-	assert.Equal(s.T(), "is:open", updated.Data.Attributes.Query)
-	assert.Equal(s.T(), "* * * * * *", updated.Data.Attributes.Schedule)
+	require.NotNil(s.T(), tqr)
+	require.Equal(s.T(), tqr.Data.ID, updated.Data.ID)
+	require.Equal(s.T(), "is:open", updated.Data.Attributes.Query)
+	require.Equal(s.T(), "* * * * * *", updated.Data.Attributes.Schedule)
 }
 
 // This test ensures that List does not return NIL items.
