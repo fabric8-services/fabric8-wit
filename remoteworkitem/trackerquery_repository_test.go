@@ -133,58 +133,6 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 
 }
 
-func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
-	t := test.T()
-	resource.Require(t, resource.Database)
-	req := &http.Request{Host: "localhost"}
-	params := url.Values{}
-	ctx := goa.NewContext(context.Background(), nil, req, params)
-	testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
-
-	query, err := test.queryRepo.Load(ctx, uuid.NewV4())
-	require.Nil(t, query)
-	require.Error(t, err)
-	assert.IsType(t, errors.NotFoundError{}, err)
-
-	tracker := remoteworkitem.Tracker{
-		URL:  "http://issues.jboss.com",
-		Type: remoteworkitem.ProviderJira,
-	}
-	err = test.trackerRepo.Create(ctx, &tracker)
-	tracker2 := remoteworkitem.Tracker{
-		URL:  "http://api.github.com",
-		Type: remoteworkitem.ProviderGithub,
-	}
-	err = test.trackerRepo.Create(ctx, &tracker2)
-
-	query1 := remoteworkitem.TrackerQuery{
-		Query:     "abc",
-		Schedule:  "xyz",
-		TrackerID: tracker.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
-	}
-	res, err := test.queryRepo.Create(ctx, query1)
-	require.NotNil(t, res)
-	res2, err := test.queryRepo.Load(ctx, res.ID)
-	require.NoError(t, err)
-	assert.Equal(t, res.ID, res2.ID)
-
-	res2.Query = "def"
-	res2.Schedule = "rwd"
-	res3, err := test.queryRepo.Save(ctx, *res2)
-	require.NoError(t, err)
-	assert.Equal(t, res.ID, res3.ID)
-
-	err = test.trackerRepo.Delete(ctx, uuid.NewV4())
-	assert.NotNil(t, err)
-
-	query1.TrackerID = uuid.NewV4()
-	query4, err := test.queryRepo.Save(ctx, query1)
-	require.Error(t, err)
-	assert.IsType(t, errors.NotFoundError{}, err)
-	require.Nil(t, query4)
-}
-
 func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	t := test.T()
 	resource.Require(t, resource.Database)
