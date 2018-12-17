@@ -3,6 +3,7 @@ package controller_test
 import (
 	"bytes"
 	"net/http"
+	"strconv"
 	"testing"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -186,6 +187,13 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 	assert.NotNil(t, tqresult)
+
+	rest.T().Run("unauthorized", func(t *testing.T) {
+		svcNotAuthorized := goa.New("TestCreateTrackerQuery-Service")
+		_, err := test.CreateTrackerqueryUnauthorized(t, svcNotAuthorized.Context, svcNotAuthorized, trackerQueryCtrl, &tqpayload)
+		require.NotNil(t, err)
+		require.IsType(t, strconv.Itoa(http.StatusUnauthorized), *err.Errors[0].Status)
+	})
 }
 
 func (rest *TestTrackerQueryREST) TestShowTrackerQuery() {
@@ -298,6 +306,27 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 		invalidID := uuid.Nil
 		tqpayload.Data.ID = &invalidID
 		test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+	})
+}
+
+func (rest *TestTrackerQueryREST) TestDeleteTrackerQuery() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	svc, _, trackerQueryCtrl := rest.SecuredController()
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
+
+	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
+
+	_, tq := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+	assert.NotNil(t, tq)
+
+	rest.T().Run("delete - unauthorized", func(t *testing.T) {
+		svcNotAuthorized := goa.New("TestCreateTrackerQuery-Service")
+		_, err := test.DeleteTrackerqueryUnauthorized(t, svcNotAuthorized.Context, svcNotAuthorized, trackerQueryCtrl, *tq.Data.ID)
+		require.NotNil(t, err)
+		require.IsType(t, strconv.Itoa(http.StatusUnauthorized), *err.Errors[0].Status)
 	})
 }
 

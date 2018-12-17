@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
@@ -48,10 +49,21 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+
 	err = validateCreateTrackerQueryPayload(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+
+	// check if user is space collaborator
+	authorized, err := authz.Authorize(ctx, ctx.Payload.Data.Relationships.Space.Data.ID.String())
+	if err != nil {
+		return errors.NewUnauthorizedError(err.Error())
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to create trackerquery"))
+	}
+
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		err = appl.Spaces().CheckExists(ctx, *ctx.Payload.Data.Relationships.Space.Data.ID)
 		if err != nil {
@@ -180,11 +192,22 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			return errs.Wrapf(err, "failed to delete tracker query %s", ctx.ID)
 		}
+
+		// check if user is space collaborator
+		authorized, err := authz.Authorize(ctx, tq.SpaceID.String())
+		if err != nil {
+			return errors.NewUnauthorizedError(err.Error())
+		}
+		if !authorized {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to create trackerquery"))
+		}
+
 		return appl.TrackerQueries().Delete(ctx.Context, tq.ID)
 	})
 	if err != nil {
