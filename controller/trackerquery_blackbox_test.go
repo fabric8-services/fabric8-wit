@@ -3,6 +3,7 @@ package controller_test
 import (
 	"bytes"
 	"net/http"
+	"strconv"
 	"testing"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -303,7 +304,9 @@ func (s *TestTrackerQueryREST) TestInvalidWITinTrackerQuery() {
 		svc, _, trackerQueryCtrl := s.SecuredController()
 
 		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, uuid.Nil)
-		test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+		_, err := test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+		require.NotNil(t, err)
+		require.IsType(t, strconv.Itoa(http.StatusBadRequest), *err.Errors[0].Status)
 	})
 
 	s.T().Run("disallow creation if WIT belongs to different spacetemplate", func(t *testing.T) {
@@ -319,7 +322,9 @@ func (s *TestTrackerQueryREST) TestInvalidWITinTrackerQuery() {
 		svc, _, trackerQueryCtrl := s.SecuredController()
 
 		tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
-		test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+		_, err := test.CreateTrackerqueryBadRequest(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+		require.NotNil(t, err)
+		require.IsType(t, strconv.Itoa(http.StatusBadRequest), *err.Errors[0].Status)
 	})
 }
 
