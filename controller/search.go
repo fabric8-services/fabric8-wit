@@ -158,7 +158,7 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	if ctx.PageOffset != nil {
 		offset = *(ctx.PageOffset)
 	}
-	// retrieve the first work item to get the spaceID
+	// retrieve the first work item window to get a reference for the WITs
 	wiResult, childsResult, parentsResult, err := getWorkItemsByFilterExpression(*ctx, c.db, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error searching work items for expression '%s': %s", *ctx.FilterExpression, err))
@@ -253,7 +253,7 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	return ctx.OK(nil)
 }
 
-// getWorkItemsByFilterExpression retrieves Work Items for a given expression and parameters
+// getWorkItemsByFilterExpression retrieves Work Items, children and parents for a given expression and parameters
 func getWorkItemsByFilterExpression(ctx context.Context, db application.DB, filterExpression string, filterParentexists *bool, offset *int, limit *int) ([]workitem.WorkItem, link.WorkItemLinkList, link.AncestorList, error) {
 	var result []workitem.WorkItem
 	var childLinks link.WorkItemLinkList
@@ -261,27 +261,16 @@ func getWorkItemsByFilterExpression(ctx context.Context, db application.DB, filt
 	err := application.Transactional(db, func(appl application.Application) error {
 		var err error
 		// add tree option to query if not already present
-		var reqJSON interface{}
-		err = json.Unmarshal([]byte(filterExpression), &reqJSON)
+		var reqMap map[string]interface{}
+		err = json.Unmarshal([]byte(filterExpression), &reqMap)
 		if err != nil {
 			return errs.Errorf("error unmarshalling query expression for CSV filtering: %s", filterExpression)
 		}
-		reqMap := reqJSON.(map[string]interface{})
-		isTreeView := false
-		opts, ok := reqMap["$OPTS"]
-		if ok {
-			if isTreeViewOpt, ok := (opts.(map[string]interface{}))["tree-view"]; ok {
-				if isTreeViewBool, ok := isTreeViewOpt.(bool); !ok {
-					isTreeView = isTreeViewBool
-				}
-			}
-		} else {
+		if _, ok := reqMap["$OPTS"]; !ok {
 			reqMap["$OPTS"] = make(map[string]interface{})
 		}
-		if !isTreeView {
-			// not present, add it to the query
-			(reqMap["$OPTS"].(map[string]interface{}))["tree-view"] = true
-		}
+		// Set "tree-view" to true. We always want tree-view to be enabled
+		(reqMap["$OPTS"].(map[string]interface{}))["tree-view"] = true
 		updatedFilterExpression, err := json.Marshal(reqMap)
 		if err != nil {
 			return errs.Errorf("error adding tree opt to query expression for CSV filtering: %s", filterExpression)
