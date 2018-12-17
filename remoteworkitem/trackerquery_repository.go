@@ -33,7 +33,6 @@ func NewTrackerQueryRepository(db *gorm.DB) *GormTrackerQueryRepository {
 type TrackerQueryRepository interface {
 	repository.Exister
 	Create(ctx context.Context, tq TrackerQuery) (*TrackerQuery, error)
-	Save(ctx context.Context, tq TrackerQuery) (*TrackerQuery, error)
 	Load(ctx context.Context, ID uuid.UUID) (*TrackerQuery, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
 	List(ctx context.Context) ([]TrackerQuery, error)
@@ -73,42 +72,6 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID uuid.UUID) (*T
 // CheckExists returns nil if the given ID exists otherwise returns an error
 func (r *GormTrackerQueryRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	return repository.CheckExists(ctx, r.db, trackerQueriesTableName, id)
-}
-
-// Save updates the given tracker query in storage.
-// returns NotFoundError, ConversionError or InternalError
-func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq TrackerQuery) (*TrackerQuery, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "trackerquery", "save"}, time.Now())
-	res := TrackerQuery{}
-
-	tx := r.db.Where("id = ?", tq.ID).Find(&res)
-	if tx.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"err":        tx.Error,
-			"tracker_id": tq.ID.String(),
-		}, "tracker query not found")
-
-		return nil, errors.NewNotFoundError("TrackerQuery", tq.ID.String())
-	}
-
-	tx = r.db.Where("tracker_id = ?", tq.TrackerID).Find(&res)
-	if tx.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"err":        tx.Error,
-			"tracker_id": tq.TrackerID,
-		}, "tracker ID not found")
-		return nil, errors.NewNotFoundError("Tracker", tq.TrackerID.String())
-	}
-
-	if err := tx.Save(&res).Error; err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"trackerquery_id": tq.ID,
-			"err":             err,
-		}, "unable to save the tracker query")
-		return nil, errors.NewInternalError(ctx, err)
-	}
-
-	return &res, nil
 }
 
 // Delete deletes the tracker query with the given id
