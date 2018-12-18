@@ -68,8 +68,8 @@ func newWorkItemLinkContext(ctx context.Context, service *goa.Service, appl appl
 		Context:               ctx,
 		Service:               service,
 		CurrentUserIdentityID: currentUserIdentityID,
-		DB:       db,
-		LinkFunc: linkFunc,
+		DB:                    db,
+		LinkFunc:              linkFunc,
 	}
 }
 
