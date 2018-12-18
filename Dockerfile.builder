@@ -5,7 +5,8 @@ ENV LANG=en_US.utf8
 ARG USE_GO_VERSION_FROM_WEBSITE=1
 
 # Some packages might seem weird but they are required by the RVM installer.
-RUN yum --enablerepo=centosplus install -y --quiet \
+RUN yum install epel-release -y \
+    && yum install --enablerepo=centosplus install -y --quiet \
       findutils \
       git \
       $(test "$USE_GO_VERSION_FROM_WEBSITE" != 1 && echo "golang") \
