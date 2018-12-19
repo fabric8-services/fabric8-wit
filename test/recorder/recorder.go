@@ -86,8 +86,8 @@ func newJWTMatcher(publicKey string) cassette.Matcher {
 			return true
 		}
 		log.Debug(nil, map[string]interface{}{
-			"method": cassetteRequest.Method,
-			"url":    cassetteRequest.URL,
+			"method":              cassetteRequest.Method,
+			"url":                 cassetteRequest.URL,
 			"cassetteRequest_sub": sub,
 			"http_request_sub":    claims["sub"],
 		}, "Authorization header's 'sub' claim doesn't match with the current request")
