@@ -31,7 +31,7 @@ PACKAGE_PATH=$(GOPATH_IN_CONTAINER)/src/$(PACKAGE_NAME)
 ## Builds the docker image used to build the software.
 docker-image-builder:
 	@echo "Building docker image $(DOCKER_IMAGE_CORE)"
-	docker build --build-arg USE_GO_VERSION_FROM_WEBSITE=$(USE_GO_VERSION_FROM_WEBSITE) -t $(DOCKER_IMAGE_CORE) -f $(CUR_DIR)/Dockerfile.builder $(CUR_DIR)
+	docker build --build-arg -t $(DOCKER_IMAGE_CORE) -f $(CUR_DIR)/Dockerfile.builder $(CUR_DIR)
 
 .PHONY: docker-image-deploy
 ## Creates a runnable image using the artifacts from the bin directory.
