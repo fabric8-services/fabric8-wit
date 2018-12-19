@@ -71,7 +71,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"keycloak_identity_id": keycloakIdentityID,
-			"err": err,
+			"err":                  err,
 		}, "unable to  query for an identity by ID")
 		return nil, nil, errors.New("Error during querying for an identity by ID " + err.Error())
 	}
@@ -84,7 +84,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"keycloak_identity_id": keycloakIdentityID,
-				"err": err,
+				"err":                  err,
 			}, "unable to create user/identity")
 			return nil, nil, errors.New("failed to update user/identity from claims" + err.Error())
 		}
@@ -126,7 +126,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"keycloak_identity_id": keycloakIdentityID,
-				"err": err,
+				"err":                  err,
 			}, "unable to create user/identity")
 			return nil, nil, errs.Wrapf(err, "failed to update user/identity from claims")
 		} else if isChanged {

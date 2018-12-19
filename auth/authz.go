@@ -43,7 +43,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"entitlement_resource": entitlementResource,
-				"err": err.Error(),
+				"err":                  err.Error(),
 			}, "unable to marshal keycloak entitlement resource struct")
 			return nil, errors.NewInternalError(ctx, errs.Wrap(err, "unable to marshal keycloak entitlement resource struct"))
 		}
@@ -65,7 +65,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"entitlement_resource": entitlementResource,
-			"err": err.Error(),
+			"err":                  err.Error(),
 		}, "unable to obtain entitlement resource")
 		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "unable to obtain entitlement resource"))
 	}
