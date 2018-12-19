@@ -2,11 +2,13 @@ package controller_test
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"strconv"
 	"testing"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-common/auth"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -30,6 +32,7 @@ type TestTrackerQueryREST struct {
 	gormtestsupport.DBTestSuite
 	RwiScheduler *remoteworkitem.Scheduler
 	db           *gormapplication.GormDB
+	authService  auth.AuthService
 }
 
 func TestRunTrackerQueryREST(t *testing.T) {
@@ -42,14 +45,20 @@ func (rest *TestTrackerQueryREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 }
 
+type testAuthService struct{}
+
+func (s *testAuthService) RequireScope(ctx context.Context, resourceID, requiredScope string) error {
+	return nil
+}
+
 func (rest *TestTrackerQueryREST) SecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
 	svc := testsupport.ServiceAsUser("TrackerQuery-Service", testsupport.TestIdentity)
-	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration), NewTrackerqueryController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
+	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration), NewTrackerqueryController(svc, rest.db, rest.RwiScheduler, rest.Configuration, &testAuthService{})
 }
 
 func (rest *TestTrackerQueryREST) UnSecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
 	svc := goa.New("TrackerQuery-Service")
-	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration), NewTrackerqueryController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
+	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration), NewTrackerqueryController(svc, rest.db, rest.RwiScheduler, rest.Configuration, &testAuthService{})
 }
 
 func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
@@ -138,7 +147,7 @@ func (rest *TestTrackerQueryREST) TestUnauthorizeTrackerQueryCUD() {
 	UnauthorizeCreateUpdateDeleteTest(rest.T(), getTrackerQueryTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedTrackerQuery-Service")
 	}, func(service *goa.Service) error {
-		controller := NewTrackerqueryController(service, rest.GormDB, rest.RwiScheduler, rest.Configuration)
+		controller := NewTrackerqueryController(service, rest.GormDB, rest.RwiScheduler, rest.Configuration, &testAuthService{})
 		app.MountTrackerqueryController(service, controller)
 		return nil
 	})

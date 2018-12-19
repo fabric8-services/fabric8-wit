@@ -44,6 +44,7 @@ required = [
   "github.com/fabric8-services/fabric8-notification/design",
   "github.com/fabric8-services/fabric8-tenant/design",
   "github.com/fabric8-services/fabric8-common/id",
+  "github.com/fabric8-services/fabric8-common/auth",
   "github.com/jteeuwen/go-bindata/go-bindata",
   "github.com/jstemmer/go-junit-report",
   "github.com/wadey/gocovmerge",
@@ -130,7 +131,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-common"
-  revision = "51e44b47e514721ddaa3fca99e5fb5bc1a6e7eb2"
+  revision = "bc9d95714463edd385a524802810097ef7373618"
 
 [[constraint]]
   name = "github.com/jstemmer/go-junit-report"

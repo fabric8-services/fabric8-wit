@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 
+	"github.com/fabric8-services/fabric8-common/auth"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -28,6 +29,7 @@ type TrackerqueryController struct {
 	db            application.DB
 	scheduler     *remoteworkitem.Scheduler
 	configuration trackerQueryConfiguration
+	authService   auth.AuthService
 }
 
 func getAccessTokensForTrackerQuery(configuration trackerQueryConfiguration) map[string]string {
@@ -39,8 +41,14 @@ func getAccessTokensForTrackerQuery(configuration trackerQueryConfiguration) map
 }
 
 // NewTrackerqueryController creates a trackerquery controller.
-func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler, configuration trackerQueryConfiguration) *TrackerqueryController {
-	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), db: db, scheduler: scheduler, configuration: configuration}
+func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler, configuration trackerQueryConfiguration, authService auth.AuthService) *TrackerqueryController {
+	return &TrackerqueryController{
+		Controller:    service.NewController("TrackerqueryController"),
+		db:            db,
+		scheduler:     scheduler,
+		configuration: configuration,
+		authService:   authService,
+	}
 }
 
 // Create runs the create action.
@@ -55,13 +63,10 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	// check if user is space collaborator
-	authorized, err := authz.Authorize(ctx, ctx.Payload.Data.Relationships.Space.Data.ID.String())
+	// check if user has contribute scope
+	err = c.authService.RequireScope(ctx, ctx.Payload.Data.Relationships.Space.Data.ID.String(), "contribute")
 	if err != nil {
-		return errors.NewUnauthorizedError(err.Error())
-	}
-	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to create trackerquery"))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
