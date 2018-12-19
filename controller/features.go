@@ -1,8 +1,9 @@
 package controller
 
 import (
+	"github.com/fabric8-services/fabric8-common/httpsupport"
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/rest/proxy"
+
 	"github.com/goadesign/goa"
 )
 
@@ -27,10 +28,10 @@ func NewFeaturesController(service *goa.Service, config FeaturesControllerConfig
 
 // List runs the list action.
 func (c *FeaturesController) List(ctx *app.ListFeaturesContext) error {
-	return proxy.RouteHTTP(ctx, c.config.GetTogglesServiceURL())
+	return httpsupport.RouteHTTP(ctx, c.config.GetTogglesServiceURL())
 }
 
 // Show runs the show action.
 func (c *FeaturesController) Show(ctx *app.ShowFeaturesContext) error {
-	return proxy.RouteHTTP(ctx, c.config.GetTogglesServiceURL())
+	return httpsupport.RouteHTTP(ctx, c.config.GetTogglesServiceURL())
 }
