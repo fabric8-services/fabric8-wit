@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // SimpleType is an unstructured FieldType
@@ -94,6 +95,8 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "string", valueType.Name())
 		}
 		return value, nil
+	case KindRemoteTracker:
+		return AnyToUUID(value)
 	case KindURL:
 		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) {
 			return value, nil
@@ -190,6 +193,12 @@ func (t SimpleType) ConvertToStringSlice(value interface{}) ([]string, error) {
 			return nil, errs.Errorf("value %v (%[1]T) should be %s, but is %s", value, "string", valueType.Name())
 		}
 		return []string{value.(string)}, nil
+	case KindRemoteTracker:
+		v, err := AnyToUUID(value)
+		if err != nil {
+			return nil, err
+		}
+		return []string{v.String()}, nil
 	case KindURL:
 		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) {
 			return []string{value.(string)}, nil
@@ -294,6 +303,8 @@ func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	switch t.GetKind() {
 	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindIteration, KindArea, KindLabel, KindBoardColumn, KindBoolean:
 		return value, nil
+	case KindRemoteTracker:
+		return AnyToUUID(value)
 	case KindInstant:
 		switch valueType.Kind() {
 		case reflect.Float64:
@@ -366,4 +377,19 @@ func (t SimpleType) ConvertToModelWithType(newFieldType FieldType, v interface{}
 		}
 	}
 	return nil, errs.Errorf("failed to convert value %+v (%[1]T) to field type %+v (%[2]T)", v, newFieldType)
+}
+
+// AnyToUUID will return a proper UUID if the given input value is either a
+// string or a uuid.UUID object; otherwise a Nil UUID with an error will be
+// returned. Note, that "00000000-0000-0000-0000-000000000000" and the uuid.Nil
+// object are legal input values that won't produce an error. An empty string
+// will produce an error and it does not translate to uuid.Nil.
+func AnyToUUID(value interface{}) (uuid.UUID, error) {
+	switch v := value.(type) {
+	case uuid.UUID:
+		return v, nil
+	case string:
+		return uuid.FromString(v)
+	}
+	return uuid.Nil, errs.Errorf(`value %+v (%[1]T) should be "string" or "uuid"`, value)
 }
