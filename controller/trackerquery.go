@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/fabric8-services/fabric8-wit/space/authz"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
@@ -162,13 +161,10 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 			return errs.Wrapf(err, "failed to delete tracker query %s", ctx.ID)
 		}
 
-		// check if user is space collaborator
-		authorized, err := authz.Authorize(ctx, tq.SpaceID.String())
+		// check if user has contribute scope
+		err = c.authService.RequireScope(ctx, tq.SpaceID.String(), "contribute")
 		if err != nil {
-			return errors.NewUnauthorizedError(err.Error())
-		}
-		if !authorized {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to create trackerquery"))
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		return appl.TrackerQueries().Delete(ctx.Context, tq.ID)
