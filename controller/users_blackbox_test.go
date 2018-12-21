@@ -51,6 +51,55 @@ func (s *TestUsersSuite) SecuredServiceAccountController(identity account.Identi
 	return svc, NewUsersController(svc, s.GormDB, s.Configuration)
 }
 
+func (s *TestUsersSuite) SecuredServiceAccountAdminConsoleController(identity account.Identity) (*goa.Service, *UsersController) {
+	svc := testsupport.ServiceAsServiceAccountAdminConsole("AdminConsole-ServiceAccount-Service", identity)
+	return svc, NewUsersController(svc, s.GormDB, s.Configuration)
+}
+
+func (s *TestUsersSuite) TestDeleteUsersBadRequest() {
+	// given
+	user := s.createRandomUser("TestDeleteUsersBadRequest")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(identity)
+	// when
+	emptyUsername := ""
+	test.DeleteUsersBadRequest(s.T(), secureService.Context, secureService, secureController, emptyUsername)
+}
+
+func (s *TestUsersSuite) TestDeleteUsersOK() {
+	// given
+	user := s.createRandomUser("TestDeleteUsersOK")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	// when
+	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(identity)
+	test.DeleteUsersOK(s.T(), secureService.Context, secureService, secureController, identity.Username)
+	// then
+	_, err := s.userRepo.Load(context.Background(), user.ID)
+	require.Error(s.T(), err, "User should have been deleted not found")
+	_, errId := s.identityRepo.Load(context.Background(), identity.ID)
+	require.Error(s.T(), errId, "Identity should have been deleted not found")
+}
+
+func (s *TestUsersSuite) TestDeleteUsersFound() {
+	// given
+	user := s.createRandomUser("TestDeleteUsersFound")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	// when
+	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(identity)
+	usernameAsString := uuid.NewV4().String() // will never be found.
+	test.DeleteUsersNotFound(s.T(), secureService.Context, secureService, secureController, usernameAsString)
+}
+
+func (s *TestUsersSuite) TestDeleteUsersUnauthorized() {
+	// given
+	user := s.createRandomUser("TestDeleteUsersUnauthorized")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	// when
+	secureService, secureController := s.SecuredController(identity)
+	usernameAsString := (identity.ID).String()
+	test.DeleteUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, usernameAsString)
+}
+
 func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountBadRequest() {
 	// given
 	user := s.createRandomUser("TestObfuscateUserAsServiceAccountBadRequest")
@@ -90,25 +139,21 @@ func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountNotFound() {
 	// given
 	user := s.createRandomUser("TestObfuscateUserAsServiceAccountNotFound")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-
 	// when
 	secureService, secureController := s.SecuredServiceAccountController(identity)
 	idAsString := uuid.NewV4().String() // will never be found.
 	test.ObfuscateUsersNotFound(s.T(), secureService.Context, secureService, secureController, idAsString)
-
 }
 
 func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountUnauthorized() {
 	// given
 	user := s.createRandomUser("TestObfuscateUserAsSvcAcUnauthorized")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-
 	// when
 	secureService, secureController := s.SecuredController(identity)
 
 	idAsString := (identity.ID).String()
 	test.ObfuscateUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, idAsString)
-
 }
 
 func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {

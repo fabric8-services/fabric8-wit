@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	usersEndpoint   = "/api/users"
-	serviceNameAuth = "fabric8-auth"
+	usersEndpoint       = "/api/users"
+	serviceNameAuth     = "fabric8-auth"
+	serviceAdminConsole = "admin-console"
 )
 
 // UsersController implements the users resource.
@@ -147,6 +148,65 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 				"user_id": u,
 			}, "Identity obfuscated!")
 
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK([]byte{})
+}
+
+// Delete runs the delete action to prune all data associated with a username.
+func (c *UsersController) Delete(ctx *app.DeleteUsersContext) error {
+	isSvcAccount, err := isServiceAccount(ctx, serviceAdminConsole)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to determine if account is a service account")
+		return jsonapi.JSONErrorResponse(ctx, err)
+
+	}
+	if !isSvcAccount {
+		log.Error(ctx, map[string]interface{}{
+			"username": ctx.Username,
+		}, "account used to call delete API is not a admin-console service account")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("account used to call delete API is not a admin-console service account"))
+	}
+	username := ctx.Username
+	if username == "" {
+		log.Error(ctx, map[string]interface{}{}, "failed to retrieve user by username")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("invalid username", ctx.Username).Expected("user name should not be empty"))
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		users, err := appl.Users().LoadByUsername(ctx, username)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"username": username,
+				"err":      err,
+			}, "unable to load the user")
+			return errors.NewNotFoundError("user", username)
+		}
+		if len(users) == 0 {
+			log.Error(ctx, map[string]interface{}{
+				"username": username,
+				"err":      err,
+			}, "unable to load the user")
+			return errors.NewNotFoundError("user", username)
+		}
+		for _, user := range users {
+			if err := appl.Users().PermanentDelete(ctx, user.ID); err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"user_id": user.ID,
+					"err":     err,
+				}, "unable to delete the user")
+				return err
+			}
+			log.Debug(ctx, map[string]interface{}{
+				"username": username,
+				"user_id":  user.ID,
+			}, "User permanently deleted!")
+			// TODO delete all spaces owned by this username
 		}
 		return nil
 	})
