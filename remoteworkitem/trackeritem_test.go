@@ -6,6 +6,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -22,40 +23,44 @@ func (test *TestTrackerItemRepository) TestUpload() {
 	resource.Require(t, resource.Database)
 
 	test.DB.Exec(`DELETE FROM "tracker_items"`)
-	tr := remoteworkitem.Tracker{URL: "https://api.github.com/", Type: "github"}
-	test.DB.Create(&tr)
-	tq := remoteworkitem.TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
+	fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1), tf.WorkItemTypes(1), tf.Trackers(1))
+	tq := remoteworkitem.TrackerQuery{
+		Query:          "some random query",
+		Schedule:       "0 0 0 * * *",
+		TrackerID:      fxt.Trackers[0].ID,
+		SpaceID:        fxt.Spaces[0].ID,
+		WorkItemTypeID: fxt.WorkItemTypes[0].ID,
+	}
 	test.DB.Create(&tq)
 	test.DB.Delete(&tq)
-	test.DB.Delete(&tr)
 	i := remoteworkitem.TrackerItemContent{Content: []byte("some text"), ID: "https://github.com/golang/go/issues/124"}
 
 	// create
-	err := remoteworkitem.Upload(test.DB, tr.ID, i)
+	err := remoteworkitem.Upload(test.DB, fxt.Trackers[0].ID, i)
 	if err != nil {
 		t.Error("Create error:", err)
 	}
 	ti1 := remoteworkitem.TrackerItem{}
-	test.DB.Where("remote_item_id = ? AND tracker_id = ?", i.ID, tr.ID).Find(&ti1)
+	test.DB.Where("remote_item_id = ? AND tracker_id = ?", i.ID, fxt.Trackers[0].ID).Find(&ti1)
 	if ti1.Item != string(i.Content) {
 		t.Errorf("Content not saved: %s", i.Content)
 	}
-	if ti1.TrackerID != tr.ID {
-		t.Errorf("Tracker ID not saved: %d", tr.ID)
+	if ti1.TrackerID != fxt.Trackers[0].ID {
+		t.Errorf("Tracker ID not saved: %d", fxt.Trackers[0].ID)
 	}
 
 	i = remoteworkitem.TrackerItemContent{Content: []byte("some text 2"), ID: "https://github.com/golang/go/issues/124"}
 	// update
-	err = remoteworkitem.Upload(test.DB, tr.ID, i)
+	err = remoteworkitem.Upload(test.DB, fxt.Trackers[0].ID, i)
 	if err != nil {
 		t.Error("Update error:", err)
 	}
 	ti2 := remoteworkitem.TrackerItem{}
-	test.DB.Where("remote_item_id = ? AND tracker_id = ?", i.ID, tr.ID).Find(&ti2)
+	test.DB.Where("remote_item_id = ? AND tracker_id = ?", i.ID, fxt.Trackers[0].ID).Find(&ti2)
 	if ti2.Item != string(i.Content) {
 		t.Errorf("Content not saved: %s", i.Content)
 	}
-	if ti2.TrackerID != tr.ID {
+	if ti2.TrackerID != fxt.Trackers[0].ID {
 		t.Errorf("Tracker ID not saved: %d", tq.ID)
 	}
 	var count int

@@ -46,13 +46,14 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
 
-		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1), tf.WorkItemTypes(1))
 
 		tq := remoteworkitem.TrackerQuery{
-			Query:     "abc",
-			Schedule:  "xyz",
-			TrackerID: uuid.NewV4(),
-			SpaceID:   fxt.Spaces[0].ID,
+			Query:          "abc",
+			Schedule:       "xyz",
+			TrackerID:      uuid.NewV4(),
+			SpaceID:        fxt.Spaces[0].ID,
+			WorkItemTypeID: fxt.WorkItemTypes[0].ID,
 		}
 		res, err := test.queryRepo.Create(ctx, tq)
 		require.Error(t, err)
@@ -70,13 +71,14 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 			Type: remoteworkitem.ProviderJira,
 		}
 		err := test.trackerRepo.Create(ctx, &tracker)
-		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1), tf.WorkItemTypes(1))
 
 		tq := remoteworkitem.TrackerQuery{
-			Query:     "abc",
-			Schedule:  "xyz",
-			TrackerID: tracker.ID,
-			SpaceID:   fxt.Spaces[0].ID,
+			Query:          "abc",
+			Schedule:       "xyz",
+			TrackerID:      tracker.ID,
+			SpaceID:        fxt.Spaces[0].ID,
+			WorkItemTypeID: fxt.WorkItemTypes[0].ID,
 		}
 		res, err := test.queryRepo.Create(ctx, tq)
 		require.NoError(t, err)
@@ -98,7 +100,7 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
-		testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1), tf.WorkItemTypes(1))
 
 		tracker := remoteworkitem.Tracker{
 			URL:  "http://issues.jboss.com",
@@ -108,10 +110,11 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		require.NoError(t, err)
 
 		query := remoteworkitem.TrackerQuery{
-			Query:     "abc",
-			Schedule:  "xyz",
-			TrackerID: tracker.ID,
-			SpaceID:   testFxt.Spaces[0].ID,
+			Query:          "abc",
+			Schedule:       "xyz",
+			TrackerID:      tracker.ID,
+			SpaceID:        fxt.Spaces[0].ID,
+			WorkItemTypeID: fxt.WorkItemTypes[0].ID,
 		}
 		res, err := test.queryRepo.Create(ctx, query)
 		require.NoError(t, err)
@@ -140,7 +143,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
-	testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+	fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1), tf.WorkItemTypes(1))
 
 	err := test.queryRepo.Delete(ctx, uuid.NewV4())
 	require.Error(t, err)
@@ -152,10 +155,11 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	}
 	err = test.trackerRepo.Create(ctx, &tracker)
 	tq := remoteworkitem.TrackerQuery{
-		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
-		Schedule:  "15 * * * * *",
-		TrackerID: tracker.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
+		Query:          "is:open is:issue user:arquillian author:aslakknutsen",
+		Schedule:       "15 * * * * *",
+		TrackerID:      tracker.ID,
+		SpaceID:        fxt.Spaces[0].ID,
+		WorkItemTypeID: fxt.WorkItemTypes[0].ID,
 	}
 	res, err := test.queryRepo.Create(ctx, tq)
 	require.NotNil(t, res)
@@ -179,7 +183,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
-	testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+	fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1), tf.WorkItemTypes(1))
 
 	trackerqueries1, _ := test.queryRepo.List(ctx)
 
@@ -193,20 +197,22 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 
 	// create tracker queries
 	tq1 := remoteworkitem.TrackerQuery{
-		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
-		Schedule:  "15 * * * * *",
-		TrackerID: tracker1.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
+		Query:          "is:open is:issue user:arquillian author:aslakknutsen",
+		Schedule:       "15 * * * * *",
+		TrackerID:      tracker1.ID,
+		SpaceID:        fxt.Spaces[0].ID,
+		WorkItemTypeID: fxt.WorkItemTypes[0].ID,
 	}
 	res, err := test.queryRepo.Create(ctx, tq1)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
 	tq2 := remoteworkitem.TrackerQuery{
-		Query:     "is:open is:issue user:arquillian",
-		Schedule:  "15 * * * * *",
-		TrackerID: tracker1.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
+		Query:          "is:open is:issue user:arquillian",
+		Schedule:       "15 * * * * *",
+		TrackerID:      tracker1.ID,
+		SpaceID:        fxt.Spaces[0].ID,
+		WorkItemTypeID: fxt.WorkItemTypes[0].ID,
 	}
 	res, err = test.queryRepo.Create(ctx, tq2)
 	require.NoError(t, err)
@@ -221,20 +227,22 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	require.NotNil(t, res)
 
 	tq3 := remoteworkitem.TrackerQuery{
-		Query:     "project = ARQ AND text ~ 'arquillian'",
-		Schedule:  "15 * * * * *",
-		TrackerID: tracker2.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
+		Query:          "project = ARQ AND text ~ 'arquillian'",
+		Schedule:       "15 * * * * *",
+		TrackerID:      tracker2.ID,
+		SpaceID:        fxt.Spaces[0].ID,
+		WorkItemTypeID: fxt.WorkItemTypes[0].ID,
 	}
 	res, err = test.queryRepo.Create(ctx, tq3)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
 	tq4 := remoteworkitem.TrackerQuery{
-		Query:     "project = ARQ AND text ~ 'javadoc'",
-		Schedule:  "15 * * * * *",
-		TrackerID: tracker2.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
+		Query:          "project = ARQ AND text ~ 'javadoc'",
+		Schedule:       "15 * * * * *",
+		TrackerID:      tracker2.ID,
+		SpaceID:        fxt.Spaces[0].ID,
+		WorkItemTypeID: fxt.WorkItemTypes[0].ID,
 	}
 	res, err = test.queryRepo.Create(ctx, tq4)
 	require.NoError(t, err)
@@ -245,4 +253,72 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	require.True(t, len(trackerqueries3) >= 2)
 	require.True(t, len(trackerqueries2) >= 2)
 	assert.Equal(t, trackerqueries2[1], trackerqueries3[1])
+}
+
+func (test *TestTrackerQueryRepository) TestTrackerQueryValidWIT() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("valid WIT - success", func(t *testing.T) {
+		req := &http.Request{Host: "localhost"}
+		params := url.Values{}
+		ctx := goa.NewContext(context.Background(), nil, req, params)
+
+		tracker := remoteworkitem.Tracker{
+			URL:  "http://issues.jboss.com",
+			Type: remoteworkitem.ProviderJira,
+		}
+		err := test.trackerRepo.Create(ctx, &tracker)
+		require.NoError(t, err)
+		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1), tf.WorkItemTypes(1))
+
+		tq := remoteworkitem.TrackerQuery{
+			Query:          "abc",
+			Schedule:       "xyz",
+			TrackerID:      tracker.ID,
+			SpaceID:        fxt.Spaces[0].ID,
+			WorkItemTypeID: fxt.WorkItemTypes[0].ID,
+		}
+		res, err := test.queryRepo.Create(ctx, tq)
+		require.NoError(t, err)
+		require.NotNil(t, res)
+
+		res2, err := test.queryRepo.Load(ctx, res.ID)
+		require.NoError(t, err)
+		assert.Equal(t, res.ID, res2.ID)
+	})
+
+	t.Run("invalid WIT - fail", func(t *testing.T) {
+		req := &http.Request{Host: "localhost"}
+		params := url.Values{}
+		ctx := goa.NewContext(context.Background(), nil, req, params)
+
+		tracker := remoteworkitem.Tracker{
+			URL:  "http://issues.jboss.com",
+			Type: remoteworkitem.ProviderJira,
+		}
+		err := test.trackerRepo.Create(ctx, &tracker)
+		require.NoError(t, err)
+		fxt := tf.NewTestFixture(t, test.DB,
+			tf.SpaceTemplates(2),
+			tf.Spaces(1),
+			tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypes[idx].SpaceTemplateID = fxt.SpaceTemplates[1].ID
+				return nil
+			}),
+			tf.Trackers(1),
+		)
+
+		tq := remoteworkitem.TrackerQuery{
+			Query:          "abc",
+			Schedule:       "xyz",
+			TrackerID:      tracker.ID,
+			SpaceID:        fxt.Spaces[0].ID,
+			WorkItemTypeID: fxt.WorkItemTypes[0].ID,
+		}
+		res, err := test.queryRepo.Create(ctx, tq)
+		assert.NotNil(t, err)
+		require.IsType(t, errors.BadParameterError{}, err)
+		assert.Nil(t, res)
+	})
 }

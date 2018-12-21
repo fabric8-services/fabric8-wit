@@ -6,6 +6,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -21,12 +22,18 @@ const trackerQueriesTableName = "tracker_queries"
 
 // GormTrackerQueryRepository implements TrackerRepository using gorm
 type GormTrackerQueryRepository struct {
-	db *gorm.DB
+	db   *gorm.DB
+	witr *workitem.GormWorkItemTypeRepository
+	wir  *workitem.GormWorkItemRepository
 }
 
 // NewTrackerQueryRepository constructs a TrackerQueryRepository
 func NewTrackerQueryRepository(db *gorm.DB) *GormTrackerQueryRepository {
-	return &GormTrackerQueryRepository{db}
+	return &GormTrackerQueryRepository{
+		db:   db,
+		witr: workitem.NewWorkItemTypeRepository(db),
+		wir:  workitem.NewWorkItemRepository(db),
+	}
 }
 
 // TrackerQueryRepository encapsulate storage & retrieval of tracker queries
@@ -41,6 +48,20 @@ type TrackerQueryRepository interface {
 // Create creates a new tracker query in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormTrackerQueryRepository) Create(ctx context.Context, tq TrackerQuery) (*TrackerQuery, error) {
+	wiType, err := r.witr.Load(ctx, tq.WorkItemTypeID)
+	if err != nil {
+		return nil, errors.NewBadParameterError("WorkItemTypeID", tq.WorkItemTypeID)
+	}
+
+	allowedWIT, err := r.wir.CheckTypeAndSpaceShareTemplate(ctx, wiType, tq.SpaceID)
+	if err != nil {
+		return nil, err
+
+	}
+	if !allowedWIT {
+		return nil, err
+	}
+
 	if err := r.db.Create(&tq).Error; err != nil {
 		return nil, errors.NewInternalError(ctx, r.db.Error)
 	}
