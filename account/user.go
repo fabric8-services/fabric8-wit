@@ -13,14 +13,14 @@ import (
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 // In future, we could add support for FieldDefinitions the way we have for workitems.
 // Hence. keeping the map as a string->interface and not string->string.
 // At the moment, FieldDefinitions could be an overkill, so keeping it out.
 
-// User describes a User account. A few identities can be assosiated with one user account
+// User describes a User account. A few identities can be associated with one user account
 type User struct {
 	gormsupport.Lifecycle
 	ID                 uuid.UUID          `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
@@ -65,10 +65,12 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 type UserRepository interface {
 	repository.Exister
 	Load(ctx context.Context, ID uuid.UUID) (*User, error)
+	LoadByUsername(ctx context.Context, username string) ([]User, error)
 	Create(ctx context.Context, u *User) error
 	Save(ctx context.Context, u *User) error
 	List(ctx context.Context) ([]User, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
+	PermanentDelete(ctx context.Context, id uuid.UUID) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]User, error)
 }
 
@@ -90,6 +92,32 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 		return nil, errors.NewNotFoundError("user", id.String())
 	}
 	return &native, errs.WithStack(err)
+}
+
+func (m *GormUserRepository) LoadByUsername(ctx context.Context, username string) ([]User, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "user", "load"}, time.Now())
+	users := make([]User, 0)
+	rows, err := m.db.Raw("SELECT DISTINCT u.id, u.email FROM users u, identities i WHERE u.id = i.user_id AND i.username = ?", username).Rows()
+	defer rows.Close()
+	// Given there is no unicity key, we have several identities associated to different users.
+	// One user can have multiple identities. Only one of them is the “main” OSIO identity.
+	// But user can also have multiple remote identities like GitHub or Jira identities associated with the user.
+	// Remote identity usernames are not unique.
+	for rows.Next() {
+		var userId, email string
+		rows.Scan(&userId, &email)
+		userIdAsUid, err := uuid.FromString(userId)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"username": username,
+				"err":      err,
+			}, "invalid uuid for the user")
+			return nil, errs.WithStack(err)
+		}
+		user := User{ID: userIdAsUid, Email: email}
+		users = append(users, user)
+	}
+	return users, errs.WithStack(err)
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
@@ -152,6 +180,26 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	log.Debug(ctx, map[string]interface{}{
 		"user_id": id,
 	}, "User deleted!")
+
+	return nil
+}
+
+// Delete removes a single record. This method use custom SQL to allow soft delete with GORM
+// to coexist with permanent delete.
+func (m *GormUserRepository) PermanentDelete(ctx context.Context, id uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "user", "permanent_delete"}, time.Now())
+	rows, err := m.db.Raw("DELETE FROM users WHERE id = ?", id).Rows()
+	defer rows.Close()
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"user_id": id,
+			"err":     err,
+		}, "unable to permanently delete the user")
+		return errs.WithStack(err)
+	}
+	log.Debug(ctx, map[string]interface{}{
+		"user_id": id,
+	}, "User permanently deleted!")
 
 	return nil
 }

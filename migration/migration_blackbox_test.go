@@ -161,6 +161,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration109", testMigration109NumberColumnForIteration)
 	t.Run("TestMigration110", testMigration110TrackerQueryID)
 	t.Run("TestMigration111", testMigration111WITinTrackerQuery)
+	t.Run("TestMigration112", testMigration112CascadingDelete)
+
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
 	require.NoError(t, err, "failed to execute database migration")
@@ -1404,10 +1406,29 @@ func testMigration110TrackerQueryID(t *testing.T) {
 func testMigration111WITinTrackerQuery(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:112], 111)
 	require.True(t, dialect.HasColumn("tracker_queries", "work_item_type_id"))
-
 	// check foreign key to work_item_types(id) exists
 	require.True(t, dialect.HasForeignKey("tracker_queries", "tracker_queries_work_item_type_id_fkey"))
+}
 
+func testMigration112CascadingDelete(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:113], 113)
+	checkForeignKeyConstraint := func(t *testing.T, table string, constraintName string) bool {
+		q := fmt.Sprintf("SELECT constraint_name FROM information_schema.table_constraints WHERE table_name = '%s' "+
+			"AND constraint_type = 'FOREIGN KEY' AND constraint_name='%s';", table, constraintName)
+		row := sqlDB.QueryRow(q)
+		require.NotNil(t, row)
+		var constraint string
+		err := row.Scan(&constraint)
+		require.NoError(t, err, "%+v", err)
+		if constraint == constraintName {
+			return true
+		}
+		return false
+	}
+	require.True(t, checkForeignKeyConstraint(t, "identities", "identities_user_id_fkey"))
+	require.True(t, checkForeignKeyConstraint(t, "comment_revisions", "comment_revisions_modifier_id_fkey"))
+	require.True(t, checkForeignKeyConstraint(t, "work_item_link_revisions", "work_item_link_revisions_modifier_id_fkey"))
+	require.True(t, checkForeignKeyConstraint(t, "work_item_revisions", "work_item_revisions_modifier_id_fkey"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

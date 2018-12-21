@@ -7,8 +7,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -56,6 +57,34 @@ func (s *userBlackBoxTest) TestOKToLoad() {
 	resource.Require(t, resource.Database)
 
 	createAndLoadUser(s) // this function does the needful already
+}
+
+func (s *userBlackBoxTest) TestOKToLoadByUsername() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1, func(fixture *tf.TestFixture, idx int) error {
+		fixture.Identities[idx].Username = "myusername"
+		return nil
+	}), tf.Users(1))
+	loadedUser, err := s.repo.LoadByUsername(s.Ctx, "myusername")
+	require.NoError(s.T(), err, "Could not load user")
+	require.Equal(s.T(), loadedUser[0].Email, fxt.Users[0].Email)
+	require.Equal(s.T(), loadedUser[0].ID, fxt.Users[0].ID)
+}
+
+func (s *userBlackBoxTest) TestOKToLoadByUsernameWithDifferentIdentities() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+	random := uuid.NewV4()
+	myusername := "myusername" + random.String()
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(5, func(fixture *tf.TestFixture, idx int) error {
+		fixture.Identities[idx].Username = myusername
+		return nil
+	}))
+	loadedUser, err := s.repo.LoadByUsername(s.Ctx, myusername)
+	require.NoError(s.T(), err, "Could not load user")
+	require.Equal(s.T(), len(loadedUser), 1)
+	require.Equal(s.T(), loadedUser[0].ID, fxt.Users[0].ID)
 }
 
 func (s *userBlackBoxTest) TestExistsUser() {
