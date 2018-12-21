@@ -1,24 +1,25 @@
 package workitem_test
 
 import (
-	"testing"
-
 	"reflect"
+	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	. "github.com/fabric8-services/fabric8-wit/workitem"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
-	stString    = SimpleType{Kind: KindString}
-	stIteration = SimpleType{Kind: KindIteration}
-	stInt       = SimpleType{Kind: KindInteger}
-	stFloat     = SimpleType{Kind: KindFloat}
-	stURL       = SimpleType{Kind: KindURL}
-	stList      = SimpleType{Kind: KindList}
-	stMarkup    = SimpleType{Kind: KindMarkup}
-	stArea      = SimpleType{Kind: KindArea}
+	stString        = SimpleType{Kind: KindString}
+	stIteration     = SimpleType{Kind: KindIteration}
+	stInt           = SimpleType{Kind: KindInteger}
+	stFloat         = SimpleType{Kind: KindFloat}
+	stURL           = SimpleType{Kind: KindURL}
+	stList          = SimpleType{Kind: KindList}
+	stMarkup        = SimpleType{Kind: KindMarkup}
+	stArea          = SimpleType{Kind: KindArea}
+	stRemoteTracker = SimpleType{Kind: KindRemoteTracker}
 )
 
 type input struct {
@@ -55,6 +56,14 @@ func TestSimpleTypeConversion(t *testing.T) {
 		{stArea, 1, nil, true},
 		{stArea, 1.9, nil, true},
 		{stArea, true, nil, true},
+
+		{stRemoteTracker, "00000000-0000-0000-0000-000000000000", uuid.Nil, false},
+		{stRemoteTracker, "ef02af8b-2fae-4338-9c48-12df60ff5b6d", uuid.FromStringOrNil("ef02af8b-2fae-4338-9c48-12df60ff5b6d"), false},
+		{stRemoteTracker, uuid.FromStringOrNil("271a8f9d-bb97-4b3c-9a4e-9a470620fb02"), uuid.FromStringOrNil("271a8f9d-bb97-4b3c-9a4e-9a470620fb02"), false},
+		{stRemoteTracker, "", uuid.Nil, true},
+		{stRemoteTracker, 1, uuid.Nil, true},
+		{stRemoteTracker, 1.9, uuid.Nil, true},
+		{stRemoteTracker, true, uuid.Nil, true},
 
 		{stInt, 100.0, 100, false},
 		{stInt, 100, 100, false},

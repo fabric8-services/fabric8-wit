@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"path"
@@ -157,8 +158,8 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	if ctx.PageOffset != nil {
 		offset = *(ctx.PageOffset)
 	}
-	// retrieve the first work item to get the spaceID
-	wiResult, err := getWorkItemsByFilterExpression(*ctx, c.db, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
+	// retrieve the first work item window to get a reference for the WITs
+	wiResult, childsResult, parentsResult, err := getWorkItemsByFilterExpression(*ctx, c.db, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error searching work items for expression '%s': %s", *ctx.FilterExpression, err))
 	}
@@ -199,6 +200,8 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error retrieving work item types for expression '%s': %s", *ctx.FilterExpression, err))
 	}
+	// the cache used for caching id to number resolve results
+	idNumberCache := make(map[string]string)
 	if ctx.PageLimit != nil {
 		// if the overflow entry is in the result set, then there is more than this window, add a note to the bottom of the returned list
 		moreMessage := ""
@@ -208,7 +211,7 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 			moreMessage = "\nWIT_NOTE_MORE: There are more result entries. You may want to narrow down your query or use paging to retrieve more results."
 		}
 		// Convert them to CSV format the return value contains the final CSV
-		wisCSV, _, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResult, true)
+		wisCSV, _, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResult, childsResult, parentsResult, idNumberCache, true)
 		if err != nil {
 			return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
 		}
@@ -218,7 +221,7 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 		return ctx.OK([]byte(wisCSV))
 	}
 	// we want to retrieve everything, first serialize the work items we already got
-	wisCSV, _, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResult, true)
+	wisCSV, _, err := ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResult, childsResult, parentsResult, idNumberCache, true)
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
 	}
@@ -226,15 +229,17 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	ctx.ResponseWriter.Write([]byte(wisCSV))
 	// page over the database, convert and send in chunks to the client
 	var wiResultWindow []workitem.WorkItem
+	var childLinksWindow link.WorkItemLinkList
+	var parentWindow link.AncestorList
 	// we already fetched limit entries, so set offset
 	offset = offset + limit
 	// now iterate as long as the returned item count reaches the limit
 	for {
-		wiResultWindow, err = getWorkItemsByFilterExpression(ctx.Context, c.db, *ctx.FilterExpression, ctx.FilterParentexists, ptr.Int(offset), ptr.Int(limit))
+		wiResultWindow, childLinksWindow, parentWindow, err = getWorkItemsByFilterExpression(ctx.Context, c.db, *ctx.FilterExpression, ctx.FilterParentexists, ptr.Int(offset), ptr.Int(limit))
 		if err != nil {
 			return goa.ErrBadRequest(fmt.Sprintf("error retrieving work item types for expression '%s': %s", *ctx.FilterExpression, err))
 		}
-		wisCSV, _, err = ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResultWindow, false)
+		wisCSV, _, err = ConvertWorkItemsToCSV(ctx.Context, c.db, wits, wiResultWindow, childLinksWindow, parentWindow, idNumberCache, false)
 		if err != nil {
 			return goa.ErrBadRequest(fmt.Sprintf("error converting work items to output format for expression '%s': %s", *ctx.FilterExpression, err))
 		}
@@ -248,12 +253,30 @@ func (c *SearchController) WorkitemsCSV(ctx *app.WorkitemsCSVSearchContext) erro
 	return ctx.OK(nil)
 }
 
-// getWorkItemsByFilterExpression retrieves Work Items for a given expression and parameters
-func getWorkItemsByFilterExpression(ctx context.Context, db application.DB, filterExpression string, filterParentexists *bool, offset *int, limit *int) ([]workitem.WorkItem, error) {
+// getWorkItemsByFilterExpression retrieves Work Items, children and parents for a given expression and parameters
+func getWorkItemsByFilterExpression(ctx context.Context, db application.DB, filterExpression string, filterParentexists *bool, offset *int, limit *int) ([]workitem.WorkItem, link.WorkItemLinkList, link.AncestorList, error) {
 	var result []workitem.WorkItem
+	var childLinks link.WorkItemLinkList
+	var parents link.AncestorList
 	err := application.Transactional(db, func(appl application.Application) error {
 		var err error
-		result, _, _, _, err = appl.SearchItems().Filter(ctx, filterExpression, filterParentexists, offset, limit)
+		// add tree option to query if not already present
+		var reqMap map[string]interface{}
+		err = json.Unmarshal([]byte(filterExpression), &reqMap)
+		if err != nil {
+			return errs.Errorf("error unmarshalling query expression for CSV filtering: %s", filterExpression)
+		}
+		if _, ok := reqMap["$OPTS"]; !ok {
+			reqMap["$OPTS"] = make(map[string]interface{})
+		}
+		// Set "tree-view" to true. We always want tree-view to be enabled
+		(reqMap["$OPTS"].(map[string]interface{}))["tree-view"] = true
+		updatedFilterExpression, err := json.Marshal(reqMap)
+		if err != nil {
+			return errs.Errorf("error adding tree opt to query expression for CSV filtering: %s", filterExpression)
+		}
+		// execute query
+		result, _, parents, childLinks, err = appl.SearchItems().Filter(ctx, string(updatedFilterExpression), filterParentexists, offset, limit)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":               err,
@@ -263,7 +286,7 @@ func getWorkItemsByFilterExpression(ctx context.Context, db application.DB, filt
 		}
 		return nil
 	})
-	return result, err
+	return result, childLinks, parents, err
 }
 
 // Show runs the show action.

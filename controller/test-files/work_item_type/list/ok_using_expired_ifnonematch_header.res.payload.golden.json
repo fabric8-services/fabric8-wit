@@ -152,6 +152,22 @@
             "type": {
               "kind": "instant"
             }
+          },
+          "system_remote_item_url": {
+            "description": "URL to remote work item",
+            "label": "Remote URL",
+            "required": false,
+            "type": {
+              "kind": "url"
+            }
+          },
+          "system_remote_tracker_id": {
+            "description": "Reference to the tracker that manages this work item",
+            "label": "Remote Tracker",
+            "required": false,
+            "type": {
+              "kind": "remotetracker"
+            }
           }
         },
         "icon": "fa-bug",
@@ -335,6 +351,22 @@
             "required": false,
             "type": {
               "kind": "instant"
+            }
+          },
+          "system_remote_item_url": {
+            "description": "URL to remote work item",
+            "label": "Remote URL",
+            "required": false,
+            "type": {
+              "kind": "url"
+            }
+          },
+          "system_remote_tracker_id": {
+            "description": "Reference to the tracker that manages this work item",
+            "label": "Remote Tracker",
+            "required": false,
+            "type": {
+              "kind": "remotetracker"
             }
           }
         },

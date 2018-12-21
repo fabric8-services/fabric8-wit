@@ -135,46 +135,6 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 	return nil
 }
 
-// Update runs the update action.
-func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) error {
-	_, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
-	}
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		tq, err := appl.TrackerQueries().Load(ctx.Context, *ctx.Payload.Data.ID)
-		if err != nil {
-			return errs.Wrapf(err, "failed to update tracker query %s", ctx.Payload.Data.ID)
-		}
-		if &ctx.Payload.Data.Attributes.Query != nil {
-			tq.Query = ctx.Payload.Data.Attributes.Query
-		}
-		if &ctx.Payload.Data.Attributes.Schedule != nil {
-			tq.Schedule = ctx.Payload.Data.Attributes.Schedule
-		}
-		if &ctx.Payload.Data.Relationships.Tracker.Data.ID != nil {
-			tq.TrackerID = ctx.Payload.Data.Relationships.Tracker.Data.ID
-		}
-		if ctx.Payload.Data.Relationships.WorkItemType.Data.ID != uuid.Nil {
-			tq.WorkItemTypeID = ctx.Payload.Data.Relationships.WorkItemType.Data.ID
-		}
-		_, err = appl.TrackerQueries().Save(ctx.Context, *tq)
-		if err != nil {
-			return errs.Wrapf(err, "failed to update tracker query %s", ctx.Payload.Data.ID)
-		}
-		res := &app.TrackerQuerySingle{
-			Data: convertTrackerQueryToApp(appl, ctx.Request, *tq),
-		}
-		return ctx.OK(res)
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
-	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return nil
-}
-
 // Delete runs the delete action.
 func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) error {
 	_, err := login.ContextIdentity(ctx)
@@ -248,9 +208,6 @@ func validateCreateTrackerQueryPayload(ctx *app.CreateTrackerqueryContext) error
 	}
 	if *ctx.Payload.Data.Relationships.Space.Data.ID == uuid.Nil {
 		return errors.NewBadParameterError("SpaceID", nil).Expected("not nil")
-	}
-	if ctx.Payload.Data.Relationships.WorkItemType.Data.ID == uuid.Nil {
-		return errors.NewBadParameterError("Workitemtype_id", nil).Expected("not nil")
 	}
 	return nil
 }

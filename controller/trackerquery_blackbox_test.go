@@ -90,36 +90,6 @@ func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 			payload:            createTrackerQueryPayload,
 			jwtToken:           "",
 		},
-		// Update tracker query API with different parameters
-		{
-			method:             http.MethodPut,
-			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createTrackerQueryPayload,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPut,
-			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createTrackerQueryPayload,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPut,
-			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createTrackerQueryPayload,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPut,
-			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createTrackerQueryPayload,
-			jwtToken:           "",
-		},
 		// Delete tracker query API with different parameters
 		{
 			method:             http.MethodDelete,
@@ -232,54 +202,6 @@ func (s *TestTrackerQueryREST) TestShowTrackerQuery() {
 	_, tqr := test.ShowTrackerqueryOK(s.T(), svc.Context, svc, trackerQueryCtrl, *tqresult.Data.ID)
 	assert.NotNil(s.T(), tqr)
 	assert.Equal(s.T(), tqresult.Data.ID, tqr.Data.ID)
-}
-
-func (s *TestTrackerQueryREST) TestUpdateTrackerQuery() {
-	resource.Require(s.T(), resource.Database)
-
-	svc, _, trackerQueryCtrl := s.SecuredController()
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
-	assert.NotNil(s.T(), fxt.Spaces[0], fxt.Trackers[0])
-
-	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
-
-	_, tqresult := test.CreateTrackerqueryCreated(s.T(), svc.Context, svc, trackerQueryCtrl, &tqpayload)
-
-	_, tqr := test.ShowTrackerqueryOK(s.T(), svc.Context, svc, trackerQueryCtrl, *tqresult.Data.ID)
-	assert.NotNil(s.T(), tqr)
-	assert.Equal(s.T(), tqresult.Data.ID, tqr.Data.ID)
-
-	payload2 := app.UpdateTrackerqueryPayload{
-		Data: &app.TrackerQuery{
-			ID: tqr.Data.ID,
-			Attributes: &app.TrackerQueryAttributes{
-				Query:    "is:open",
-				Schedule: "* * * * * *",
-			},
-			Relationships: &app.TrackerQueryRelations{
-				Space: app.NewSpaceRelation(fxt.Spaces[0].ID, ""),
-				Tracker: &app.RelationKindUUID{
-					Data: &app.DataKindUUID{
-						ID:   fxt.Trackers[0].ID,
-						Type: remoteworkitem.APIStringTypeTrackers,
-					},
-				},
-				WorkItemType: &app.RelationBaseType{
-					Data: &app.BaseTypeData{
-						ID:   fxt.WorkItemTypes[0].ID,
-						Type: APIStringTypeWorkItemType,
-					},
-				},
-			},
-			Type: remoteworkitem.APIStringTypeTrackerQuery,
-		},
-	}
-
-	_, updated := test.UpdateTrackerqueryOK(s.T(), svc.Context, svc, trackerQueryCtrl, tqr.Data.ID.String(), &payload2)
-	require.NotNil(s.T(), tqr)
-	require.Equal(s.T(), tqr.Data.ID, updated.Data.ID)
-	require.Equal(s.T(), "is:open", updated.Data.Attributes.Query)
-	require.Equal(s.T(), "* * * * * *", updated.Data.Attributes.Schedule)
 }
 
 // This test ensures that List does not return NIL items.

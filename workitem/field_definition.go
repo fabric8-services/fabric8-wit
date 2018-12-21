@@ -22,12 +22,13 @@ const (
 	KindURL     Kind = "url"
 	KindMarkup  Kind = "markup"
 	// relational
-	KindIteration   Kind = "iteration"
-	KindUser        Kind = "user"
-	KindLabel       Kind = "label"
-	KindBoardColumn Kind = "boardcolumn"
-	KindArea        Kind = "area"
-	KindCodebase    Kind = "codebase"
+	KindIteration     Kind = "iteration"
+	KindUser          Kind = "user"
+	KindLabel         Kind = "label"
+	KindBoardColumn   Kind = "boardcolumn"
+	KindArea          Kind = "area"
+	KindCodebase      Kind = "codebase"
+	KindRemoteTracker Kind = "remotetracker"
 	// composite
 	KindEnum Kind = "enum"
 	KindList Kind = "list"
@@ -50,6 +51,7 @@ func (k Kind) IsRelational() bool {
 		KindLabel,
 		KindBoardColumn,
 		KindArea,
+		KindRemoteTracker,
 		KindCodebase:
 		return true
 	}
@@ -288,7 +290,7 @@ func ConvertAnyToKind(any interface{}) (*Kind, error) {
 func ConvertStringToKind(k string) (*Kind, error) {
 	kind := Kind(k)
 	switch kind {
-	case KindString, KindInteger, KindFloat, KindInstant, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoardColumn, KindBoolean:
+	case KindString, KindInteger, KindFloat, KindInstant, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoardColumn, KindBoolean, KindRemoteTracker:
 		return &kind, nil
 	}
 	return nil, errs.Errorf("kind '%s' is not a simple type", k)
