@@ -55,22 +55,6 @@ var trackerQuerySingle = JSONSingle(
 var _ = a.Resource("trackerquery", func() {
 	a.BasePath("/trackerqueries")
 
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List all tracker queries.")
-		a.Params(func() {
-			a.Param("filter", d.String, "a query language expression restricting the set of found items")
-			a.Param("page", d.String, "Paging in the format <start>,<limit>")
-		})
-		a.Response(d.OK, trackerQueryList)
-		a.Response(d.NotModified)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.TemporaryRedirect)
-	})
-
 	a.Action("show", func() {
 		a.Routing(
 			a.GET("/:id"),
@@ -118,5 +102,22 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("space_tracker_queries", func() {
+	a.Parent("space")
+	a.BasePath("/trackerqueries")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List trackerqueries")
+		a.UseTrait("conditional")
+		a.Response(d.OK, trackerQueryList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

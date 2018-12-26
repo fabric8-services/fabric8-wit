@@ -174,27 +174,6 @@ func (rest *TestTrackerQueryREST) TestShowTrackerQuery() {
 	assert.Equal(t, tqresult.Data.ID, tqr.Data.ID)
 }
 
-// This test ensures that List does not return NIL items.
-func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
-	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
-	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
-
-	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
-	_, tq1 := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
-	assert.NotNil(t, tq1)
-
-	tqpayload2 := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
-	_, tq2 := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload2)
-	assert.NotNil(t, tq2)
-
-	_, list := test.ListTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, nil, nil)
-	assert.NotNil(t, list.Data)
-}
-
 // This test ensures that ID returned by Show is valid.
 // refer : https://github.com/fabric8-services/fabric8-wit/issues/189
 func (rest *TestTrackerQueryREST) TestCreateTrackerQueryID() {

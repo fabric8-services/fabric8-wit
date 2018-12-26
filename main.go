@@ -296,6 +296,10 @@ func main() {
 	spaceCtrl := controller.NewSpaceController(service, appDB, config, auth.NewAuthzResourceManager(config))
 	app.MountSpaceController(service, spaceCtrl)
 
+	// Mount "spaceTrackerQueries" controller
+	spaceTrackerQueriesCtrl := controller.NewSpaceTrackerQueriesController(service, appDB, config)
+	app.MountSpaceTrackerQueriesController(service, spaceTrackerQueriesCtrl)
+
 	// Mount "user" controller
 	userCtrl := controller.NewUserController(service, appDB, config)
 	if config.GetTenantServiceURL() != "" {

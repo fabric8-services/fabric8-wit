@@ -98,7 +98,7 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
-		testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
 		tracker := remoteworkitem.Tracker{
 			URL:  "http://issues.jboss.com",
@@ -111,7 +111,7 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 			Query:     "abc",
 			Schedule:  "xyz",
 			TrackerID: tracker.ID,
-			SpaceID:   testFxt.Spaces[0].ID,
+			SpaceID:   fxt.Spaces[0].ID,
 		}
 		res, err := test.queryRepo.Create(ctx, query)
 		require.NoError(t, err)
@@ -140,7 +140,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
-	testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+	fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
 	err := test.queryRepo.Delete(ctx, uuid.NewV4())
 	require.Error(t, err)
@@ -155,7 +155,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
 		Schedule:  "15 * * * * *",
 		TrackerID: tracker.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
+		SpaceID:   fxt.Spaces[0].ID,
 	}
 	res, err := test.queryRepo.Create(ctx, tq)
 	require.NotNil(t, res)
@@ -179,9 +179,9 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
-	testFxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
+	fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1))
 
-	trackerqueries1, _ := test.queryRepo.List(ctx)
+	trackerqueries1, _ := test.queryRepo.List(ctx, fxt.Spaces[0].ID)
 
 	// create tracker
 	tracker1 := remoteworkitem.Tracker{
@@ -196,7 +196,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
 		Schedule:  "15 * * * * *",
 		TrackerID: tracker1.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
+		SpaceID:   fxt.Spaces[0].ID,
 	}
 	res, err := test.queryRepo.Create(ctx, tq1)
 	require.NoError(t, err)
@@ -206,7 +206,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		Query:     "is:open is:issue user:arquillian",
 		Schedule:  "15 * * * * *",
 		TrackerID: tracker1.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
+		SpaceID:   fxt.Spaces[0].ID,
 	}
 	res, err = test.queryRepo.Create(ctx, tq2)
 	require.NoError(t, err)
@@ -224,7 +224,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		Query:     "project = ARQ AND text ~ 'arquillian'",
 		Schedule:  "15 * * * * *",
 		TrackerID: tracker2.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
+		SpaceID:   fxt.Spaces[0].ID,
 	}
 	res, err = test.queryRepo.Create(ctx, tq3)
 	require.NoError(t, err)
@@ -234,14 +234,14 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		Query:     "project = ARQ AND text ~ 'javadoc'",
 		Schedule:  "15 * * * * *",
 		TrackerID: tracker2.ID,
-		SpaceID:   testFxt.Spaces[0].ID,
+		SpaceID:   fxt.Spaces[0].ID,
 	}
 	res, err = test.queryRepo.Create(ctx, tq4)
 	require.NoError(t, err)
 
-	trackerqueries2, _ := test.queryRepo.List(ctx)
+	trackerqueries2, _ := test.queryRepo.List(ctx, TestFxt.Spaces[0].ID)
 	assert.Equal(t, len(trackerqueries1)+4, len(trackerqueries2))
-	trackerqueries3, _ := test.queryRepo.List(ctx)
+	trackerqueries3, _ := test.queryRepo.List(ctx, TestFxt.Spaces[0].ID)
 	require.True(t, len(trackerqueries3) >= 2)
 	require.True(t, len(trackerqueries2) >= 2)
 	assert.Equal(t, trackerqueries2[1], trackerqueries3[1])
