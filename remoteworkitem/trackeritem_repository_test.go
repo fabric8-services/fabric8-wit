@@ -40,19 +40,21 @@ func (s *TrackerItemRepositorySuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
+	tid, _ := uuid.FromString("46b3b9c8-8eba-4f61-b8b1-4e45fbc1f445")
 	s.trackerQuery = remoteworkitem.TrackerQuery{
+		ID:             tid,
 		Query:          "some random query",
 		Schedule:       "0 0 30 * * *",
 		TrackerID:      fxt.Trackers[0].ID,
 		SpaceID:        fxt.Spaces[0].ID,
 		WorkItemTypeID: fxt.WorkItemTypes[0].ID,
 	}
-
 	s.trackerSchedule = remoteworkitem.TrackerSchedule{
 		Query:          "some random query",
 		Schedule:       "0 0 30 * * *",
 		TrackerID:      fxt.Trackers[0].ID,
 		URL:            fxt.Trackers[0].URL,
+		TrackerQueryID: tid,
 		TrackerType:    fxt.Trackers[0].Type,
 		SpaceID:        fxt.Spaces[0].ID,
 		WorkItemTypeID: s.trackerQuery.WorkItemTypeID,
