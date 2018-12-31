@@ -21,7 +21,6 @@ const (
 	GithubDescription                = "body"
 	GithubState                      = "state"
 	GithubID                         = "url"
-	GithubURL                        = "full.url"
 	GithubCreatorLogin               = "user.login"
 	GithubCreatorProfileURL          = "user.url"
 	GithubAssigneesLogin             = "assignees.0.login"
@@ -34,7 +33,6 @@ const (
 	JiraBody               = "fields.description"
 	JiraState              = "fields.status.name"
 	JiraID                 = "self"
-	JiraURL                = "full.self"
 	JiraCreatorLogin       = "fields.creator.key"
 	JiraCreatorProfileURL  = "fields.creator.self"
 	JiraAssigneeLogin      = "fields.assignee.key"
@@ -70,7 +68,6 @@ var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}:                   remoteDescription,
 		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                                          remoteState,
 		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                                  remoteItemID,
-		AttributeMapper{AttributeExpression(GithubURL), StringConverter{}}:                                                                 remoteItemURL,
 		AttributeMapper{AttributeExpression(GithubCreatorLogin), StringConverter{}}:                                                        remoteCreatorLogin,
 		AttributeMapper{AttributeExpression(GithubCreatorProfileURL), StringConverter{}}:                                                   remoteCreatorProfileURL,
 		AttributeMapper{AttributeExpression(GithubAssigneesLogin), PatternToListConverter{pattern: GithubAssigneesLoginPattern}}:           RemoteAssigneeLogins,
@@ -81,7 +78,6 @@ var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}: remoteDescription,
 		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   remoteState,
 		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         remoteItemID,
-		AttributeMapper{AttributeExpression(JiraURL), StringConverter{}}:                                        remoteItemURL,
 		AttributeMapper{AttributeExpression(JiraCreatorLogin), StringConverter{}}:                               remoteCreatorLogin,
 		AttributeMapper{AttributeExpression(JiraCreatorProfileURL), StringConverter{}}:                          remoteCreatorProfileURL,
 		AttributeMapper{AttributeExpression(JiraAssigneeLogin), ListConverter{}}:                                RemoteAssigneeLogins,
