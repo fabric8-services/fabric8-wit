@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 
+	"github.com/fabric8-services/fabric8-common/auth"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -28,6 +29,7 @@ type TrackerqueryController struct {
 	db            application.DB
 	scheduler     *remoteworkitem.Scheduler
 	configuration trackerQueryConfiguration
+	authService   auth.AuthService
 }
 
 func getAccessTokensForTrackerQuery(configuration trackerQueryConfiguration) map[string]string {
@@ -39,8 +41,14 @@ func getAccessTokensForTrackerQuery(configuration trackerQueryConfiguration) map
 }
 
 // NewTrackerqueryController creates a trackerquery controller.
-func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler, configuration trackerQueryConfiguration) *TrackerqueryController {
-	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), db: db, scheduler: scheduler, configuration: configuration}
+func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler, configuration trackerQueryConfiguration, authService auth.AuthService) *TrackerqueryController {
+	return &TrackerqueryController{
+		Controller:    service.NewController("TrackerqueryController"),
+		db:            db,
+		scheduler:     scheduler,
+		configuration: configuration,
+		authService:   authService,
+	}
 }
 
 // Create runs the create action.
@@ -49,10 +57,18 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+
 	err = validateCreateTrackerQueryPayload(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+
+	// check if user has contribute scope
+	err = c.authService.RequireScope(ctx, ctx.Payload.Data.Relationships.Space.Data.ID.String(), "contribute")
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		err = appl.Spaces().CheckExists(ctx, *ctx.Payload.Data.Relationships.Space.Data.ID)
 		if err != nil {
@@ -142,11 +158,19 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			return errs.Wrapf(err, "failed to delete tracker query %s", ctx.ID)
 		}
+
+		// check if user has contribute scope
+		err = c.authService.RequireScope(ctx, tq.SpaceID.String(), "contribute")
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
 		return appl.TrackerQueries().Delete(ctx.Context, tq.ID)
 	})
 	if err != nil {
