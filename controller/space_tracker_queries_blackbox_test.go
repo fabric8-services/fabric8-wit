@@ -37,7 +37,7 @@ func (s *TestSpaceTrackerQueries) SetupTest() {
 
 func (s *TestSpaceTrackerQueries) SecuredController() (*goa.Service, *SpaceTrackerQueriesController, *TrackerqueryController) {
 	svc := testsupport.ServiceAsUser("SpaceTrackerQuery-Service", testsupport.TestIdentity)
-	return svc, NewSpaceTrackerQueriesController(svc, s.db, s.Configuration), NewTrackerqueryController(svc, s.db, s.RwiScheduler, s.Configuration)
+	return svc, NewSpaceTrackerQueriesController(svc, s.db, s.Configuration), NewTrackerqueryController(svc, s.db, s.RwiScheduler, s.Configuration, &testAuthService{})
 }
 
 func (s *TestSpaceTrackerQueries) TestListSpaceTrackerQueriesOK() {
