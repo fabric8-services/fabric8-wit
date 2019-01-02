@@ -258,27 +258,6 @@ func (s *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 	})
 }
 
-func (s *TestTrackerQueryREST) TestDeleteTrackerQuery() {
-	t := s.T()
-	resource.Require(t, resource.Database)
-
-	svc, _, trackerQueryCtrl := s.SecuredController()
-	fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
-	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0], fxt.WorkItemTypes[0])
-
-	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID, fxt.WorkItemTypes[0].ID)
-
-	_, tq := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
-	assert.NotNil(t, tq)
-
-	t.Run("delete - unauthorized", func(t *testing.T) {
-		svcNotAuthorized := goa.New("TestCreateTrackerQuery-Service")
-		_, err := test.DeleteTrackerqueryUnauthorized(t, svcNotAuthorized.Context, svcNotAuthorized, trackerQueryCtrl, *tq.Data.ID)
-		require.NotNil(t, err)
-		require.IsType(t, strconv.Itoa(http.StatusUnauthorized), *err.Errors[0].Status)
-	})
-}
-
 func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID, witID uuid.UUID) app.CreateTrackerqueryPayload {
 	trackerQueryID := uuid.NewV4()
 	return app.CreateTrackerqueryPayload{
@@ -337,6 +316,8 @@ func (s *TestTrackerQueryREST) TestDeleteTrackerQuery() {
 
 		// delete tracker query
 		svc2, _, trackerQueryUnsecuredCtrl := s.UnSecuredController()
-		test.DeleteTrackerqueryUnauthorized(t, svc2.Context, svc2, trackerQueryUnsecuredCtrl, uuid.NewV4())
+		_, err := test.DeleteTrackerqueryUnauthorized(t, svc2.Context, svc2, trackerQueryUnsecuredCtrl, uuid.NewV4())
+		require.NotNil(t, err)
+		require.IsType(t, strconv.Itoa(http.StatusUnauthorized), *err.Errors[0].Status)
 	})
 }
