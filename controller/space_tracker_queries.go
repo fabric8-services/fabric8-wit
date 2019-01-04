@@ -36,7 +36,6 @@ func (c *SpaceTrackerQueriesController) List(ctx *app.ListSpaceTrackerQueriesCon
 		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
 			return err
-
 		}
 		trackerQueries, err = appl.TrackerQueries().List(ctx, ctx.SpaceID)
 		return err
@@ -49,5 +48,4 @@ func (c *SpaceTrackerQueriesController) List(ctx *app.ListSpaceTrackerQueriesCon
 		res.Data = ConvertTrackerQueriesToApp(c.db, ctx.Request, trackerQueries)
 		return ctx.OK(res)
 	})
-
 }
