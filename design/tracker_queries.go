@@ -39,6 +39,7 @@ var trackerQueryAttributes = a.Type("TrackerQueryAttributes", func() {
 var trackerQueryRelationships = a.Type("TrackerQueryRelations", func() {
 	a.Attribute("tracker", relationKindUUID, "This defines the related tracker")
 	a.Attribute("space", relationSpaces, "This defines the owning space")
+	a.Attribute("workItemType", relationBaseType, "Defines what work item type to use when instantiating work items using this tracker query.")
 })
 
 var trackerQueryList = JSONList(
@@ -119,21 +120,4 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
 	})
-	a.Action("update", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.PUT("/:id"),
-		)
-		a.Description("Update tracker query.")
-		a.Payload(trackerQuerySingle)
-		a.Response(d.OK, func() {
-			a.Media(trackerQuerySingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.Forbidden, JSONAPIErrors)
-	})
-
 })

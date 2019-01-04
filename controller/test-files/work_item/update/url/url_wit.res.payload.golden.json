@@ -152,6 +152,22 @@
             "kind": "instant"
           }
         },
+        "system_remote_item_url": {
+          "description": "URL to remote work item",
+          "label": "Remote URL",
+          "required": false,
+          "type": {
+            "kind": "url"
+          }
+        },
+        "system_remote_tracker_id": {
+          "description": "Reference to the tracker that manages this work item",
+          "label": "Remote Tracker",
+          "required": false,
+          "type": {
+            "kind": "remotetracker"
+          }
+        },
         "url_field": {
           "description": "This field is used for testing values for the field kind 'url'",
           "label": "url",

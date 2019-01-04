@@ -5,12 +5,12 @@
       "created-at": "0001-01-01T00:00:00Z",
       "description": "this work item type was automatically generated (see function github.com/fabric8-services/fabric8-wit/controller_test.(*WorkItem2Suite).TestWI2UpdateFieldOfDifferentSimpleTypes.func1 in controller/workitem_blackbox_test.go)",
       "fields": {
-        "area_field": {
-          "description": "This field is used for testing values for the field kind 'area'",
-          "label": "area",
+        "remotetracker_field": {
+          "description": "This field is used for testing values for the field kind 'remotetracker'",
+          "label": "remotetracker",
           "required": true,
           "type": {
-            "kind": "area"
+            "kind": "remotetracker"
           }
         },
         "system.area": {
@@ -178,7 +178,7 @@
         }
       },
       "icon": "fa-bug",
-      "name": "area_wit",
+      "name": "remotetracker_wit",
       "updated-at": "0001-01-01T00:00:00Z",
       "version": 0
     },

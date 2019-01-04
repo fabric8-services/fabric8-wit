@@ -2,7 +2,8 @@
 
 . cico_setup.sh
 
-export USE_GO_VERSION_FROM_WEBSITE=1
+# Use go1.11 (or newer from epel)
+export USE_GO_VERSION_FROM_WEBSITE=0
 
 cico_setup;
 

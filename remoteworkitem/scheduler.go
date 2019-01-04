@@ -13,13 +13,14 @@ import (
 )
 
 // TrackerSchedule capture all configuration
-type trackerSchedule struct {
-	TrackerID   uuid.UUID
-	URL         string
-	TrackerType string
-	Query       string
-	Schedule    string
-	SpaceID     uuid.UUID
+type TrackerSchedule struct {
+	TrackerID      uuid.UUID
+	URL            string
+	TrackerType    string
+	Query          string
+	Schedule       string
+	SpaceID        uuid.UUID
+	WorkItemTypeID uuid.UUID
 }
 
 // Scheduler represents scheduler
@@ -67,7 +68,7 @@ func (s *Scheduler) ScheduleAllQueries(ctx context.Context, accessTokens map[str
 						return errors.WithStack(err)
 					}
 					// Convert the remote item into a local work item and persist in the DB.
-					_, err = ConvertToWorkItemModel(ctx, tx, tq.TrackerID, i, tq.TrackerType, tq.SpaceID)
+					_, err = ConvertToWorkItemModel(ctx, tx, i, tq)
 					return errors.WithStack(err)
 				})
 			}
@@ -76,9 +77,9 @@ func (s *Scheduler) ScheduleAllQueries(ctx context.Context, accessTokens map[str
 	cr.Start()
 }
 
-func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
-	tsList := []trackerSchedule{}
-	err := db.Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule, tracker_queries.space_id").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
+func fetchTrackerQueries(db *gorm.DB) []TrackerSchedule {
+	tsList := []TrackerSchedule{}
+	err := db.Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule, tracker_queries.space_id, tracker_queries.work_item_type_id").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err": err,
@@ -88,7 +89,7 @@ func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 }
 
 // lookupProvider provides the respective tracker based on the type
-func lookupProvider(ts trackerSchedule) TrackerProvider {
+func lookupProvider(ts TrackerSchedule) TrackerProvider {
 	switch ts.TrackerType {
 	case ProviderGithub:
 		return &GithubTracker{URL: ts.URL, Query: ts.Query}

@@ -108,9 +108,24 @@
   revision = "9344288a2c4f9c1d4c070b4f9af46e415e0bf970"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/fabric8-services/fabric8-auth-client"
+  packages = ["auth"]
+  revision = "5e9eda695396296c02614e0ccb964404d4af08e6"
+
+[[projects]]
   name = "github.com/fabric8-services/fabric8-common"
-  packages = ["id"]
-  revision = "51e44b47e514721ddaa3fca99e5fb5bc1a6e7eb2"
+  packages = [
+    "auth",
+    "auth/jwk",
+    "configuration",
+    "errors",
+    "goasupport",
+    "httpsupport",
+    "id",
+    "log"
+  ]
+  revision = "bc9d95714463edd385a524802810097ef7373618"
 
 [[projects]]
   name = "github.com/fabric8-services/fabric8-notification"
@@ -817,6 +832,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "beb030782f5b973d71fe2e572e9dc7d62e11c3e87e44287930b04d4d93946e54"
+  inputs-digest = "e7df91037ab0c7ad2e50d84dfcf15acb31ab40a3ddd4cf6bd613125023151cef"
   solver-name = "gps-cdcl"
   solver-version = 1
