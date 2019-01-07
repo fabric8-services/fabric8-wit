@@ -159,7 +159,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 
 // Delete runs the delete action to prune all data associated with a username.
 func (c *UsersController) Delete(ctx *app.DeleteUsersContext) error {
-	isSvcAccount, err := isServiceAccount(ctx, serviceAdminConsole)
+	isSvcAdminConsole, err := isServiceAccount(ctx, serviceAdminConsole)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
@@ -167,7 +167,7 @@ func (c *UsersController) Delete(ctx *app.DeleteUsersContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 
 	}
-	if !isSvcAccount {
+	if !isSvcAdminConsole {
 		log.Error(ctx, map[string]interface{}{
 			"username": ctx.Username,
 		}, "account used to call delete API is not a admin-console service account")
@@ -179,6 +179,23 @@ func (c *UsersController) Delete(ctx *app.DeleteUsersContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("invalid username", ctx.Username).Expected("user name should not be empty"))
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
+		// Collect all identities for a given username. Used to delete associated spaces, work_items, comments.
+		identities, err := appl.Identities().Query(account.IdentityFilterByUsername(username))
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"username": username,
+				"err":      err,
+			}, "unable to retrieve the identity associated to this user id")
+			return errors.NewNotFoundError("user", username)
+		}
+		if len(identities) == 0 {
+			log.Error(ctx, map[string]interface{}{
+				"username": username,
+				"err":      err,
+			}, "unable to retrieve the identity associated to this user id")
+			return errors.NewNotFoundError("user", username)
+		}
+		// Collect all users for a given name to delete all users and identities (with on-cascade FK)
 		users, err := appl.Users().LoadByUsername(ctx, username)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -194,6 +211,7 @@ func (c *UsersController) Delete(ctx *app.DeleteUsersContext) error {
 			}, "unable to load the user")
 			return errors.NewNotFoundError("user", username)
 		}
+		// Delete all users, identities.
 		for _, user := range users {
 			if err := appl.Users().PermanentDelete(ctx, user.ID); err != nil {
 				log.Error(ctx, map[string]interface{}{
@@ -206,7 +224,31 @@ func (c *UsersController) Delete(ctx *app.DeleteUsersContext) error {
 				"username": username,
 				"user_id":  user.ID,
 			}, "User permanently deleted!")
-			// TODO delete all spaces owned by this username
+		}
+		// Delete all spaces owned by this username. With on-cascade foreign keys, it will delete all wit,
+		// comments associated.
+		for _, identity := range identities {
+			spaces, _, err := appl.Spaces().LoadByOwner(ctx, &identity.ID, nil, nil)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"identity_id": identity.ID,
+					"err":         err,
+				}, "unable to find spaces with this owner")
+				return err
+			}
+			for _, space := range spaces {
+				if err := appl.Spaces().PermanentDelete(ctx, space.ID); err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"space_id": space.ID,
+						"err":      err,
+					}, "unable to permanently delete space")
+					return err
+				}
+			}
+			log.Debug(ctx, map[string]interface{}{
+				"identity_id": identity.ID,
+			}, "Space deleted!")
+
 		}
 		return nil
 	})

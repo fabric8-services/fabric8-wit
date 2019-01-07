@@ -70,7 +70,7 @@ type UserRepository interface {
 	Save(ctx context.Context, u *User) error
 	List(ctx context.Context) ([]User, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
-	PermanentDelete(ctx context.Context, id uuid.UUID) error
+	PermanentDelete(ctx context.Context, ID uuid.UUID) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]User, error)
 }
 
@@ -105,7 +105,13 @@ func (m *GormUserRepository) LoadByUsername(ctx context.Context, username string
 	// Remote identity usernames are not unique.
 	for rows.Next() {
 		var userId, email string
-		rows.Scan(&userId, &email)
+		if err := rows.Scan(&userId, &email); err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"username": username,
+				"err":      err,
+			}, "invalid uuid for the user")
+			return nil, errs.WithStack(err)
+		}
 		userIdAsUid, err := uuid.FromString(userId)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -186,19 +192,24 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 // Delete removes a single record. This method use custom SQL to allow soft delete with GORM
 // to coexist with permanent delete.
-func (m *GormUserRepository) PermanentDelete(ctx context.Context, id uuid.UUID) error {
+func (m *GormUserRepository) PermanentDelete(ctx context.Context, ID uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "permanent_delete"}, time.Now())
-	rows, err := m.db.Raw("DELETE FROM users WHERE id = ?", id).Rows()
-	defer rows.Close()
-	if err != nil {
+	tx := m.db.Exec("DELETE FROM users WHERE id = ?", ID)
+	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"user_id": id,
+			"user_id": ID.String(),
 			"err":     err,
 		}, "unable to permanently delete the user")
-		return errs.WithStack(err)
+		return errors.NewInternalError(ctx, err)
+	}
+	if tx.RowsAffected == 0 {
+		log.Error(ctx, map[string]interface{}{
+			"user_id": ID.String(),
+		}, "none row was affected by the permanently deletion operation")
+		return errors.NewNotFoundError("user", ID.String())
 	}
 	log.Debug(ctx, map[string]interface{}{
-		"user_id": id,
+		"user_id": ID,
 	}, "User permanently deleted!")
 
 	return nil

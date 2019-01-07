@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"context"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-common/id"
@@ -12,7 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +32,7 @@ type TestUsersSuite struct {
 	controller   *UsersController
 	userRepo     account.UserRepository
 	identityRepo account.IdentityRepository
+	spaceRepo    space.Repository
 }
 
 func (s *TestUsersSuite) SetupSuite() {
@@ -39,6 +41,7 @@ func (s *TestUsersSuite) SetupSuite() {
 	s.controller = NewUsersController(s.svc, s.GormDB, s.Configuration)
 	s.userRepo = s.GormDB.Users()
 	s.identityRepo = s.GormDB.Identities()
+	s.spaceRepo = s.GormDB.Spaces()
 }
 
 func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
@@ -58,9 +61,8 @@ func (s *TestUsersSuite) SecuredServiceAccountAdminConsoleController(identity ac
 
 func (s *TestUsersSuite) TestDeleteUsersBadRequest() {
 	// given
-	user := s.createRandomUser("TestDeleteUsersBadRequest")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(identity)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
+	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(*fxt.Identities[0])
 	// when
 	emptyUsername := ""
 	test.DeleteUsersBadRequest(s.T(), secureService.Context, secureService, secureController, emptyUsername)
@@ -68,35 +70,34 @@ func (s *TestUsersSuite) TestDeleteUsersBadRequest() {
 
 func (s *TestUsersSuite) TestDeleteUsersOK() {
 	// given
-	user := s.createRandomUser("TestDeleteUsersOK")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1), tf.Spaces(1))
 	// when
-	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(identity)
-	test.DeleteUsersOK(s.T(), secureService.Context, secureService, secureController, identity.Username)
+	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(*fxt.Identities[0])
+	test.DeleteUsersOK(s.T(), secureService.Context, secureService, secureController, fxt.Identities[0].Username)
 	// then
-	_, err := s.userRepo.Load(context.Background(), user.ID)
-	require.Error(s.T(), err, "User should have been deleted not found")
-	_, errId := s.identityRepo.Load(context.Background(), identity.ID)
-	require.Error(s.T(), errId, "Identity should have been deleted not found")
+	_, err := s.userRepo.Load(context.Background(), fxt.Users[0].ID)
+	require.Error(s.T(), err, "User should have been deleted")
+	_, errId := s.identityRepo.Load(context.Background(), fxt.Identities[0].ID)
+	require.Error(s.T(), errId, "Identity should have been deleted")
+	_, errSpace := s.spaceRepo.Load(context.Background(), fxt.Spaces[0].ID)
+	require.Error(s.T(), errSpace, "Space should have been deleted")
 }
 
 func (s *TestUsersSuite) TestDeleteUsersFound() {
 	// given
-	user := s.createRandomUser("TestDeleteUsersFound")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
 	// when
-	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(identity)
+	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(*fxt.Identities[0])
 	usernameAsString := uuid.NewV4().String() // will never be found.
 	test.DeleteUsersNotFound(s.T(), secureService.Context, secureService, secureController, usernameAsString)
 }
 
 func (s *TestUsersSuite) TestDeleteUsersUnauthorized() {
 	// given
-	user := s.createRandomUser("TestDeleteUsersUnauthorized")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
 	// when
-	secureService, secureController := s.SecuredController(identity)
-	usernameAsString := (identity.ID).String()
+	secureService, secureController := s.SecuredController(*fxt.Identities[0])
+	usernameAsString := (fxt.Identities[0].ID).String()
 	test.DeleteUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, usernameAsString)
 }
 
