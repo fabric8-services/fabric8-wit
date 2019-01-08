@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	cauth "github.com/fabric8-services/fabric8-common/auth"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -185,6 +186,13 @@ func main() {
 		notificationChannel = channel
 	}
 
+	// Setup Auth Service
+	authService, err := cauth.NewAuthService(config.GetAuthServiceURL())
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{"url": config.GetAuthServiceURL(), "err": err},
+			"could not create Auth client")
+	}
+
 	appDB := gormapplication.NewGormDB(db)
 
 	tokenManager, err := token.NewManager(config)
@@ -288,13 +296,17 @@ func main() {
 		app.MountTrackerController(service, c5)
 
 		// Mount "trackerquery" controller
-		c6 := controller.NewTrackerqueryController(service, appDB, scheduler, config)
+		c6 := controller.NewTrackerqueryController(service, appDB, scheduler, config, authService)
 		app.MountTrackerqueryController(service, c6)
 	}
 
 	// Mount "space" controller
 	spaceCtrl := controller.NewSpaceController(service, appDB, config, auth.NewAuthzResourceManager(config))
 	app.MountSpaceController(service, spaceCtrl)
+
+	// Mount "spaceTrackerQueries" controller
+	spaceTrackerQueriesCtrl := controller.NewSpaceTrackerQueriesController(service, appDB, config)
+	app.MountSpaceTrackerQueriesController(service, spaceTrackerQueriesCtrl)
 
 	// Mount "user" controller
 	userCtrl := controller.NewUserController(service, appDB, config)
