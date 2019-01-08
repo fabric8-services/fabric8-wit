@@ -24,9 +24,8 @@ import (
 )
 
 const (
-	usersEndpoint       = "/api/users"
-	serviceNameAuth     = "fabric8-auth"
-	serviceAdminConsole = "admin-console"
+	usersEndpoint   = "/api/users"
+	serviceNameAuth = "fabric8-auth"
 )
 
 // UsersController implements the users resource.
@@ -159,7 +158,7 @@ func (c *UsersController) Obfuscate(ctx *app.ObfuscateUsersContext) error {
 
 // Delete runs the delete action to prune all data associated with a username.
 func (c *UsersController) Delete(ctx *app.DeleteUsersContext) error {
-	isSvcAdminConsole, err := isServiceAccount(ctx, serviceAdminConsole)
+	isSvcAuth, err := isServiceAccount(ctx, serviceNameAuth)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
@@ -167,7 +166,7 @@ func (c *UsersController) Delete(ctx *app.DeleteUsersContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 
 	}
-	if !isSvcAdminConsole {
+	if !isSvcAuth {
 		log.Error(ctx, map[string]interface{}{
 			"username": ctx.Username,
 		}, "account used to call delete API is not a admin-console service account")

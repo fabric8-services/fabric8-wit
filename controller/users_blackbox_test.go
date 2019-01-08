@@ -54,15 +54,10 @@ func (s *TestUsersSuite) SecuredServiceAccountController(identity account.Identi
 	return svc, NewUsersController(svc, s.GormDB, s.Configuration)
 }
 
-func (s *TestUsersSuite) SecuredServiceAccountAdminConsoleController(identity account.Identity) (*goa.Service, *UsersController) {
-	svc := testsupport.ServiceAsServiceAccountAdminConsole("AdminConsole-ServiceAccount-Service", identity)
-	return svc, NewUsersController(svc, s.GormDB, s.Configuration)
-}
-
 func (s *TestUsersSuite) TestDeleteUsersBadRequest() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
-	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(*fxt.Identities[0])
+	secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
 	// when
 	emptyUsername := ""
 	test.DeleteUsersBadRequest(s.T(), secureService.Context, secureService, secureController, emptyUsername)
@@ -72,7 +67,7 @@ func (s *TestUsersSuite) TestDeleteUsersOK() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1), tf.Spaces(1))
 	// when
-	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(*fxt.Identities[0])
+	secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
 	test.DeleteUsersOK(s.T(), secureService.Context, secureService, secureController, fxt.Identities[0].Username)
 	// then
 	_, err := s.userRepo.Load(context.Background(), fxt.Users[0].ID)
@@ -87,7 +82,7 @@ func (s *TestUsersSuite) TestDeleteUsersFound() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
 	// when
-	secureService, secureController := s.SecuredServiceAccountAdminConsoleController(*fxt.Identities[0])
+	secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
 	usernameAsString := uuid.NewV4().String() // will never be found.
 	test.DeleteUsersNotFound(s.T(), secureService.Context, secureService, secureController, usernameAsString)
 }
