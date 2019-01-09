@@ -72,8 +72,8 @@ func (s *TestUsersSuite) TestDeleteUsersOK() {
 	// then
 	_, err := s.userRepo.Load(context.Background(), fxt.Users[0].ID)
 	require.Error(s.T(), err, "User should have been deleted")
-	_, errId := s.identityRepo.Load(context.Background(), fxt.Identities[0].ID)
-	require.Error(s.T(), errId, "Identity should have been deleted")
+	_, errID := s.identityRepo.Load(context.Background(), fxt.Identities[0].ID)
+	require.Error(s.T(), errID, "Identity should have been deleted")
 	_, errSpace := s.spaceRepo.Load(context.Background(), fxt.Spaces[0].ID)
 	require.Error(s.T(), errSpace, "Space should have been deleted")
 }
