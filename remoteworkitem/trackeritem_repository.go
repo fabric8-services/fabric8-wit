@@ -112,7 +112,9 @@ func setWorkItemFields(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWo
 			workItem.Fields[fieldName] = fieldValue
 		}
 	}
-	workItem.Fields[remoteItemURL] = workItem.Fields[remoteItemID]
+	if tq.TrackerType == ProviderGithub {
+		workItem.Fields[remoteItemURL] = workItem.Fields[remoteItemID]
+	}
 	workItem.Fields[workitem.SystemRemoteTrackerID] = tq.TrackerQueryID.String()
 	return &workItem, nil
 }
