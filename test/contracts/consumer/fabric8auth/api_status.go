@@ -1,4 +1,4 @@
-package consumer
+package fabric8auth
 
 import (
 	"fmt"
@@ -6,14 +6,14 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/test/contracts"
+	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
 	"github.com/pact-foundation/pact-go/dsl"
 )
 
-// APIStatus defines contract of /api/status endpoint
-func APIStatus(t *testing.T, pact *dsl.Pact) {
+// AuthAPIStatus defines contract of /api/status endpoint
+func AuthAPIStatus(t *testing.T, pact *dsl.Pact) {
 
-	log.Printf("Invoking APIStatus now\n")
+	log.Printf("Invoking AuthAPIStatus now\n")
 
 	// Pass in test case
 	var test = func() error {
@@ -35,7 +35,7 @@ func APIStatus(t *testing.T, pact *dsl.Pact) {
 	// Set up our expected interactions.
 	pact.
 		AddInteraction().
-		Given("WIT service is up and running.").
+		Given("Auth service is up and running.").
 		UponReceiving("A request to get status").
 		WithRequest(dsl.Request{
 			Method:  "GET",
@@ -45,7 +45,7 @@ func APIStatus(t *testing.T, pact *dsl.Pact) {
 		WillRespondWith(dsl.Response{
 			Status:  200,
 			Headers: dsl.MapMatcher{"Content-Type": dsl.String("application/vnd.status+json")},
-			Body:    dsl.Match(contracts.APIStatusResponse{}),
+			Body:    dsl.Match(model.APIStatusMessage{}),
 		})
 
 	// Verify

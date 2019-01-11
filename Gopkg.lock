@@ -434,7 +434,9 @@
 [[projects]]
   name = "github.com/pact-foundation/pact-go"
   packages = [
+    "client",
     "dsl",
+    "install",
     "types",
     "utils"
   ]
@@ -603,11 +605,6 @@
   ]
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
   version = "v1.2.1"
-
-[[projects]]
-  name = "github.com/tebeka/selenium"
-  packages = ["."]
-  revision = "master"
 
 [[projects]]
   name = "github.com/trivago/tgo"
