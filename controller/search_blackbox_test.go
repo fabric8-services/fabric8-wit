@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +15,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/fabric8-services/fabric8-wit/test/testfixture"
 
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 
@@ -1999,4 +2000,49 @@ func TestWorkItemInterfaceSliceSort(t *testing.T) {
 		// then
 		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
 	})
+}
+
+func (s *searchControllerTestSuite) TestSearchByTrackerQuery(t *testing.T) {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Spaces(1),
+		tf.WorkItemTypes(1),
+		tf.Trackers(1),
+		tf.TrackerQueries(2),
+		tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 0, 1, 2, 3:
+				fxt.WorkItems[idx].Fields[workitem.SystemRemoteTrackerID] = fxt.TrackerQueries[0].ID
+			default:
+				fxt.WorkItems[idx].Fields[workitem.SystemRemoteTrackerID] = fxt.TrackerQueries[1].ID
+			}
+			return nil
+		}),
+	)
+	assert.NotNil(s.T(), fxt.Spaces, fxt.Trackers, fxt.WorkItemTypes, fxt.TrackerQueries, fxt.WorkItems)
+	spaceIDStr := fxt.Spaces[0].ID.String()
+
+	s.T().Run("search by trackerquery", func(t *testing.T) {
+		// TrackerQuery1
+		filter1 := fmt.Sprintf(`
+                               {"$AND": [
+                                       {"space":"%s"},
+                                       {"trackerquery.id": "%s"}
+                               ]}`,
+			spaceIDStr, fxt.TrackerQueries[0].ID)
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter1, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 4)
+
+		// TrackerQuery2
+		filter2 := fmt.Sprintf(`
+                               {"$AND": [
+                                       {"space":"%s"},
+                                       {"trackerquery.id": "%s"}
+                               ]}`,
+			spaceIDStr, fxt.TrackerQueries[1].ID)
+		_, result2 := test.ShowSearchOK(t, nil, nil, s.controller, &filter2, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result2.Data)
+		assert.Len(t, result2.Data, 1)
+	})
+
 }
