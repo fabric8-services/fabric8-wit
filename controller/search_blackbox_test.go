@@ -2002,7 +2002,7 @@ func TestWorkItemInterfaceSliceSort(t *testing.T) {
 	})
 }
 
-func (s *searchControllerTestSuite) TestSearchByTrackerQuery(t *testing.T) {
+func (s *searchControllerTestSuite) TestSearchByTrackerQuery() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.Spaces(1),
 		tf.WorkItemTypes(1),
