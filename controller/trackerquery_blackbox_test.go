@@ -31,11 +31,13 @@ import (
 
 type TestTrackerQueryREST struct {
 	gormtestsupport.DBTestSuite
-	RwiScheduler  *remoteworkitem.Scheduler
-	db            *gormapplication.GormDB
-	authService   auth.AuthService
-	workitemCtrl  app.WorkitemController
-	workitemsCtrl app.WorkitemsController
+	RwiScheduler     *remoteworkitem.Scheduler
+	db               *gormapplication.GormDB
+	authService      auth.AuthService
+	trackerqueryCtrl app.TrackerqueryController
+	workitemCtrl     app.WorkitemController
+	workitemsCtrl    app.WorkitemsController
+	svc              *goa.Service
 }
 
 func TestRunTrackerQueryREST(t *testing.T) {
@@ -46,11 +48,11 @@ func (s *TestTrackerQueryREST) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.RwiScheduler = remoteworkitem.NewScheduler(s.DB)
 	s.db = gormapplication.NewGormDB(s.DB)
+	s.svc = testsupport.ServiceAsUser("TestTrackerQuery-Service", testsupport.TestIdentity)
 
 	s.workitemCtrl = NewWorkitemController(s.svc, s.GormDB, s.Configuration)
 	s.workitemsCtrl = NewWorkitemsController(s.svc, s.GormDB, s.Configuration)
 
-	s.svc = testsupport.ServiceAsUser("TestTrackerQuery-Service", testsupport.TestIdentity)
 	s.trackerqueryCtrl = NewTrackerqueryController(s.svc, s.GormDB, s.RwiScheduler, s.Configuration, &testAuthService{})
 }
 
@@ -258,21 +260,21 @@ func (s *TestTrackerQueryREST) TestDeleteTrackerQuery() {
 	assert.NotNil(s.T(), fxt.Spaces[0], fxt.Trackers[0], fxt.TrackerQueries[0])
 
 	s.T().Run("delete trackerquery - success", func(t *testing.T) {
-		test.DeleteTrackerqueryNoContent(t, s.svc.Context, s.svc, s.trackerqueryCtrl, fxt.TrackerQueries[0].ID)
+		test.DeleteTrackerqueryOK(t, s.svc.Context, s.svc, s.trackerqueryCtrl, fxt.TrackerQueries[0].ID, false)
 	})
 
 	s.T().Run("delete trackerquery - not found", func(t *testing.T) {
-		test.DeleteTrackerqueryNotFound(t, s.svc.Context, s.svc, s.trackerqueryCtrl, uuid.NewV4())
+		test.DeleteTrackerqueryNotFound(t, s.svc.Context, s.svc, s.trackerqueryCtrl, uuid.NewV4(), false)
 	})
 
 	s.T().Run("delete trackerquery - unauthorized", func(t *testing.T) {
 		svc2, _, trackerQueryUnsecuredCtrl := s.UnSecuredController()
-		_, err := test.DeleteTrackerqueryUnauthorized(t, svc2.Context, svc2, trackerQueryUnsecuredCtrl, fxt.TrackerQueries[0].ID)
+		_, err := test.DeleteTrackerqueryUnauthorized(t, svc2.Context, svc2, trackerQueryUnsecuredCtrl, fxt.TrackerQueries[0].ID, false)
 		require.NotNil(t, err)
 		require.IsType(t, strconv.Itoa(http.StatusUnauthorized), *err.Errors[0].Status)
 	})
 
-	t.Run("delete remoteworkitems - true", func(t *testing.T) {
+	s.T().Run("delete remoteworkitems - true", func(t *testing.T) {
 		fxt := tf.NewTestFixture(s.T(), s.DB,
 			tf.Spaces(1),
 			tf.WorkItemTypes(1),
@@ -307,7 +309,7 @@ func (s *TestTrackerQueryREST) TestDeleteTrackerQuery() {
 		require.NotNil(t, jerr)
 	})
 
-	t.Run("delete remoteworkitems - false", func(t *testing.T) {
+	s.T().Run("delete remoteworkitems - false", func(t *testing.T) {
 		fxt := tf.NewTestFixture(s.T(), s.DB,
 			tf.Spaces(1),
 			tf.WorkItemTypes(1),
