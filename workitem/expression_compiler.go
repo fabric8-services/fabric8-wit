@@ -111,7 +111,7 @@ func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName str
 		return Column(WorkItemStorage{}.TableName(), mappedFieldName), false
 	}
 
-	if strings.Contains(fieldName, ".") {
+	if strings.Contains(fieldName, ".") || strings.Contains(fieldName, "_") {
 		// leave field untouched
 		return fieldName, true
 	}

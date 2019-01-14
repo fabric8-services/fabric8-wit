@@ -21,6 +21,8 @@ const (
 	SystemVersion = "version"
 
 	SystemRemoteItemID        = "system.remote_item_id"
+	SystemRemoteItemURL       = "system_remote_item_url"
+	SystemRemoteTrackerID     = "system_remote_tracker_id"
 	SystemNumber              = "system.number"
 	SystemTitle               = "system.title"
 	SystemDescription         = "system.description"
