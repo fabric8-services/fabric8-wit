@@ -20,6 +20,7 @@ import (
 
 type trackerQueryConfiguration interface {
 	GetGithubAuthToken() string
+	GetCacheControlTrackerQueries() string
 }
 
 // TrackerqueryController implements the trackerquery resource.
@@ -178,19 +179,6 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
 	return ctx.NoContent()
-}
-
-// List runs the list action.
-func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		trackerqueries, err := appl.TrackerQueries().List(ctx)
-		if err != nil {
-			return errs.Wrapf(err, "failed to list tracker queries")
-		}
-		res := &app.TrackerQueryList{}
-		res.Data = ConvertTrackerQueriesToApp(appl, ctx.Request, trackerqueries)
-		return ctx.OK(res)
-	})
 }
 
 // ConvertTrackerQueriesToApp from internal to external REST representation

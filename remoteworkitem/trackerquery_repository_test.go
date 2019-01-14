@@ -185,7 +185,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 	fxt := tf.NewTestFixture(t, test.DB, tf.Spaces(1), tf.WorkItemTypes(1))
 
-	trackerqueries1, _ := test.queryRepo.List(ctx)
+	trackerqueries1, _ := test.queryRepo.List(ctx, fxt.Spaces[0].ID)
 
 	// create tracker
 	tracker1 := remoteworkitem.Tracker{
@@ -247,9 +247,9 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 	res, err = test.queryRepo.Create(ctx, tq4)
 	require.NoError(t, err)
 
-	trackerqueries2, _ := test.queryRepo.List(ctx)
+	trackerqueries2, _ := test.queryRepo.List(ctx, fxt.Spaces[0].ID)
 	assert.Equal(t, len(trackerqueries1)+4, len(trackerqueries2))
-	trackerqueries3, _ := test.queryRepo.List(ctx)
+	trackerqueries3, _ := test.queryRepo.List(ctx, fxt.Spaces[0].ID)
 	require.True(t, len(trackerqueries3) >= 2)
 	require.True(t, len(trackerqueries2) >= 2)
 	assert.Equal(t, trackerqueries2[1], trackerqueries3[1])
