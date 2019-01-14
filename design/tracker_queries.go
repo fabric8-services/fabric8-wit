@@ -96,8 +96,10 @@ var _ = a.Resource("trackerquery", func() {
 		a.Description("Delete tracker query.")
 		a.Params(func() {
 			a.Param("id", d.UUID, "id")
+			a.Param("delete-wi", d.Boolean, "delete workitems")
+			a.Required("id", "delete-wi")
 		})
-		a.Response(d.NoContent)
+		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
