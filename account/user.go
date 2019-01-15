@@ -194,7 +194,7 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // to coexist with permanent delete.
 func (m *GormUserRepository) PermanentDelete(ctx context.Context, ID uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "permanent_delete"}, time.Now())
-	tx := m.db.Exec("DELETE FROM users WHERE id = ?", ID)
+	tx := m.db.Unscoped().Delete(&User{ID:ID})`
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"user_id": ID.String(),
