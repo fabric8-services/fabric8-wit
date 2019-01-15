@@ -642,6 +642,33 @@ func makeTrackers(fxt *TestFixture) error {
 	return nil
 }
 
+func makeTrackerQueries(fxt *TestFixture) error {
+	if fxt.info[kindTrackerQueries] == nil {
+		return nil
+	}
+	fxt.TrackerQueries = make([]*remoteworkitem.TrackerQuery, fxt.info[kindTrackerQueries].numInstances)
+	trackerQueryRepo := remoteworkitem.NewTrackerQueryRepository(fxt.db)
+
+	for i := range fxt.TrackerQueries {
+		fxt.TrackerQueries[i] = &remoteworkitem.TrackerQuery{
+			ID:             uuid.NewV4(),
+			Query:          "is:open is:issue user:arquillian author:aslakknutsen",
+			Schedule:       "15 * * * * *",
+			TrackerID:      fxt.Trackers[0].ID,
+			SpaceID:        fxt.Spaces[0].ID,
+			WorkItemTypeID: fxt.WorkItemTypes[0].ID,
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindTrackerQueries); err != nil {
+			return errs.WithStack(err)
+		}
+		_, err := trackerQueryRepo.Create(fxt.ctx, *fxt.TrackerQueries[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create tracker query: %+v", fxt.TrackerQueries[i])
+		}
+	}
+	return nil
+}
+
 func makeQueries(fxt *TestFixture) error {
 	if fxt.info[kindQueries] == nil {
 		return nil

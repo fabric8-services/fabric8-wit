@@ -32,7 +32,8 @@ const (
 	JiraTitle              = "fields.summary"
 	JiraBody               = "fields.description"
 	JiraState              = "fields.status.name"
-	JiraID                 = "self"
+	JiraID                 = "id"
+	JiraURL                = "self"
 	JiraCreatorLogin       = "fields.creator.key"
 	JiraCreatorProfileURL  = "fields.creator.self"
 	JiraAssigneeLogin      = "fields.assignee.key"
@@ -58,6 +59,7 @@ const (
 	remoteCreatorProfileURL   = "system.creator.profile_url"
 	RemoteAssigneeLogins      = "system.assignees.login"
 	RemoteAssigneeProfileURLs = "system.assignees.profile_url"
+	remoteItemURL             = workitem.SystemRemoteItemURL
 )
 
 // RemoteWorkItemKeyMaps relate remote attribute keys to internal representation
@@ -77,6 +79,7 @@ var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}: remoteDescription,
 		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   remoteState,
 		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         remoteItemID,
+		AttributeMapper{AttributeExpression(JiraURL), StringConverter{}}:                                        remoteItemURL,
 		AttributeMapper{AttributeExpression(JiraCreatorLogin), StringConverter{}}:                               remoteCreatorLogin,
 		AttributeMapper{AttributeExpression(JiraCreatorProfileURL), StringConverter{}}:                          remoteCreatorProfileURL,
 		AttributeMapper{AttributeExpression(JiraAssigneeLogin), ListConverter{}}:                                RemoteAssigneeLogins,

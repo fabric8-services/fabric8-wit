@@ -51,6 +51,7 @@ type TestFixture struct {
 	WorkItemLinks      []*link.WorkItemLink           // Work item links (if any) that were created for this test fixture.
 	Labels             []*label.Label                 // Labels (if any) that were created for this test fixture.
 	Trackers           []*remoteworkitem.Tracker      // Remote work item tracker (if any) that were created for this test fixture.
+	TrackerQueries     []*remoteworkitem.TrackerQuery // Remote work item tracker query (if any) that were created for this test fixture.
 	Queries            []*query.Query                 // Queries (if any) that were created for this test fixture.
 	SpaceTemplates     []*spacetemplate.SpaceTemplate // Space templates (if any) that were created for this test fixture.
 	WorkItemTypeGroups []*workitem.WorkItemTypeGroup  // Work item types groups (if any) that were created for this test fixture.
@@ -167,6 +168,7 @@ const (
 	kindWorkItemLinks      kind = "work_item_link"
 	kindLabels             kind = "label"
 	kindTrackers           kind = "tracker"
+	kindTrackerQueries     kind = "tracker_queries"
 	kindQueries            kind = "query"
 	kindSpaceTemplates     kind = "space_template"
 	kindWorkItemTypeGroups kind = "work_item_type_group"
@@ -236,6 +238,7 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		makeWorkItemBoards,
 		makeIterations,
 		makeAreas,
+		makeTrackerQueries,
 		makeWorkItems,
 		makeComments,
 		makeWorkItemLinks,
