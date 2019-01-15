@@ -1412,23 +1412,10 @@ func testMigration111WITinTrackerQuery(t *testing.T) {
 
 func testMigration112CascadingDelete(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:113], 113)
-	checkForeignKeyConstraint := func(t *testing.T, table string, constraintName string) bool {
-		q := fmt.Sprintf("SELECT constraint_name FROM information_schema.table_constraints WHERE table_name = '%s' "+
-			"AND constraint_type = 'FOREIGN KEY' AND constraint_name='%s';", table, constraintName)
-		row := sqlDB.QueryRow(q)
-		require.NotNil(t, row)
-		var constraint string
-		err := row.Scan(&constraint)
-		require.NoError(t, err, "%+v", err)
-		if constraint == constraintName {
-			return true
-		}
-		return false
-	}
-	require.True(t, checkForeignKeyConstraint(t, "identities", "identities_user_id_fkey"))
-	require.True(t, checkForeignKeyConstraint(t, "comment_revisions", "comment_revisions_modifier_id_fkey"))
-	require.True(t, checkForeignKeyConstraint(t, "work_item_link_revisions", "work_item_link_revisions_modifier_id_fkey"))
-	require.True(t, checkForeignKeyConstraint(t, "work_item_revisions", "work_item_revisions_modifier_id_fkey"))
+	require.True(t, dialect.HasForeignKey("identities", "identities_user_id_fkey"))
+	require.True(t, dialect.HasForeignKey("comment_revisions", "comment_revisions_modifier_id_fkey"))
+	require.True(t, dialect.HasForeignKey("work_item_link_revisions", "work_item_link_revisions_modifier_id_fkey"))
+	require.True(t, dialect.HasForeignKey("work_item_revisions", "work_item_revisions_modifier_id_fkey"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
