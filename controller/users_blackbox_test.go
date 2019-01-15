@@ -54,46 +54,46 @@ func (s *TestUsersSuite) SecuredServiceAccountController(identity account.Identi
 	return svc, NewUsersController(svc, s.GormDB, s.Configuration)
 }
 
-func (s *TestUsersSuite) TestDeleteUsersBadRequest() {
-	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
-	secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
-	// when
-	emptyUsername := ""
-	test.DeleteUsersBadRequest(s.T(), secureService.Context, secureService, secureController, emptyUsername)
-}
-
-func (s *TestUsersSuite) TestDeleteUsersOK() {
-	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1), tf.Spaces(1))
-	// when
-	secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
-	test.DeleteUsersOK(s.T(), secureService.Context, secureService, secureController, fxt.Identities[0].Username)
-	// then
-	_, err := s.userRepo.Load(context.Background(), fxt.Users[0].ID)
-	require.Error(s.T(), err, "User should have been deleted")
-	_, errID := s.identityRepo.Load(context.Background(), fxt.Identities[0].ID)
-	require.Error(s.T(), errID, "Identity should have been deleted")
-	_, errSpace := s.spaceRepo.Load(context.Background(), fxt.Spaces[0].ID)
-	require.Error(s.T(), errSpace, "Space should have been deleted")
-}
-
-func (s *TestUsersSuite) TestDeleteUsersFound() {
-	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
-	// when
-	secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
-	usernameAsString := uuid.NewV4().String() // will never be found.
-	test.DeleteUsersNotFound(s.T(), secureService.Context, secureService, secureController, usernameAsString)
-}
-
-func (s *TestUsersSuite) TestDeleteUsersUnauthorized() {
-	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
-	// when
-	secureService, secureController := s.SecuredController(*fxt.Identities[0])
-	usernameAsString := (fxt.Identities[0].ID).String()
-	test.DeleteUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, usernameAsString)
+func (s *TestUsersSuite) TestDeleteUsers() {
+	t := s.T()
+	t.Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1), tf.Spaces(1))
+		// when
+		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
+		test.DeleteUsersOK(s.T(), secureService.Context, secureService, secureController, fxt.Identities[0].Username)
+		// then
+		_, err := s.userRepo.Load(context.Background(), fxt.Users[0].ID)
+		require.Error(s.T(), err, "User should have been deleted")
+		_, errID := s.identityRepo.Load(context.Background(), fxt.Identities[0].ID)
+		require.Error(s.T(), errID, "Identity should have been deleted")
+		_, errSpace := s.spaceRepo.Load(context.Background(), fxt.Spaces[0].ID)
+		require.Error(s.T(), errSpace, "Space should have been deleted")
+	})
+	t.Run("bad request", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
+		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
+		// when
+		emptyUsername := ""
+		test.DeleteUsersBadRequest(s.T(), secureService.Context, secureService, secureController, emptyUsername)
+	})
+	t.Run("user not found", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
+		// when
+		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
+		usernameAsString := uuid.NewV4().String() // will never be found.
+		test.DeleteUsersNotFound(s.T(), secureService.Context, secureService, secureController, usernameAsString)
+	})
+	t.Run("not authorized", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
+		// when
+		secureService, secureController := s.SecuredController(*fxt.Identities[0])
+		usernameAsString := (fxt.Identities[0].ID).String()
+		test.DeleteUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, usernameAsString)
+	})
 }
 
 func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountBadRequest() {
