@@ -58,7 +58,7 @@ func (s *TestUsersSuite) TestDeleteUsers() {
 	t := s.T()
 	t.Run("ok", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1), tf.Spaces(1))
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1), tf.Spaces(1))
 		// when
 		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
 		test.DeleteUsersOK(s.T(), secureService.Context, secureService, secureController, fxt.Identities[0].Username)
@@ -72,7 +72,7 @@ func (s *TestUsersSuite) TestDeleteUsers() {
 	})
 	t.Run("bad request", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
 		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
 		// when
 		emptyUsername := ""
@@ -80,7 +80,7 @@ func (s *TestUsersSuite) TestDeleteUsers() {
 	})
 	t.Run("user not found", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
 		// when
 		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
 		usernameAsString := uuid.NewV4().String() // will never be found.
@@ -88,7 +88,7 @@ func (s *TestUsersSuite) TestDeleteUsers() {
 	})
 	t.Run("not authorized", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(1))
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
 		// when
 		secureService, secureController := s.SecuredController(*fxt.Identities[0])
 		usernameAsString := (fxt.Identities[0].ID).String()
