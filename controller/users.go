@@ -180,14 +180,7 @@ func (c *UsersController) Delete(ctx *app.DeleteUsersContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		// Collect all identities for a given username. Used to delete associated spaces, work_items, comments.
 		identities, err := appl.Identities().Query(account.IdentityFilterByUsername(username))
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"username": username,
-				"err":      err,
-			}, "unable to retrieve the identity associated to this user id")
-			return errors.NewNotFoundError("user", username)
-		}
-		if len(identities) == 0 {
+		if err != nil || len(identities) == 0 {
 			log.Error(ctx, map[string]interface{}{
 				"username": username,
 				"err":      err,

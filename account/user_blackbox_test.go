@@ -59,32 +59,47 @@ func (s *userBlackBoxTest) TestOKToLoad() {
 	createAndLoadUser(s) // this function does the needful already
 }
 
-func (s *userBlackBoxTest) TestOKToLoadByUsername() {
+func (s *userBlackBoxTest) TestLoadByUsername() {
 	t := s.T()
 	resource.Require(t, resource.Database)
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1, func(fixture *tf.TestFixture, idx int) error {
-		fixture.Identities[idx].Username = "myusername"
-		return nil
-	}), tf.Users(1))
-	loadedUser, err := s.repo.LoadByUsername(s.Ctx, "myusername")
-	require.NoError(s.T(), err, "Could not load user")
-	require.Equal(s.T(), loadedUser[0].Email, fxt.Users[0].Email)
-	require.Equal(s.T(), loadedUser[0].ID, fxt.Users[0].ID)
-}
-
-func (s *userBlackBoxTest) TestOKToLoadByUsernameWithDifferentIdentities() {
-	t := s.T()
-	resource.Require(t, resource.Database)
-	random := uuid.NewV4()
-	myusername := "myusername" + random.String()
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(5, func(fixture *tf.TestFixture, idx int) error {
-		fixture.Identities[idx].Username = myusername
-		return nil
-	}))
-	loadedUser, err := s.repo.LoadByUsername(s.Ctx, myusername)
-	require.NoError(s.T(), err, "Could not load user")
-	require.Equal(s.T(), len(loadedUser), 1)
-	require.Equal(s.T(), loadedUser[0].ID, fxt.Users[0].ID)
+	t.Run("load ok", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1, func(fixture *tf.TestFixture, idx int) error {
+			fixture.Identities[idx].Username = "myusername"
+			return nil
+		}), tf.Users(1))
+		loadedUser, err := s.repo.LoadByUsername(s.Ctx, "myusername")
+		require.NoError(t, err, "Could not load user")
+		require.Equal(t, loadedUser[0].Email, fxt.Users[0].Email)
+		require.Equal(t, loadedUser[0].ID, fxt.Users[0].ID)
+	})
+	t.Run("load one user with a list of identities associated to a this user", func(t *testing.T) {
+		random := uuid.NewV4()
+		myusername := "myusername" + random.String()
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Users(1), tf.Identities(5, func(fixture *tf.TestFixture, idx int) error {
+			fixture.Identities[idx].Username = myusername
+			return nil
+		}))
+		loadedUser, err := s.repo.LoadByUsername(s.Ctx, myusername)
+		require.NoError(t, err, "Could not load user")
+		require.Equal(t, len(loadedUser), 1)
+		require.Equal(t, loadedUser[0].ID, fxt.Users[0].ID)
+	})
+	t.Run("load users with a list of identities associated to a those users", func(t *testing.T) {
+		random := uuid.NewV4()
+		myusername := "myusername" + random.String()
+		numUsers := 3
+		tf.NewTestFixture(s.T(), s.DB,
+			tf.Users(numUsers),
+			tf.Identities(5, func(fixture *tf.TestFixture, idx int) error {
+				fixture.Identities[idx].Username = myusername
+				fixture.Identities[idx].User = *fixture.Users[idx%numUsers]
+				return nil
+			}),
+		)
+		loadedUser, err := s.repo.LoadByUsername(s.Ctx, myusername)
+		require.NoError(t, err, "Could not load user")
+		require.Len(t, loadedUser, numUsers)
+	})
 }
 
 func (s *userBlackBoxTest) TestExistsUser() {
