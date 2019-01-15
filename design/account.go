@@ -198,7 +198,7 @@ var _ = a.Resource("users", func() {
 		)
 		a.Description("Delete user resources for a given username.")
 		a.Params(func() {
-			a.Param("username", d.String, "Username to delete related resources")
+			a.Param("username", d.String, "Username to delete related resources and the user itself.")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
