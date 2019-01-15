@@ -76,6 +76,28 @@ func (s *TestUsersSuite) TestDeleteUsers() {
 		err = s.spaceRepo.CheckExists(context.Background(), fxt.Spaces[0].ID)
 		require.Error(s.T(), err, "Space should not exist")
 	})
+	t.Run("a user with multiple identities", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(3), tf.Spaces(1))
+		// when
+		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
+		test.DeleteUsersOK(s.T(), secureService.Context, secureService, secureController, fxt.Identities[0].Username)
+		// then
+		_, err := s.userRepo.Load(context.Background(), fxt.Users[0].ID)
+		require.Error(s.T(), err, "User should have been deleted")
+		err = s.userRepo.CheckExists(context.Background(), fxt.Users[0].ID)
+		require.Error(s.T(), err, "User should not exist")
+		for _, identity := range fxt.Identities {
+			_, errID := s.identityRepo.Load(context.Background(), identity.ID)
+			require.Error(s.T(), errID, "Identity should have been deleted")
+			err = s.identityRepo.CheckExists(context.Background(), identity.ID)
+			require.Error(s.T(), err, "Identity should not exist")
+		}
+		_, errSpace := s.spaceRepo.Load(context.Background(), fxt.Spaces[0].ID)
+		require.Error(s.T(), errSpace, "Space should have been deleted")
+		err = s.spaceRepo.CheckExists(context.Background(), fxt.Spaces[0].ID)
+		require.Error(s.T(), err, "Space should not exist")
+	})
 	t.Run("bad request", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
