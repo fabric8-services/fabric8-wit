@@ -95,7 +95,7 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 }
 
 func (m *GormUserRepository) LoadByUsername(ctx context.Context, username string) ([]User, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "user", "load"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "user", "load_by_username"}, time.Now())
 	users := make([]User, 0)
 	rows, err := m.db.Raw("SELECT DISTINCT u.id, u.email FROM users u, identities i WHERE u.id = i.user_id AND i.username = ?", username).Rows()
 	defer rows.Close()
