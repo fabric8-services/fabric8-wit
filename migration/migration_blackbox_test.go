@@ -1413,9 +1413,9 @@ func testMigration111WITinTrackerQuery(t *testing.T) {
 func testMigration112CascadingDelete(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:113], 113)
 	require.True(t, dialect.HasForeignKey("identities", "identities_user_id_fkey"))
-	require.True(t, dialect.HasForeignKey("comment_revisions", "comment_revisions_modifier_id_fkey"))
-	require.True(t, dialect.HasForeignKey("work_item_link_revisions", "work_item_link_revisions_modifier_id_fkey"))
-	require.True(t, dialect.HasForeignKey("work_item_revisions", "work_item_revisions_modifier_id_fkey"))
+	require.False(t, dialect.HasForeignKey("comment_revisions", "comment_revisions_identity_fk"))
+	require.False(t, dialect.HasForeignKey("work_item_link_revisions", "work_item_link_revisions_modifier_id_fk"))
+	require.False(t, dialect.HasForeignKey("work_item_revisions", "work_item_revisions_identity_fk"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
