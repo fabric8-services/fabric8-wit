@@ -189,14 +189,7 @@ func (c *UsersController) Delete(ctx *app.DeleteUsersContext) error {
 		}
 		// Collect all users for a given name to delete all users and identities (with on-cascade FK)
 		users, err := appl.Users().LoadByUsername(ctx, username)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"username": username,
-				"err":      err,
-			}, "unable to load the user")
-			return errors.NewNotFoundError("user", username)
-		}
-		if len(users) == 0 {
+		if err != nil || len(users) == 0 {
 			log.Error(ctx, map[string]interface{}{
 				"username": username,
 				"err":      err,
