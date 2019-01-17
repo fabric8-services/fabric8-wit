@@ -317,6 +317,12 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 // to coexist with permanent delete.
 func (m *GormRepository) PermanentDelete(ctx context.Context, ID uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "permanent_delete"}, time.Now())
+	if ID == uuid.Nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": ID.String(),
+		}, "space id is nil, no space found for permanent deletion")
+		return errors.NewNotFoundError("space", ID.String())
+	}
 	tx := m.db.Unscoped().Delete(&Space{ID: ID})
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
