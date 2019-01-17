@@ -139,7 +139,7 @@ func (s *userBlackBoxTest) TestSave() {
 		assert.Equal(t, user.FullName, updatedUser.FullName)
 		fields := user.ContextInformation
 		assert.Equal(t, fields["last_visited"], "http://www.google.com")
-		assert.Equal(t, fields["myid"], "XXX71f343e3-2bfa-4ec6-86d4-79b91476acfc")
+		assert.Equal(t, fields["myid"], "71f343e3-2bfa-4ec6-86d4-79b91476acfc")
 	})
 	t.Run("update empty string", func(t *testing.T) {
 		err := s.repo.Save(s.Ctx, user)
