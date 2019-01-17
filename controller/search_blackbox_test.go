@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +15,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/fabric8-services/fabric8-wit/test/testfixture"
 
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 
@@ -96,8 +97,8 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		// return results
 		return result, nil
 	}
-	newFixture := func(t *testing.T, n int, multi bool) *testfixture.TestFixture {
-		return tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(),
+	newFixture := func(t *testing.T, n int, multi bool, parentChilds bool) *testfixture.TestFixture {
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(),
 			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
 				fxt.Spaces[0].SpaceTemplateID = spacetemplate.SystemAgileTemplateID
 				return nil
@@ -121,9 +122,28 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 				return nil
 			}),
 		)
+		// n needs to be >= 4 if parentChilds is set
+		require.True(t, !parentChilds || (parentChilds && n >= 4))
+		if parentChilds {
+			var err error
+			fxtWithLinks, err := tf.NewFixtureIsolated(s.DB, tf.WorkItemLinks(n, func(fxt2 *tf.TestFixture, idx int) error {
+				link := fxt2.WorkItemLinks[idx]
+				link.LinkTypeID = uuid.FromStringOrNil("25C326A7-6D03-4F5A-B23B-86A9EE4171E9") // Parenting
+				link.TargetID = fxt.WorkItems[idx].ID
+				if idx%2 == 0 {
+					link.SourceID = fxt.WorkItems[0].ID
+				} else {
+					link.SourceID = fxt.WorkItems[1].ID
+				}
+				return nil
+			}))
+			require.NoError(t, err)
+			fxt.WorkItemLinks = fxtWithLinks.WorkItemLinks
+		}
+		return fxt
 	}
 	s.T().Run("standard result", func(t *testing.T) {
-		fxt := newFixture(t, 1, false)
+		fxt := newFixture(t, 1, false, false)
 		// when
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
 		rr := httptest.NewRecorder()
@@ -148,7 +168,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok.res.headers.golden.json"), rw.Header())
 		})
 		t.Run("compound type", func(t *testing.T) {
-			require.Equal(t, "important;backend", entities[0]["Labels"])
+			require.Equal(t, "important\nbackend", entities[0]["Labels"])
 		})
 		t.Run("resolved type", func(t *testing.T) {
 			require.Equal(t, "New", entities[0]["State"])
@@ -168,7 +188,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		})
 	})
 	s.T().Run("multiple results and chunking", func(t *testing.T) {
-		fxt := newFixture(t, 242, true)
+		fxt := newFixture(t, 242, true, false)
 		// when
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
 		rr := httptest.NewRecorder()
@@ -203,8 +223,46 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		require.Len(t, foundNumbers, 242)
 		require.Equal(t, expectedNumbers, foundNumbers)
 	})
+	s.T().Run("parents and childs with user provided tree option", func(t *testing.T) {
+		fxt := newFixture(t, 242, true, true)
+		// when
+		filter := fmt.Sprintf(`{"space": "%s", "$OPTS":{"tree-view":true}}`, fxt.WorkItems[0].SpaceID)
+		rr := httptest.NewRecorder()
+		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
+		rw := test.WorkitemsCSVSearchOK(t, goaCtx, s.svc, s.controller, &filter, nil, nil, nil)
+		// then
+		recorder := rw.(*httptest.ResponseRecorder)
+		recorder.Flush()
+		require.NotNil(t, recorder.Body)
+		bodyStr := recorder.Body.String()
+		// deserialize and check consistency of header and entity lines.
+		entities, err := deserialize(bodyStr)
+		require.NoError(t, err)
+		require.Len(t, entities, 242)
+		compareWithGoldenOpts(t, filepath.Join(s.testDir, "csv", "ok-parentchilds.res.payload.golden.csv"), bodyStr, compareOptions{UUIDAgnostic: true, DateTimeAgnostic: true})
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok-parentchilds.res.headers.golden.json"), rw.Header())
+	})
+	s.T().Run("parents and childs without user provided tree option", func(t *testing.T) {
+		fxt := newFixture(t, 242, true, true)
+		// when
+		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
+		rr := httptest.NewRecorder()
+		goaCtx := goa.NewContext(s.svc.Context, rr, nil, nil)
+		rw := test.WorkitemsCSVSearchOK(t, goaCtx, s.svc, s.controller, &filter, nil, nil, nil)
+		// then
+		recorder := rw.(*httptest.ResponseRecorder)
+		recorder.Flush()
+		require.NotNil(t, recorder.Body)
+		bodyStr := recorder.Body.String()
+		// deserialize and check consistency of header and entity lines.
+		entities, err := deserialize(bodyStr)
+		require.NoError(t, err)
+		require.Len(t, entities, 242)
+		compareWithGoldenOpts(t, filepath.Join(s.testDir, "csv", "ok-parentchilds.res.payload.golden.csv"), bodyStr, compareOptions{UUIDAgnostic: true, DateTimeAgnostic: true})
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "csv", "ok-parentchilds.res.headers.golden.json"), rw.Header())
+	})
 	s.T().Run("empty result", func(t *testing.T) {
-		newFixture(t, 1, false)
+		newFixture(t, 1, false, false)
 		// when giving a non-existing SpaceID
 		filter := fmt.Sprintf(`{"space": "%s"}`, uuid.NewV4().String())
 		rr := httptest.NewRecorder()
@@ -221,7 +279,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsCSV() {
 		require.Len(t, entities, 0)
 	})
 	s.T().Run("paging", func(t *testing.T) {
-		fxt := newFixture(t, 10, false)
+		fxt := newFixture(t, 10, false, false)
 		// when
 		filter := fmt.Sprintf(`{"space": "%s"}`, fxt.WorkItems[0].SpaceID)
 		rr := httptest.NewRecorder()
@@ -1942,4 +2000,49 @@ func TestWorkItemInterfaceSliceSort(t *testing.T) {
 		// then
 		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
 	})
+}
+
+func (s *searchControllerTestSuite) TestSearchByTrackerQuery() {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Spaces(1),
+		tf.WorkItemTypes(1),
+		tf.Trackers(1),
+		tf.TrackerQueries(2),
+		tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 0, 1, 2, 3:
+				fxt.WorkItems[idx].Fields[workitem.SystemRemoteTrackerID] = fxt.TrackerQueries[0].ID
+			default:
+				fxt.WorkItems[idx].Fields[workitem.SystemRemoteTrackerID] = fxt.TrackerQueries[1].ID
+			}
+			return nil
+		}),
+	)
+	assert.NotNil(s.T(), fxt.Spaces, fxt.Trackers, fxt.WorkItemTypes, fxt.TrackerQueries, fxt.WorkItems)
+	spaceIDStr := fxt.Spaces[0].ID.String()
+
+	s.T().Run("search by trackerquery", func(t *testing.T) {
+		// TrackerQuery1
+		filter1 := fmt.Sprintf(`
+                               {"$AND": [
+                                       {"space":"%s"},
+                                       {"trackerquery.id": "%s"}
+                               ]}`,
+			spaceIDStr, fxt.TrackerQueries[0].ID)
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter1, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 4)
+
+		// TrackerQuery2
+		filter2 := fmt.Sprintf(`
+                               {"$AND": [
+                                       {"space":"%s"},
+                                       {"trackerquery.id": "%s"}
+                               ]}`,
+			spaceIDStr, fxt.TrackerQueries[1].ID)
+		_, result2 := test.ShowSearchOK(t, nil, nil, s.controller, &filter2, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result2.Data)
+		assert.Len(t, result2.Data, 1)
+	})
+
 }

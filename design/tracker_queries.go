@@ -39,6 +39,7 @@ var trackerQueryAttributes = a.Type("TrackerQueryAttributes", func() {
 var trackerQueryRelationships = a.Type("TrackerQueryRelations", func() {
 	a.Attribute("tracker", relationKindUUID, "This defines the related tracker")
 	a.Attribute("space", relationSpaces, "This defines the owning space")
+	a.Attribute("workItemType", relationBaseType, "Defines what work item type to use when instantiating work items using this tracker query.")
 })
 
 var trackerQueryList = JSONList(
@@ -54,22 +55,6 @@ var trackerQuerySingle = JSONSingle(
 
 var _ = a.Resource("trackerquery", func() {
 	a.BasePath("/trackerqueries")
-
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List all tracker queries.")
-		a.Params(func() {
-			a.Param("filter", d.String, "a query language expression restricting the set of found items")
-			a.Param("page", d.String, "Paging in the format <start>,<limit>")
-		})
-		a.Response(d.OK, trackerQueryList)
-		a.Response(d.NotModified)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.TemporaryRedirect)
-	})
 
 	a.Action("show", func() {
 		a.Routing(
@@ -111,29 +96,31 @@ var _ = a.Resource("trackerquery", func() {
 		a.Description("Delete tracker query.")
 		a.Params(func() {
 			a.Param("id", d.UUID, "id")
+			a.Param("delete-wi", d.Boolean, "delete workitems")
+			a.Required("id", "delete-wi")
 		})
-		a.Response(d.NoContent)
+		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
 	})
-	a.Action("update", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.PUT("/:id"),
-		)
-		a.Description("Update tracker query.")
-		a.Payload(trackerQuerySingle)
-		a.Response(d.OK, func() {
-			a.Media(trackerQuerySingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.Forbidden, JSONAPIErrors)
-	})
+})
 
+var _ = a.Resource("space_tracker_queries", func() {
+	a.Parent("space")
+	a.BasePath("/trackerqueries")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List trackerqueries")
+		a.UseTrait("conditional")
+		a.Response(d.OK, trackerQueryList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
 })

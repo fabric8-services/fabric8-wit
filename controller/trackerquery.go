@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/fabric8-services/fabric8-common/auth"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -19,6 +21,7 @@ import (
 
 type trackerQueryConfiguration interface {
 	GetGithubAuthToken() string
+	GetCacheControlTrackerQueries() string
 }
 
 // TrackerqueryController implements the trackerquery resource.
@@ -27,6 +30,7 @@ type TrackerqueryController struct {
 	db            application.DB
 	scheduler     *remoteworkitem.Scheduler
 	configuration trackerQueryConfiguration
+	authService   auth.AuthService
 }
 
 func getAccessTokensForTrackerQuery(configuration trackerQueryConfiguration) map[string]string {
@@ -38,8 +42,14 @@ func getAccessTokensForTrackerQuery(configuration trackerQueryConfiguration) map
 }
 
 // NewTrackerqueryController creates a trackerquery controller.
-func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler, configuration trackerQueryConfiguration) *TrackerqueryController {
-	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), db: db, scheduler: scheduler, configuration: configuration}
+func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler, configuration trackerQueryConfiguration, authService auth.AuthService) *TrackerqueryController {
+	return &TrackerqueryController{
+		Controller:    service.NewController("TrackerqueryController"),
+		db:            db,
+		scheduler:     scheduler,
+		configuration: configuration,
+		authService:   authService,
+	}
 }
 
 // Create runs the create action.
@@ -48,10 +58,18 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+
 	err = validateCreateTrackerQueryPayload(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+
+	// check if user has contribute scope
+	err = c.authService.RequireScope(ctx, ctx.Payload.Data.Relationships.Space.Data.ID.String(), "contribute")
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		err = appl.Spaces().CheckExists(ctx, *ctx.Payload.Data.Relationships.Space.Data.ID)
 		if err != nil {
@@ -93,12 +111,15 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		trackerQuery := remoteworkitem.TrackerQuery{
-			Query:     ctx.Payload.Data.Attributes.Query,
-			Schedule:  ctx.Payload.Data.Attributes.Schedule,
-			TrackerID: ctx.Payload.Data.Relationships.Tracker.Data.ID,
-			SpaceID:   *ctx.Payload.Data.Relationships.Space.Data.ID,
+			Query:          ctx.Payload.Data.Attributes.Query,
+			Schedule:       ctx.Payload.Data.Attributes.Schedule,
+			TrackerID:      ctx.Payload.Data.Relationships.Tracker.Data.ID,
+			SpaceID:        *ctx.Payload.Data.Relationships.Space.Data.ID,
+			WorkItemTypeID: ctx.Payload.Data.Relationships.WorkItemType.Data.ID,
 		}
-		trackerQuery.ID = *ctx.Payload.Data.ID
+		if ctx.Payload.Data.ID != nil {
+			trackerQuery.ID = *ctx.Payload.Data.ID
+		}
 		tq, err := appl.TrackerQueries().Create(ctx.Context, trackerQuery)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create tracker query %s", ctx.Payload.Data)
@@ -132,58 +153,55 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 	return nil
 }
 
-// Update runs the update action.
-func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) error {
-	_, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
-	}
-	err = validateUpdateTrackerQueryPayload(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	err = application.Transactional(c.db, func(appl application.Application) error {
-
-		tq, err := appl.TrackerQueries().Load(ctx.Context, *ctx.Payload.Data.ID)
-		if err != nil {
-			return errs.Wrapf(err, "failed to update tracker query %s", ctx.Payload.Data.ID)
-		}
-		if &ctx.Payload.Data.Attributes.Query != nil {
-			tq.Query = ctx.Payload.Data.Attributes.Query
-		}
-		if &ctx.Payload.Data.Attributes.Schedule != nil {
-			tq.Schedule = ctx.Payload.Data.Attributes.Schedule
-		}
-		if &ctx.Payload.Data.Relationships.Tracker.Data.ID != nil {
-			tq.TrackerID = ctx.Payload.Data.Relationships.Tracker.Data.ID
-		}
-		_, err = appl.TrackerQueries().Save(ctx.Context, *tq)
-		if err != nil {
-			return errs.Wrapf(err, "failed to update tracker query %s", ctx.Payload.Data.ID)
-		}
-		res := &app.TrackerQuerySingle{
-			Data: convertTrackerQueryToApp(appl, ctx.Request, *tq),
-		}
-		return ctx.OK(res)
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
-	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return nil
-}
-
 // Delete runs the delete action.
 func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUserIdentity, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			return errs.Wrapf(err, "failed to delete tracker query %s", ctx.ID)
+		}
+
+		// check if user has contribute scope
+		err = c.authService.RequireScope(ctx, tq.SpaceID.String(), "contribute")
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		if ctx.DeleteWi == true {
+			// find all workitems that belong to that trackerquery
+			filter := fmt.Sprintf(`
+                               {"$AND": [
+                                       {"space":"%s"},
+                                       {"trackerquery.id": "%s"}
+                               ]}`,
+				tq.SpaceID, ctx.ID)
+			parentExists := false
+			wiList, count, _, _, err := appl.SearchItems().Filter(ctx.Context, filter, &parentExists, nil, nil)
+			if err != nil {
+				cause := errs.Cause(err)
+				switch cause.(type) {
+				case errors.BadParameterError:
+					return goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression '%s': %s", filter, err))
+				default:
+					log.Error(ctx, map[string]interface{}{
+						"err":               err,
+						"filter_expression": filter,
+					}, "unable to list the work items")
+					return goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err))
+				}
+			}
+			// delete the workitems
+			for i := 0; i < count; i++ {
+				err := appl.WorkItems().Delete(ctx.Context, wiList[i].ID, *currentUserIdentity)
+				if err != nil {
+					return errs.Wrapf(err, "error deleting work item %s", wiList[i].ID)
+				}
+			}
 		}
 		return appl.TrackerQueries().Delete(ctx.Context, tq.ID)
 	})
@@ -192,20 +210,7 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return ctx.NoContent()
-}
-
-// List runs the list action.
-func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		trackerqueries, err := appl.TrackerQueries().List(ctx)
-		if err != nil {
-			return errs.Wrapf(err, "failed to list tracker queries")
-		}
-		res := &app.TrackerQueryList{}
-		res.Data = ConvertTrackerQueriesToApp(appl, ctx.Request, trackerqueries)
-		return ctx.OK(res)
-	})
+	return ctx.OK([]byte{})
 }
 
 // ConvertTrackerQueriesToApp from internal to external REST representation
@@ -247,22 +252,6 @@ func validateCreateTrackerQueryPayload(ctx *app.CreateTrackerqueryContext) error
 	}
 	if *ctx.Payload.Data.Relationships.Space.Data.ID == uuid.Nil {
 		return errors.NewBadParameterError("SpaceID", nil).Expected("not nil")
-	}
-	return nil
-}
-
-func validateUpdateTrackerQueryPayload(ctx *app.UpdateTrackerqueryContext) error {
-	if ctx.Payload.Data.ID == nil {
-		return errors.NewBadParameterError("ID", nil).Expected("not nil")
-	}
-	if ctx.Payload.Data.Attributes.Query == "" {
-		return errors.NewBadParameterError("Query", "").Expected("not empty")
-	}
-	if ctx.Payload.Data.Attributes.Schedule == "" {
-		return errors.NewBadParameterError("Schedule", "").Expected("not empty")
-	}
-	if ctx.Payload.Data.Relationships.Tracker.Data.ID == uuid.Nil {
-		return errors.NewBadParameterError("TrackerID", nil).Expected("not nil")
 	}
 	return nil
 }

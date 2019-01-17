@@ -160,7 +160,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration108", testMigration108NumberColumnForArea)
 	t.Run("TestMigration109", testMigration109NumberColumnForIteration)
 	t.Run("TestMigration110", testMigration110TrackerQueryID)
-
+	t.Run("TestMigration111", testMigration111WITinTrackerQuery)
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
 	require.NoError(t, err, "failed to execute database migration")
@@ -1400,6 +1400,14 @@ func testMigration110TrackerQueryID(t *testing.T) {
 		return false
 	}
 	require.True(t, checkTqConstraint(t, "tracker_queries", "PRIMARY KEY"))
+}
+func testMigration111WITinTrackerQuery(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:112], 111)
+	require.True(t, dialect.HasColumn("tracker_queries", "work_item_type_id"))
+
+	// check foreign key to work_item_types(id) exists
+	require.True(t, dialect.HasForeignKey("tracker_queries", "tracker_queries_work_item_type_id_fkey"))
+
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

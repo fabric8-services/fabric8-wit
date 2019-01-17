@@ -98,6 +98,7 @@ const (
 	varCacheControlLabel            = "cachecontrol.label"
 	varCacheControlQuery            = "cachecontrol.query"
 	varCacheControlComment          = "cachecontrol.comment"
+	varCacheControlTrackerQueries   = "cachecontrol.trackerqueries"
 
 	defaultConfigFile           = "config.yaml"
 	varOpenshiftTenantMasterURL = "openshift.tenant.masterurl"
@@ -231,6 +232,7 @@ func (c *Registry) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlFilters, "max-age=86400")
 	c.v.SetDefault(varCacheControlUsers, "max-age=2")
 	c.v.SetDefault(varCacheControlCollaborators, "max-age=2")
+	c.v.SetDefault(varCacheControlTrackerQueries, "max-age=2")
 
 	// Cache control values for a single resource
 	c.v.SetDefault(varCacheControlWorkItem, "private,max-age=2")
@@ -530,6 +532,12 @@ func (c *Registry) GetCacheControlComments() string {
 // when returning a comment.
 func (c *Registry) GetCacheControlComment() string {
 	return c.v.GetString(varCacheControlComment)
+}
+
+// GetCacheControlTrackerQueries returns the value to set in the "Cache-Control" HTTP response header
+// when returning a comment.
+func (c *Registry) GetCacheControlTrackerQueries() string {
+	return c.v.GetString(varCacheControlTrackerQueries)
 }
 
 // GetCacheControlFilters returns the value to set in the "Cache-Control" HTTP response header
