@@ -1413,8 +1413,11 @@ func testMigration111WITinTrackerQuery(t *testing.T) {
 func testMigration112CascadingDelete(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:113], 113)
 	require.True(t, dialect.HasForeignKey("identities", "identities_user_id_fkey"))
+	require.True(t, dialect.HasColumn("comment_revisions", "modifier_id"))
 	require.False(t, dialect.HasForeignKey("comment_revisions", "comment_revisions_identity_fk"))
+	require.True(t, dialect.HasColumn("work_item_link_revisions", "modifier_id"))
 	require.False(t, dialect.HasForeignKey("work_item_link_revisions", "work_item_link_revisions_modifier_id_fk"))
+	require.True(t, dialect.HasColumn("work_item_revisions", "modifier_id"))
 	require.False(t, dialect.HasForeignKey("work_item_revisions", "work_item_revisions_identity_fk"))
 }
 
