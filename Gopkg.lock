@@ -2,17 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/PuerkitoBio/purell"
-  packages = ["."]
-  revision = "8a290539e2e8629dbc4e6bad948158f790ec31f4"
-  version = "v1.0.0"
-
-[[projects]]
-  name = "github.com/PuerkitoBio/urlesc"
-  packages = ["."]
-  revision = "5bd2802263f21d8788851d5305584c82a5c75d7e"
-
-[[projects]]
   name = "github.com/ajg/form"
   packages = ["."]
   revision = "cc2954064ec9ea8d93917f0f87456e11d7b881ad"
@@ -82,18 +71,11 @@
 [[projects]]
   name = "github.com/docker/distribution"
   packages = [
-    "digest",
+    "digestset",
     "reference"
   ]
-  revision = "cd27f179f2c10c5d300e6d09025b538c475b0d51"
-
-[[projects]]
-  name = "github.com/emicklei/go-restful"
-  packages = [
-    ".",
-    "log"
-  ]
-  revision = "ff4f55a206334ef123e4f79bbf348980da81ca46"
+  revision = "2461543d988979529609e8cb6fca9ca190dc48da"
+  version = "v2.7.1"
 
 [[projects]]
   name = "github.com/fabric8-services/fabric8-auth"
@@ -165,26 +147,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  name = "github.com/go-openapi/jsonpointer"
-  packages = ["."]
-  revision = "46af16f9f7b149af66e5d1bd010e3574dc06de98"
-
-[[projects]]
-  name = "github.com/go-openapi/jsonreference"
-  packages = ["."]
-  revision = "13c6e3589ad90f49bd3e3bbe2c2cb3d7a4142272"
-
-[[projects]]
-  name = "github.com/go-openapi/spec"
-  packages = ["."]
-  revision = "6aced65f8501fe1217321abf0749d354824ba2ff"
-
-[[projects]]
-  name = "github.com/go-openapi/swag"
-  packages = ["."]
-  revision = "1d0bd113de87027671077d3c71eb3ac5d7dbba72"
-
-[[projects]]
   name = "github.com/goadesign/goa"
   packages = [
     ".",
@@ -222,7 +184,8 @@
     "proto",
     "sortkeys"
   ]
-  revision = "c0656edd0d9eab7c66d1eb0c568f9039345796f7"
+  revision = "4cbf7e384e768b4e01799441fdf2a706a5635ae7"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -240,9 +203,10 @@
   revision = "3815f8d1b952717b22f2905b1a91896dfa77fab1"
 
 [[projects]]
+  branch = "master"
   name = "github.com/golang/glog"
   packages = ["."]
-  revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
+  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
   name = "github.com/golang/lint"
@@ -265,9 +229,10 @@
   revision = "9235644dd9e52eeae6fa48efd539fdc351a0af53"
 
 [[projects]]
+  branch = "master"
   name = "github.com/google/gofuzz"
   packages = ["."]
-  revision = "44d81051d367757e1c7c6a5a86423ece9afcf63c"
+  revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
 
 [[projects]]
   name = "github.com/google/gops"
@@ -307,12 +272,6 @@
   revision = "37ab263305aaeb501a60eb16863e808d426e37f2"
 
 [[projects]]
-  name = "github.com/hawkular/hawkular-client-go"
-  packages = ["metrics"]
-  revision = "3ec6f27f0d339f9aee02ee4ad545581e52b40e19"
-  version = "v0.6.1"
-
-[[projects]]
   name = "github.com/howeyc/fsnotify"
   packages = ["."]
   revision = "441bbc86b167f3c1f4786afae9931403b99fdacf"
@@ -336,6 +295,12 @@
   revision = "74387dc39a75e970e7a3ae6a3386b5bd2e5c5cff"
 
 [[projects]]
+  name = "github.com/json-iterator/go"
+  packages = ["."]
+  revision = "1624edc4454b8682399def8740d46db5e4362ba4"
+  version = "v1.1.5"
+
+[[projects]]
   name = "github.com/jstemmer/go-junit-report"
   packages = [
     ".",
@@ -355,8 +320,8 @@
 [[projects]]
   name = "github.com/juju/ratelimit"
   packages = ["."]
-  revision = "5b9ff866471762aa2ab2dced63c9fb6f53921342"
-  version = "1.0"
+  revision = "59fac5042749a5afb9af70e813da1dd5474f0167"
+  version = "1.0.1"
 
 [[projects]]
   branch = "master"
@@ -377,15 +342,6 @@
   packages = ["."]
   revision = "c3beff4c2358b44d0493c7dda585e7db7ff28ae6"
   version = "v1.7.6"
-
-[[projects]]
-  name = "github.com/mailru/easyjson"
-  packages = [
-    "buffer",
-    "jlexer",
-    "jwriter"
-  ]
-  revision = "d5b7844b561a7bc640052f1b935f7b800330d7e0"
 
 [[projects]]
   name = "github.com/manveru/faker"
@@ -418,6 +374,24 @@
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
   revision = "5a0325d7fafaac12dda6e7fb8bd222ec1b69875e"
+
+[[projects]]
+  name = "github.com/modern-go/concurrent"
+  packages = ["."]
+  revision = "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94"
+  version = "1.0.3"
+
+[[projects]]
+  name = "github.com/modern-go/reflect2"
+  packages = ["."]
+  revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
+  version = "1.0.1"
+
+[[projects]]
+  name = "github.com/opencontainers/go-digest"
+  packages = ["."]
+  revision = "279bed98673dd5bef374d3b6e4b09e2af76183bf"
+  version = "v1.0.0-rc1"
 
 [[projects]]
   name = "github.com/pelletier/go-buffruneio"
@@ -580,7 +554,8 @@
 [[projects]]
   name = "github.com/ugorji/go"
   packages = ["codec"]
-  revision = "ded73eae5db7e7a0ef6f55aace87a2873c5d2b74"
+  revision = "b4c50a2b199d93b13dc15e78929cfb23bfdf21ab"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/wadey/gocovmerge"
@@ -652,21 +627,12 @@
 [[projects]]
   name = "golang.org/x/text"
   packages = [
-    "cases",
     "internal/gen",
-    "internal/tag",
     "internal/triegen",
     "internal/ucd",
-    "language",
-    "runes",
-    "secure/bidirule",
-    "secure/precis",
     "transform",
-    "unicode/bidi",
     "unicode/cldr",
-    "unicode/norm",
-    "unicode/rangetable",
-    "width"
+    "unicode/norm"
   ]
   revision = "2910a502d2bf9e43193af9d68ca516529614eed3"
 
@@ -705,8 +671,8 @@
 [[projects]]
   name = "gopkg.in/inf.v0"
   packages = ["."]
-  revision = "3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4"
-  version = "v0.9.0"
+  revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
+  version = "v0.9.1"
 
 [[projects]]
   name = "gopkg.in/square/go-jose.v2"
@@ -724,9 +690,9 @@
   revision = "a5b47d31c556af34a302ce5d659e6fea44d90de0"
 
 [[projects]]
+  branch = "release-1.10"
   name = "k8s.io/apimachinery"
   packages = [
-    "pkg/api/equality",
     "pkg/api/errors",
     "pkg/api/meta",
     "pkg/api/resource",
@@ -735,13 +701,11 @@
     "pkg/apimachinery/registered",
     "pkg/apis/meta/v1",
     "pkg/apis/meta/v1/unstructured",
-    "pkg/apis/meta/v1alpha1",
+    "pkg/apis/meta/v1beta1",
     "pkg/conversion",
     "pkg/conversion/queryparams",
-    "pkg/conversion/unstructured",
     "pkg/fields",
     "pkg/labels",
-    "pkg/openapi",
     "pkg/runtime",
     "pkg/runtime/schema",
     "pkg/runtime/serializer",
@@ -771,16 +735,14 @@
     "pkg/watch",
     "third_party/forked/golang/reflect"
   ]
-  revision = "1fd2e63a9a370677308a42f24fd40c86438afddf"
+  revision = "d49e237a2683fa6dc43a86c7b1b766e0219fb6e7"
 
 [[projects]]
   name = "k8s.io/client-go"
   packages = [
     "kubernetes/scheme",
-    "kubernetes/typed/core/v1",
     "pkg/api",
     "pkg/api/v1",
-    "pkg/api/v1/ref",
     "pkg/apis/admissionregistration",
     "pkg/apis/admissionregistration/v1alpha1",
     "pkg/apis/apps",
@@ -832,6 +794,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e7df91037ab0c7ad2e50d84dfcf15acb31ab40a3ddd4cf6bd613125023151cef"
+  inputs-digest = "581a42a7cffa08b164c8c731858bbf47f29c43f160fd705f5c371a5fc2acf30b"
   solver-name = "gps-cdcl"
   solver-version = 1

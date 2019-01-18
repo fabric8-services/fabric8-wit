@@ -216,23 +216,6 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			ctx, errors.NewInternalError(ctx, errs.Wrapf(err, "failed to delete codebases associated with space %s", spaceID)))
 	}
 
-	// now delete the OpenShift resources associated with this space on an
-	// OpenShift cluster, unless otherwise specified
-	if ctx.SkipCluster == nil || !*ctx.SkipCluster {
-		err = deleteOpenShiftResource(c.DeploymentsClient, config, ctx.Context, spaceID)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"space_id": spaceID,
-				"err":      err,
-			}, "could not delete OpenShift resources")
-			return jsonapi.JSONErrorResponse(
-				ctx, errors.NewInternalError(ctx, errs.Wrapf(
-					err, "could not delete Openshift resources associated with space %s", spaceID),
-				),
-			)
-		}
-	}
-
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
@@ -350,98 +333,6 @@ func deleteCodebases(
 		return errors.NewInternalErrorFromString(errString)
 	}
 
-	return nil
-}
-
-// deleteOpenShiftResource deletes all the openshift resources present in the
-// OpenShift online cluster corresponding to the given spaceID
-// TODO: fix all the errors, return appropriate errors
-func deleteOpenShiftResource(
-	httpClient *http.Client,
-	config *configuration.Registry,
-	ctx context.Context,
-	spaceID goauuid.UUID) error {
-
-	u, err := url.Parse(config.GetDeploymentsServiceURL())
-	if err != nil {
-		return errors.NewInternalError(ctx,
-			fmt.Errorf("malformed deployments service URL %s: %v",
-				config.GetDeploymentsServiceURL(), err))
-	}
-
-	cl := client.New(goaclient.HTTPClientDoer(httpClient))
-	cl.Host = u.Host
-	cl.Scheme = u.Scheme
-	cl.SetJWTSigner(goasupport.NewForwardSigner(goasupport.ForwardContextRequestID(ctx)))
-
-	// get all the apps and envs
-	path := client.ShowSpaceDeploymentsPath(spaceID)
-	resp, err := cl.ShowSpaceDeployments(ctx, path)
-	if err != nil {
-		return errors.NewInternalError(ctx,
-			fmt.Errorf("could not get deployments: %v", err))
-	}
-	defer resp.Body.Close()
-
-	if 200 < resp.StatusCode && resp.StatusCode >= 300 {
-		formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
-		if err != nil {
-			return errors.NewInternalError(ctx,
-				fmt.Errorf("could not decode JSON formatted errors returned while listing deployments: %v", err))
-		}
-		for _, e := range formattedErrors.Errors {
-			log.Info(ctx, map[string]interface{}{
-				"status_code":     resp.StatusCode,
-				"formatted_error": *e,
-			}, "deleting openshift resources failed")
-
-		}
-		if len(formattedErrors.Errors) > 0 {
-			return errors.NewInternalError(ctx, errs.Errorf(formattedErrors.Errors[0].Detail))
-		}
-		return errors.NewInternalError(ctx, errs.Errorf("unknown error"))
-	}
-	space, err := cl.DecodeSimpleSpaceSingle(resp)
-	if err != nil {
-		return errors.NewInternalError(ctx,
-			fmt.Errorf("could not decode deployments: %v", err))
-	}
-
-	// iterate over all the applications
-	var errorsList []error
-	for _, app := range space.Data.Attributes.Applications {
-		for _, env := range app.Attributes.Deployments {
-			path = client.DeleteDeploymentDeploymentsPath(
-				spaceID,
-				app.Attributes.Name,
-				env.Attributes.Name,
-			)
-			resp, err = cl.DeleteDeploymentDeployments(ctx, path)
-			if err != nil {
-				errorsList = append(errorsList,
-					errs.Wrapf(err, "could not delete deployment for space=%s, app=%s, env=%s", spaceID, app.Attributes.Name, env.Attributes.Name))
-				continue
-			}
-			if 200 < resp.StatusCode && resp.StatusCode >= 300 {
-				formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
-				if err != nil {
-					errorsList = append(errorsList,
-						errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting deployment for space=%s, app=%s, env=%s", spaceID, app.Attributes.Name, env.Attributes.Name))
-					continue
-				}
-				if len(formattedErrors.Errors) > 0 {
-					errorsList = append(errorsList, errs.Errorf(formattedErrors.Errors[0].Detail))
-				}
-			}
-		}
-	}
-	if len(errorsList) != 0 {
-		var errString string
-		for _, err = range errorsList {
-			errString += fmt.Sprintf("%s\n", err)
-		}
-		return errors.NewInternalErrorFromString(errString)
-	}
 	return nil
 }
 

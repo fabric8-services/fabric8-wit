@@ -20,11 +20,6 @@
           "related": "http:///api/user"
         }
       },
-      "deployments_environments": {
-        "links": {
-          "related": "http:///api/deployments/environments"
-        }
-      },
       "endpoints": {
         "links": {
           "related": "http:///api/endpoints"

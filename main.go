@@ -322,10 +322,6 @@ func main() {
 	userServiceCtrl.ShowTenant = account.NewShowTenant(config)
 	app.MountUserServiceController(service, userServiceCtrl)
 
-	// Mount "deployments" controller
-	deploymentsCtrl := controller.NewDeploymentsController(service, config)
-	app.MountDeploymentsController(service, deploymentsCtrl)
-
 	// Mount "search" controller
 	searchCtrl := controller.NewSearchController(service, appDB, config)
 	app.MountSearchController(service, searchCtrl)
