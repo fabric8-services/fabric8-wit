@@ -313,9 +313,9 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 	return space, nil
 }
 
-// Delete removes a single record. This method use custom SQL to allow soft delete with GORM
+// PermanentDelete removes a single record. This method use custom SQL to allow soft delete with GORM
 // to coexist with permanent delete.
-func (m *GormRepository) PermanentDelete(ctx context.Context, ID uuid.UUID) error {
+func (r *GormRepository) PermanentDelete(ctx context.Context, ID uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "permanent_delete"}, time.Now())
 	if ID == uuid.Nil {
 		log.Error(ctx, map[string]interface{}{
@@ -323,7 +323,7 @@ func (m *GormRepository) PermanentDelete(ctx context.Context, ID uuid.UUID) erro
 		}, "space id is nil, no space found for permanent deletion")
 		return errors.NewNotFoundError("space", ID.String())
 	}
-	tx := m.db.Unscoped().Delete(&Space{ID: ID})
+	tx := r.db.Unscoped().Delete(&Space{ID: ID})
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": ID.String(),
