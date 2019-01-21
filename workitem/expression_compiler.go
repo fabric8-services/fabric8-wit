@@ -111,7 +111,7 @@ func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName str
 		return Column(WorkItemStorage{}.TableName(), mappedFieldName), false
 	}
 
-	if strings.Contains(fieldName, ".") {
+	if strings.Contains(fieldName, ".") || strings.Contains(fieldName, "_") {
 		// leave field untouched
 		return fieldName, true
 	}
@@ -201,6 +201,13 @@ var DefaultTableJoins = func() TableJoinMap {
 					FROM labels)`,
 			PrefixActivators: []string{"label."},
 			AllowedColumns:   []string{"name"},
+		},
+		"trackerquery": {
+			TableName:        "tracker_queries",
+			TableAlias:       "tq",
+			On:               JoinOnJSONField(SystemRemoteTrackerID, "tq.id") + " AND " + Column("tq", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id"),
+			PrefixActivators: []string{"trackerquery."},
+			AllowedColumns:   []string{"id"},
 		},
 	}
 

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/fabric8-services/fabric8-common/auth"
@@ -154,7 +155,7 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 
 // Delete runs the delete action.
 func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUserIdentity, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -171,6 +172,37 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		if ctx.DeleteWi == true {
+			// find all workitems that belong to that trackerquery
+			filter := fmt.Sprintf(`
+                               {"$AND": [
+                                       {"space":"%s"},
+                                       {"trackerquery.id": "%s"}
+                               ]}`,
+				tq.SpaceID, ctx.ID)
+			parentExists := false
+			wiList, count, _, _, err := appl.SearchItems().Filter(ctx.Context, filter, &parentExists, nil, nil)
+			if err != nil {
+				cause := errs.Cause(err)
+				switch cause.(type) {
+				case errors.BadParameterError:
+					return goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression '%s': %s", filter, err))
+				default:
+					log.Error(ctx, map[string]interface{}{
+						"err":               err,
+						"filter_expression": filter,
+					}, "unable to list the work items")
+					return goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err))
+				}
+			}
+			// delete the workitems
+			for i := 0; i < count; i++ {
+				err := appl.WorkItems().Delete(ctx.Context, wiList[i].ID, *currentUserIdentity)
+				if err != nil {
+					return errs.Wrapf(err, "error deleting work item %s", wiList[i].ID)
+				}
+			}
+		}
 		return appl.TrackerQueries().Delete(ctx.Context, tq.ID)
 	})
 	if err != nil {
@@ -178,7 +210,7 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return ctx.NoContent()
+	return ctx.OK([]byte{})
 }
 
 // ConvertTrackerQueriesToApp from internal to external REST representation
