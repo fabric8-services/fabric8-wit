@@ -3,7 +3,6 @@ package fabric8auth
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
@@ -14,23 +13,6 @@ import (
 func AuthAPIUserByName(t *testing.T, pact *dsl.Pact, userName string) {
 
 	log.Println("Invoking AuthAPIUserByName test interaction now")
-
-	// Pass in test case
-	var test = func() error {
-		url := fmt.Sprintf("http://localhost:%d/api/users?filter[username]=%s", pact.Server.Port, userName)
-		req, err := http.NewRequest("GET", url, nil)
-
-		req.Header.Set("Content-Type", "application/json")
-		if err != nil {
-			return err
-		}
-
-		_, err = http.DefaultClient.Do(req)
-		if err != nil {
-			return err
-		}
-		return err
-	}
 
 	// Set up our expected interactions.
 	pact.
@@ -55,8 +37,8 @@ func AuthAPIUserByName(t *testing.T, pact *dsl.Pact, userName string) {
 		})
 
 	// Verify
-	if err := pact.Verify(test); err != nil {
-		log.Fatalf("Error on Verify: %v", err)
+	if err := pact.Verify(SimpleGetInteraction(pact, fmt.Sprintf("/api/users?filter[username]=%s", userName))); err != nil {
+		log.Fatalf("Error on Verify: %+v", err)
 	}
 }
 
@@ -64,23 +46,6 @@ func AuthAPIUserByName(t *testing.T, pact *dsl.Pact, userName string) {
 func AuthAPIUserByID(t *testing.T, pact *dsl.Pact, userID string) {
 
 	log.Printf("Invoking AuthAPIUserByID test interaction now\n")
-
-	// Pass in test case
-	var test = func() error {
-		url := fmt.Sprintf("http://localhost:%d/api/users/%s", pact.Server.Port, userID)
-		req, err := http.NewRequest("GET", url, nil)
-
-		req.Header.Set("Content-Type", "application/json")
-		if err != nil {
-			return err
-		}
-
-		_, err = http.DefaultClient.Do(req)
-		if err != nil {
-			return err
-		}
-		return err
-	}
 
 	// Set up our expected interactions.
 	pact.
@@ -102,8 +67,8 @@ func AuthAPIUserByID(t *testing.T, pact *dsl.Pact, userID string) {
 		})
 
 	// Verify
-	if err := pact.Verify(test); err != nil {
-		log.Fatalf("Error on Verify: %v", err)
+	if err := pact.Verify(SimpleGetInteraction(pact, fmt.Sprintf("/api/users/%s", userID))); err != nil {
+		log.Fatalf("Error on Verify: %+v", err)
 	}
 }
 
@@ -114,23 +79,6 @@ func AuthAPIUserByToken(t *testing.T, pact *dsl.Pact, userToken string) {
 	log.Printf("Invoking AuthAPIUserByToken test interaction now\n")
 
 	// Pass in test case
-	var test = func() error {
-		url := fmt.Sprintf("http://localhost:%d/api/user", pact.Server.Port)
-		req, err := http.NewRequest("GET", url, nil)
-
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", userToken))
-		if err != nil {
-			return err
-		}
-
-		_, err = http.DefaultClient.Do(req)
-		if err != nil {
-			return err
-		}
-		return err
-	}
-
 	// Set up our expected interactions.
 	pact.
 		AddInteraction().
@@ -154,8 +102,8 @@ func AuthAPIUserByToken(t *testing.T, pact *dsl.Pact, userToken string) {
 		})
 
 	// Verify
-	if err := pact.Verify(test); err != nil {
-		log.Fatalf("Error on Verify: %v", err)
+	if err := pact.Verify(SimpleGetInteractionWithToken(pact, "/api/user", userToken)); err != nil {
+		log.Fatalf("Error on Verify: %+v", err)
 	}
 }
 
@@ -163,24 +111,6 @@ func AuthAPIUserByToken(t *testing.T, pact *dsl.Pact, userToken string) {
 func AuthAPIUserInvalidToken(t *testing.T, pact *dsl.Pact, invalidToken string) {
 
 	log.Printf("Invoking AuthAPIUserInvalidToken test interaction now\n")
-
-	// Pass in test case
-	var test = func() error {
-		url := fmt.Sprintf("http://localhost:%d/api/user", pact.Server.Port)
-		req, err := http.NewRequest("GET", url, nil)
-
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", invalidToken))
-		if err != nil {
-			return err
-		}
-
-		_, err = http.DefaultClient.Do(req)
-		if err != nil {
-			return err
-		}
-		return err
-	}
 
 	// Set up our expected interactions.
 	pact.
@@ -205,8 +135,8 @@ func AuthAPIUserInvalidToken(t *testing.T, pact *dsl.Pact, invalidToken string) 
 		})
 
 	// Verify
-	if err := pact.Verify(test); err != nil {
-		log.Fatalf("Error on Verify: %v", err)
+	if err := pact.Verify(SimpleGetInteractionWithToken(pact, "/api/user", invalidToken)); err != nil {
+		log.Fatalf("Error on Verify: %+v", err)
 	}
 }
 
@@ -214,23 +144,6 @@ func AuthAPIUserInvalidToken(t *testing.T, pact *dsl.Pact, invalidToken string) 
 func AuthAPIUserNoToken(t *testing.T, pact *dsl.Pact) {
 
 	log.Printf("Invoking AuthAPIUserNoToken test interaction now\n")
-
-	// Pass in test case
-	var test = func() error {
-		url := fmt.Sprintf("http://localhost:%d/api/user", pact.Server.Port)
-		req, err := http.NewRequest("GET", url, nil)
-
-		req.Header.Set("Content-Type", "application/json")
-		if err != nil {
-			return err
-		}
-
-		_, err = http.DefaultClient.Do(req)
-		if err != nil {
-			return err
-		}
-		return err
-	}
 
 	// Set up our expected interactions.
 	pact.
@@ -251,7 +164,7 @@ func AuthAPIUserNoToken(t *testing.T, pact *dsl.Pact) {
 		})
 
 	// Verify
-	if err := pact.Verify(test); err != nil {
-		log.Fatalf("Error on Verify: %v", err)
+	if err := pact.Verify(SimpleGetInteraction(pact, "/api/user")); err != nil {
+		log.Fatalf("Error on Verify: %+v", err)
 	}
 }

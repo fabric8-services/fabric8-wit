@@ -18,8 +18,8 @@ func TestWitAPIConsumer(t *testing.T) {
 	var pactDir = os.Getenv("PACT_DIR")
 	var pactVersion = os.Getenv("PACT_VERSION")
 
-	var pactConsumer = "Fabric8Wit"
-	var pactProvider = "Fabric8Auth"
+	var pactConsumer = "fabric8-wit"
+	var pactProvider = "fabric8-auth"
 
 	var pactBrokerURL = os.Getenv("PACT_BROKER_URL")
 	var pactBrokerUsername = os.Getenv("PACT_BROKER_USERNAME")
@@ -38,17 +38,19 @@ func TestWitAPIConsumer(t *testing.T) {
 	defer pact.Teardown()
 
 	// Test interactions
-	AuthAPIStatus(t, pact)
+	t.Run("api status", func(t *testing.T) { AuthAPIStatus(t, pact) })
 
-	AuthAPIUserByName(t, pact, model.TestUserName)
-	AuthAPIUserByID(t, pact, model.TestUserID)
-	AuthAPIUserByToken(t, pact, model.TestJWSToken)
+	t.Run("api user by name", func(t *testing.T) { AuthAPIUserByName(t, pact, model.TestUserName) })
+	t.Run("api user by id", func(t *testing.T) { AuthAPIUserByID(t, pact, model.TestUserID) })
+	t.Run("api user by valid token", func(t *testing.T) { AuthAPIUserByToken(t, pact, model.TestJWSToken) })
+	t.Run("api user with no token", func(t *testing.T) { AuthAPIUserNoToken(t, pact) })
+	t.Run("api user with invalid token", func(t *testing.T) { AuthAPIUserInvalidToken(t, pact, model.TestInvalidJWSToken) })
 
-	AuthAPITokenKeys(t, pact)
+	t.Run("api token keys", func(t *testing.T) { AuthAPITokenKeys(t, pact) })
 
 	// Write a pact file
 	pactFile := contracts.PactFile(pactConsumer, pactProvider)
-	log.Printf("All tests done, writting a pact file (%s).\n", pactFile)
+	log.Printf("All tests done, writing a pact file (%s).\n", pactFile)
 	pact.WritePact()
 
 	log.Printf("Publishing pact to a broker (%s)...\n", pactBrokerURL)
@@ -64,6 +66,6 @@ func TestWitAPIConsumer(t *testing.T) {
 	})
 
 	if err != nil {
-		log.Fatalf("Unable to publish pact to a broker (%s):\n%q\n", pactBrokerURL, err)
+		log.Fatalf("Unable to publish pact to a broker (%s):\n%+v\n", pactBrokerURL, err)
 	}
 }

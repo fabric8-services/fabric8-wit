@@ -193,7 +193,7 @@ test-contracts-consumer-no-coverage:
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -e 'contracts/consumer'))
 	PACT_DIR=$(PWD)/test/contracts/pacts \
 	PACT_VERSION="latest" \
-	go test -v $(GO_TEST_VERBOSITY_FLAG) -count=1 $(TEST_PACKAGES)
+	go test $(GO_TEST_VERBOSITY_FLAG) -count=1 $(TEST_PACKAGES)
 
 .PHONY: test-remote
 ## Runs the remote tests and produces coverage files for each package.

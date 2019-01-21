@@ -1,9 +1,7 @@
 package fabric8auth
 
 import (
-	"fmt"
 	"log"
-	"net/http"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
@@ -14,23 +12,6 @@ import (
 func AuthAPIStatus(t *testing.T, pact *dsl.Pact) {
 
 	log.Printf("Invoking AuthAPIStatus now\n")
-
-	// Pass in test case
-	var test = func() error {
-		u := fmt.Sprintf("http://localhost:%d/api/status", pact.Server.Port)
-		req, err := http.NewRequest("GET", u, nil)
-
-		req.Header.Set("Content-Type", "application/json")
-		if err != nil {
-			return err
-		}
-
-		_, err = http.DefaultClient.Do(req)
-		if err != nil {
-			return err
-		}
-		return err
-	}
 
 	// Set up our expected interactions.
 	pact.
@@ -49,7 +30,8 @@ func AuthAPIStatus(t *testing.T, pact *dsl.Pact) {
 		})
 
 	// Verify
-	if err := pact.Verify(test); err != nil {
-		log.Fatalf("Error on Verify: %v", err)
+
+	if err := pact.Verify(SimpleGetInteraction(pact, "/api/status")); err != nil {
+		log.Fatalf("Error on Verify: %+v", err)
 	}
 }
