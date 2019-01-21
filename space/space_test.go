@@ -226,6 +226,48 @@ func (s *SpaceRepositoryTestSuite) TestDelete() {
 	})
 }
 
+func (s *SpaceRepositoryTestSuite) TestPermanentDelete() {
+	t := s.T()
+	t.Run("ok", func(t *testing.T) {
+		// given a space
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
+		id := fxt.Spaces[0].ID
+		// double check that we can load this space
+		sp, err := s.repo.Load(s.Ctx, id)
+		require.NoError(t, err)
+		require.NotNil(t, sp)
+		// when
+		err = s.repo.PermanentDelete(s.Ctx, id)
+		// then
+		require.NoError(t, err)
+		// double check that we can no longer load the space
+		sp, err = s.repo.Load(s.Ctx, id)
+		require.Error(t, err)
+		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+		require.Nil(t, sp)
+	})
+	s.T().Run("not found", func(t *testing.T) {
+		t.Run("not existing space ID", func(t *testing.T) {
+			// given a not existing space ID
+			nonExistingSpaceID := uuid.NewV4()
+			// when
+			err := s.repo.PermanentDelete(s.Ctx, nonExistingSpaceID)
+			// then
+			require.Error(t, err)
+			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+		})
+		t.Run("nil space ID", func(t *testing.T) {
+			// given a not existing space ID
+			nilSpaceID := uuid.Nil
+			// when
+			err := s.repo.PermanentDelete(s.Ctx, nilSpaceID)
+			// then
+			require.Error(t, err)
+			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+		})
+	})
+}
+
 func (s *SpaceRepositoryTestSuite) TestList() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given

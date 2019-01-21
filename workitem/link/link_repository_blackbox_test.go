@@ -167,10 +167,6 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 					_, err := s.workitemRepo.Reorder(s.Ctx, uuid.NewV4(), direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
 					require.Error(t, err)
 				})
-				t.Run("unknown modifier", func(t *testing.T) {
-					_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), uuid.NewV4())
-					require.Error(t, err)
-				})
 			})
 		}
 	})

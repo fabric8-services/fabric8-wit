@@ -192,7 +192,21 @@ var _ = a.Resource("users", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
 	})
-
+	a.Action("delete", func() {
+		a.Routing(
+			a.DELETE("/username/:username"),
+		)
+		a.Description("Delete user resources for a given username.")
+		a.Params(func() {
+			a.Param("username", d.String, "Username to delete related resources and the user itself.")
+		})
+		a.Response(d.OK)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+	})
 	a.Action("updateUserAsServiceAccount", func() {
 		a.Security("jwt")
 		a.Routing(
