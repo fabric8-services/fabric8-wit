@@ -2021,7 +2021,7 @@ func (s *searchControllerTestSuite) TestSearchByTrackerQuery() {
 	assert.NotNil(s.T(), fxt.Spaces, fxt.Trackers, fxt.WorkItemTypes, fxt.TrackerQueries, fxt.WorkItems)
 	spaceIDStr := fxt.Spaces[0].ID.String()
 
-	s.T().Run("search by trackerquery", func(t *testing.T) {
+	s.T().Run("search by trackerquery - success", func(t *testing.T) {
 		// TrackerQuery1
 		filter1 := fmt.Sprintf(`
                                {"$AND": [
@@ -2045,4 +2045,14 @@ func (s *searchControllerTestSuite) TestSearchByTrackerQuery() {
 		assert.Len(t, result2.Data, 1)
 	})
 
+	s.T().Run("search by trackerquery - nonexistent id", func(t *testing.T) {
+		filter1 := fmt.Sprintf(`
+                               {"$AND": [
+                                       {"space":"%s"},
+                                       {"trackerquery.id": "%s"}
+                               ]}`,
+			spaceIDStr, uuid.NewV4())
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter1, nil, nil, nil, nil, &spaceIDStr)
+		require.Empty(t, result.Data)
+	})
 }
