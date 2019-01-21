@@ -162,7 +162,7 @@ func (s *TestTrackerQueryREST) TestUnauthorizeTrackerQueryCUD() {
 func (s *TestTrackerQueryREST) TestCreateTrackerQuery() {
 	resource.Require(s.T(), resource.Database)
 
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1), tf.TrackerQueries(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.TrackerQueries(1))
 	assert.NotNil(s.T(), fxt.Spaces[0], fxt.Trackers[0], fxt.TrackerQueries[0])
 
 	s.T().Run("nil WIT in trackerquery payload", func(t *testing.T) {
@@ -196,7 +196,7 @@ func (s *TestTrackerQueryREST) TestCreateTrackerQuery() {
 func (s *TestTrackerQueryREST) TestShowTrackerQuery() {
 	resource.Require(s.T(), resource.Database)
 
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1), tf.TrackerQueries(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.TrackerQueries(1))
 	assert.NotNil(s.T(), fxt.Spaces[0], fxt.Trackers[0], fxt.TrackerQueries[0])
 
 	_, tqr := test.ShowTrackerqueryOK(s.T(), s.svc.Context, s.svc, s.trackerqueryCtrl, fxt.TrackerQueries[0].ID)
@@ -209,7 +209,7 @@ func (s *TestTrackerQueryREST) TestShowTrackerQuery() {
 func (s *TestTrackerQueryREST) TestCreateTrackerQueryID() {
 	resource.Require(s.T(), resource.Database)
 
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1), tf.TrackerQueries(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.TrackerQueries(1))
 
 	s.T().Run("valid - success", func(t *testing.T) {
 		_, result := test.ShowTrackerqueryOK(t, s.svc.Context, s.svc, s.trackerqueryCtrl, fxt.TrackerQueries[0].ID)
@@ -256,7 +256,7 @@ func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID, witID 
 func (s *TestTrackerQueryREST) TestDeleteTrackerQuery() {
 	resource.Require(s.T(), resource.Database)
 
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1), tf.TrackerQueries(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.TrackerQueries(1))
 	assert.NotNil(s.T(), fxt.Spaces[0], fxt.Trackers[0], fxt.TrackerQueries[0])
 
 	s.T().Run("delete trackerquery - success", func(t *testing.T) {
@@ -276,9 +276,6 @@ func (s *TestTrackerQueryREST) TestDeleteTrackerQuery() {
 
 	s.T().Run("delete remoteworkitems - true", func(t *testing.T) {
 		fxt := tf.NewTestFixture(s.T(), s.DB,
-			tf.Spaces(1),
-			tf.WorkItemTypes(1),
-			tf.Trackers(1),
 			tf.TrackerQueries(2),
 			tf.WorkItems(3, func(fxt *tf.TestFixture, idx int) error {
 				switch idx {
@@ -311,9 +308,6 @@ func (s *TestTrackerQueryREST) TestDeleteTrackerQuery() {
 
 	s.T().Run("delete remoteworkitems - false", func(t *testing.T) {
 		fxt := tf.NewTestFixture(s.T(), s.DB,
-			tf.Spaces(1),
-			tf.WorkItemTypes(1),
-			tf.Trackers(1),
 			tf.TrackerQueries(2),
 			tf.WorkItems(3, func(fxt *tf.TestFixture, idx int) error {
 				switch idx {

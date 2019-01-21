@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"context"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-common/id"
@@ -12,7 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +32,7 @@ type TestUsersSuite struct {
 	controller   *UsersController
 	userRepo     account.UserRepository
 	identityRepo account.IdentityRepository
+	spaceRepo    space.Repository
 }
 
 func (s *TestUsersSuite) SetupSuite() {
@@ -39,6 +41,7 @@ func (s *TestUsersSuite) SetupSuite() {
 	s.controller = NewUsersController(s.svc, s.GormDB, s.Configuration)
 	s.userRepo = s.GormDB.Users()
 	s.identityRepo = s.GormDB.Identities()
+	s.spaceRepo = s.GormDB.Spaces()
 }
 
 func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
@@ -51,243 +54,284 @@ func (s *TestUsersSuite) SecuredServiceAccountController(identity account.Identi
 	return svc, NewUsersController(svc, s.GormDB, s.Configuration)
 }
 
-func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountBadRequest() {
-	// given
-	user := s.createRandomUser("TestObfuscateUserAsServiceAccountBadRequest")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	secureService, secureController := s.SecuredServiceAccountController(identity)
-	// when
-	idAsString := "bad-uuid"
-	test.ObfuscateUsersBadRequest(s.T(), secureService.Context, secureService, secureController, idAsString)
+func (s *TestUsersSuite) TestDeleteUsers() {
+	t := s.T()
+	t.Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1), tf.Spaces(1))
+		// when
+		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
+		test.DeleteUsersOK(t, secureService.Context, secureService, secureController, fxt.Identities[0].Username)
+		// then
+		_, err := s.userRepo.Load(context.Background(), fxt.Users[0].ID)
+		require.Error(t, err, "User should have been deleted")
+		err = s.userRepo.CheckExists(context.Background(), fxt.Users[0].ID)
+		require.Error(t, err, "User should not exist")
+		_, errID := s.identityRepo.Load(context.Background(), fxt.Identities[0].ID)
+		require.Error(t, errID, "Identity should have been deleted")
+		err = s.identityRepo.CheckExists(context.Background(), fxt.Identities[0].ID)
+		require.Error(t, err, "Identity should not exist")
+		_, errSpace := s.spaceRepo.Load(context.Background(), fxt.Spaces[0].ID)
+		require.Error(t, errSpace, "Space should have been deleted")
+		err = s.spaceRepo.CheckExists(context.Background(), fxt.Spaces[0].ID)
+		require.Error(t, err, "Space should not exist")
+	})
+	t.Run("a user with multiple identities", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(3), tf.Spaces(1))
+		// when
+		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
+		test.DeleteUsersOK(t, secureService.Context, secureService, secureController, fxt.Identities[0].Username)
+		// then
+		_, err := s.userRepo.Load(context.Background(), fxt.Users[0].ID)
+		require.Error(t, err, "User should have been deleted")
+		err = s.userRepo.CheckExists(context.Background(), fxt.Users[0].ID)
+		require.Error(t, err, "User should not exist")
+		for _, identity := range fxt.Identities {
+			_, errID := s.identityRepo.Load(context.Background(), identity.ID)
+			require.Error(t, errID, "Identity should have been deleted")
+			err = s.identityRepo.CheckExists(context.Background(), identity.ID)
+			require.Error(t, err, "Identity should not exist")
+		}
+		_, errSpace := s.spaceRepo.Load(context.Background(), fxt.Spaces[0].ID)
+		require.Error(t, errSpace, "Space should have been deleted")
+		err = s.spaceRepo.CheckExists(context.Background(), fxt.Spaces[0].ID)
+		require.Error(t, err, "Space should not exist")
+	})
+	t.Run("bad request", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1))
+		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
+		// when
+		emptyUsername := ""
+		test.DeleteUsersBadRequest(t, secureService.Context, secureService, secureController, emptyUsername)
+	})
+	t.Run("user not found", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1))
+		// when
+		secureService, secureController := s.SecuredServiceAccountController(*fxt.Identities[0])
+		usernameAsString := uuid.NewV4().String() // will never be found.
+		test.DeleteUsersNotFound(t, secureService.Context, secureService, secureController, usernameAsString)
+	})
+	t.Run("not authorized", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1))
+		// when
+		secureService, secureController := s.SecuredController(*fxt.Identities[0])
+		usernameAsString := (fxt.Identities[0].ID).String()
+		test.DeleteUsersUnauthorized(t, secureService.Context, secureService, secureController, usernameAsString)
+	})
 }
 
-func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountOK() {
+func (s *TestUsersSuite) TestObfuscateUser() {
 	// given
-	user := s.createRandomUser("TestObfuscateUserAsServiceAccountOK")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	// when
-	secureService, secureController := s.SecuredServiceAccountController(identity)
-	test.ObfuscateUsersOK(s.T(), secureService.Context, secureService, secureController, (user.ID).String())
-	// then
-	obfUser, err := s.userRepo.Load(context.Background(), user.ID)
-	require.NoError(s.T(), err)
-	obsString := obfUser.FullName
-	assert.Equal(s.T(), len(obsString), 12)
-	assert.Equal(s.T(), obfUser.Email, obsString+"@mail.com")
-	assert.Equal(s.T(), obfUser.FullName, obsString)
-	assert.Equal(s.T(), obfUser.ImageURL, obsString)
-	assert.Equal(s.T(), obfUser.Bio, obsString)
-	assert.Equal(s.T(), obfUser.URL, obsString)
-	assert.Equal(s.T(), obfUser.Company, obsString)
-	assert.Nil(s.T(), obfUser.ContextInformation)
-	obfIdentity, err := s.identityRepo.Load(context.Background(), identity.ID)
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), obfIdentity.Username, obsString)
-	assert.Equal(s.T(), obfIdentity.ProfileURL, &obsString)
+	t := s.T()
+	user := s.createRandomUser("TestObfuscateUser")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP, t)
+	t.Run("bad request", func(t *testing.T) {
+		// given
+		secureService, secureController := s.SecuredServiceAccountController(identity)
+		idAsString := "bad-uuid"
+		// when
+		test.ObfuscateUsersBadRequest(t, secureService.Context, secureService, secureController, idAsString)
+	})
+	t.Run("obfuscated is ok", func(t *testing.T) {
+		// given
+		secureService, secureController := s.SecuredServiceAccountController(identity)
+		// when
+		test.ObfuscateUsersOK(t, secureService.Context, secureService, secureController, (user.ID).String())
+		// then
+		obfUser, err := s.userRepo.Load(context.Background(), user.ID)
+		require.NoError(t, err)
+		obsString := obfUser.FullName
+		assert.Equal(t, len(obsString), 12)
+		assert.Equal(t, obfUser.Email, obsString+"@mail.com")
+		assert.Equal(t, obfUser.FullName, obsString)
+		assert.Equal(t, obfUser.ImageURL, obsString)
+		assert.Equal(t, obfUser.Bio, obsString)
+		assert.Equal(t, obfUser.URL, obsString)
+		assert.Equal(t, obfUser.Company, obsString)
+		assert.Nil(t, obfUser.ContextInformation)
+		obfIdentity, err := s.identityRepo.Load(context.Background(), identity.ID)
+		require.NoError(t, err)
+		assert.Equal(t, obfIdentity.Username, obsString)
+		assert.Equal(t, obfIdentity.ProfileURL, &obsString)
+	})
+	t.Run("user not found", func(t *testing.T) {
+		// given
+		secureService, secureController := s.SecuredServiceAccountController(identity)
+		idAsString := uuid.NewV4().String() // will never be found.
+		// when
+		test.ObfuscateUsersNotFound(t, secureService.Context, secureService, secureController, idAsString)
+	})
+	t.Run("unauthorized", func(t *testing.T) {
+		// given
+		secureService, secureController := s.SecuredController(identity)
+		idAsString := (identity.ID).String()
+		// when
+		test.ObfuscateUsersUnauthorized(t, secureService.Context, secureService, secureController, idAsString)
+	})
 }
 
-func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountNotFound() {
+func (s *TestUsersSuite) TestUpdateUser() {
 	// given
-	user := s.createRandomUser("TestObfuscateUserAsServiceAccountNotFound")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	t := s.T()
+	user := s.createRandomUser("TestUpdateUser")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP, t)
+	t.Run("unauthorized", func(t *testing.T) {
+		// when
+		newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+		newFullName := "TestUpdateUserOK"
+		newImageURL := "http://new.image.io/imageurl"
+		newBio := "new bio"
+		newProfileURL := "http://new.profile.url/url"
+		newCompany := "updateCompany " + uuid.NewV4().String()
+		secureService, secureController := s.SecuredController(identity)
 
-	// when
-	secureService, secureController := s.SecuredServiceAccountController(identity)
-	idAsString := uuid.NewV4().String() // will never be found.
-	test.ObfuscateUsersNotFound(s.T(), secureService.Context, secureService, secureController, idAsString)
+		contextInformation := map[string]interface{}{
+			"last_visited": "yesterday",
+			"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+			"rate":         100.00,
+			"count":        3,
+		}
+		updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
 
+		idAsString := (identity.ID).String()
+		test.UpdateUserAsServiceAccountUsersUnauthorized(t, secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
+
+	})
+	t.Run("bad request", func(t *testing.T) {
+		// when
+		newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+		newFullName := "TestUpdateUserOK"
+		newImageURL := "http://new.image.io/imageurl"
+		newBio := "new bio"
+		newProfileURL := "http://new.profile.url/url"
+		newCompany := "updateCompany " + uuid.NewV4().String()
+		secureService, secureController := s.SecuredServiceAccountController(identity)
+
+		contextInformation := map[string]interface{}{
+			"last_visited": "yesterday",
+			"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+			"rate":         100.00,
+			"count":        3,
+		}
+		updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
+
+		idAsString := "bad-uuid"
+		test.UpdateUserAsServiceAccountUsersBadRequest(t, secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
+
+	})
+	t.Run("ok", func(t *testing.T) {
+		// when
+		user.Email = "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+		user.FullName = "TestUpdateUserOK"
+		user.ImageURL = "http://new.image.io/imageurl"
+		user.Bio = "new bio"
+		user.URL = "http://new.profile.url/url"
+		user.Company = "updateCompany " + uuid.NewV4().String()
+		secureService, secureController := s.SecuredServiceAccountController(identity)
+
+		contextInformation := map[string]interface{}{
+			"last_visited": "yesterday",
+			"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+			"rate":         100.00,
+			"count":        3,
+		}
+		updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&user.Email, &user.FullName, &user.Bio, &user.ImageURL, &user.URL, &user.Company, nil, nil, contextInformation)
+		test.UpdateUserAsServiceAccountUsersOK(t, secureService.Context, secureService, secureController, (identity.ID).String(), updateUsersPayload)
+
+	})
+	t.Run("not found", func(t *testing.T) {
+		// when
+		newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+		newFullName := "TestUpdateUserOK"
+		newImageURL := "http://new.image.io/imageurl"
+		newBio := "new bio"
+		newProfileURL := "http://new.profile.url/url"
+		newCompany := "updateCompany " + uuid.NewV4().String()
+		secureService, secureController := s.SecuredServiceAccountController(identity)
+
+		contextInformation := map[string]interface{}{
+			"last_visited": "yesterday",
+			"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+			"rate":         100.00,
+			"count":        3,
+		}
+		updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
+
+		idAsString := uuid.NewV4().String() // will never be found.
+		test.UpdateUserAsServiceAccountUsersNotFound(t, secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
+	})
 }
 
-func (s *TestUsersSuite) TestObfuscateUserAsServiceAccountUnauthorized() {
+func (s *TestUsersSuite) TestCreateUser() {
 	// given
-	user := s.createRandomUser("TestObfuscateUserAsSvcAcUnauthorized")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-
-	// when
-	secureService, secureController := s.SecuredController(identity)
-
-	idAsString := (identity.ID).String()
-	test.ObfuscateUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, idAsString)
-
-}
-
-func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {
-	// given
-	user := s.createRandomUser("TestUpdateUserAsSvcAcUnauthorized")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-
-	// when
-	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
-	newFullName := "TestUpdateUserOK"
-	newImageURL := "http://new.image.io/imageurl"
-	newBio := "new bio"
-	newProfileURL := "http://new.profile.url/url"
-	newCompany := "updateCompany " + uuid.NewV4().String()
-	secureService, secureController := s.SecuredController(identity)
-
-	contextInformation := map[string]interface{}{
-		"last_visited": "yesterday",
-		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
-		"rate":         100.00,
-		"count":        3,
-	}
-	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
-
-	idAsString := (identity.ID).String()
-	test.UpdateUserAsServiceAccountUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
-
-}
-
-func (s *TestUsersSuite) TestUpdateUserAsServiceAccountBadRequest() {
-	// given
-	user := s.createRandomUser("TestUpdateUserAsServiceAccountBadRequest")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-
-	// when
-	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
-	newFullName := "TestUpdateUserOK"
-	newImageURL := "http://new.image.io/imageurl"
-	newBio := "new bio"
-	newProfileURL := "http://new.profile.url/url"
-	newCompany := "updateCompany " + uuid.NewV4().String()
-	secureService, secureController := s.SecuredServiceAccountController(identity)
-
-	contextInformation := map[string]interface{}{
-		"last_visited": "yesterday",
-		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
-		"rate":         100.00,
-		"count":        3,
-	}
-	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
-
-	idAsString := "bad-uuid"
-	test.UpdateUserAsServiceAccountUsersBadRequest(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
-
-}
-
-func (s *TestUsersSuite) TestUpdateUserAsServiceAccountOK() {
-	// given
-	user := s.createRandomUser("TestUpdateUserAsServiceAccountOK")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-
-	// when
-	user.Email = "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
-	user.FullName = "TestUpdateUserOK"
-	user.ImageURL = "http://new.image.io/imageurl"
-	user.Bio = "new bio"
-	user.URL = "http://new.profile.url/url"
-	user.Company = "updateCompany " + uuid.NewV4().String()
-	secureService, secureController := s.SecuredServiceAccountController(identity)
-
-	contextInformation := map[string]interface{}{
-		"last_visited": "yesterday",
-		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
-		"rate":         100.00,
-		"count":        3,
-	}
-	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&user.Email, &user.FullName, &user.Bio, &user.ImageURL, &user.URL, &user.Company, nil, nil, contextInformation)
-	test.UpdateUserAsServiceAccountUsersOK(s.T(), secureService.Context, secureService, secureController, (identity.ID).String(), updateUsersPayload)
-}
-
-func (s *TestUsersSuite) TestUpdateUserAsServiceAccountNotFound() {
-	// given
-	user := s.createRandomUser("TestUpdateUserAsServiceAccountNotFound")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-
-	// when
-	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
-	newFullName := "TestUpdateUserOK"
-	newImageURL := "http://new.image.io/imageurl"
-	newBio := "new bio"
-	newProfileURL := "http://new.profile.url/url"
-	newCompany := "updateCompany " + uuid.NewV4().String()
-	secureService, secureController := s.SecuredServiceAccountController(identity)
-
-	contextInformation := map[string]interface{}{
-		"last_visited": "yesterday",
-		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
-		"rate":         100.00,
-		"count":        3,
-	}
-	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
-
-	idAsString := uuid.NewV4().String() // will never be found.
-	test.UpdateUserAsServiceAccountUsersNotFound(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
-
-}
-
-func (s *TestUsersSuite) TestCreateUserAsServiceAccountOK() {
-	// given
-	user := s.createRandomUserObject("TestCreateUserAsServiceAccountOK")
+	t := s.T()
+	user := s.createRandomUserObject("TestCreateUser")
 	identity := s.createRandomIdentityObject(user, "KC")
+	t.Run("ok", func(t *testing.T) {
+		user.ContextInformation = map[string]interface{}{
+			"last_visited": "yesterday",
+			"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+			"rate":         100.00,
+			"count":        3,
+		}
+		secureService, secureController := s.SecuredServiceAccountController(identity)
 
-	user.ContextInformation = map[string]interface{}{
-		"last_visited": "yesterday",
-		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
-		"rate":         100.00,
-		"count":        3,
-	}
-	secureService, secureController := s.SecuredServiceAccountController(identity)
+		// when
+		createUserPayload := createCreateUsersAsServiceAccountPayload(&user.Email, &user.FullName, &user.Bio, &user.ImageURL, &user.URL, &user.Company, &identity.Username, &identity.RegistrationCompleted, user.ContextInformation, user.ID.String())
+		test.CreateUserAsServiceAccountUsersOK(t, secureService.Context, secureService, secureController, identity.ID.String(), createUserPayload)
+	})
+	t.Run("unauthorized", func(t *testing.T) {
+		newEmail := "T" + uuid.NewV4().String() + "@email.com"
+		newFullName := "TesTCreateUserOK"
+		newImageURL := "http://new.image.io/imageurl"
+		newBio := "new bio"
+		newProfileURL := "http://new.profile.url/url"
+		newCompany := "u" + uuid.NewV4().String()
+		username := "T" + uuid.NewV4().String()
+		secureService, secureController := s.SecuredController(testsupport.TestIdentity)
+		registrationCompleted := false
+		identityId := uuid.NewV4()
+		userID := uuid.NewV4()
 
-	// when
-	createUserPayload := createCreateUsersAsServiceAccountPayload(&user.Email, &user.FullName, &user.Bio, &user.ImageURL, &user.URL, &user.Company, &identity.Username, &identity.RegistrationCompleted, user.ContextInformation, user.ID.String())
-	test.CreateUserAsServiceAccountUsersOK(s.T(), secureService.Context, secureService, secureController, identity.ID.String(), createUserPayload)
-}
+		contextInformation := map[string]interface{}{
+			"last_visited": "yesterday",
+			"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+			"rate":         100.00,
+			"count":        3,
+		}
 
-func (s *TestUsersSuite) TestCreateUserAsServiceAccountUnAuthorized() {
+		// then
+		createUserPayload := createCreateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, &username, &registrationCompleted, contextInformation, userID.String())
+		test.CreateUserAsServiceAccountUsersUnauthorized(t, secureService.Context, secureService, secureController, identityId.String(), createUserPayload)
+	})
+	t.Run("bad request", func(t *testing.T) {
+		newEmail := "T" + uuid.NewV4().String() + "@email.com"
+		newFullName := "TesTCreateUserOK"
+		newImageURL := "http://new.image.io/imageurl"
+		newBio := "new bio"
+		newProfileURL := "http://new.profile.url/url"
+		newCompany := "u" + uuid.NewV4().String()
+		username := "T" + uuid.NewV4().String()
+		secureService, secureController := s.SecuredServiceAccountController(testsupport.TestIdentity)
+		registrationCompleted := false
+		userID := uuid.NewV4()
 
-	// given
+		contextInformation := map[string]interface{}{
+			"last_visited": "yesterday",
+			"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+			"rate":         100.00,
+			"count":        3,
+		}
 
-	newEmail := "T" + uuid.NewV4().String() + "@email.com"
-	newFullName := "TesTCreateUserOK"
-	newImageURL := "http://new.image.io/imageurl"
-	newBio := "new bio"
-	newProfileURL := "http://new.profile.url/url"
-	newCompany := "u" + uuid.NewV4().String()
-	username := "T" + uuid.NewV4().String()
-	secureService, secureController := s.SecuredController(testsupport.TestIdentity)
-	registrationCompleted := false
-	identityId := uuid.NewV4()
-	userID := uuid.NewV4()
+		createUserPayload := createCreateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, &username, &registrationCompleted, contextInformation, userID.String())
 
-	contextInformation := map[string]interface{}{
-		"last_visited": "yesterday",
-		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
-		"rate":         100.00,
-		"count":        3,
-	}
-
-	// then
-	createUserPayload := createCreateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, &username, &registrationCompleted, contextInformation, userID.String())
-	test.CreateUserAsServiceAccountUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, identityId.String(), createUserPayload)
-}
-
-func (s *TestUsersSuite) TestCreateUserAsServiceAccountBadRequest() {
-
-	// given
-
-	newEmail := "T" + uuid.NewV4().String() + "@email.com"
-	newFullName := "TesTCreateUserOK"
-	newImageURL := "http://new.image.io/imageurl"
-	newBio := "new bio"
-	newProfileURL := "http://new.profile.url/url"
-	newCompany := "u" + uuid.NewV4().String()
-	username := "T" + uuid.NewV4().String()
-	secureService, secureController := s.SecuredServiceAccountController(testsupport.TestIdentity)
-	registrationCompleted := false
-	userID := uuid.NewV4()
-
-	contextInformation := map[string]interface{}{
-		"last_visited": "yesterday",
-		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
-		"rate":         100.00,
-		"count":        3,
-	}
-
-	createUserPayload := createCreateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, &username, &registrationCompleted, contextInformation, userID.String())
-
-	// then
-	test.CreateUserAsServiceAccountUsersBadRequest(s.T(), secureService.Context, secureService, secureController, "invalid-uuid", createUserPayload)
+		// then
+		test.CreateUserAsServiceAccountUsersBadRequest(t, secureService.Context, secureService, secureController, "invalid-uuid", createUserPayload)
+	})
 }
 
 func (s *TestUsersSuite) createRandomUser(fullname string) account.User {
@@ -325,7 +369,7 @@ func (s *TestUsersSuite) createRandomIdentityObject(user account.User, providerT
 	return identity
 }
 
-func (s *TestUsersSuite) createRandomIdentity(user account.User, providerType string) account.Identity {
+func (s *TestUsersSuite) createRandomIdentity(user account.User, providerType string, t *testing.T) account.Identity {
 	profile := "foobarforupdate.com/" + uuid.NewV4().String() + "/" + user.ID.String()
 	identity := account.Identity{
 		Username:     "TestUpdateUserIntegration123" + uuid.NewV4().String(),
@@ -335,7 +379,7 @@ func (s *TestUsersSuite) createRandomIdentity(user account.User, providerType st
 		UserID:       id.NullUUID{UUID: user.ID, Valid: true},
 	}
 	err := s.identityRepo.Create(context.Background(), &identity)
-	require.NoError(s.T(), err)
+	require.NoError(t, err)
 	return identity
 }
 

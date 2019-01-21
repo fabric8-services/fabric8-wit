@@ -51,8 +51,22 @@ func WithAuthz(ctx context.Context, key interface{}, ident account.Identity, aut
 // WithServiceAccountAuthz fills the context with token
 // Token is filled using input Identity object and resource authorization information
 func WithServiceAccountAuthz(ctx context.Context, key interface{}, ident account.Identity) context.Context {
-	token := fillClaimsWithIdentity(ident) // irrelavant for service account , but keeping it anyway.
+	token := fillClaimsWithIdentity(ident) // irrelevant for service account , but keeping it anyway.
 	token.Claims.(jwt.MapClaims)["service_accountname"] = "fabric8-auth"
+	token.Header["kid"] = "test-key"
+	t, err := token.SignedString(key)
+	if err != nil {
+		panic(err.Error())
+	}
+	token.Raw = t
+	return goajwt.WithJWT(ctx, token)
+}
+
+// WithServiceAccountAdminConsole fills the context with token
+// Token is filled using input Identity object and resource authorization information
+func WithServiceAccountAdminConsole(ctx context.Context, key interface{}, ident account.Identity) context.Context {
+	token := fillClaimsWithIdentity(ident)
+	token.Claims.(jwt.MapClaims)["service_accountname"] = "admin-console"
 	token.Header["kid"] = "test-key"
 	t, err := token.SignedString(key)
 	if err != nil {
@@ -87,6 +101,14 @@ func service(serviceName string, key interface{}, u account.Identity, authz *tok
 func ServiceAsServiceAccountUser(serviceName string, u account.Identity) *goa.Service {
 	svc := goa.New(serviceName)
 	svc.Context = WithServiceAccountAuthz(svc.Context, testtoken.PrivateKey(), u)
+	svc.Context = tokencontext.ContextWithTokenManager(svc.Context, testtoken.TokenManager)
+	return svc
+}
+
+// ServiceAsServiceAccountUser generates the minimal service needed to satisfy the condition of being a admin-console service account.
+func ServiceAsServiceAccountAdminConsole(serviceName string, u account.Identity) *goa.Service {
+	svc := goa.New(serviceName)
+	svc.Context = WithServiceAccountAdminConsole(svc.Context, testtoken.PrivateKey(), u)
 	svc.Context = tokencontext.ContextWithTokenManager(svc.Context, testtoken.TokenManager)
 	return svc
 }
