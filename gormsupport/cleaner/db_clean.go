@@ -46,14 +46,14 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		keyname string
 		key     interface{}
 	}
-	var entires []entity
+	var entries []entity
 	hookRegistered := db.Callback().Create().Get(hookName) != nil
 	if hookRegistered {
 		hookName += "-" + uuid.NewV4().String()
 	}
 	db.Callback().Create().After("gorm:create").Register(hookName, func(scope *gorm.Scope) {
 		log.Logger().Debugln(fmt.Sprintf("Inserted entities from %s with %s=%v", scope.TableName(), scope.PrimaryKey(), scope.PrimaryKeyValue()))
-		entires = append(entires, entity{table: scope.TableName(), keyname: scope.PrimaryKey(), key: scope.PrimaryKeyValue()})
+		entries = append(entries, entity{table: scope.TableName(), keyname: scope.PrimaryKey(), key: scope.PrimaryKeyValue()})
 	})
 	return func() {
 		defer db.Callback().Create().Remove(hookName)
@@ -63,8 +63,8 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		if !inTransaction {
 			tx = db.Begin()
 		}
-		for i := len(entires) - 1; i >= 0; i-- {
-			entry := entires[i]
+		for i := len(entries) - 1; i >= 0; i-- {
+			entry := entries[i]
 			log.Debug(nil, map[string]interface{}{
 				"table":     entry.table,
 				"key":       entry.key,
