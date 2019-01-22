@@ -17,20 +17,20 @@ work_item_types:
   icon: fa fa-bookmark
   can_construct: no
   fields:
-    "system.area":
+    "system_area":
       label: Area
       description: The area to which the work item belongs
       type:
         kind: area
       required: no
-    "system.order":
+    "system_order":
       label: Execution Order
       description: Execution Order of the workitem
       read_only: yes
       type:
         kind: float
       required: no
-    "system.state":
+    "system_state":
       label: State
       description: The state of the work item
       required: yes
@@ -47,7 +47,7 @@ work_item_types:
         - in progress
         - resolved
         - closed
-    "system.metastate":
+    "system_metastate":
       label: Meta State
       description: The meta-state of the work item
       read_only: yes
@@ -60,32 +60,32 @@ work_item_types:
         # This will allow other WITs to overwrite the values of the state.
         rewritable_values: no
         # the sequence of the values need to match the sequence of the
-        # system.state attributes. This encapsulates the mapping.
+        # system_state attributes. This encapsulates the mapping.
         values:
         - mNew
         - mOpen
         - mInprogress
         - mResolved
         - mClosed
-    "system.title":
+    "system_title":
       label: Title
       description: The title text of the work item
       type:
         kind: string
       required: yes
-    "system.creator":
+    "system_creator":
       label: Creator
       description: The user that created the work item
       type:
         kind: user
       required: yes
-    "system.codebase":
+    "system_codebase":
       label: Codebase
       description: Contains codebase attributes to which this WI belongs to
       type:
         kind: codebase
       required: no
-    "system.assignees":
+    "system_assignees":
       label: Assignees
       description: The users that are assigned to the work item
       type:
@@ -94,37 +94,46 @@ work_item_types:
         component_type:
           kind: user
       required: no
-    "system.iteration":
+    "system_iteration":
       label: Iteration
       description: The iteration to which the work item belongs
       type:
         kind: iteration
       required: no
-    "system.created_at":
+    "system_created_at":
       label: Created at
       description: The date and time when the work item was created
       read_only: yes
       type:
         kind: instant
       required: no
-    "system.updated_at":
+    "system_updated_at":
       label: Updated at
       description: The date and time when the work item was last updated
       read_only: yes
       type:
         kind: instant
       required: no
-    "system.description":
+    "system_description":
       label: Description
       description: A descriptive text of the work item
       type:
         kind: markup ## This is what's referred to as AsciiDoc in the spreadsheet
       required: no
-    "system.remote_item_id":
+    "system_remote_item_id":
       label: Remote item
       description: The ID of the remote work item
       type:
         kind: string
+      required: no
+    "system_labels":
+      label: Labels
+      description: List of labels attached to the work item
+      type:
+        simple_type:
+          kind: list
+        component_type:
+          kind: label
       required: no
     "system_remote_item_url":
       label: Remote URL
@@ -138,16 +147,7 @@ work_item_types:
       type:
         kind: remotetracker
       required: no
-    "system.labels":
-      label: Labels
-      description: List of labels attached to the work item
-      type:
-        simple_type:
-          kind: list
-        component_type:
-          kind: label
-      required: no
-    "system.boardcolumns":
+    "system_boardcolumns":
       label: Boardcolumns
       description: List of boardcolumns this work item is attached to
       type:
@@ -156,7 +156,7 @@ work_item_types:
         component_type:
           kind: boardcolumn
       required: no
-    "system.number":
+    "system_number":
       label: Number
       description: The unique number that was given to this workitem within its space.
       read_only: yes

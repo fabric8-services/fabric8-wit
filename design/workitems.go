@@ -24,7 +24,7 @@ var workItem = a.Type("WorkItem", func() {
 		a.Example("abcd1234-1234-5678-cafe-0123456789ab")
 	})
 	a.Attribute("attributes", a.HashOf(d.String, d.Any), func() {
-		a.Example(map[string]interface{}{"version": "1", "system.state": "new", "system.title": "Example story"})
+		a.Example(map[string]interface{}{"version": "1", "system_state": "new", "system_title": "Example story"})
 	})
 	a.Attribute("relationships", workItemRelationships)
 	a.Attribute("links", genericLinksForWorkItem)

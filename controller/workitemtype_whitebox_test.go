@@ -117,6 +117,71 @@ func TestConvertTypeFromModel(t *testing.T) {
 	assert.Equal(t, expected.Data.Attributes.Fields, result.Attributes.Fields)
 }
 
+// TODO(ibrahim): Remove this test once field name rename is completed
+func TestConvertTypeFromModelFieldNames(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	//------------------------------
+	// Work item type in model space
+	//------------------------------
+
+	id := uuid.NewV4()
+	createdAt := time.Now().Add(-1 * time.Hour).UTC()
+	updatedAt := time.Now().UTC()
+	a := workitem.WorkItemType{
+		ID: id,
+		Lifecycle: gormsupport.Lifecycle{
+			CreatedAt: createdAt,
+			UpdatedAt: updatedAt,
+		},
+		Name: "foo",
+		Fields: map[string]workitem.FieldDefinition{
+			"system_title": {
+				Type: workitem.SimpleType{
+					Kind: workitem.KindString,
+				},
+			},
+		},
+	}
+
+	reqLong := &http.Request{Host: "api.service.domain.org"}
+	//----------------------------
+	// Work item type in app space
+	//----------------------------
+	expected := app.WorkItemTypeSingle{
+		Data: &app.WorkItemTypeData{
+			ID:   &id,
+			Type: "workitemtypes",
+			Attributes: &app.WorkItemTypeAttributes{
+				Name:      "foo",
+				CreatedAt: &createdAt,
+				UpdatedAt: &updatedAt,
+				Fields: map[string]*app.FieldDefinition{
+					"system.title": {
+						Type: &app.FieldType{
+							Kind: "string",
+						},
+					},
+					"system_title": {
+						Type: &app.FieldType{
+							Kind: "string",
+						},
+					},
+				},
+			},
+		},
+	}
+	// when
+	result := ConvertWorkItemTypeFromModel(reqLong, &a)
+	require.NotNil(t, result.ID)
+	assert.True(t, uuid.Equal(*expected.Data.ID, *result.ID))
+	assert.Equal(t, expected.Data.Attributes.CreatedAt, result.Attributes.CreatedAt)
+	assert.Equal(t, expected.Data.Attributes.UpdatedAt, result.Attributes.UpdatedAt)
+	assert.Equal(t, expected.Data.Attributes.Name, result.Attributes.Name)
+	assert.Len(t, result.Attributes.Fields, len(expected.Data.Attributes.Fields))
+	assert.Equal(t, expected.Data.Attributes.Fields, result.Attributes.Fields)
+}
+
 func TestConvertFieldTypes(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
