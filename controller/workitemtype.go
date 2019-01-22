@@ -86,6 +86,11 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 			Description: def.Description,
 			Type:        &ct,
 		}
+		// Add old field name (system.*)
+		// TODO(ibrahim): Remove this once field name migration is completed
+		if newName, ok := workitem.NewToOldFieldNameMap[name]; ok {
+			converted.Attributes.Fields[newName] = converted.Attributes.Fields[name]
+		}
 	}
 	if len(t.ChildTypeIDs) > 0 {
 		converted.Relationships.GuidedChildTypes = &app.RelationGenericList{

@@ -27,16 +27,20 @@ var eventAttributes = a.Type("EventAttributes", func() {
 	a.Attribute("timestamp", d.DateTime, "When the event occurred", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
-	a.Attribute("name", d.String, "The name of the event occured", func() {
+	a.Attribute("name", d.String, "[DEPRECATED] The name of the event occured", func() {
 		a.Example("system.title")
 	})
+	a.Attribute("onField", d.String, "The field on which the event occurred", func() {
+		a.Example("system_title")
+	})
+
 	a.Attribute("oldValue", d.Any, "The user who was assigned to (or unassigned from). Only for 'assigned' and 'unassigned' events.", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
 	a.Attribute("newValue", d.Any, "The user who performed the assignment (or unassignment). Only for 'assigned' and 'unassigned' events..", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
-	a.Required("timestamp", "name", "revisionId")
+	a.Required("timestamp", "name", "onField", "revisionId")
 })
 
 var eventRelationships = a.Type("EventRelations", func() {

@@ -474,6 +474,12 @@ func GetMigrations() Migrations {
 	// Version 112
 	m = append(m, steps{ExecuteSQLFile("112-cascading-delete.sql")})
 
+	// Version 113
+	m = append(m, steps{ExecuteSQLFile("113-rename-fields.sql")})
+
+	// Version 114
+	m = append(m, steps{ExecuteSQLFile("114-rename-fields-search-and-trigger.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

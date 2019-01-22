@@ -4,6 +4,7 @@
       "attributes": {
         "name": "integer_single",
         "newValue": 0,
+        "onField": "integer_single",
         "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },
@@ -36,6 +37,7 @@
         "name": "integer_single",
         "newValue": 333,
         "oldValue": 0,
+        "onField": "integer_single",
         "revisionId": "00000000-0000-0000-0000-000000000005",
         "timestamp": "0001-01-01T00:00:00Z"
       },

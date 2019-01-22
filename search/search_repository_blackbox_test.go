@@ -693,7 +693,6 @@ func (s *searchRepositoryBlackboxTest) TestFilter() {
 
 func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 	var start, limit int = 0, 100
-
 	s.T().Run("by title", func(t *testing.T) {
 
 		t.Run("matching title", func(t *testing.T) {

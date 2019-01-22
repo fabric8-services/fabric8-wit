@@ -20,26 +20,26 @@ const (
 
 	SystemVersion = "version"
 
-	SystemRemoteItemID        = "system.remote_item_id"
+	SystemRemoteItemID        = "system_remote_item_id"
+	SystemNumber              = "system_number"
+	SystemTitle               = "system_title"
+	SystemDescription         = "system_description"
+	SystemDescriptionMarkup   = "system_description_markup"
+	SystemDescriptionRendered = "system_description_rendered"
+	SystemState               = "system_state"
+	SystemAssignees           = "system_assignees"
+	SystemCreator             = "system_creator"
+	SystemCreatedAt           = "system_created_at"
+	SystemUpdatedAt           = "system_updated_at"
+	SystemOrder               = "system_order"
+	SystemIteration           = "system_iteration"
+	SystemArea                = "system_area"
+	SystemCodebase            = "system_codebase"
+	SystemLabels              = "system_labels"
+	SystemBoardcolumns        = "system_boardcolumns"
+	SystemMetaState           = "system_metastate"
 	SystemRemoteItemURL       = "system_remote_item_url"
 	SystemRemoteTrackerID     = "system_remote_tracker_id"
-	SystemNumber              = "system.number"
-	SystemTitle               = "system.title"
-	SystemDescription         = "system.description"
-	SystemDescriptionMarkup   = "system.description.markup"
-	SystemDescriptionRendered = "system.description.rendered"
-	SystemState               = "system.state"
-	SystemAssignees           = "system.assignees"
-	SystemCreator             = "system.creator"
-	SystemCreatedAt           = "system.created_at"
-	SystemUpdatedAt           = "system.updated_at"
-	SystemOrder               = "system.order"
-	SystemIteration           = "system.iteration"
-	SystemArea                = "system.area"
-	SystemCodebase            = "system.codebase"
-	SystemLabels              = "system.labels"
-	SystemBoardcolumns        = "system.boardcolumns"
-	SystemMetaState           = "system.metastate"
 
 	SystemBoard = "Board"
 
@@ -49,6 +49,52 @@ const (
 	SystemStateResolved   = "resolved"
 	SystemStateClosed     = "closed"
 )
+
+// NewToOldFieldNameMap is a temporary map which stores old field names.
+// TODO(ibrahim): Remove this when field name migration is completed.
+var NewToOldFieldNameMap = map[string]string{
+	SystemRemoteItemID:        "system.remote_item_id",
+	SystemNumber:              "system.number",
+	SystemTitle:               "system.title",
+	SystemDescription:         "system.description",
+	SystemDescriptionMarkup:   "system.description.markup",
+	SystemDescriptionRendered: "system.description.rendered",
+	SystemState:               "system.state",
+	SystemAssignees:           "system.assignees",
+	SystemCreator:             "system.creator",
+	SystemCreatedAt:           "system.created_at",
+	SystemUpdatedAt:           "system.updated_at",
+	SystemOrder:               "system.order",
+	SystemIteration:           "system.iteration",
+	SystemArea:                "system.area",
+	SystemCodebase:            "system.codebase",
+	SystemLabels:              "system.labels",
+	SystemBoardcolumns:        "system.boardcolumns",
+	SystemMetaState:           "system.metastate",
+}
+
+// OldToNewFieldNameMap is a temporary map which stores old field names.
+// TODO(ibrahim): Remove this when field name migration is completed.
+var OldToNewFieldNameMap = map[string]string{
+	"system.remote_item_id":       SystemRemoteItemID,
+	"system.number":               SystemNumber,
+	"system.title":                SystemTitle,
+	"system.description":          SystemDescription,
+	"system.description.markup":   SystemDescriptionMarkup,
+	"system.description.rendered": SystemDescriptionRendered,
+	"system.state":                SystemState,
+	"system.assignees":            SystemAssignees,
+	"system.creator":              SystemCreator,
+	"system.created_at":           SystemCreatedAt,
+	"system.updated_at":           SystemUpdatedAt,
+	"system.order":                SystemOrder,
+	"system.iteration":            SystemIteration,
+	"system.area":                 SystemArea,
+	"system.codebase":             SystemCodebase,
+	"system.labels":               SystemLabels,
+	"system.boardcolumns":         SystemBoardcolumns,
+	"system.metastate":            SystemMetaState,
+}
 
 // Never ever change these UUIDs!!!
 var (
