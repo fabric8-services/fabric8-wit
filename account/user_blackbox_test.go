@@ -7,8 +7,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -33,21 +34,21 @@ func (s *userBlackBoxTest) TestOKToDelete() {
 	resource.Require(t, resource.Database)
 
 	// create 2 users, where the first one would be deleted.
-	user := createAndLoadUser(s)
-	createAndLoadUser(s)
+	user := createAndLoadUser(s, t)
+	createAndLoadUser(s, t)
 
 	err := s.repo.Delete(s.Ctx, user.ID)
-	require.NoError(s.T(), err)
+	require.NoError(t, err)
 
 	// lets see how many are present.
 	users, err := s.repo.List(s.Ctx)
-	require.NoError(s.T(), err, "Could not list users")
-	require.True(s.T(), len(users) > 0)
+	require.NoError(t, err, "Could not list users")
+	require.True(t, len(users) > 0)
 
 	for _, data := range users {
 		// The user 'user' was deleted and rest were not deleted, hence we check
 		// that none of the user objects returned include the one deleted.
-		require.NotEqual(s.T(), user.ID.String(), data.ID.String())
+		require.NotEqual(t, user.ID.String(), data.ID.String())
 	}
 }
 
@@ -55,7 +56,50 @@ func (s *userBlackBoxTest) TestOKToLoad() {
 	t := s.T()
 	resource.Require(t, resource.Database)
 
-	createAndLoadUser(s) // this function does the needful already
+	createAndLoadUser(s, t) // this function does the needful already
+}
+
+func (s *userBlackBoxTest) TestLoadByUsername() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+	t.Run("load ok", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1, func(fixture *tf.TestFixture, idx int) error {
+			fixture.Identities[idx].Username = "myusername"
+			return nil
+		}), tf.Users(1))
+		loadedUser, err := s.repo.LoadByUsername(s.Ctx, "myusername")
+		require.NoError(t, err, "Could not load user")
+		require.Equal(t, loadedUser[0].Email, fxt.Users[0].Email)
+		require.Equal(t, loadedUser[0].ID, fxt.Users[0].ID)
+	})
+	t.Run("load one user with a list of identities associated to a this user", func(t *testing.T) {
+		random := uuid.NewV4()
+		myusername := "myusername" + random.String()
+		fxt := tf.NewTestFixture(t, s.DB, tf.Users(1), tf.Identities(5, func(fixture *tf.TestFixture, idx int) error {
+			fixture.Identities[idx].Username = myusername
+			return nil
+		}))
+		loadedUser, err := s.repo.LoadByUsername(s.Ctx, myusername)
+		require.NoError(t, err, "Could not load user")
+		require.Equal(t, len(loadedUser), 1)
+		require.Equal(t, loadedUser[0].ID, fxt.Users[0].ID)
+	})
+	t.Run("load users with a list of identities associated to a those users", func(t *testing.T) {
+		random := uuid.NewV4()
+		myusername := "myusername" + random.String()
+		numUsers := 3
+		tf.NewTestFixture(t, s.DB,
+			tf.Users(numUsers),
+			tf.Identities(5, func(fixture *tf.TestFixture, idx int) error {
+				fixture.Identities[idx].Username = myusername
+				fixture.Identities[idx].User = *fixture.Users[idx%numUsers]
+				return nil
+			}),
+		)
+		loadedUser, err := s.repo.LoadByUsername(s.Ctx, myusername)
+		require.NoError(t, err, "Could not load user")
+		require.Len(t, loadedUser, numUsers)
+	})
 }
 
 func (s *userBlackBoxTest) TestExistsUser() {
@@ -64,7 +108,7 @@ func (s *userBlackBoxTest) TestExistsUser() {
 
 	t.Run("user exists", func(t *testing.T) {
 		//t.Parallel()
-		user := createAndLoadUser(s)
+		user := createAndLoadUser(s, t)
 		// when
 		err := s.repo.CheckExists(s.Ctx, user.ID)
 		// then
@@ -77,45 +121,39 @@ func (s *userBlackBoxTest) TestExistsUser() {
 		err := s.repo.CheckExists(s.Ctx, uuid.NewV4())
 		// then
 		//
-		require.IsType(s.T(), errors.NotFoundError{}, err)
+		require.IsType(t, errors.NotFoundError{}, err)
 	})
 }
 
-func (s *userBlackBoxTest) TestOKToSave() {
+func (s *userBlackBoxTest) TestSave() {
 	t := s.T()
 	resource.Require(t, resource.Database)
+	user := createAndLoadUser(s, t)
+	t.Run("save is ok", func(t *testing.T) {
+		user.FullName = "newusernameTestUser"
+		err := s.repo.Save(s.Ctx, user)
+		require.NoError(t, err, "Could not update user")
 
-	user := createAndLoadUser(s)
-
-	user.FullName = "newusernameTestUser"
-	err := s.repo.Save(s.Ctx, user)
-	require.NoError(s.T(), err, "Could not update user")
-
-	updatedUser, err := s.repo.Load(s.Ctx, user.ID)
-	require.NoError(s.T(), err, "Could not load user")
-	assert.Equal(s.T(), user.FullName, updatedUser.FullName)
-	fields := user.ContextInformation
-	assert.Equal(s.T(), fields["last_visited"], "http://www.google.com")
-	assert.Equal(s.T(), fields["myid"], "71f343e3-2bfa-4ec6-86d4-79b91476acfc")
-
+		updatedUser, err := s.repo.Load(s.Ctx, user.ID)
+		require.NoError(t, err, "Could not load user")
+		assert.Equal(t, user.FullName, updatedUser.FullName)
+		fields := user.ContextInformation
+		assert.Equal(t, fields["last_visited"], "http://www.google.com")
+		assert.Equal(t, fields["myid"], "71f343e3-2bfa-4ec6-86d4-79b91476acfc")
+	})
+	t.Run("update empty string", func(t *testing.T) {
+		err := s.repo.Save(s.Ctx, user)
+		require.NoError(t, err)
+		user.Bio = ""
+		err = s.repo.Save(s.Ctx, user)
+		require.NoError(t, err)
+		u, err := s.repo.Load(s.Ctx, user.ID)
+		require.NoError(t, err)
+		require.Empty(t, u.Bio)
+	})
 }
 
-func (s *userBlackBoxTest) TestUpdateToEmptyString() {
-	t := s.T()
-	resource.Require(t, resource.Database)
-	user := createAndLoadUser(s)
-
-	err := s.repo.Save(s.Ctx, user)
-	require.NoError(t, err)
-	user.Bio = ""
-	err = s.repo.Save(s.Ctx, user)
-	require.NoError(t, err)
-	u, err := s.repo.Load(s.Ctx, user.ID)
-	require.NoError(t, err)
-	require.Empty(t, u.Bio)
-}
-
-func createAndLoadUser(s *userBlackBoxTest) *account.User {
+func createAndLoadUser(s *userBlackBoxTest, t *testing.T) *account.User {
 	user := &account.User{
 		ID:       uuid.NewV4(),
 		Email:    "someuser@TestUser" + uuid.NewV4().String(),
@@ -131,13 +169,13 @@ func createAndLoadUser(s *userBlackBoxTest) *account.User {
 	}
 
 	err := s.repo.Create(s.Ctx, user)
-	require.NoError(s.T(), err, "Could not create user")
+	require.NoError(t, err, "Could not create user")
 
 	createdUser, err := s.repo.Load(s.Ctx, user.ID)
-	require.NoError(s.T(), err, "Could not load user")
-	require.Equal(s.T(), user.Email, createdUser.Email)
-	require.Equal(s.T(), user.ID, createdUser.ID)
-	require.Equal(s.T(), user.ContextInformation["last_visited"], createdUser.ContextInformation["last_visited"])
+	require.NoError(t, err, "Could not load user")
+	require.Equal(t, user.Email, createdUser.Email)
+	require.Equal(t, user.ID, createdUser.ID)
+	require.Equal(t, user.ContextInformation["last_visited"], createdUser.ContextInformation["last_visited"])
 
 	return createdUser
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/rendering"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,6 +99,21 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 				0,
 				true,
 				0.1,
+			},
+		},
+		KindRemoteTracker: {
+			Valid: []interface{}{
+				// "00000000-0000-0000-0000-000000000000",
+				// "55d5d809-56f0-4d31-9607-04755b793c4a",
+				uuid.FromStringOrNil("8f48eb9a-f9cb-428f-a803-7845a96f1d07"),
+				uuid.Nil,
+			},
+			Invalid: []interface{}{
+				nil,
+				0,
+				true,
+				0.1,
+				"",
 			},
 		},
 		KindLabel: {

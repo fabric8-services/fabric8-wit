@@ -2,10 +2,12 @@ package remoteworkitem
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -21,12 +23,29 @@ const trackerQueriesTableName = "tracker_queries"
 
 // GormTrackerQueryRepository implements TrackerRepository using gorm
 type GormTrackerQueryRepository struct {
-	db *gorm.DB
+	db   *gorm.DB
+	witr *workitem.GormWorkItemTypeRepository
+	wir  *workitem.GormWorkItemRepository
 }
 
 // NewTrackerQueryRepository constructs a TrackerQueryRepository
 func NewTrackerQueryRepository(db *gorm.DB) *GormTrackerQueryRepository {
-	return &GormTrackerQueryRepository{db}
+	return &GormTrackerQueryRepository{
+		db:   db,
+		witr: workitem.NewWorkItemTypeRepository(db),
+		wir:  workitem.NewWorkItemRepository(db),
+	}
+}
+
+// GetETagData returns the field values to use to generate the ETag
+func (tq TrackerQuery) GetETagData() []interface{} {
+	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields
+	return []interface{}{tq.ID, strconv.FormatInt(tq.UpdatedAt.Unix(), 10)}
+}
+
+// GetLastModified returns the last modification time
+func (tq TrackerQuery) GetLastModified() time.Time {
+	return tq.UpdatedAt.Truncate(time.Second)
 }
 
 // TrackerQueryRepository encapsulate storage & retrieval of tracker queries
@@ -35,12 +54,26 @@ type TrackerQueryRepository interface {
 	Create(ctx context.Context, tq TrackerQuery) (*TrackerQuery, error)
 	Load(ctx context.Context, ID uuid.UUID) (*TrackerQuery, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
-	List(ctx context.Context) ([]TrackerQuery, error)
+	List(ctx context.Context, spaceID uuid.UUID) ([]TrackerQuery, error)
 }
 
 // Create creates a new tracker query in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormTrackerQueryRepository) Create(ctx context.Context, tq TrackerQuery) (*TrackerQuery, error) {
+	wiType, err := r.witr.Load(ctx, tq.WorkItemTypeID)
+	if err != nil {
+		return nil, errors.NewBadParameterError("WorkItemTypeID", tq.WorkItemTypeID)
+	}
+
+	allowedWIT, err := r.wir.CheckTypeAndSpaceShareTemplate(ctx, wiType, tq.SpaceID)
+	if err != nil {
+		return nil, err
+
+	}
+	if !allowedWIT {
+		return nil, err
+	}
+
 	if err := r.db.Create(&tq).Error; err != nil {
 		return nil, errors.NewInternalError(ctx, r.db.Error)
 	}
@@ -104,11 +137,11 @@ func (r *GormTrackerQueryRepository) Delete(ctx context.Context, ID uuid.UUID) e
 	return nil
 }
 
-// List returns tracker query selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormTrackerQueryRepository) List(ctx context.Context) ([]TrackerQuery, error) {
+// List returns tracker queries that belong to a space
+func (r *GormTrackerQueryRepository) List(ctx context.Context, spaceID uuid.UUID) ([]TrackerQuery, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "trackerquery", "query"}, time.Now())
 	var objs []TrackerQuery
-	err := r.db.Find(&objs).Error
+	err := r.db.Where("space_id = ?", spaceID).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}

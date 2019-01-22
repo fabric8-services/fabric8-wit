@@ -1,0 +1,22 @@
+{
+  "data": {
+    "attributes": {
+      "remotetracker_field": "00000000-0000-0000-0000-000000000000",
+      "version": 0
+    },
+    "id": "00000000-0000-0000-0000-000000000001",
+    "relationships": {
+      "space": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000002",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http://api.service.domain.org/api/spaces/00000000-0000-0000-0000-000000000002",
+          "self": "http://api.service.domain.org/api/spaces/00000000-0000-0000-0000-000000000002"
+        }
+      }
+    },
+    "type": "workitems"
+  }
+}
