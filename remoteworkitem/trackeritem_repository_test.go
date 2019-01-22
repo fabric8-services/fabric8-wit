@@ -12,8 +12,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
@@ -32,14 +32,33 @@ func TestSuiteTrackerItemRepository(t *testing.T) {
 // ========== TrackeItemRepositorySuite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type TrackerItemRepositorySuite struct {
 	gormtestsupport.DBTestSuite
-	trackerQuery remoteworkitem.TrackerQuery
+	trackerQuery    remoteworkitem.TrackerQuery
+	trackerSchedule remoteworkitem.TrackerSchedule
 }
 
 func (s *TrackerItemRepositorySuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	// Setting up the dependent tracker query and tracker data in the Database
-	tracker := remoteworkitem.Tracker{URL: "https://api.github.com/", Type: remoteworkitem.ProviderGithub}
-	s.trackerQuery = remoteworkitem.TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tracker.ID, SpaceID: space.SystemSpace}
+
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Trackers(1), tf.WorkItemTypes(1))
+	tid, _ := uuid.FromString("46b3b9c8-8eba-4f61-b8b1-4e45fbc1f445")
+	s.trackerQuery = remoteworkitem.TrackerQuery{
+		ID:             tid,
+		Query:          "some random query",
+		Schedule:       "0 0 30 * * *",
+		TrackerID:      fxt.Trackers[0].ID,
+		SpaceID:        fxt.Spaces[0].ID,
+		WorkItemTypeID: fxt.WorkItemTypes[0].ID,
+	}
+	s.trackerSchedule = remoteworkitem.TrackerSchedule{
+		Query:          "some random query",
+		Schedule:       "0 0 30 * * *",
+		TrackerID:      fxt.Trackers[0].ID,
+		URL:            fxt.Trackers[0].URL,
+		TrackerQueryID: tid,
+		TrackerType:    fxt.Trackers[0].Type,
+		SpaceID:        fxt.Spaces[0].ID,
+		WorkItemTypeID: s.trackerQuery.WorkItemTypeID,
+	}
 
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
@@ -75,6 +94,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentitie
 	identity0 := s.createIdentity("jdoe0")
 	identity1 := s.createIdentity("jdoe1")
 	identity2 := s.createIdentity("jdoe2")
+
 	remoteItemData := remoteworkitem.TrackerItemContent{
 		Content: []byte(`
 				{
@@ -100,7 +120,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentitie
 	}
 
 	// when
-	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemData, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, remoteItemData, s.trackerSchedule)
 	// then
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
@@ -110,6 +130,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentitie
 	assert.Contains(s.T(), workItem.Fields[workitem.SystemAssignees], identity1.ID.String())
 	assert.Contains(s.T(), workItem.Fields[workitem.SystemAssignees], identity2.ID.String())
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
+	assert.Equal(s.T(), "http://github.com/sbose/api/testonly/1", workItem.Fields[workitem.SystemRemoteItemURL])
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemDescription])
 	description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
 	assert.Equal(s.T(), "body of issue", description.Content)
@@ -143,13 +164,15 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownIdentities
 	}
 
 	// when
-	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemData, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, remoteItemData, s.trackerSchedule)
+
 	// then
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), 2, len(workItem.Fields[workitem.SystemAssignees].([]interface{})))
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
+	assert.Equal(s.T(), "http://github.com/sbose/api/testonly/1", workItem.Fields[workitem.SystemRemoteItemURL])
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemDescription])
 	description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
 	assert.Equal(s.T(), "body of issue", description.Content)
@@ -189,13 +212,14 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNoAssignee() {
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
 	// when
-	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemData, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, remoteItemData, s.trackerSchedule)
 	// then
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
 	assert.Empty(s.T(), workItem.Fields[workitem.SystemAssignees])
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
+	assert.Equal(s.T(), "http://github.com/sbose/api/testonly/1", workItem.Fields[workitem.SystemRemoteItemURL])
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemDescription])
 	description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
 	assert.Equal(s.T(), "body of issue", description.Content)
@@ -229,7 +253,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
 	// when
-	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemData, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, remoteItemData, s.trackerSchedule)
 	// then
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
@@ -238,6 +262,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	assert.Equal(s.T(), identity1.ID.String(), workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
 	assert.Equal(s.T(), identity2.ID.String(), workItem.Fields[workitem.SystemAssignees].([]interface{})[1])
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
+	assert.Equal(s.T(), "http://github.com/sbose/api/testonly/1", workItem.Fields[workitem.SystemRemoteItemURL])
 	// given
 	s.T().Log("Updating the existing work item when it's reimported.")
 	identity3 := s.createIdentity("jdoe3")
@@ -258,7 +283,8 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
 	// when
-	workItemUpdated, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemDataUpdated, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
+
+	workItemUpdated, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, remoteItemDataUpdated, s.trackerSchedule)
 	// then
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), workItemUpdated)
@@ -272,6 +298,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 
 func (s *TrackerItemRepositorySuite) TestConvertGithubIssue() {
 	// given
+
 	identity := s.createIdentity("sbose78")
 	content, err := test.LoadTestData("github_issue_mapping.json", func() ([]byte, error) {
 		return provideRemoteData(GitIssueWithAssignee)
@@ -282,7 +309,7 @@ func (s *TrackerItemRepositorySuite) TestConvertGithubIssue() {
 		ID:      GitIssueWithAssignee, // GH issue url
 	}
 	// when
-	workItemGithub, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemDataGithub, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
+	workItemGithub, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, remoteItemDataGithub, s.trackerSchedule)
 	// then
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), "map flatten : test case : with assignee", workItemGithub.Fields[workitem.SystemTitle])

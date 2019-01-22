@@ -175,6 +175,9 @@ func TestField(t *testing.T) {
 			require.Contains(t, compileErrors[0].Error(), "field name must not contain single quotes")
 		})
 	})
+	t.Run("underscore", func(t *testing.T) {
+		expect(t, c.Equals(c.Field("foo_bar"), c.Literal(23)), `(`+workitem.Column(wiTbl, "fields")+` @> '{"foo_bar" : 23}')`, []interface{}{}, nil)
+	})
 }
 
 func TestAndOr(t *testing.T) {

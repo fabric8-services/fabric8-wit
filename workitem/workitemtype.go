@@ -38,6 +38,8 @@ const (
 	SystemLabels              = "system_labels"
 	SystemBoardcolumns        = "system_boardcolumns"
 	SystemMetaState           = "system_metastate"
+	SystemRemoteItemURL       = "system_remote_item_url"
+	SystemRemoteTrackerID     = "system_remote_tracker_id"
 
 	SystemBoard = "Board"
 

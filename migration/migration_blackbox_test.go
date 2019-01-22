@@ -160,7 +160,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration108", testMigration108NumberColumnForArea)
 	t.Run("TestMigration109", testMigration109NumberColumnForIteration)
 	t.Run("TestMigration110", testMigration110TrackerQueryID)
-	t.Run("TestMigration111", testMigration111RenameFields)
+	t.Run("TestMigration111", testMigration111WITinTrackerQuery)
+	t.Run("TestMigration112", testMigration112RenameFields)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1402,8 +1403,16 @@ func testMigration110TrackerQueryID(t *testing.T) {
 	}
 	require.True(t, checkTqConstraint(t, "tracker_queries", "PRIMARY KEY"))
 }
+func testMigration111WITinTrackerQuery(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:112], 111)
+	require.True(t, dialect.HasColumn("tracker_queries", "work_item_type_id"))
 
-func testMigration111RenameFields(t *testing.T) {
+	// check foreign key to work_item_types(id) exists
+	require.True(t, dialect.HasForeignKey("tracker_queries", "tracker_queries_work_item_type_id_fkey"))
+
+}
+
+func testMigration112RenameFields(t *testing.T) {
 	// setup
 	userID := uuid.NewV4()
 	identityID := uuid.NewV4()
@@ -1412,7 +1421,7 @@ func testMigration111RenameFields(t *testing.T) {
 	work_item_typeID := uuid.NewV4()
 	work_itemID := uuid.NewV4()
 	work_item_revisionID := uuid.NewV4()
-	require.NoError(t, runSQLscript(sqlDB, "111-rename-fields.sql",
+	require.NoError(t, runSQLscript(sqlDB, "112-rename-fields.sql",
 		userID.String(),
 		identityID.String(),
 		space_templateID.String(),

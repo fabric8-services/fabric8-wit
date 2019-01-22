@@ -202,6 +202,13 @@ var DefaultTableJoins = func() TableJoinMap {
 			PrefixActivators: []string{"label."},
 			AllowedColumns:   []string{"name"},
 		},
+		"trackerquery": {
+			TableName:        "tracker_queries",
+			TableAlias:       "tq",
+			On:               JoinOnJSONField(SystemRemoteTrackerID, "tq.id") + " AND " + Column("tq", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id"),
+			PrefixActivators: []string{"trackerquery."},
+			AllowedColumns:   []string{"id"},
+		},
 	}
 
 	res["typegroup_members"] = &TableJoin{

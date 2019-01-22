@@ -469,10 +469,13 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("110-trackerquery-to-use-uuid.sql")})
 
 	// Version 111
-	m = append(m, steps{ExecuteSQLFile("111-rename-fields.sql")})
+	m = append(m, steps{ExecuteSQLFile("111-add-wit-to-trackerquery.sql")})
 
 	// Version 112
-	m = append(m, steps{ExecuteSQLFile("112-rename-fields-search-and-trigger.sql")})
+	m = append(m, steps{ExecuteSQLFile("112-rename-fields.sql")})
+
+	// Version 113
+	m = append(m, steps{ExecuteSQLFile("113-rename-fields-search-and-trigger.sql")})
 
 	// Version N
 	//

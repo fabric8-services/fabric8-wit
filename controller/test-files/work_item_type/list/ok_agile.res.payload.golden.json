@@ -268,6 +268,22 @@
               "kind": "string"
             }
           },
+          "system_remote_item_url": {
+            "description": "URL to remote work item",
+            "label": "Remote URL",
+            "required": false,
+            "type": {
+              "kind": "url"
+            }
+          },
+          "system_remote_tracker_id": {
+            "description": "Reference to the tracker that manages this work item",
+            "label": "Remote Tracker",
+            "required": false,
+            "type": {
+              "kind": "remotetracker"
+            }
+          },
           "system_state": {
             "description": "The state of the work item",
             "label": "State",
@@ -617,6 +633,22 @@
             "required": false,
             "type": {
               "kind": "string"
+            }
+          },
+          "system_remote_item_url": {
+            "description": "URL to remote work item",
+            "label": "Remote URL",
+            "required": false,
+            "type": {
+              "kind": "url"
+            }
+          },
+          "system_remote_tracker_id": {
+            "description": "Reference to the tracker that manages this work item",
+            "label": "Remote Tracker",
+            "required": false,
+            "type": {
+              "kind": "remotetracker"
             }
           },
           "system_state": {
@@ -1026,6 +1058,22 @@
               "kind": "string"
             }
           },
+          "system_remote_item_url": {
+            "description": "URL to remote work item",
+            "label": "Remote URL",
+            "required": false,
+            "type": {
+              "kind": "url"
+            }
+          },
+          "system_remote_tracker_id": {
+            "description": "Reference to the tracker that manages this work item",
+            "label": "Remote Tracker",
+            "required": false,
+            "type": {
+              "kind": "remotetracker"
+            }
+          },
           "system_state": {
             "description": "The state of the defect.",
             "label": "State",
@@ -1363,6 +1411,22 @@
             "required": false,
             "type": {
               "kind": "string"
+            }
+          },
+          "system_remote_item_url": {
+            "description": "URL to remote work item",
+            "label": "Remote URL",
+            "required": false,
+            "type": {
+              "kind": "url"
+            }
+          },
+          "system_remote_tracker_id": {
+            "description": "Reference to the tracker that manages this work item",
+            "label": "Remote Tracker",
+            "required": false,
+            "type": {
+              "kind": "remotetracker"
             }
           },
           "system_state": {
@@ -1719,6 +1783,22 @@
             "required": false,
             "type": {
               "kind": "string"
+            }
+          },
+          "system_remote_item_url": {
+            "description": "URL to remote work item",
+            "label": "Remote URL",
+            "required": false,
+            "type": {
+              "kind": "url"
+            }
+          },
+          "system_remote_tracker_id": {
+            "description": "Reference to the tracker that manages this work item",
+            "label": "Remote Tracker",
+            "required": false,
+            "type": {
+              "kind": "remotetracker"
             }
           },
           "system_state": {
@@ -2087,6 +2167,22 @@
               "kind": "string"
             }
           },
+          "system_remote_item_url": {
+            "description": "URL to remote work item",
+            "label": "Remote URL",
+            "required": false,
+            "type": {
+              "kind": "url"
+            }
+          },
+          "system_remote_tracker_id": {
+            "description": "Reference to the tracker that manages this work item",
+            "label": "Remote Tracker",
+            "required": false,
+            "type": {
+              "kind": "remotetracker"
+            }
+          },
           "system_state": {
             "description": "The state of the Epic.",
             "label": "State",
@@ -2452,6 +2548,22 @@
             "required": false,
             "type": {
               "kind": "string"
+            }
+          },
+          "system_remote_item_url": {
+            "description": "URL to remote work item",
+            "label": "Remote URL",
+            "required": false,
+            "type": {
+              "kind": "url"
+            }
+          },
+          "system_remote_tracker_id": {
+            "description": "Reference to the tracker that manages this work item",
+            "label": "Remote Tracker",
+            "required": false,
+            "type": {
+              "kind": "remotetracker"
             }
           },
           "system_state": {

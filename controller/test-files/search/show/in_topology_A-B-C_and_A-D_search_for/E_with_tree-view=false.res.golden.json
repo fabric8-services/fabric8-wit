@@ -21,6 +21,8 @@
         "system_number": 5,
         "system_order": 5000,
         "system_remote_item_id": null,
+        "system_remote_item_url": null,
+        "system_remote_tracker_id": null,
         "system_state": "new",
         "system_title": "E",
         "system_updated_at": "0001-01-01T00:00:00Z",

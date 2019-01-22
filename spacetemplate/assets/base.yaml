@@ -135,6 +135,18 @@ work_item_types:
         component_type:
           kind: label
       required: no
+    "system_remote_item_url":
+      label: Remote URL
+      description: URL to remote work item
+      type:
+        kind: url
+      required: no
+    "system_remote_tracker_id":
+      label: Remote Tracker
+      description: Reference to the tracker that manages this work item
+      type:
+        kind: remotetracker
+      required: no
     "system_boardcolumns":
       label: Boardcolumns
       description: List of boardcolumns this work item is attached to
