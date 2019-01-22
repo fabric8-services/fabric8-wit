@@ -14,7 +14,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
@@ -85,36 +84,6 @@ func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 		}, {
 			method:             http.MethodPost,
 			url:                "/api/trackerqueries",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createTrackerQueryPayload,
-			jwtToken:           "",
-		},
-		// Update tracker query API with different parameters
-		{
-			method:             http.MethodPut,
-			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createTrackerQueryPayload,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPut,
-			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createTrackerQueryPayload,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPut,
-			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createTrackerQueryPayload,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPut,
-			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerQueryPayload,
@@ -203,55 +172,6 @@ func (rest *TestTrackerQueryREST) TestShowTrackerQuery() {
 	_, tqr := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *tqresult.Data.ID)
 	assert.NotNil(t, tqr)
 	assert.Equal(t, tqresult.Data.ID, tqr.Data.ID)
-}
-
-func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
-	svc, _, trackerQueryCtrl := rest.SecuredController()
-	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
-	assert.NotNil(t, fxt.Spaces[0], fxt.Trackers[0])
-
-	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
-
-	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
-
-	_, tqr := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *tqresult.Data.ID)
-	assert.NotNil(t, tqr)
-	assert.Equal(t, tqresult.Data.ID, tqr.Data.ID)
-
-	spaceID := space.SystemSpace
-	trackerID := fxt.Trackers[0].ID
-	payload2 := app.UpdateTrackerqueryPayload{
-		Data: &app.TrackerQuery{
-			ID: tqr.Data.ID,
-			Attributes: &app.TrackerQueryAttributes{
-				Query:    "is:open",
-				Schedule: "* * * * * *",
-			},
-			Relationships: &app.TrackerQueryRelations{
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						ID: &spaceID,
-					},
-				},
-				Tracker: &app.RelationKindUUID{
-					Data: &app.DataKindUUID{
-						ID:   trackerID,
-						Type: remoteworkitem.APIStringTypeTrackers,
-					},
-				},
-			},
-			Type: remoteworkitem.APIStringTypeTrackerQuery,
-		},
-	}
-
-	_, updated := test.UpdateTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, tqr.Data.ID.String(), &payload2)
-	assert.NotNil(t, tqr)
-	assert.Equal(t, tqr.Data.ID, updated.Data.ID)
-	assert.Equal(t, "is:open", updated.Data.Attributes.Query)
-	assert.Equal(t, "* * * * * *", updated.Data.Attributes.Schedule)
 }
 
 // This test ensures that List does not return NIL items.
