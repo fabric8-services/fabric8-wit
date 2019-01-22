@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
+	"github.com/fabric8-services/fabric8-wit/test/contracts"
+	consumer "github.com/fabric8-services/fabric8-wit/test/contracts/consumer_test"
 	"github.com/pact-foundation/pact-go/dsl"
 )
 
@@ -37,9 +39,8 @@ func AuthAPIUserByName(t *testing.T, pact *dsl.Pact, userName string) {
 		})
 
 	// Verify
-	if err := pact.Verify(SimpleGetInteraction(pact, fmt.Sprintf("/api/users?filter[username]=%s", userName))); err != nil {
-		log.Fatalf("Error on Verify: %+v", err)
-	}
+	err := pact.Verify(consumer.SimpleGetInteraction(pact, fmt.Sprintf("/api/users?filter[username]=%s", userName)))
+	contracts.CheckErrorAndCleanPact(t, pact, err)
 }
 
 // AuthAPIUserByID defines contract of /api/users/<user_id> endpoint
@@ -67,9 +68,8 @@ func AuthAPIUserByID(t *testing.T, pact *dsl.Pact, userID string) {
 		})
 
 	// Verify
-	if err := pact.Verify(SimpleGetInteraction(pact, fmt.Sprintf("/api/users/%s", userID))); err != nil {
-		log.Fatalf("Error on Verify: %+v", err)
-	}
+	err := pact.Verify(consumer.SimpleGetInteraction(pact, fmt.Sprintf("/api/users/%s", userID)))
+	contracts.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
 }
 
 // AuthAPIUserByToken defines contract of /api/user endpoint with valid auth token
@@ -102,9 +102,8 @@ func AuthAPIUserByToken(t *testing.T, pact *dsl.Pact, userToken string) {
 		})
 
 	// Verify
-	if err := pact.Verify(SimpleGetInteractionWithToken(pact, "/api/user", userToken)); err != nil {
-		log.Fatalf("Error on Verify: %+v", err)
-	}
+	err := pact.Verify(consumer.SimpleGetInteractionWithToken(pact, "/api/user", userToken))
+	contracts.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
 }
 
 // AuthAPIUserInvalidToken defines contract of /api/user endpoint with invalid auth token
@@ -135,9 +134,8 @@ func AuthAPIUserInvalidToken(t *testing.T, pact *dsl.Pact, invalidToken string) 
 		})
 
 	// Verify
-	if err := pact.Verify(SimpleGetInteractionWithToken(pact, "/api/user", invalidToken)); err != nil {
-		log.Fatalf("Error on Verify: %+v", err)
-	}
+	err := pact.Verify(consumer.SimpleGetInteractionWithToken(pact, "/api/user", invalidToken))
+	contracts.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
 }
 
 // AuthAPIUserNoToken defines contract of /api/user endpoint with missing auth token
@@ -164,7 +162,6 @@ func AuthAPIUserNoToken(t *testing.T, pact *dsl.Pact) {
 		})
 
 	// Verify
-	if err := pact.Verify(SimpleGetInteraction(pact, "/api/user")); err != nil {
-		log.Fatalf("Error on Verify: %+v", err)
-	}
+	err := pact.Verify(consumer.SimpleGetInteraction(pact, "/api/user"))
+	contracts.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
 }

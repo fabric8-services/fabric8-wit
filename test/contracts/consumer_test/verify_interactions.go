@@ -1,4 +1,4 @@
-package fabric8auth
+package consumer
 
 import (
 	"fmt"

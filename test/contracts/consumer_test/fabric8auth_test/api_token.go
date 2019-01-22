@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
+	"github.com/fabric8-services/fabric8-wit/test/contracts"
+	consumer "github.com/fabric8-services/fabric8-wit/test/contracts/consumer_test"
 	"github.com/pact-foundation/pact-go/dsl"
 )
 
@@ -29,7 +31,6 @@ func AuthAPITokenKeys(t *testing.T, pact *dsl.Pact) {
 		})
 
 	// Verify
-	if err := pact.Verify(SimpleGetInteraction(pact, "/api/token/keys")); err != nil {
-		log.Fatalf("Error on Verify: %+v", err)
-	}
+	err := pact.Verify(consumer.SimpleGetInteraction(pact, "/api/token/keys"))
+	contracts.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
 }

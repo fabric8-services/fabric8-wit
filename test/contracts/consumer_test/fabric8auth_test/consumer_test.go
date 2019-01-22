@@ -11,8 +11,9 @@ import (
 	"github.com/pact-foundation/pact-go/types"
 )
 
-// TestWitAPIConsumer runs all user related tests
-func TestWitAPIConsumer(t *testing.T) {
+// TestFabric8AuthConsumer runs all consumer side contract tests
+// for the fabric8-wit (consumer) to fabric8-auth (provider) contract.
+func TestFabric8AuthConsumer(t *testing.T) {
 	log.SetOutput(os.Stdout)
 
 	var pactDir = os.Getenv("PACT_DIR")
