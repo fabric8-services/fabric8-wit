@@ -1462,7 +1462,7 @@ func testMigration113RenameFields(t *testing.T) {
 	// The fieldvalue should be same as that of workitem
 	expectWorkItemFieldsToBe(t, "work_item_revisions", "work_item_fields", work_item_revisionID, expectedWIFieldsOld)
 
-	migrateToVersion(t, sqlDB, migrations[:112], 112)
+	migrateToVersion(t, sqlDB, migrations[:114], 114)
 
 	// Then
 	expectedWITFields := `{"foo.bar": {"Type": {"Kind": "string"}}, "system_area": {"Type": {"Kind": "area"}}, "system_order": {"Type": {"Kind": "float"}}}`
