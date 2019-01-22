@@ -576,7 +576,7 @@ func (s *WorkItemSuite) TestListByFields() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	// when
-	filter := "{\"system_title\":\"run integration test\"}"
+	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
 	_, result := test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
@@ -584,7 +584,7 @@ func (s *WorkItemSuite) TestListByFields() {
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
-	filter = fmt.Sprintf("{\"system_creator\":%q}", s.testIdentity.ID.String())
+	filter = fmt.Sprintf("{\"system.creator\":%q}", s.testIdentity.ID.String())
 	// then
 	_, result = test.ListWorkitemsOK(s.T(), nil, nil, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil, nil)
 	require.NotNil(s.T(), result)
@@ -604,9 +604,9 @@ func getWorkItemTestDataFunc(config configuration.Registry) func(t *testing.T) [
 			"data": {
 				"type": "workitems"
 				"attributes": {
-					"system_state": "new",
-					"system_title": "My special story",
-					"system_description": "description"
+					"system.state": "new",
+					"system.title": "My special story",
+					"system.description": "description"
 				}
 			}
 		}`))
@@ -919,7 +919,7 @@ func (s *WorkItem2Suite) SetupTest() {
 // ========== Actual Test functions ==========
 func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
-	s.minimumPayload.Data.Attributes["system_state"] = "invalid_value"
+	s.minimumPayload.Data.Attributes["system.state"] = "invalid_value"
 	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *s.wi.ID, s.minimumPayload)
 	newStateValue := "closed"
 	s.minimumPayload.Data.Attributes[workitem.SystemState] = newStateValue
@@ -1087,7 +1087,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWorkItemType() {
 
 	s.T().Run("disallow update of field along with type", func(t *testing.T) {
 		u.Data.Attributes[workitem.SystemTitle] = "xyz"
-		// TODO(ibrahim): Check type of error once error 422 has been added.
+		// TODO (ibrahim) - Check type of error once error 422 has been added.
 		//https://github.com/fabric8-services/fabric8-wit/pull/2202#discussion_r210184092
 		test.UpdateWorkitemConflict(t, svc.Context, svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
 	})
@@ -1854,7 +1854,7 @@ func (s *WorkItem2Suite) TestListOrder() {
 
 		t.Run("by created descending", func(t *testing.T) {
 			// when
-			exp := ptr.String(`{"system_state": "open"}`)
+			exp := ptr.String(`{"system.state": "open"}`)
 			sort := ptr.String("-created")
 			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
 			// then
@@ -1882,7 +1882,7 @@ func (s *WorkItem2Suite) TestListOrder() {
 			require.Empty(t, toBeFound, "failed to find all work items: %+s", toBeFound)
 		})
 		t.Run("by created ascending", func(t *testing.T) {
-			exp := ptr.String(`{"system_state": "open"}`)
+			exp := ptr.String(`{"system.state": "open"}`)
 			sort := ptr.String("created")
 			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
 			// then
@@ -1927,7 +1927,7 @@ func (s *WorkItem2Suite) TestListOrder() {
 				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[v].ID, &payload)
 			}
 
-			exp := ptr.String(`{"system_state": "resolved"}`)
+			exp := ptr.String(`{"system.state": "resolved"}`)
 			sort := ptr.String("-updated")
 			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
 			// then
@@ -1971,7 +1971,7 @@ func (s *WorkItem2Suite) TestListOrder() {
 				test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[v].ID, &payload)
 			}
 
-			exp := ptr.String(`{"system_state": "resolved"}`)
+			exp := ptr.String(`{"system.state": "resolved"}`)
 			sort := ptr.String("updated")
 			_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, exp, nil, nil, nil, nil, nil, nil, nil, nil, nil, sort, nil, nil)
 			// then

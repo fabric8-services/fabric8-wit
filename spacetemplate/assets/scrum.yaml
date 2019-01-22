@@ -69,7 +69,7 @@ work_item_types:
     other work items to indicate impediments blocking that work item.
   icon: fa fa-stumbleupon
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the impediment.
       required: yes
@@ -90,7 +90,7 @@ work_item_types:
   description: TBD
   icon: fa fa-tasks
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the Task.
       required: yes
@@ -120,7 +120,7 @@ work_item_types:
   description: TBD
   icon: fa fa-bug
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the Bug.
       required: yes
@@ -198,7 +198,7 @@ work_item_types:
   description: TBD
   icon: pficon pficon-image
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the product backlog item.
       required: yes
@@ -242,7 +242,7 @@ work_item_types:
   description: TBD
   icon: fa fa-puzzle-piece
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the feature.
       required: yes
@@ -300,7 +300,7 @@ work_item_types:
   description: TBD
   icon: fa fa-bullseye
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the Epic.
       required: yes

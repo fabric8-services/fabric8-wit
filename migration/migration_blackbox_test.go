@@ -162,7 +162,6 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration110", testMigration110TrackerQueryID)
 	t.Run("TestMigration111", testMigration111WITinTrackerQuery)
 	t.Run("TestMigration112", testMigration112CascadingDelete)
-	t.Run("TestMigration113", testMigration113RenameFields)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1420,62 +1419,6 @@ func testMigration112CascadingDelete(t *testing.T) {
 	require.False(t, dialect.HasForeignKey("work_item_link_revisions", "work_item_link_revisions_modifier_id_fk"))
 	require.True(t, dialect.HasColumn("work_item_revisions", "modifier_id"))
 	require.False(t, dialect.HasForeignKey("work_item_revisions", "work_item_revisions_identity_fk"))
-}
-
-func testMigration113RenameFields(t *testing.T) {
-	// setup
-	userID := uuid.NewV4()
-	identityID := uuid.NewV4()
-	space_templateID := uuid.NewV4()
-	spaceID := uuid.NewV4()
-	work_item_typeID := uuid.NewV4()
-	work_itemID := uuid.NewV4()
-	work_item_revisionID := uuid.NewV4()
-	require.NoError(t, runSQLscript(sqlDB, "113-rename-fields.sql",
-		userID.String(),
-		identityID.String(),
-		space_templateID.String(),
-		spaceID.String(),
-		work_item_typeID.String(),
-		work_itemID.String(),
-		work_item_revisionID.String(),
-	))
-	expectWorkItemFieldsToBe := func(t *testing.T, tableName string, columnName string, entity_id uuid.UUID, expectedFields string) {
-		row := sqlDB.QueryRow(fmt.Sprintf("SELECT %s FROM %s WHERE id = '%s'", columnName, tableName, entity_id.String()))
-		require.NotNil(t, row)
-		var actualFields string
-		err := row.Scan(&actualFields)
-		require.NoError(t, err)
-		require.Equal(t, expectedFields, actualFields)
-	}
-
-	// When
-	expectedWITFieldsOld := `{"foo.bar": {"Type": {"Kind": "string"}}, "system.area": {"Type": {"Kind": "area"}}, "system.order": {"Type": {"Kind": "float"}}}`
-	// Ensure workitem type has old fields
-	expectWorkItemFieldsToBe(t, "work_item_types", "fields", work_item_typeID, expectedWITFieldsOld)
-
-	// Ensure workitem has old fields
-	expectedWIFieldsOld := `{"foo.bar": 123, "system.title": "Work item 1", "system.number": 1234}`
-	expectWorkItemFieldsToBe(t, "work_items", "fields", work_itemID, expectedWIFieldsOld)
-
-	// Ensure workitem_revision has old fields
-	// The fieldvalue should be same as that of workitem
-	expectWorkItemFieldsToBe(t, "work_item_revisions", "work_item_fields", work_item_revisionID, expectedWIFieldsOld)
-
-	migrateToVersion(t, sqlDB, migrations[:114], 114)
-
-	// Then
-	expectedWITFields := `{"foo.bar": {"Type": {"Kind": "string"}}, "system_area": {"Type": {"Kind": "area"}}, "system_order": {"Type": {"Kind": "float"}}}`
-	// Ensure workitem type fields are renamed
-	expectWorkItemFieldsToBe(t, "work_item_types", "fields", work_item_typeID, expectedWITFields)
-
-	// Ensure workitem fields are renamed
-	expectedWIFields := `{"foo.bar": 123, "system_title": "Work item 1", "system_number": 1234}`
-	expectWorkItemFieldsToBe(t, "work_items", "fields", work_itemID, expectedWIFields)
-
-	// Ensure workitem_revision fields are renamed
-	// The fieldvalue should be same as that of workitem
-	expectWorkItemFieldsToBe(t, "work_item_revisions", "work_item_fields", work_item_revisionID, expectedWIFields)
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

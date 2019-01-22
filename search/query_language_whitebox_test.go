@@ -369,11 +369,11 @@ func TestParseFilterString(t *testing.T) {
 		actualExpr, options, err := ParseFilterString(context.Background(), input)
 		expectedExpr := c.And(
 			c.Equals(
-				c.Field("system_title"),
+				c.Field("system.title"),
 				c.Literal("some"),
 			),
 			c.Equals(
-				c.Field("system_state"),
+				c.Field("system.state"),
 				c.Literal("new"),
 			),
 		)
@@ -437,7 +437,7 @@ func TestGenerateExpression(t *testing.T) {
 				c.Literal(spaceName),
 			),
 			c.Equals(
-				c.Field("system_state"),
+				c.Field("system.state"),
 				c.Literal(statusName),
 			),
 		)
@@ -465,7 +465,7 @@ func TestGenerateExpression(t *testing.T) {
 				c.Literal(spaceName),
 			),
 			c.Equals(
-				c.Field("system_state"),
+				c.Field("system.state"),
 				c.Literal(statusName),
 			),
 		)
@@ -493,7 +493,7 @@ func TestGenerateExpression(t *testing.T) {
 				c.Literal(spaceName),
 			),
 			c.Equals(
-				c.Field("system_state"),
+				c.Field("system.state"),
 				c.Literal(statusName),
 			),
 		)
@@ -520,7 +520,7 @@ func TestGenerateExpression(t *testing.T) {
 				c.Literal(spaceName),
 			),
 
-			c.IsNull("system_assignees"),
+			c.IsNull("system.assignees"),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
@@ -534,7 +534,7 @@ func TestGenerateExpression(t *testing.T) {
 		// when
 		actualExpr, _ := q.generateExpression()
 		// then
-		expectedExpr := c.IsNull("system_assignees")
+		expectedExpr := c.IsNull("system.assignees")
 
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})

@@ -28,7 +28,7 @@ work_item_types:
     team performance or progress.
   icon: fa fa-stumbleupon
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the impediment.
       required: yes
@@ -73,7 +73,7 @@ work_item_types:
     A bug that causes unexpected behavior in the software.
   icon: fa fa-bug
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the defect.
       required: yes
@@ -170,7 +170,7 @@ work_item_types:
     hours.
   icon: fa fa-tasks
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the Task.
       required: yes
@@ -204,7 +204,7 @@ work_item_types:
     met.
   icon: pficon pficon-image
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the story item.
       required: yes
@@ -258,7 +258,7 @@ work_item_types:
     stories and requirements, or an idea.
   icon: fa fa-bullseye
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the Epic.
       required: yes
@@ -304,7 +304,7 @@ work_item_types:
     organization-level focus and are used to track related user stories.
   icon: fa fa-puzzle-piece
   fields:
-    "system_state":
+    "system.state":
       label: State
       description: The state of the theme.
       required: yes
