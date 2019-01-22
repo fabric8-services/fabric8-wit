@@ -161,7 +161,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration109", testMigration109NumberColumnForIteration)
 	t.Run("TestMigration110", testMigration110TrackerQueryID)
 	t.Run("TestMigration111", testMigration111WITinTrackerQuery)
-	t.Run("TestMigration112", testMigration112RenameFields)
+	t.Run("TestMigration112", testMigration112CascadingDelete)
+	t.Run("TestMigration113", testMigration113RenameFields)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -1406,13 +1407,22 @@ func testMigration110TrackerQueryID(t *testing.T) {
 func testMigration111WITinTrackerQuery(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:112], 111)
 	require.True(t, dialect.HasColumn("tracker_queries", "work_item_type_id"))
-
 	// check foreign key to work_item_types(id) exists
 	require.True(t, dialect.HasForeignKey("tracker_queries", "tracker_queries_work_item_type_id_fkey"))
-
 }
 
-func testMigration112RenameFields(t *testing.T) {
+func testMigration112CascadingDelete(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:113], 113)
+	require.True(t, dialect.HasForeignKey("identities", "identities_user_id_fkey"))
+	require.True(t, dialect.HasColumn("comment_revisions", "modifier_id"))
+	require.False(t, dialect.HasForeignKey("comment_revisions", "comment_revisions_identity_fk"))
+	require.True(t, dialect.HasColumn("work_item_link_revisions", "modifier_id"))
+	require.False(t, dialect.HasForeignKey("work_item_link_revisions", "work_item_link_revisions_modifier_id_fk"))
+	require.True(t, dialect.HasColumn("work_item_revisions", "modifier_id"))
+	require.False(t, dialect.HasForeignKey("work_item_revisions", "work_item_revisions_identity_fk"))
+}
+
+func testMigration113RenameFields(t *testing.T) {
 	// setup
 	userID := uuid.NewV4()
 	identityID := uuid.NewV4()
@@ -1421,7 +1431,7 @@ func testMigration112RenameFields(t *testing.T) {
 	work_item_typeID := uuid.NewV4()
 	work_itemID := uuid.NewV4()
 	work_item_revisionID := uuid.NewV4()
-	require.NoError(t, runSQLscript(sqlDB, "112-rename-fields.sql",
+	require.NoError(t, runSQLscript(sqlDB, "113-rename-fields.sql",
 		userID.String(),
 		identityID.String(),
 		space_templateID.String(),

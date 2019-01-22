@@ -600,7 +600,7 @@ func TrackerQueries(n int, fns ...CustomizeTrackerQueriesFunc) RecipeFunction {
 		if err := fxt.setupInfo(n, kindTrackerQueries, customFuncs...); err != nil {
 			return err
 		}
-		return fxt.deps()
+		return fxt.deps(Spaces(1), WorkItemTypes(1), Trackers(1))
 	}
 }
 

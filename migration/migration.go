@@ -472,10 +472,13 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("111-add-wit-to-trackerquery.sql")})
 
 	// Version 112
-	m = append(m, steps{ExecuteSQLFile("112-rename-fields.sql")})
+	m = append(m, steps{ExecuteSQLFile("112-cascading-delete.sql")})
 
 	// Version 113
-	m = append(m, steps{ExecuteSQLFile("113-rename-fields-search-and-trigger.sql")})
+	m = append(m, steps{ExecuteSQLFile("113-rename-fields.sql")})
+
+	// Version 114
+	m = append(m, steps{ExecuteSQLFile("114-rename-fields-search-and-trigger.sql")})
 
 	// Version N
 	//

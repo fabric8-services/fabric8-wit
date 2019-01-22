@@ -110,6 +110,7 @@ type Repository interface {
 	Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 	LoadMany(ctx context.Context, IDs []uuid.UUID) ([]Space, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
+	PermanentDelete(ctx context.Context, id uuid.UUID) error
 	LoadByOwner(ctx context.Context, userID *uuid.UUID, start *int, length *int) ([]Space, int, error)
 	LoadByOwnerAndName(ctx context.Context, userID *uuid.UUID, spaceName *string) (*Space, error)
 	List(ctx context.Context, start *int, length *int) ([]Space, int, error)
@@ -310,6 +311,35 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		"space_id": space.ID,
 	}, "Space created")
 	return space, nil
+}
+
+// PermanentDelete removes a single record. This method use custom SQL to allow soft delete with GORM
+// to coexist with permanent delete.
+func (r *GormRepository) PermanentDelete(ctx context.Context, ID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "space", "permanent_delete"}, time.Now())
+	if ID == uuid.Nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": ID.String(),
+		}, "space id is nil, no space found for permanent deletion")
+		return errors.NewNotFoundError("space", ID.String())
+	}
+	tx := r.db.Unscoped().Delete(&Space{ID: ID})
+	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": ID.String(),
+		}, "unable to permanently delete the space")
+		return errors.NewInternalError(ctx, err)
+	}
+	if tx.RowsAffected == 0 {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": ID.String(),
+		}, "none row was affected by the permanently deletion operation")
+		return errors.NewNotFoundError("space", ID.String())
+	}
+	log.Debug(ctx, map[string]interface{}{
+		"space_id": ID,
+	}, "Space permanently deleted!")
+	return nil
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
