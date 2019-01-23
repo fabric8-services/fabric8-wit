@@ -2,11 +2,14 @@ package contracts
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/logutils"
 	"github.com/pact-foundation/pact-go/dsl"
+	"github.com/pact-foundation/pact-go/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,4 +37,27 @@ func CheckErrorAndCleanPact(t *testing.T, pact *dsl.Pact, err1 error) {
 		require.NoError(t, err2)
 	}
 	require.NoError(t, err1)
+}
+
+// PublishPactFileToBroker publishes given Pact files to a given Pact broker.
+func PublishPactFileToBroker(pactFiles []string, pactBrokerURL string, pactBrokerUsername string, pactBrokerPassword string, pactVersion string, tags []string) {
+	log.SetOutput(&logutils.LevelFilter{
+		Levels:   []logutils.LogLevel{"DEBUG", "INFO", "WARN", "ERROR"},
+		MinLevel: logutils.LogLevel("INFO"),
+		Writer:   os.Stderr,
+	})
+	log.Printf("Publishing pact files %s to a broker (%s)...\n", pactFiles, pactBrokerURL)
+	p := dsl.Publisher{}
+	err := p.Publish(types.PublishRequest{
+		PactURLs:        pactFiles,
+		PactBroker:      pactBrokerURL,
+		BrokerUsername:  pactBrokerUsername,
+		BrokerPassword:  pactBrokerPassword,
+		ConsumerVersion: pactVersion,
+		Tags:            tags,
+	})
+
+	if err != nil {
+		log.Fatalf("Unable to publish pact to a broker (%s):\n%+v\n", pactBrokerURL, err)
+	}
 }

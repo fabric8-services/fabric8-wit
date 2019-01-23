@@ -182,18 +182,35 @@ test-integration-benchmark: prebuild-check migrate-database $(SOURCES)
 
 .PHONY: test-contracts-consumer-no-coverage
 ## Runs the consumer side of contract tests WITHOUT producing coverage files for each package.
-## and publish generated Pact file (the contract) to the Pact broker.
+test-contracts-consumer-no-coverage:
+	$(call log-info,"Running test: $@")
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -e 'contracts/consumer'))
+	$(eval PACT_DIR=$(PWD)/test/contracts/pacts)
+	$(eval PACT_VERSION="latest")
+	go test $(GO_TEST_VERBOSITY_FLAG) -count=1 $(TEST_PACKAGES)
+
+.PHONY: publish-contract-testing-pacts-to-broker
+## Publishes generated Pact file (the contracts) to the Pact broker.
 ## The following env variables needs to be set in environment:
 ## - Pact broker for storing pact files
 ##   PACT_BROKER_URL
 ##   PACT_BROKER_USERNAME
 ##   PACT_BROKER_PASSWORD
-test-contracts-consumer-no-coverage:
-	$(call log-info,"Running test: $@")
-	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -e 'contracts/consumer'))
-	PACT_DIR=$(PWD)/test/contracts/pacts \
-	PACT_VERSION="latest" \
-	go test $(GO_TEST_VERBOSITY_FLAG) -count=1 $(TEST_PACKAGES)
+publish-contract-testing-pacts-to-broker:
+	$(call log-info,"Publishing pact files to Broker")
+	$(eval PACT_DIR=$(PWD)/test/contracts/pacts)
+	$(eval PACT_FILES:=$(shell find $(PACT_DIR) -name '*.json'))
+	$(eval PACT_VERSION?=1.0.0)
+	$(eval PACT_TAGS?=latest)
+	go run ./test/contracts/publisher/main.go "$(PACT_FILES)" "$(PACT_VERSION)" "$(PACT_TAGS)"
+
+.PHONY: clean-contract-tests
+## Cleans generated pacts and logs from contract tests
+clean-contract-tests:
+	$(call log-info,"Cleaning generated pacts and logs from contract tests")
+	$(eval PACT_DIR=$(PWD)/test/contracts/pacts)
+	$(eval LOGS_TO_BE_CLEANED:=$(shell find test/contracts -name '*logs'))
+	rm -rvf $(PACT_DIR) $(LOGS_TO_BE_CLEANED)
 
 .PHONY: test-remote
 ## Runs the remote tests and produces coverage files for each package.

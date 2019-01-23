@@ -8,7 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
 	"github.com/fabric8-services/fabric8-wit/test/contracts"
 	"github.com/pact-foundation/pact-go/dsl"
-	"github.com/pact-foundation/pact-go/types"
+	"github.com/stretchr/testify/require"
 )
 
 // TestFabric8AuthConsumer runs all consumer side contract tests
@@ -17,14 +17,9 @@ func TestFabric8AuthConsumer(t *testing.T) {
 	log.SetOutput(os.Stdout)
 
 	var pactDir = os.Getenv("PACT_DIR")
-	var pactVersion = os.Getenv("PACT_VERSION")
 
 	var pactConsumer = "fabric8-wit"
 	var pactProvider = "fabric8-auth"
-
-	var pactBrokerURL = os.Getenv("PACT_BROKER_URL")
-	var pactBrokerUsername = os.Getenv("PACT_BROKER_USERNAME")
-	var pactBrokerPassword = os.Getenv("PACT_BROKER_PASSWORD")
 
 	// Create Pact connecting to local Daemon
 	pact := &dsl.Pact{
@@ -52,21 +47,6 @@ func TestFabric8AuthConsumer(t *testing.T) {
 	// Write a pact file
 	pactFile := contracts.PactFile(pactConsumer, pactProvider)
 	log.Printf("All tests done, writing a pact file (%s).\n", pactFile)
-	pact.WritePact()
-
-	log.Printf("Publishing pact to a broker (%s)...\n", pactBrokerURL)
-
-	p := dsl.Publisher{}
-	err := p.Publish(types.PublishRequest{
-		PactURLs:        []string{pactFile},
-		PactBroker:      pactBrokerURL,
-		BrokerUsername:  pactBrokerUsername,
-		BrokerPassword:  pactBrokerPassword,
-		ConsumerVersion: pactVersion,
-		Tags:            []string{"latest"},
-	})
-
-	if err != nil {
-		log.Fatalf("Unable to publish pact to a broker (%s):\n%+v\n", pactBrokerURL, err)
-	}
+	err := pact.WritePact()
+	require.NoError(t, err)
 }
