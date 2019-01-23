@@ -17,7 +17,7 @@ The following should fail as nothing is there (yet):
 Should create 1 WIT with `name=Epic`:
 
 ----
-./bin/wit-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":null,"fields":{"system_owner":{"type":{"kind":"user"},"required":true},"system_state":{"type":{"kind":"string"},"required":false}},"name":"Epic"}' -H localhost:8080 --pp
+./bin/wit-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":null,"fields":{"system.owner":{"type":{"kind":"user"},"required":true},"system.state":{"type":{"kind":"string"},"required":false}},"name":"Epic"}' -H localhost:8080 --pp
 ----
 
 == Show newly created "Epic"
@@ -33,7 +33,7 @@ Should show you newly created item type:
 Create another item type:
 
 ----
-./bin/wit-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":null,"fields":{"system_owner":{"type":{"kind":"user"},"required":true},"system_duration":{"type":{"kind":"integer"},"required":false}},"name":"Issue"}' -H localhost:8080 --pp
+./bin/wit-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":null,"fields":{"system.owner":{"type":{"kind":"user"},"required":true},"system.duration":{"type":{"kind":"integer"},"required":false}},"name":"Issue"}' -H localhost:8080 --pp
 ----
 
 Retrieve newly created `Issue` work item type:
@@ -42,20 +42,20 @@ Retrieve newly created `Issue` work item type:
 ./bin/wit-cli show workitemtype --name "Issue" -H localhost:8080 --pp
 ----
 
-Should fail - create item type based on pre-existing item type because `system_state` does not match to parent item type:
+Should fail - create item type based on pre-existing item type because `system.state` does not match to parent item type:
 
-(The `system_state` must not be of type `float` but of type `string`.)
+(The `system.state` must not be of type `float` but of type `string`.)
 
 ----
-./bin/wit-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":"Epic","fields":{"system_owner":{"type":{"kind":"user"},"required":true},"system_state":{"type":{"kind":"float"},"required":false}},"name":"anotherEpic"}' -H localhost:8080 --pp
+./bin/wit-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":"Epic","fields":{"system.owner":{"type":{"kind":"user"},"required":true},"system.state":{"type":{"kind":"float"},"required":false}},"name":"anotherEpic"}' -H localhost:8080 --pp
 ----
 
 Should create item type based on pre-existing item type:
 
-(Now `system_state` has the correct type of `string`.)
+(Now `system.state` has the correct type of `string`.)
 
 ----
-./bin/wit-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":"Epic","fields":{"system_owner":{"type":{"kind":"user"},"required":true},"system_state":{"type":{"kind":"string"},"required":false}},"name":"anotherEpic"}' -H localhost:8080 --pp
+./bin/wit-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":"Epic","fields":{"system.owner":{"type":{"kind":"user"},"required":true},"system.state":{"type":{"kind":"string"},"required":false}},"name":"anotherEpic"}' -H localhost:8080 --pp
 ----
 
 == List all work item types that we created

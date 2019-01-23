@@ -44,7 +44,7 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Attribute("can-construct", d.Boolean, "Whether or not this work item type is supposed to be used for creating work items directly.")
 	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type", func() {
 		a.Example(map[string]interface{}{
-			"system_administrator": map[string]interface{}{
+			"system.administrator": map[string]interface{}{
 				"type": map[string]interface{}{
 					"kind": "string",
 				},

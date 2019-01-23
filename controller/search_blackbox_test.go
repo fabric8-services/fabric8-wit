@@ -517,7 +517,6 @@ func (s *searchControllerTestSuite) TestAutoRegisterHostURL() {
 }
 
 func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {
-
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.Identities(1, tf.SetIdentityUsernames("pranav")),
 		tf.Spaces(2),
@@ -585,7 +584,6 @@ func (s *searchControllerTestSuite) TestFullTextSearch() {
 }
 
 func (s *searchControllerTestSuite) TestSearchWorkItemsWithoutSpaceContext() {
-
 	// given 2 spaces with 10 workitems in the first and 5 in the second space
 	// random title used in work items
 	searchByMe := uuid.NewV4().String()

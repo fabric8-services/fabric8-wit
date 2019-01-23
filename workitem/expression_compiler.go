@@ -110,8 +110,8 @@ func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName str
 	if isColumnField {
 		return Column(WorkItemStorage{}.TableName(), mappedFieldName), false
 	}
-	// Check if the field name contains an underscore
-	if strings.Contains(fieldName, "_") {
+
+	if strings.Contains(fieldName, ".") || strings.Contains(fieldName, "_") {
 		// leave field untouched
 		return fieldName, true
 	}
@@ -197,7 +197,7 @@ var DefaultTableJoins = func() TableJoinMap {
 			On: Column("lbl", "space_id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id") + `
 		                    AND lbl.id::text IN (
 		                        SELECT
-						jsonb_array_elements_text(` + Column(WorkItemStorage{}.TableName(), "fields") + `->'system_labels')
+						jsonb_array_elements_text(` + Column(WorkItemStorage{}.TableName(), "fields") + `->'system.labels')
 					FROM labels)`,
 			PrefixActivators: []string{"label."},
 			AllowedColumns:   []string{"name"},

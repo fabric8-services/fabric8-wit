@@ -18,6 +18,7 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/require"
 
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
 )
 
@@ -171,8 +172,12 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 		}
 	}
 	if expectedStr != actualStr {
+		log.Error(nil, nil, "testableCompareWithGolden: expected value %v", expectedStr)
+		log.Error(nil, nil, "testableCompareWithGolden: actual value %v", actualStr)
+
 		dmp := diffmatchpatch.New()
 		diffs := dmp.DiffMain(expectedStr, actualStr, false)
+		log.Error(nil, nil, "testableCompareWithGolden: mismatch of actual output and golden-file %s:\n %s \n", absPath, dmp.DiffPrettyText(diffs))
 		return errs.Errorf("mismatch of actual output and golden-file %s:\n %s \n", absPath, dmp.DiffPrettyText(diffs))
 	}
 	return nil

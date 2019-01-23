@@ -55,10 +55,10 @@ const (
 	remoteDescription         = workitem.SystemDescription
 	remoteState               = workitem.SystemState
 	remoteItemID              = workitem.SystemRemoteItemID
-	remoteCreatorLogin        = "system_creator_login"
-	remoteCreatorProfileURL   = "system_creator_profile_url"
-	RemoteAssigneeLogins      = "system_assignees_login"
-	RemoteAssigneeProfileURLs = "system_assignees_profile_url"
+	remoteCreatorLogin        = "system.creator.login"
+	remoteCreatorProfileURL   = "system.creator.profile_url"
+	RemoteAssigneeLogins      = "system.assignees.login"
+	RemoteAssigneeProfileURLs = "system.assignees.profile_url"
 	remoteItemURL             = workitem.SystemRemoteItemURL
 )
 

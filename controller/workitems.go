@@ -176,11 +176,11 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 	}
 	if ctx.FilterAssignee != nil {
 		if *ctx.FilterAssignee == none {
-			exp = criteria.And(exp, criteria.IsNull("system_assignees"))
+			exp = criteria.And(exp, criteria.IsNull("system.assignees"))
 			additionalQuery = append(additionalQuery, "filter[assignee]=none")
 
 		} else {
-			exp = criteria.And(exp, criteria.Equals(criteria.Field("system_assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+			exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
 			additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
 		}
 	}
