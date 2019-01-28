@@ -1,4 +1,4 @@
-package fabric8auth
+package fabric8auth_test
 
 import (
 	"log"
@@ -6,14 +6,13 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
-	"github.com/fabric8-services/fabric8-wit/test/contracts"
 	"github.com/pact-foundation/pact-go/dsl"
 	"github.com/stretchr/testify/require"
 )
 
 // TestFabric8AuthConsumer runs all consumer side contract tests
 // for the fabric8-wit (consumer) to fabric8-auth (provider) contract.
-func TestFabric8AuthConsumer(t *testing.T) {
+func TestFabric8AuthConsumer() {
 	log.SetOutput(os.Stdout)
 
 	var pactDir = os.Getenv("PACT_DIR")

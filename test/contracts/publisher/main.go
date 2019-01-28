@@ -17,7 +17,7 @@ func main() {
 
 	re := regexp.MustCompile("[;\n]")
 
-	contracts.PublishPactFileToBroker(
+	contracts_test.PublishPactFileToBroker(
 		re.Split(pactFiles, -1),
 		pactBrokerURL,
 		pactBrokerUsername,

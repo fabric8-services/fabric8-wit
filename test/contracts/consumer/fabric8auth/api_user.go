@@ -1,4 +1,4 @@
-package fabric8auth
+package fabric8auth_test
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
 	"github.com/fabric8-services/fabric8-wit/test/contracts"
-	consumer "github.com/fabric8-services/fabric8-wit/test/contracts/consumer_test"
+	consumer "github.com/fabric8-services/fabric8-wit/test/contracts/consumer"
 	"github.com/pact-foundation/pact-go/dsl"
 )
 
@@ -40,7 +40,7 @@ func AuthAPIUserByName(t *testing.T, pact *dsl.Pact, userName string) {
 
 	// Verify
 	err := pact.Verify(consumer.SimpleGetInteraction(pact, fmt.Sprintf("/api/users?filter[username]=%s", userName)))
-	contracts.CheckErrorAndCleanPact(t, pact, err)
+	contracts_test.CheckErrorAndCleanPact(t, pact, err)
 }
 
 // AuthAPIUserByID defines contract of /api/users/<user_id> endpoint
@@ -69,7 +69,7 @@ func AuthAPIUserByID(t *testing.T, pact *dsl.Pact, userID string) {
 
 	// Verify
 	err := pact.Verify(consumer.SimpleGetInteraction(pact, fmt.Sprintf("/api/users/%s", userID)))
-	contracts.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
+	contracts_test.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
 }
 
 // AuthAPIUserByToken defines contract of /api/user endpoint with valid auth token
@@ -103,7 +103,7 @@ func AuthAPIUserByToken(t *testing.T, pact *dsl.Pact, userToken string) {
 
 	// Verify
 	err := pact.Verify(consumer.SimpleGetInteractionWithToken(pact, "/api/user", userToken))
-	contracts.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
+	contracts_test.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
 }
 
 // AuthAPIUserInvalidToken defines contract of /api/user endpoint with invalid auth token
@@ -135,7 +135,7 @@ func AuthAPIUserInvalidToken(t *testing.T, pact *dsl.Pact, invalidToken string) 
 
 	// Verify
 	err := pact.Verify(consumer.SimpleGetInteractionWithToken(pact, "/api/user", invalidToken))
-	contracts.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
+	contracts_test.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
 }
 
 // AuthAPIUserNoToken defines contract of /api/user endpoint with missing auth token
@@ -163,5 +163,5 @@ func AuthAPIUserNoToken(t *testing.T, pact *dsl.Pact) {
 
 	// Verify
 	err := pact.Verify(consumer.SimpleGetInteraction(pact, "/api/user"))
-	contracts.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
+	contracts_test.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
 }

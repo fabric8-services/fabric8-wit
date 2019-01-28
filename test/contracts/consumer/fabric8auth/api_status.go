@@ -1,4 +1,4 @@
-package fabric8auth
+package fabric8auth_test
 
 import (
 	"log"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
 	"github.com/fabric8-services/fabric8-wit/test/contracts"
-	consumer "github.com/fabric8-services/fabric8-wit/test/contracts/consumer_test"
+	"github.com/fabric8-services/fabric8-wit/test/contracts/consumer"
 	"github.com/pact-foundation/pact-go/dsl"
 )
 
@@ -32,6 +32,6 @@ func AuthAPIStatus(t *testing.T, pact *dsl.Pact) {
 		})
 
 	// Verify
-	err := pact.Verify(consumer.SimpleGetInteraction(pact, "/api/status"))
-	contracts.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
+	err := pact.Verify(consumer_test.SimpleGetInteraction(pact, "/api/status"))
+	contracts_test.CheckErrorAndCleanPact(t, pact, err) //workaround for https://github.com/pact-foundation/pact-go/issues/108
 }

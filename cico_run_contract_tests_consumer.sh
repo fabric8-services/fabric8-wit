@@ -4,6 +4,8 @@
 
 cico_setup;
 
+set -e
+
 # Run the contract tests
 make test-contracts-consumer-no-coverage
 

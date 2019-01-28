@@ -1,4 +1,4 @@
-package contracts
+package contracts_test
 
 import (
 	"fmt"
