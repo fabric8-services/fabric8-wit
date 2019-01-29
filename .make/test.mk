@@ -185,7 +185,7 @@ test-integration-benchmark: prebuild-check migrate-database $(SOURCES)
 test-contracts-consumer-no-coverage:
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -e 'contracts/consumer'))
-	$(eval PACT_DIR=$(PWD)/test/contracts/pacts)
+	$(eval PACT_DIR=$(TMP_PATH)/test/contracts/pacts)
 	$(eval PACT_VERSION="latest")
 	go test $(GO_TEST_VERBOSITY_FLAG) -count=1 $(TEST_PACKAGES)
 
