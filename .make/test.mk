@@ -209,7 +209,7 @@ CLEAN_TARGETS += clean-contract-tests
 ## Cleans generated pacts and logs from contract tests
 clean-contract-tests:
 	$(call log-info,"Cleaning generated pacts and logs from contract tests")
-	$(eval PACT_DIR=$(PWD)/test/contracts/pacts)
+	$(eval PACT_DIR=$(TMP_PATH)/test/contracts/pacts)
 	$(eval LOGS_TO_BE_CLEANED:=$(shell find $(TMP_PATH)/test/contracts -name '*logs'))
 	rm -rvf $(PACT_DIR) $(LOGS_TO_BE_CLEANED)
 
