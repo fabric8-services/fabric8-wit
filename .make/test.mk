@@ -198,7 +198,7 @@ test-contracts-consumer-no-coverage:
 ##   PACT_BROKER_PASSWORD
 publish-contract-testing-pacts-to-broker:
 	$(call log-info,"Publishing pact files to Broker")
-	$(eval PACT_DIR=$(PWD)/test/contracts/pacts)
+	$(eval PACT_DIR=$(TMP_PATH)/test/contracts/pacts)
 	$(eval PACT_FILES:=$(shell find $(PACT_DIR) -name '*.json'))
 	$(eval PACT_VERSION?=1.0.0)
 	$(eval PACT_TAGS?=latest)
