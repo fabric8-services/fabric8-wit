@@ -1,5 +1,4 @@
 # For API contract testing
 pacts
 output
-**/*/log
 **/*/logs
