@@ -204,6 +204,7 @@ publish-contract-testing-pacts-to-broker:
 	$(eval PACT_TAGS?=latest)
 	go run ./test/contracts/publisher/main.go "$(PACT_FILES)" "$(PACT_VERSION)" "$(PACT_TAGS)"
 
+CLEAN_TARGETS += clean-contract-tests
 .PHONY: clean-contract-tests
 ## Cleans generated pacts and logs from contract tests
 clean-contract-tests:
