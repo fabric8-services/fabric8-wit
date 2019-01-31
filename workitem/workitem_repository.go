@@ -956,12 +956,12 @@ func (r *GormWorkItemRepository) getAllIterationWithCounts(ctx context.Context, 
 	db = r.db.Table(workitemTableName).Select(`
 		iterations.id AS IterationId,
 		count(*) AS Total,
-		count(*) FILTER (WHERE fields->>'system_state' ILIKE 'closed') AS Closed
+		count(*) FILTER (WHERE fields->>'system.state' ILIKE 'closed') AS Closed
 	`).Joins(`
 		INNER JOIN iterations
 		ON
 			iterations.space_id = $1
-			AND fields @> concat('{"system_iteration": "', iterations.id, '"}')::jsonb
+			AND fields @> concat('{"system.iteration": "', iterations.id, '"}')::jsonb
 	`).Where(`
 		work_items.space_id = $1
 		AND work_items.deleted_at IS NULL
@@ -1081,12 +1081,12 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 // GetCountsForIteration returns Closed and Total counts of WIs for given iteration
 // It fetches all child iterations of input iteration and then uses list to counts work items
 // SELECT count(*) AS Total,
-//        count(CASE fields->>'system_state'
+//        count(CASE fields->>'system.state'
 //                  WHEN 'closed' THEN '1'
 //                  ELSE NULL
 //              END) AS Closed
 // FROM work_items wi
-// WHERE fields->>'system_iteration' IN ('input iteration ID + children IDs')
+// WHERE fields->>'system.iteration' IN ('input iteration ID + children IDs')
 //   AND wi.deleted_at IS NULL
 func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountsForIteration"}, time.Now())
@@ -1110,12 +1110,12 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	// build where clause usig above ID list
 	idsToLookFor := []string{}
 	for _, x := range childIDs {
-		partialClause := fmt.Sprintf(`fields @> '{"system_iteration":"%s"}'`, x.String())
+		partialClause := fmt.Sprintf(`fields @> '{"system.iteration":"%s"}'`, x.String())
 		idsToLookFor = append(idsToLookFor, partialClause)
 	}
 	whereClause := strings.Join(idsToLookFor, " OR ")
 	query := fmt.Sprintf(`SELECT count(*) AS Total,
-						count(CASE fields->>'system_state'
+						count(CASE fields->>'system.state'
 									WHEN 'closed' THEN '1'
 									ELSE NULL
 								END) AS Closed

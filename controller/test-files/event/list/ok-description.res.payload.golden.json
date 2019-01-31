@@ -11,7 +11,6 @@
           "content": "`(see function github.com/fabric8-services/fabric8-wit/controller_test.(*TestEvent).TestListEvent.func5 in controller/work_item_events_blackbox_test.go)`",
           "markup": "Markdown"
         },
-        "onField": "system_description",
         "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },

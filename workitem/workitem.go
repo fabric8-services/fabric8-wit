@@ -87,11 +87,11 @@ func (wi WorkItem) ChangeSet(older change.Detector) (change.Set, error) {
 		return nil, errs.New("Other entity has not the same ID: " + olderWorkItem.ID.String())
 	}
 	changes := []change.Change{}
-	// CAUTION: we're only supporting changes to the system_state and to the
+	// CAUTION: we're only supporting changes to the system.state and to the
 	// board position relationship for now. If we need to support more
 	// attribute changes, this has to be added here. This will be likely
 	// necessary when adding new Actions.
-	// compare system_state
+	// compare system.state
 	if wi.Fields[SystemState] != olderWorkItem.Fields[SystemState] {
 		changes = append(changes, change.Change{
 			AttributeName: SystemState,
@@ -99,9 +99,9 @@ func (wi WorkItem) ChangeSet(older change.Detector) (change.Set, error) {
 			OldValue:      olderWorkItem.Fields[SystemState],
 		})
 	}
-	// compare system_boardcolumns
+	// compare system.boardcolumns
 	// this field looks like this:
-	// system_boardcolumns": ["43f9e838-3b4b-45e8-85eb-dd402e8324b5", "69699af8-cb28-4b90-b829-24c1aad12797"]
+	// system.boardcolumns": ["43f9e838-3b4b-45e8-85eb-dd402e8324b5", "69699af8-cb28-4b90-b829-24c1aad12797"]
 	if wi.Fields[SystemBoardcolumns] == nil && olderWorkItem.Fields[SystemBoardcolumns] == nil {
 		return changes, nil
 	}

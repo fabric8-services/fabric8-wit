@@ -4,7 +4,6 @@
       "attributes": {
         "name": "string_single",
         "newValue": "foo",
-        "onField": "string_single",
         "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },
@@ -37,7 +36,6 @@
         "name": "string_single",
         "newValue": "bar",
         "oldValue": "foo",
-        "onField": "string_single",
         "revisionId": "00000000-0000-0000-0000-000000000005",
         "timestamp": "0001-01-01T00:00:00Z"
       },

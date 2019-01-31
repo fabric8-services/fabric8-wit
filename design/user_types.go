@@ -9,7 +9,7 @@ import (
 var CreateWorkItemPayload = a.Type("CreateWorkItemPayload", func() {
 	a.Attribute("type", d.UUID, "ID of the work item type of the newly created work item")
 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, must conform to the type", func() {
-		a.Example(map[string]interface{}{"system_creator": "user-ref", "system_state": "new", "system_title": "Example story"})
+		a.Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
 		a.MinLength(1)
 	})
 	a.Required("type", "fields")
@@ -21,7 +21,7 @@ var CreateWorkItemPayload = a.Type("CreateWorkItemPayload", func() {
 var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Attribute("type", d.UUID, "ID of the work item type")
 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, must conform to the type", func() {
-		a.Example(map[string]interface{}{"system_creator": "user-ref", "system_state": "new", "system_title": "Example story"})
+		a.Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
 		a.MinLength(1)
 	})
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control", func() {

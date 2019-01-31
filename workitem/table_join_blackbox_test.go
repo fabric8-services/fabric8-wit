@@ -84,9 +84,9 @@ func Test_JoinOnJSONField(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// when
-	actual := workitem.JoinOnJSONField("system_iteration", "iter.ID")
+	actual := workitem.JoinOnJSONField("system.iteration", "iter.ID")
 	// then
-	require.Equal(t, workitem.Column(workitem.WorkItemStorage{}.TableName(), "fields")+` @> concat('{"system_iteration": "', iter.ID, '"}')::jsonb`, actual)
+	require.Equal(t, workitem.Column(workitem.WorkItemStorage{}.TableName(), "fields")+` @> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`, actual)
 }
 
 func Test_TableJoin_String(t *testing.T) {

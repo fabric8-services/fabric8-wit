@@ -4,7 +4,6 @@
       "attributes": {
         "name": "url_single",
         "newValue": "127.0.0.1",
-        "onField": "url_single",
         "revisionId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "0001-01-01T00:00:00Z"
       },
@@ -37,7 +36,6 @@
         "name": "url_single",
         "newValue": "http://www.openshift.io",
         "oldValue": "127.0.0.1",
-        "onField": "url_single",
         "revisionId": "00000000-0000-0000-0000-000000000005",
         "timestamp": "0001-01-01T00:00:00Z"
       },

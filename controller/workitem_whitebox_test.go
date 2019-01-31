@@ -170,59 +170,6 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithLegacyDescription(
 
 }
 
-// TODO(Ibrahim) - This test should be removed after we remove support for system.* fields
-func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDotAndPeriodFields() {
-	resource.Require(rest.T(), resource.Database)
-	//given
-	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment())
-	rest.T().Run("system.* to system_*", func(t *testing.T) {
-		attributes := map[string]interface{}{
-			"system.title":   "title",
-			"system.order":   1,
-			"system.foo.bar": "helloworld",
-			"some.foo.bar":   "xyz",
-		}
-		source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
-		target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-		err := application.Transactional(rest.GormDB, func(app application.Application) error {
-			return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
-		})
-		require.NoError(t, err)
-		require.NotNil(t, target)
-		require.NotNil(t, target.Fields)
-		// Check if new field names are present and have correct value
-		assert.Equal(t, target.Fields[workitem.SystemTitle], "title")
-		assert.Equal(t, target.Fields[workitem.SystemOrder], 1)
-
-		// Check if old field name is removed
-		assert.Nil(t, target.Fields["system.title"])
-		assert.Nil(t, target.Fields["system.order"])
-
-		// Check unknown field is not modified
-		assert.Equal(t, target.Fields["some.foo.bar"], "xyz")
-		assert.Equal(t, target.Fields["system.foo.bar"], "helloworld")
-	})
-	rest.T().Run("system_* has precedence over system.*", func(t *testing.T) {
-		attributes := map[string]interface{}{
-			"system.title": "foo",
-			"system_title": "bar",
-		}
-		source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
-		target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-		err := application.Transactional(rest.GormDB, func(app application.Application) error {
-			return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
-		})
-		require.NoError(t, err)
-		require.NotNil(t, target)
-		require.NotNil(t, target.Fields)
-		// check if correct value is set
-		assert.Equal(t, target.Fields[workitem.SystemTitle], "bar")
-		// check if old field was removed
-		assert.Nil(t, target.Fields["system.title"])
-	})
-
-}
-
 func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
@@ -353,34 +300,6 @@ func (rest *TestWorkItemREST) TestConvertWorkItem() {
 		require.NoError(t, err)
 		assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 		assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
-	})
-	// TODO (ibrahim) - This test should be removed once field name migration is completed
-	rest.T().Run("check field names", func(t *testing.T) {
-		request := &http.Request{Host: "localhost"}
-		wi := workitem.WorkItem{
-			Type:    fxt.WorkItemTypes[0].ID,
-			SpaceID: fxt.Spaces[0].ID,
-			Fields: map[string]interface{}{
-				workitem.SystemTitle:       "title",
-				workitem.SystemDescription: "xyz",
-			},
-		}
-		convertedWI, err := ConvertWorkItem(request, *fxt.WorkItemTypes[0], wi)
-		require.NoError(t, err)
-		for attr := range convertedWI.Attributes {
-			oldFieldName, ok := workitem.NewToOldFieldNameMap[attr]
-			if ok {
-				// Check old and new field have the same value
-				assert.Equal(t, convertedWI.Attributes[oldFieldName], convertedWI.Attributes[attr])
-				// If the payload had a value, both fields should have this value
-				val, ok := wi.Fields[attr]
-				if ok {
-					assert.Equal(t, convertedWI.Attributes[attr], val)
-					assert.Equal(t, convertedWI.Attributes[oldFieldName], val)
-				}
-			}
-		}
-
 	})
 }
 
