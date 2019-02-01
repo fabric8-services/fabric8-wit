@@ -440,8 +440,8 @@
     "types",
     "utils"
   ]
-  revision = "6b222e8f6bd14cf7d92a9c7f2a0464ff80af8a67"
-  version = "v1.0.0-beta.2"
+  revision = "6ec25718366e22bf3f50b126b9c4db4d91b9cfce"
+  version = "v1.0.0-beta.3"
 
 [[projects]]
   name = "github.com/pelletier/go-buffruneio"
@@ -474,16 +474,6 @@
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/pmacik/loginusers-go"
-  packages = [
-    "common",
-    "config",
-    "loginusers"
-  ]
-  revision = "cb69e5a68249e32da8daf54e5a5ca1bb177d075d"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"

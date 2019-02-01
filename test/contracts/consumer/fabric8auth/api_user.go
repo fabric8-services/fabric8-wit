@@ -5,7 +5,6 @@ import (
 	"log"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
 	"github.com/fabric8-services/fabric8-wit/test/contracts"
 	consumer "github.com/fabric8-services/fabric8-wit/test/contracts/consumer"
 	"github.com/pact-foundation/pact-go/dsl"
@@ -27,7 +26,7 @@ func AuthAPIUserByName(t *testing.T, pact *dsl.Pact, userName string) {
 			Query: dsl.MapMatcher{
 				"filter[username]": dsl.Term(
 					userName,
-					model.UserNameRegex,
+					UserNameRegex,
 				),
 			},
 			Headers: dsl.MapMatcher{"Content-Type": dsl.String("application/json")},
@@ -35,7 +34,7 @@ func AuthAPIUserByName(t *testing.T, pact *dsl.Pact, userName string) {
 		WillRespondWith(dsl.Response{
 			Status:  200,
 			Headers: dsl.MapMatcher{"Content-Type": dsl.String("application/vnd.api+json")},
-			Body:    dsl.Match(model.Users{}),
+			Body:    dsl.Match(Users{}),
 		})
 
 	// Verify
@@ -57,14 +56,14 @@ func AuthAPIUserByID(t *testing.T, pact *dsl.Pact, userID string) {
 			Method: "GET",
 			Path: dsl.Term(
 				fmt.Sprintf("/api/users/%s", userID),
-				fmt.Sprintf("/api/users/%s", model.UserIDRegex),
+				fmt.Sprintf("/api/users/%s", UserIDRegex),
 			),
 			Headers: dsl.MapMatcher{"Content-Type": dsl.String("application/json")},
 		}).
 		WillRespondWith(dsl.Response{
 			Status:  200,
 			Headers: dsl.MapMatcher{"Content-Type": dsl.String("application/vnd.api+json")},
-			Body:    dsl.Match(model.User{}),
+			Body:    dsl.Match(User{}),
 		})
 
 	// Verify
@@ -91,14 +90,14 @@ func AuthAPIUserByToken(t *testing.T, pact *dsl.Pact, userToken string) {
 				"Content-Type": dsl.String("application/json"),
 				"Authorization": dsl.Term(
 					fmt.Sprintf("Bearer %s", userToken),
-					fmt.Sprintf("^Bearer %s$", model.JWSRegex),
+					fmt.Sprintf("^Bearer %s$", JWSRegex),
 				),
 			},
 		}).
 		WillRespondWith(dsl.Response{
 			Status:  200,
 			Headers: dsl.MapMatcher{"Content-Type": dsl.String("application/vnd.api+json")},
-			Body:    dsl.Match(model.User{}),
+			Body:    dsl.Match(User{}),
 		})
 
 	// Verify
@@ -123,14 +122,14 @@ func AuthAPIUserInvalidToken(t *testing.T, pact *dsl.Pact, invalidToken string) 
 				"Content-Type": dsl.String("application/json"),
 				"Authorization": dsl.Term(
 					fmt.Sprintf("Bearer %s", invalidToken),
-					fmt.Sprintf("^Bearer %s$", model.JWSRegex),
+					fmt.Sprintf("^Bearer %s$", JWSRegex),
 				),
 			},
 		}).
 		WillRespondWith(dsl.Response{
 			Status:  401,
 			Headers: dsl.MapMatcher{"Content-Type": dsl.String("application/vnd.api+json")},
-			Body:    dsl.Match(model.InvalidTokenMessage{}),
+			Body:    dsl.Match(InvalidTokenMessage{}),
 		})
 
 	// Verify
@@ -158,7 +157,7 @@ func AuthAPIUserNoToken(t *testing.T, pact *dsl.Pact) {
 		WillRespondWith(dsl.Response{
 			Status:  401,
 			Headers: dsl.MapMatcher{"Content-Type": dsl.String("application/vnd.api+json")},
-			Body:    dsl.Match(model.MissingTokenMessage{}),
+			Body:    dsl.Match(MissingTokenMessage{}),
 		})
 
 	// Verify

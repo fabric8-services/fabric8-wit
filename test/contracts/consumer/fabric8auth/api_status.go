@@ -4,7 +4,6 @@ import (
 	"log"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-auth/test/contracts/model"
 	"github.com/fabric8-services/fabric8-wit/test/contracts"
 	"github.com/fabric8-services/fabric8-wit/test/contracts/consumer"
 	"github.com/pact-foundation/pact-go/dsl"
@@ -28,7 +27,7 @@ func AuthAPIStatus(t *testing.T, pact *dsl.Pact) {
 		WillRespondWith(dsl.Response{
 			Status:  200,
 			Headers: dsl.MapMatcher{"Content-Type": dsl.String("application/vnd.status+json")},
-			Body:    dsl.Match(model.APIStatusMessage{}),
+			Body:    dsl.Match(APIStatusMessage{}),
 		})
 
 	// Verify
