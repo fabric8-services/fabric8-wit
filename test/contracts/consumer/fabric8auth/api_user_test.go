@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/test/contracts"
+	contracts_test "github.com/fabric8-services/fabric8-wit/test/contracts"
 	consumer "github.com/fabric8-services/fabric8-wit/test/contracts/consumer"
 	"github.com/pact-foundation/pact-go/dsl"
 )

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/test/contracts"
+	contracts_test "github.com/fabric8-services/fabric8-wit/test/contracts"
 	"github.com/pact-foundation/pact-go/dsl"
 	"github.com/stretchr/testify/require"
 )
@@ -91,6 +91,10 @@ type UserData struct {
 // User represents a JSON object of a single user.
 type User struct {
 	Data UserData `json:"data"`
+}
+
+type Users struct {
+	Data []UserData `json:"data"`
 }
 
 // InvalidTokenMessage represents a message returned when the Authorization header is invalid in secured endpoint calls
