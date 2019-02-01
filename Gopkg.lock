@@ -245,11 +245,6 @@
   revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
 
 [[projects]]
-  name = "github.com/golang/lint"
-  packages = ["golint"]
-  revision = "master"
-
-[[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "8ee79997227bf9b34611aee7946ae64735e6fd93"
@@ -279,15 +274,15 @@
   revision = "e09130d898274b1faa2ecb484b59204e7e372548"
 
 [[projects]]
-  name = "github.com/google/uuid"
-  packages = ["."]
-  revision = "d460ce9f8df2e77fb1ba55ca87fafed96c607494"
-  version = "v1.0.0"
-
-[[projects]]
   name = "github.com/hashicorp/go-immutable-radix"
   packages = ["."]
   revision = "8aac2701530899b64bdea735a1de8da899815220"
+
+[[projects]]
+  name = "github.com/hashicorp/go-version"
+  packages = ["."]
+  revision = "d40cf49b3a77bba84a7afdbd7f1dc295d114efb1"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/hashicorp/golang-lru"
@@ -643,7 +638,10 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/lint"
-  packages = ["."]
+  packages = [
+    ".",
+    "golint"
+  ]
   revision = "85993ffd0a6cd043291f3f63d45d656d97b165bd"
 
 [[projects]]
@@ -856,6 +854,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e7df91037ab0c7ad2e50d84dfcf15acb31ab40a3ddd4cf6bd613125023151cef"
+  inputs-digest = "e6ae4520a889bed8065af5a512a0773c6e0ded1f396ab73fe503c6a8898ec105"
   solver-name = "gps-cdcl"
   solver-version = 1

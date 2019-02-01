@@ -26,7 +26,7 @@
 
 
 required = [
-  "github.com/golang/lint/golint",
+  "golang.org/x/lint/golint",
   "github.com/fzipp/gocyclo",
   "github.com/goadesign/goa/cors",
   "github.com/goadesign/goa/encoding/form",
