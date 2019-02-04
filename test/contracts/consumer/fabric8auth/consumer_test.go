@@ -25,6 +25,7 @@ func TestFabric8AuthConsumer(t *testing.T) {
 		Consumer:             pactConsumer,
 		Provider:             pactProvider,
 		PactDir:              pactDir,
+		LogDir:               pactDir,
 		Host:                 "localhost",
 		LogLevel:             "INFO",
 		PactFileWriteMode:    "overwrite",

@@ -186,7 +186,7 @@ test-contracts-consumer-no-coverage:
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -e 'contracts/consumer'))
 	$(eval PACT_DIR=$(TMP_PATH)/test/contracts/pacts)
-	$(eval PACT_VERSION="latest")
+	PACT_DIR=$(PACT_DIR) \
 	go test $(GO_TEST_VERBOSITY_FLAG) -count=1 $(TEST_PACKAGES)
 
 .PHONY: publish-contract-testing-pacts-to-broker
@@ -202,6 +202,7 @@ publish-contract-testing-pacts-to-broker:
 	$(eval PACT_FILES:=$(shell find $(PACT_DIR) -name '*.json'))
 	$(eval PACT_VERSION?=1.0.0)
 	$(eval PACT_TAGS?=latest)
+	PACT_DIR=$(PACT_DIR) \
 	go run ./test/contracts/publisher/main.go "$(PACT_FILES)" "$(PACT_VERSION)" "$(PACT_TAGS)"
 
 CLEAN_TARGETS += clean-contract-tests
