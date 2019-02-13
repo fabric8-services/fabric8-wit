@@ -2,7 +2,10 @@
 
 . cico_setup.sh
 
-cico_setup;
+CICO_RUN="${CICO_RUN:-true}"
+if [ "$CICO_RUN" == "true" ]; then
+    cico_setup;
+fi
 
 make deps
 
