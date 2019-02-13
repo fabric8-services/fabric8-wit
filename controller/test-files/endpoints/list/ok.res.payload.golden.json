@@ -60,6 +60,11 @@
           "related": "http:///api/logout"
         }
       },
+      "logout_v2": {
+        "links": {
+          "related": "http:///api/logout/v2"
+        }
+      },
       "render": {
         "links": {
           "related": "http:///api/render"
