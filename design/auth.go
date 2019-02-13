@@ -52,6 +52,15 @@ var _ = a.Resource("logout", func() {
 		a.Response(d.TemporaryRedirect)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
+
+	a.Action("logoutv2", func() {
+		a.Routing(
+			a.GET("/v2"),
+		)
+		a.Description("Logout user")
+		a.Response(d.OK)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
 })
 
 // AuthToken represents an authentication JWT Token
