@@ -175,8 +175,6 @@ var _ = a.Resource("space", func() {
 		a.Description("Delete a space with the given ID.")
 		a.Params(func() {
 			a.Param("spaceID", d.UUID, "ID of the space to delete")
-			a.Param("skipCluster", d.Boolean,
-				"If true, skip deleting OpenShift objects belonging to the space")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)

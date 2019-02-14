@@ -49,7 +49,6 @@ required = [
   "github.com/jstemmer/go-junit-report",
   "github.com/wadey/gocovmerge",
   "github.com/pilu/fresh",
-  "github.com/gojuno/minimock/cmd/minimock",
 ]
     
 ignored = [
@@ -74,10 +73,6 @@ ignored = [
   version = "=1.2.0"
 
 [[constraint]]
-  name = "github.com/hawkular/hawkular-client-go"
-  version = "0.6.1"
-
-[[constraint]]
   name = "github.com/pkg/errors"
   version = "0.8.0"
 
@@ -99,10 +94,6 @@ ignored = [
 
 [[constraint]]
   name = "gopkg.in/asaskevich/govalidator.v4"
-  version = "4.0.0"
-
-[[constraint]]
-  name = "k8s.io/client-go"
   version = "4.0.0"
 
 [[constraint]]
@@ -148,10 +139,6 @@ ignored = [
 [[constraint]]
   name = "github.com/pilu/fresh"
   revision = "9c0092493eff2825c3abf64e087b3383dec939c3"
-
-[[constraint]]
-  name = "github.com/gojuno/minimock"
-  branch = "master"
 
 [[constraint]]
   name = "github.com/dnaeon/go-vcr"

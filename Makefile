@@ -18,11 +18,10 @@ GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
 DEP_BIN_NAME := dep
 DEP_BIN_DIR := $(TMP_PATH)/bin
 DEP_BIN := $(DEP_BIN_DIR)/$(DEP_BIN_NAME)
-DEP_VERSION=v0.4.1
+DEP_VERSION=v0.5.0
 GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
-MINIMOCK_BIN=$(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock/minimock
 
 # Define and get the vakue for UNAME_S variable from shell
 UNAME_S := $(shell uname -s)
@@ -260,12 +259,12 @@ $(DEP_BIN):
 ifeq ($(UNAME_S),Darwin)
 	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-darwin-amd64 -o $(DEP_BIN) 
 	@cd $(DEP_BIN_DIR) && \
-	echo "1544afdd4d543574ef8eabed343d683f7211202a65380f8b32035d07ce0c45ef  dep" > dep-darwin-amd64.sha256 && \
+	echo "1a7bdb0d6c31ecba8b3fd213a1170adf707657123e89dff234871af9e0498be2  dep" > dep-darwin-amd64.sha256 && \
 	shasum -a 256 --check dep-darwin-amd64.sha256
 else
 	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-linux-amd64 -o $(DEP_BIN)
 	@cd $(DEP_BIN_DIR) && \
-	echo "31144e465e52ffbc0035248a10ddea61a09bf28b00784fd3fdd9882c8cbb2315  dep" > dep-linux-amd64.sha256 && \
+	echo "287b08291e14f1fae8ba44374b26a2b12eb941af3497ed0ca649253e21ba2f83  dep" > dep-linux-amd64.sha256 && \
 	sha256sum -c dep-linux-amd64.sha256
 endif
 	@chmod +x $(DEP_BIN)
@@ -287,19 +286,6 @@ app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR) goasupport/jsonapi_er
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-notification/design --notool --pkg client -o notification
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-auth/design --notool --pkg authservice -o auth
 
-$(MINIMOCK_BIN):
-	@echo "building the minimock binary..."
-	@cd $(VENDOR_DIR)/github.com/gojuno/minimock/cmd/minimock && go build -v minimock.go
-
-.PHONY: generate-minimock
-generate-minimock: deps $(MINIMOCK_BIN) ## Generate Minimock sources. Only necessary after clean or if changes occurred in interfaces.
-	@echo "Generating mocks..."
-	-mkdir -p test/controller
-	$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-wit/controller.ClientGetter -o ./test/controller/client_getter_mock.go -t ClientGetterMock
-	$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-wit/controller.OpenshiftIOClient -o ./test/controller/osio_client_mock.go -t OSIOClientMock
-	-mkdir -p test/kubernetes
-	$(MINIMOCK_BIN) -i github.com/fabric8-services/fabric8-wit/kubernetes.KubeClientInterface -o ./test/kubernetes/kube_client_mock.go -t KubeClientMock
-
 .PHONY: migrate-database
 ## Compiles the server and runs the database migration with it
 migrate-database: $(BINARY_SERVER_BIN)
@@ -307,7 +293,7 @@ migrate-database: $(BINARY_SERVER_BIN)
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: app/controllers.go migration/sqlbindata.go spacetemplate/template_assets.go generate-minimock swagger/swagger_assets.go
+generate: app/controllers.go migration/sqlbindata.go spacetemplate/template_assets.go swagger/swagger_assets.go
 
 .PHONY: regenerate
 ## Runs the "clean-generated" and the "generate" target
