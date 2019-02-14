@@ -429,14 +429,15 @@
 [[projects]]
   name = "github.com/pact-foundation/pact-go"
   packages = [
+    ".",
     "client",
+    "command",
     "dsl",
     "install",
     "types",
     "utils"
   ]
-  revision = "6ec25718366e22bf3f50b126b9c4db4d91b9cfce"
-  version = "v1.0.0-beta.3"
+  revision = "v1.0.0-beta.3"
 
 [[projects]]
   name = "github.com/pelletier/go-buffruneio"
@@ -530,12 +531,6 @@
   name = "github.com/shurcooL/sanitized_anchor_name"
   packages = ["."]
   revision = "1dba4b3954bc059efc3991ec364f9f9a35f597d2"
-
-[[projects]]
-  name = "github.com/sirupsen/logrus"
-  packages = ["."]
-  revision = "c078b1e43f58d563c74cebe63c85789e76ddb627"
-  version = "v0.11.2"
 
 [[projects]]
   branch = "master"
@@ -854,6 +849,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e6ae4520a889bed8065af5a512a0773c6e0ded1f396ab73fe503c6a8898ec105"
+  inputs-digest = "a9750a0177504a446976622fd494bb15f67d0db0814a8651d899363ec6d5ab66"
   solver-name = "gps-cdcl"
   solver-version = 1
