@@ -533,6 +533,12 @@
   revision = "1dba4b3954bc059efc3991ec364f9f9a35f597d2"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = ""
+  version = "v0.11.2"
+
+[[projects]]
   branch = "master"
   name = "github.com/sourcegraph/annotate"
   packages = ["."]

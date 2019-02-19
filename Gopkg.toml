@@ -51,6 +51,7 @@ required = [
   "github.com/pilu/fresh",
   "github.com/gojuno/minimock/cmd/minimock",
   "github.com/pact-foundation/pact-go",
+  "github.com/sirupsen/logrus"
 ]
     
 ignored = [
