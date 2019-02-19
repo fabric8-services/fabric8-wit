@@ -2,9 +2,13 @@
 
 . cico_setup.sh
 
+CICO_RUN="${CICO_RUN:-true}"
+if [ "$CICO_RUN" == "true" ]; then
+    load_jenkins_vars;
+    install_deps;
+fi
 make docker-start
-
-make docker-deps
+make docker-build
 
 #Ensure Pact CLI is installed
 cmd="curl -L -s https://github.com/pact-foundation/pact-ruby-standalone/releases/download/v1.63.0/pact-1.63.0-linux-x86_64.tar.gz -o /tmp/pact-cli.tar.gz \
