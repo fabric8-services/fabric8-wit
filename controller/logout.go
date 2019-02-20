@@ -4,6 +4,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
+	"github.com/fabric8-services/fabric8-wit/rest/proxy"
+
 	"github.com/goadesign/goa"
 )
 
@@ -21,4 +23,8 @@ func NewLogoutController(service *goa.Service, configuration auth.ServiceConfigu
 // Logout runs the logout action.
 func (c *LogoutController) Logout(ctx *app.LogoutLogoutContext) error {
 	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.LogoutLogoutPath())
+}
+
+func (c *LogoutController) Logoutv2(ctx *app.Logoutv2LogoutContext) error {
+	return proxy.RouteHTTP(ctx, c.configuration.GetAuthShortServiceHostName())
 }
