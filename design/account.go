@@ -178,6 +178,7 @@ var _ = a.Resource("users", func() {
 	})
 
 	a.Action("obfuscate", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.PUT("/:id"),
 		)
@@ -193,6 +194,7 @@ var _ = a.Resource("users", func() {
 		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 	a.Action("delete", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.DELETE("/username/:username"),
 		)
