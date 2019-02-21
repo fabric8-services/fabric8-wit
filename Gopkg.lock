@@ -245,11 +245,6 @@
   revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
 
 [[projects]]
-  name = "github.com/golang/lint"
-  packages = ["golint"]
-  revision = "master"
-
-[[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "8ee79997227bf9b34611aee7946ae64735e6fd93"
@@ -284,6 +279,12 @@
   revision = "8aac2701530899b64bdea735a1de8da899815220"
 
 [[projects]]
+  name = "github.com/hashicorp/go-version"
+  packages = ["."]
+  revision = "d40cf49b3a77bba84a7afdbd7f1dc295d114efb1"
+  version = "v1.1.0"
+
+[[projects]]
   name = "github.com/hashicorp/golang-lru"
   packages = [
     ".",
@@ -305,6 +306,12 @@
     "json/token"
   ]
   revision = "37ab263305aaeb501a60eb16863e808d426e37f2"
+
+[[projects]]
+  name = "github.com/hashicorp/logutils"
+  packages = ["."]
+  revision = "a335183dfd075f638afcc820c90591ca3c97eba6"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/hawkular/hawkular-client-go"
@@ -420,6 +427,19 @@
   revision = "5a0325d7fafaac12dda6e7fb8bd222ec1b69875e"
 
 [[projects]]
+  name = "github.com/pact-foundation/pact-go"
+  packages = [
+    ".",
+    "client",
+    "command",
+    "dsl",
+    "install",
+    "types",
+    "utils"
+  ]
+  revision = "v1.0.0-beta.3"
+
+[[projects]]
   name = "github.com/pelletier/go-buffruneio"
   packages = ["."]
   revision = "c37440a7cf42ac63b919c752ca73a85067e05992"
@@ -515,7 +535,7 @@
 [[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "c078b1e43f58d563c74cebe63c85789e76ddb627"
+  revision = ""
   version = "v0.11.2"
 
 [[projects]]
@@ -619,7 +639,10 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/lint"
-  packages = ["."]
+  packages = [
+    ".",
+    "golint"
+  ]
   revision = "85993ffd0a6cd043291f3f63d45d656d97b165bd"
 
 [[projects]]
@@ -832,6 +855,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e7df91037ab0c7ad2e50d84dfcf15acb31ab40a3ddd4cf6bd613125023151cef"
+  inputs-digest = "a9750a0177504a446976622fd494bb15f67d0db0814a8651d899363ec6d5ab66"
   solver-name = "gps-cdcl"
   solver-version = 1
