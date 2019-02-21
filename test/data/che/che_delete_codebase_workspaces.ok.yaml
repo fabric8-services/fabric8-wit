@@ -64,13 +64,7 @@ interactions:
       ]
     },
     "id": "string",
-    "links": [
-      {
-        "href": "che-server/workspace?masterUrl=https://tsrv.devshift.net:8443&namespace=foo&repository=git@github.com:bar/foo",
-        "method": "DELETE",
-        "rel": "delete"
-      }
-    ],
+    "links": [],
     "runtime": {
       "devMachine": {
         "runtime": {
