@@ -177,7 +177,7 @@ objects:
             timeoutSeconds: 1
           resources:
             requests:
-              cpu: 1.5m
+              cpu: 2m
               memory: 60Mi
             limits:
               cpu: 400m
