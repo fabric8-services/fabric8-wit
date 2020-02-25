@@ -30,7 +30,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/fabric8-services/fabric8-wit/sentry"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/swagger"
 	"github.com/fabric8-services/fabric8-wit/token"
@@ -88,16 +87,16 @@ func main() {
 	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())
 
 	// Initialize sentry client
-	haltSentry, err := sentry.InitializeSentryClient(
-		sentry.WithRelease(controller.Commit),
-		sentry.WithEnvironment(config.GetEnvironment()),
-	)
-	if err != nil {
-		log.Panic(nil, map[string]interface{}{
-			"err": err,
-		}, "failed to setup the sentry client")
-	}
-	defer haltSentry()
+	// haltSentry, err := sentry.InitializeSentryClient(
+	// 	sentry.WithRelease(controller.Commit),
+	// 	sentry.WithEnvironment(config.GetEnvironment()),
+	// )
+	// if err != nil {
+	// 	log.Panic(nil, map[string]interface{}{
+	// 		"err": err,
+	// 	}, "failed to setup the sentry client")
+	// }
+	// defer haltSentry()
 
 	printUserInfo()
 
