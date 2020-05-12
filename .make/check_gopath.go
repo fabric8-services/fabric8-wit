@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -35,6 +36,15 @@ func main() {
 				os.Exit(0)
 			}
 		}
+	}
+
+	goEnvCmd := exec.Command("go", "env", "GOPATH")
+	goEnvOut, err := goEnvCmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if wd == filepath.Join(strings.TrimSpace(string(goEnvOut)), "src", packageName) {
+		os.Exit(0)
 	}
 
 	goPathStr := path.Join("$GOPATH", "src", packageName)
