@@ -37,7 +37,7 @@ var _ ResponseReader = (*IOResponseReader)(nil)
 
 // WitClient is an interface for mocking the witclient.Client
 type WitClient interface {
-	ShowSpace(ctx context.Context, path string, ifModifiedSince *string, ifNoneMatch *string) (*http.Response, error)
+	ShowSpace(ctx context.Context, path string, qp *bool, ifModifiedSince *string, ifNoneMatch *string) (*http.Response, error)
 	ShowUserService(ctx context.Context, path string) (*http.Response, error)
 }
 
@@ -140,7 +140,7 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
 	guid := goauuid.UUID(spaceID)
 	urlpath := witclient.ShowSpacePath(guid)
-	resp, err := osioclient.wc.ShowSpace(goasupport.ForwardContextRequestID(ctx), urlpath, nil, nil)
+	resp, err := osioclient.wc.ShowSpace(goasupport.ForwardContextRequestID(ctx), urlpath, nil, nil, nil)
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)
 	}

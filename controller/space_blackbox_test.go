@@ -847,7 +847,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		// when
-		res, fetched := test.ShowSpaceOK(t, svc.Context, svc, ctrl, *created.Data.ID, nil, nil)
+		res, fetched := test.ShowSpaceOK(t, svc.Context, svc, ctrl, *created.Data.ID, nil, nil, nil)
 		// then
 		eTag, lastModified, _ := assertResponseHeaders(t, res)
 		assert.Equal(t, app.ToHTTPTime(getSpaceUpdatedAt(*created)), lastModified)
@@ -865,7 +865,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when
 			ifModifiedSince := app.ToHTTPTime(created.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
-			res, _ := test.ShowSpaceOK(t, svc.Context, svc, ctrl, *created.Data.ID, &ifModifiedSince, nil)
+			res, _ := test.ShowSpaceOK(t, svc.Context, svc, ctrl, *created.Data.ID, nil, &ifModifiedSince, nil)
 			// then
 			eTag, lastModified, _ := assertResponseHeaders(t, res)
 			assert.Equal(t, app.ToHTTPTime(getSpaceUpdatedAt(*created)), lastModified)
@@ -881,7 +881,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when
 			ifNoneMatch := "foo_etag"
-			res, _ := test.ShowSpaceOK(t, svc.Context, svc, ctrl, *created.Data.ID, nil, &ifNoneMatch)
+			res, _ := test.ShowSpaceOK(t, svc.Context, svc, ctrl, *created.Data.ID, nil, nil, &ifNoneMatch)
 			// then
 			eTag, lastModified, _ := assertResponseHeaders(t, res)
 			assert.Equal(t, app.ToHTTPTime(getSpaceUpdatedAt(*created)), lastModified)
@@ -897,7 +897,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when/then
 			ifModifiedSince := app.ToHTTPTime(getSpaceUpdatedAt(*created))
-			test.ShowSpaceNotModified(t, svc.Context, svc, ctrl, *created.Data.ID, &ifModifiedSince, nil)
+			test.ShowSpaceNotModified(t, svc.Context, svc, ctrl, *created.Data.ID, nil, &ifModifiedSince, nil)
 		})
 
 		t.Run("not modified with if-none-match header", func(t *testing.T) {
@@ -909,7 +909,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 			// when/then
 			ifNoneMatch := generateSpaceTag(*created)
-			test.ShowSpaceNotModified(t, svc.Context, svc, ctrl, *created.Data.ID, nil, &ifNoneMatch)
+			test.ShowSpaceNotModified(t, svc.Context, svc, ctrl, *created.Data.ID, nil, nil, &ifNoneMatch)
 
 		})
 	})
@@ -918,7 +918,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 		// given
 		svc, ctrl := s.UnSecuredController()
 		// when/then
-		test.ShowSpaceNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
+		test.ShowSpaceNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), nil, nil, nil)
 	})
 
 }

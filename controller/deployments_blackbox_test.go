@@ -243,7 +243,7 @@ func TestShowSpace(t *testing.T) {
 			return createOSIOClientMock(t, spaceName), nil
 		}
 		// when
-		_, result := test.ShowSpaceDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
+		_, result := test.ShowSpaceDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace, nil)
 		// then
 		assert.Equal(t, space.SystemSpace, result.Data.ID, "space ID should be %s", space.SystemSpace.String())
 		assert.NotNil(t, result.Data.Attributes, "space attributes must be non-nil")
@@ -260,7 +260,7 @@ func TestShowSpace(t *testing.T) {
 				return nil, fmt.Errorf("failure")
 			}
 			// when/then
-			test.ShowSpaceDeploymentsInternalServerError(t, context.Background(), svc, ctrl, space.SystemSpace)
+			test.ShowSpaceDeploymentsInternalServerError(t, context.Background(), svc, ctrl, space.SystemSpace, nil)
 		})
 
 		t.Run("get space bad request", func(t *testing.T) {
@@ -277,10 +277,88 @@ func TestShowSpace(t *testing.T) {
 				return createOSIOClientMock(t, spaceName), nil
 			}
 			// when
-			test.ShowSpaceDeploymentsBadRequest(t, context.Background(), svc, ctrl, space.SystemSpace)
+			test.ShowSpaceDeploymentsBadRequest(t, context.Background(), svc, ctrl, space.SystemSpace, nil)
 			// then verify that the Close method was called
 			assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
 		})
+	})
+}
+
+func TestShowSpacePermissions(t *testing.T) {
+	// given
+	spaceName := "mySpace"
+	clientGetterMock := testcontroller.NewClientGetterMock(t)
+	svc, ctrl, err := createDeploymentsController()
+	require.NoError(t, err)
+	ctrl.ClientGetter = clientGetterMock
+	t.Run("ok", func(t *testing.T) {
+		// given
+		kubeClientMock := testk8s.NewKubeClientMock(t)
+		kubeClientMock.GetSpaceFunc = func(spaceName string) (*app.SimpleSpace, error) {
+			return &app.SimpleSpace{
+				Type:  "space",
+				Links: &app.SimpleSpaceLinks{},
+				Attributes: &app.SimpleSpaceAttributes{
+					Name: spaceName,
+					Applications: []*app.SimpleApp{
+						&app.SimpleApp{
+							Type: "application",
+							ID:   "app1",
+							Attributes: &app.SimpleAppAttributes{
+								Name: "someapp",
+								Deployments: []*app.SimpleDeployment{
+									&app.SimpleDeployment{
+										Type: "deployment",
+										ID:   "deploymentid",
+										Attributes: &app.SimpleDeploymentAttributes{
+											Name: "thedeploymentname",
+											Pods: [][]string{
+												[]string{"fred"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}, nil
+		}
+		kubeClientMock.CanGetSpaceFunc = func() (b bool, err error) {
+			return true, nil
+		}
+		kubeClientMock.CanGetApplicationFunc = func() (b bool, err error) {
+			return true, nil
+		}
+		kubeClientMock.CanScaleDeploymentFunc = func(s string) (b bool, err error) {
+			return true, nil
+		}
+		kubeClientMock.CanDeleteDeploymentFunc = func(s string) (b bool, err error) {
+			return true, nil
+		}
+		kubeClientMock.CanGetDeploymentStatSeriesFunc = func(s string) (b bool, err error) {
+			return true, nil
+		}
+		kubeClientMock.CanGetDeploymentStatsFunc = func(s string) (b bool, err error) {
+			return true, nil
+		}
+		kubeClientMock.CloseFunc = func() {}
+		clientGetterMock.GetKubeClientFunc = func(ctx context.Context) (kubernetes.KubeClientInterface, error) {
+			return kubeClientMock, nil
+		}
+		clientGetterMock.GetAndCheckOSIOClientFunc = func(ctx context.Context) (controller.OpenshiftIOClient, error) {
+			return createOSIOClientMock(t, spaceName), nil
+		}
+		// when
+		queryPerms := true
+		_, result := test.ShowSpaceDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace, &queryPerms)
+		// then
+		fmt.Printf("RES = %+v\nDATA = %+v", *result, *result.Data)
+		assert.Equal(t, space.SystemSpace, result.Data.ID, "space ID should be %s", space.SystemSpace.String())
+		assert.NotNil(t, result.Data.Attributes, "space attributes must be non-nil")
+		assert.Equal(t, spaceName, result.Data.Attributes.Name, "space ID should be %s", space.SystemSpace.String())
+		// verify that the Close method was called
+		assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
 	})
 }
 

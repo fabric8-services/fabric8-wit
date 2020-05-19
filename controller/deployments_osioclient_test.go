@@ -42,7 +42,7 @@ type MockWitClient struct {
 	UserServiceHttpResponseError error
 }
 
-func (m *MockWitClient) ShowSpace(ctx context.Context, path string, ifModifiedSince *string, ifNoneMatch *string) (*http.Response, error) {
+func (m *MockWitClient) ShowSpace(ctx context.Context, path string, qp *bool, ifModifiedSince *string, ifNoneMatch *string) (*http.Response, error) {
 	return m.SpaceHttpResponse, m.SpaceHttpResponseError
 }
 

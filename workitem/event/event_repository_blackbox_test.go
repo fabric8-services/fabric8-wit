@@ -414,4 +414,19 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assert.Equal(t, fxt.WorkItemTypes[0].ID, eventList[0].Old)
 		assert.Equal(t, fxt.WorkItemTypes[1].ID, eventList[0].New)
 	})
+
+	s.T().Run("Type change event", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
+		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
+		wiNew, _, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.Equal(t, fxt.WorkItemTypes[1].ID, wiNew.Type)
+		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 1)
+		assert.Equal(t, event.WorkitemTypeChangeEvent, eventList[0].Name)
+		assert.Equal(t, fxt.WorkItemTypes[0].ID, eventList[0].Old)
+		assert.Equal(t, fxt.WorkItemTypes[1].ID, eventList[0].New)
+	})
 }

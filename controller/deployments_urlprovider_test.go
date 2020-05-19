@@ -46,7 +46,6 @@ func getDefaultTenant() (*app.UserService, error) {
 			fmt.Printf("error reading tenant: %s", err.Error())
 			return nil, err
 		}
-		//fmt.Printf("default tenant = \n%s\n", tostring(*t))
 		defaultTenant = t
 	}
 	return defaultTenant, nil
@@ -289,14 +288,4 @@ func TestTenantCanDeploy(t *testing.T) {
 			require.Equal(t, testCase.expected, result, "Incorrect result from CanDeploy")
 		})
 	}
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-func tostring(item interface{}) string {
-	bytes, err := json.MarshalIndent(item, "", "  ")
-	if err != nil {
-		return err.Error()
-	}
-	return string(bytes)
 }

@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	// APIStringTypeCodebase contains the JSON API type for codebases
+	// APIStringTypeSpace contains the JSON API type for codebases
 	APIStringTypeSpace = "spaces"
 )
 
@@ -48,13 +48,14 @@ type SpaceController struct {
 	resourceManager   auth.ResourceManager
 	DeploymentsClient *http.Client
 	CodebaseClient    *http.Client
+	ClientGetter
 }
 
 // NewSpaceController creates a space controller.
 func NewSpaceController(
 	service *goa.Service,
 	db application.DB,
-	config SpaceConfiguration,
+	config *configuration.Registry,
 	resourceManager auth.ResourceManager) *SpaceController {
 
 	return &SpaceController{
@@ -64,6 +65,9 @@ func NewSpaceController(
 		resourceManager:   resourceManager,
 		DeploymentsClient: http.DefaultClient,
 		CodebaseClient:    http.DefaultClient,
+		ClientGetter: &defaultClientGetter{
+			config: config,
+		},
 	}
 }
 
@@ -376,7 +380,7 @@ func deleteOpenShiftResource(
 
 	// get all the apps and envs
 	path := client.ShowSpaceDeploymentsPath(spaceID)
-	resp, err := cl.ShowSpaceDeployments(ctx, path)
+	resp, err := cl.ShowSpaceDeployments(ctx, path, nil)
 	if err != nil {
 		return errors.NewInternalError(ctx,
 			fmt.Errorf("could not get deployments: %v", err))
@@ -487,6 +491,7 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 
 // Show runs the show action.
 func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
+
 	var s *space.Space
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
@@ -502,8 +507,46 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+
+	var methods []string
+	if ctx.Qp != nil && *ctx.Qp {
+		// 'qp' (QueryPerms query parameter) is true:
+		// ask Kubernetes if this user can access this space
+		// (this is different from the WIT Space database access)
+		kc, err := c.GetKubeClient(ctx)
+		defer cleanup(kc)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"space_id": ctx.SpaceID,
+			}, "unable create a KubeClient")
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		canRead, err := kc.CanGetSpace()
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"space_id": ctx.SpaceID,
+			}, "unable retrieve permissions from CanGetSpace()")
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if canRead {
+			methods = []string{"GET"}
+		} else {
+			methods = []string{}
+		}
+	} else {
+		methods = []string{}
+	}
+
 	return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
-		spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
+		var spaceData *app.Space
+		var err error
+		if ctx.Qp != nil && *ctx.Qp {
+			spaceData, err = ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db), IncludeMethodAccess(ctx.Context, ctx.Request, methods))
+		} else {
+			spaceData, err = ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
+		}
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":      err,
@@ -644,7 +687,7 @@ func ConvertSpaceToModel(appSpace app.Space) space.Space {
 // conversion from internal to API
 type SpaceConvertFunc func(*http.Request, *space.Space, *app.Space) error
 
-// IncludeBacklog returns a SpaceConvertFunc that includes the a link to the backlog
+// IncludeBacklogTotalCount returns a SpaceConvertFunc that includes the a link to the backlog
 // along with the total count of items in the backlog of the current space
 func IncludeBacklogTotalCount(ctx context.Context, db application.DB) SpaceConvertFunc {
 	return func(req *http.Request, modelSpace *space.Space, appSpace *app.Space) error {
@@ -654,6 +697,22 @@ func IncludeBacklogTotalCount(ctx context.Context, db application.DB) SpaceConve
 		}
 		appSpace.Links.Backlog.Meta = &app.BacklogLinkMeta{TotalCount: count} // TODO (xcoulon) remove that part
 		appSpace.Relationships.Backlog.Meta = map[string]interface{}{"totalCount": count}
+		return nil
+	}
+}
+
+// IncludeMethodAccess returns a SpaceConvertFunc that includes method access metadata
+// along with the total count of items in the backlog of the current space
+func IncludeMethodAccess(ctx context.Context, req *http.Request, perms []string) SpaceConvertFunc {
+	return func(req *http.Request, modelSpace *space.Space, appSpace *app.Space) error {
+		spaceIDStr := modelSpace.ID.String()
+		relatedDeployments := rest.AbsoluteURL(req, fmt.Sprintf("/api/deployments/spaces/%s", spaceIDStr))
+		appSpace.Links.Deployments = &app.LinkWithAccess{
+			Href: &relatedDeployments,
+			Meta: &app.EndpointAccess{
+				Methods: perms,
+			},
+		}
 		return nil
 	}
 }
@@ -674,6 +733,12 @@ func ConvertSpacesFromModel(request *http.Request, spaces []space.Space, additio
 // ConvertSpaceFromModel converts between internal and external REST representation
 func ConvertSpaceFromModel(request *http.Request, sp space.Space, options ...SpaceConvertFunc) (*app.Space, error) {
 	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
+	/**	selfWithPerms := &app.LinkWithAccess{
+		Href: &selfURL,
+		Meta: &app.EndpointAccess{
+			Methods: []string{"GET", "POST", "DELETE", "PATCH"},
+		},
+	}**/
 	spaceIDStr := sp.ID.String()
 	relatedIterations := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
 	relatedAreas := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", spaceIDStr))

@@ -2,20 +2,22 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/url"
 	"os"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
+	witclient "github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/rest"
 
 	"github.com/goadesign/goa"
+	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/websocket"
@@ -51,14 +53,6 @@ func NewDeploymentsController(service *goa.Service, config *configuration.Regist
 			config: config,
 		},
 	}
-}
-
-func tostring(item interface{}) string {
-	bytes, err := json.MarshalIndent(item, "", "  ")
-	if err != nil {
-		return err.Error()
-	}
-	return string(bytes)
 }
 
 func (g *defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error) {
@@ -357,6 +351,9 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 // ShowSpace runs the showSpace action.
 func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) error {
 
+	// should we ask k8s for permissions on select objects? default is no
+	checkPerms := ctx.Qp != nil && *ctx.Qp
+
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
@@ -379,6 +376,82 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 
 	// Kubernetes doesn't know about space ID, so add it here
 	space.ID = ctx.SpaceID
+
+	if checkPerms {
+		// next, try to get permissions
+		guid := goauuid.UUID(ctx.SpaceID)
+
+		// permission for all deployments
+		for _, appl := range space.Attributes.Applications {
+			for _, depl := range appl.Attributes.Deployments {
+
+				envName := depl.Attributes.Name
+
+				deployPath := witclient.SetDeploymentDeploymentsPath(guid, appl.Attributes.Name, depl.Attributes.Name)
+				deployURLStr := rest.AbsoluteURL(ctx.Request, deployPath)
+				methods := []string{}
+				canScale, err := kc.CanScaleDeployment(envName)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
+				}
+				if canScale {
+					methods = append(methods, "PUT")
+				}
+				canDelete, err := kc.CanDeleteDeployment(envName)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
+				}
+				if canDelete {
+					methods = append(methods, "DELETE")
+				}
+				depl.Links = &app.GenericLinksForDeployment{}
+				// NOTE: we don't actually allow GET to this endpoint, so don't claim we do by adding "GET" to methods
+				depl.Links.Self = &app.LinkWithAccess{
+					Href: &deployURLStr,
+					Meta: &app.EndpointAccess{
+						Methods: methods,
+					},
+				}
+
+				methods = []string{}
+				// TODO chekc these are not aliased
+				deployPath = witclient.ShowDeploymentStatSeriesDeploymentsPath(guid, appl.Attributes.Name, depl.Attributes.Name)
+				deployURLStr = rest.AbsoluteURL(ctx.Request, deployPath)
+				canGetStatSeries, err := kc.CanGetDeploymentStatSeries(envName)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
+				}
+				if canGetStatSeries {
+					methods = append(methods, "GET")
+				}
+				depl.Links.StatSeries = &app.LinkWithAccess{
+					Href: &deployURLStr,
+					Meta: &app.EndpointAccess{
+						Methods: methods,
+					},
+				}
+
+				methods = []string{}
+				// TODO chekc these are not aliased
+				deployPath = witclient.ShowDeploymentStatsDeploymentsPath(guid, appl.Attributes.Name, depl.Attributes.Name)
+				deployURLStr = rest.AbsoluteURL(ctx.Request, deployPath)
+				canGetStats, err := kc.CanGetDeploymentStats(envName)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "could not retrieve permission for %s", *kubeSpaceName))
+				}
+				if canGetStats {
+					methods = append(methods, "GET")
+				}
+				depl.Links.Stats = &app.LinkWithAccess{
+					Href: &deployURLStr,
+					Meta: &app.EndpointAccess{
+						Methods: methods,
+					},
+				}
+
+			}
+		}
+	}
 
 	res := &app.SimpleSpaceSingle{
 		Data: space,

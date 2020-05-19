@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/configuration"
+
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -471,7 +473,7 @@ func (s *CommentsSuite) TestNotificationSendOnUpdate() {
 	assert.Equal(s.T(), c.Data.ID.String(), s.notification.Messages[0].TargetID)
 }
 
-func CreateSecuredSpace(t *testing.T, db application.DB, config SpaceConfiguration, owner account.Identity, userIDs string) app.Space {
+func CreateSecuredSpace(t *testing.T, db application.DB, config *configuration.Registry, owner account.Identity, userIDs string) app.Space {
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", owner, &TestSpaceAuthzService{owner: owner, userIDs: userIDs})
 	spaceCtrl := NewSpaceController(svc, db, config, &DummyResourceManager{})
 	require.NotNil(t, spaceCtrl)
