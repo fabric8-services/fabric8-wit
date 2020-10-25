@@ -120,7 +120,7 @@ release: prebuild-check deps generate build check-go-format analyze-go-code test
 
 .PHONY: analyze-go-code
 ## Run a complete static code analysis using the following tools: golint, gocyclo and go-vet.
-analyze-go-code: golint gocyclo govet
+analyze-go-code: custom_static_analysers golint gocyclo govet
 
 ## Run gocyclo analysis over the code.
 golint: $(GOLINT_BIN)
@@ -312,6 +312,12 @@ generate: app/controllers.go migration/sqlbindata.go spacetemplate/template_asse
 .PHONY: regenerate
 ## Runs the "clean-generated" and the "generate" target
 regenerate: clean-generated generate
+
+STATIC_ANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v vendor)
+.PHONY: custom_static_analysers
+## Runs custom static analysis checks on all go code
+custom_static_analysers:
+	go run $(SOURCE_DIR)/staticanalysers/main.go $(STATIC_ANALYSIS_DIRS)
 
 .PHONY: dev
 dev: prebuild-check deps generate $(FRESH_BIN) docker-compose-up
