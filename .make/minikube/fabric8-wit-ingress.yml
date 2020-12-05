@@ -1,0 +1,14 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: fabric8-wit-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: fabric8-wit-svc
+    http:
+      paths:
+      - backend:
+          serviceName: fabric8-wit-svc
+          servicePort: 80

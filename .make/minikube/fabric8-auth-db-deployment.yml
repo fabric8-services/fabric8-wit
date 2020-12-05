@@ -1,0 +1,22 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: fabric8-auth-db
+spec:
+  template:
+    metadata:
+      labels:
+        app: fabric8-auth-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:9.6.5
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: fabric8-auth-db
+        - name: POSTGRES_USER
+          value: fabric8-auth-user
+        - name: POSTGRES_PASSWORD
+          value: mysecretpassword

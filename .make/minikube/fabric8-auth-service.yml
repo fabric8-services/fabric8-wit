@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fabric8-auth-svc
+spec:
+  type: NodePort
+  ports:
+    - nodePort: 32089
+      port: 80
+      protocol: TCP
+      targetPort: 8089
+  selector:
+    app: fabric8-auth

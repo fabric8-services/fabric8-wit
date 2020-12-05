@@ -1,0 +1,30 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: fabric8-auth
+spec:
+  template:
+    metadata:
+      labels:
+        app: fabric8-auth
+    spec:
+      containers:
+      - name: fabric8-auth
+        image: docker.io/fabric8/fabric8-auth:latest
+        env:
+        - name: AUTH_WIT_URL
+          value: http://fabric8-wit-svc:8080
+        - name: AUTH_DEVELOPER_MODE_ENABLED
+          value: "true"
+        - name: AUTH_POSTGRES_HOST
+          value: fabric8-auth-db-svc
+        - name: AUTH_POSTGRES_PORT
+          value: "5432"
+        - name: AUTH_POSTGRES_DATABASE
+          value: fabric8-auth-db
+        - name: AUTH_POSTGRES_USER
+          value: fabric8-auth-user
+        - name: AUTH_POSTGRES_PASSWORD
+          value: mysecretpassword
+        ports:
+        - containerPort: 8089
