@@ -53,6 +53,11 @@ type testOSIOClient struct {
 	controller.OpenshiftIOClient
 }
 
+type testOSClient struct {
+	fixture *deploymentsTestFixture
+	kubernetes.OpenShiftRESTAPI
+}
+
 func (kc *testKubeClient) Close() {
 	kc.closed = true
 }
@@ -93,6 +98,12 @@ func (kc *testKubeClient) DeleteDeployment(spaceName string, appName string, env
 
 func (fixture *deploymentsTestFixture) GetAndCheckOSIOClient(ctx context.Context) (controller.OpenshiftIOClient, error) {
 	return &testOSIOClient{
+		fixture: fixture,
+	}, nil
+}
+
+func (fixture *deploymentsTestFixture) GetOSClient(ctx context.Context) (kubernetes.OpenShiftRESTAPI, error) {
+	return &testOSClient{
 		fixture: fixture,
 	}, nil
 }

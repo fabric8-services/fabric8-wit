@@ -70,8 +70,21 @@ func getDefaultKubeClient(fixture *testFixture, transport http.RoundTripper, t *
 	return kc
 }
 
-// Metrics fakes
+func getDefaultOpenShiftClient(fixture *testFixture, transport http.RoundTripper, t *testing.T) kubernetes.OpenShiftRESTAPI {
 
+	config := &kubernetes.KubeClientConfig{
+		BaseURLProvider: getDefaultURLProvider("http://api.myCluster", "myToken"),
+		UserNamespace:   "myNamespace",
+		Transport:       transport,
+	}
+
+	oc, err := kubernetes.NewOSClient(config)
+
+	require.NoError(t, err)
+	return oc
+}
+
+// Metrics fakes
 type metricsHolder struct {
 	pods      []*v1.Pod
 	namespace string
@@ -2091,6 +2104,109 @@ func TestWatchEventsInNamespace(t *testing.T) {
 
 			validateEventsItems(t, testCase.eventsInput.listInput, store)
 			validateEventsItems(t, testCase.eventsInput.watchInput, store)
+		})
+	}
+}
+
+func TestDeleteBuildConfigs(t *testing.T) {
+	// DeleteOptions do not change
+	policy := metav1.DeletePropagationForeground
+	expectOpts := metav1.DeleteOptions{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "DeleteOptions",
+			APIVersion: "v1",
+		},
+		PropagationPolicy: &policy,
+	}
+
+	testCases := []struct {
+		testName         string
+		labels           map[string]string
+		namespace        string
+		cassetteName     string
+		expectDeleteURLs map[string]struct{}
+		shouldFail       bool
+		errorChecker     func(error) (bool, error)
+	}{
+		{
+			testName:     "Valid BuildConfigs",
+			labels:       map[string]string{"space": "multiconfig"},
+			namespace:    "userns",
+			cassetteName: "deletebuildconfig-valid",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/userns/buildconfigs/vertex": {},
+			},
+		},
+		{
+			testName:     "Empty BuildConfig List",
+			labels:       map[string]string{"space": "emptybc"},
+			namespace:    "userns",
+			cassetteName: "deletebuildconfig-valid",
+			shouldFail:   false,
+		},
+		{
+			testName:     "No BuildConfig Resource",
+			labels:       map[string]string{"space": "nobc"},
+			namespace:    "userns",
+			cassetteName: "deletebuildconfig-invalid",
+			shouldFail:   true,
+			errorChecker: func(err error) (bool, error) {
+				return strings.Contains(err.Error(), "status code 404"), nil
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			r.SetMatcher(func(actual *http.Request, expected cassette.Request) bool {
+				if cassette.DefaultMatcher(actual, expected) {
+					// Check request body when sending DELETE
+					if actual.Method == "DELETE" {
+						var buf bytes.Buffer
+						reqBody := actual.Body
+						_, err := buf.ReadFrom(reqBody)
+						require.NoError(t, err, "Error reading request body")
+						defer reqBody.Close()
+
+						// Mark interaction as seen
+						reqURL := actual.URL.String()
+						_, pres := testCase.expectDeleteURLs[reqURL]
+						require.True(t, pres, "Unexpected DELETE request %s", reqURL)
+						delete(testCase.expectDeleteURLs, reqURL)
+
+						// Check delete options are correct
+						var deleteOutput metav1.DeleteOptions
+						err = json.Unmarshal(buf.Bytes(), &deleteOutput)
+						require.NoError(t, err, "Request body must be DeleteOptions")
+						require.Equal(t, expectOpts, deleteOutput, "DeleteOptions do not match")
+
+						// Replace body
+						actual.Body = ioutil.NopCloser(&buf)
+					}
+					return true
+				}
+				return false
+			})
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			oc := getDefaultOpenShiftClient(fixture, r.Transport, t)
+
+			_, err = oc.DeleteBuildConfig(testCase.namespace, testCase.labels)
+			if testCase.shouldFail {
+				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
+			} else {
+				require.NoError(t, err, "Unexpected error occurred")
+			}
+
+			// Check we saw all expected DELETE requests
+			require.Empty(t, testCase.expectDeleteURLs, "Not all DELETE requests sent: %v", testCase.expectDeleteURLs)
 		})
 	}
 }

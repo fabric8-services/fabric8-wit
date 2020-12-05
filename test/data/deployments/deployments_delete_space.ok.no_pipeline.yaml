@@ -164,10 +164,3 @@ interactions:
     # headers:
     status: 200 OK
     code: 200
-- request:
-    url: http://core/api/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/pipelines
-    method: DELETE
-  response:
-    # headers:
-    status: 200 OK
-    code: 200

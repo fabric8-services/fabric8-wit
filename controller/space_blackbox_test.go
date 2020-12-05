@@ -410,6 +410,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 			"http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace1/deployments/run":   {},
 			"http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace2/deployments/stage": {},
 			"http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace2/deployments/run":   {},
+			"http://core/api/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/pipelines":                                             {},
 		}
 
 		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.ok")
@@ -481,6 +482,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 			"http://core/api/deployments/spaces/4d19e0fb-b558-4160-8768-f41cb8169e95/applications/testspace1/deployments/run":   {},
 			"http://core/api/deployments/spaces/4d19e0fb-b558-4160-8768-f41cb8169e95/applications/testspace2/deployments/stage": {},
 			"http://core/api/deployments/spaces/4d19e0fb-b558-4160-8768-f41cb8169e95/applications/testspace2/deployments/run":   {},
+			"http://core/api/spaces/4d19e0fb-b558-4160-8768-f41cb8169e95/pipelines":                                             {},
 		}
 
 		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.ok-skip-cluster-false")

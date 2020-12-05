@@ -1,0 +1,19 @@
+---
+version: 1
+interactions:
+  # BuildConfigs
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/oapi/v1/namespaces/userns/buildconfigs?labelSelector=space%3Dnobc
+    method: GET
+  response:
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 404 Not Found
+    code: 404
+

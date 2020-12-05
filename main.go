@@ -325,6 +325,10 @@ func main() {
 	deploymentsCtrl := controller.NewDeploymentsController(service, config)
 	app.MountDeploymentsController(service, deploymentsCtrl)
 
+	// Mount "pipelines" controller
+	pipelineCtrl := controller.NewPipelineController(service, config)
+	app.MountPipelinesController(service, pipelineCtrl)
+
 	// Mount "search" controller
 	searchCtrl := controller.NewSearchController(service, appDB, config)
 	app.MountSearchController(service, searchCtrl)
