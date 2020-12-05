@@ -157,8 +157,8 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "could not retrieve tenant data")
-		return nil, errs.Wrap(err, "could not retrieve tenant data")
+		}, "could not create urlProvider")
+		return nil, errs.Wrap(err, "could not create urlProvider")
 	}
 
 	/* Timeout used per HTTP request to Kubernetes/OpenShift API servers.
