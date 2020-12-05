@@ -82,8 +82,8 @@ KnownURLs is set of KnownURLs will be used while searching on a URL
 URLs in this slice will be considered while searching to match search string and decouple it into multiple searchable parts
 e.g> Following example defines work-item-detail-page URL on client side, with its compiled version
 knownURLs["work-item-details"] = KnownURL{
-URLRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`,
-compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`),
+URLRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.fabric8.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`,
+compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.fabric8.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`),
 groupNamesInRegex: []string{"protocol", "domain", "path", "id"}
 }
 above url will be decoupled into two parts "ID:* | domain+path+id:*" while performing search query

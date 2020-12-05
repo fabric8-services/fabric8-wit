@@ -77,7 +77,7 @@ func TestGithubFetchWithRecording(t *testing.T) {
 	}
 	f := githubIssueFetcher{}
 	f.client = github.NewClient(h)
-	g := &GithubTracker{URL: "", Query: "is:open is:issue user:almighty-test"}
+	g := &GithubTracker{URL: "", Query: "is:open is:issue user:fabric8-test"}
 	// when
 	fetch := g.fetch(&f)
 	// then
