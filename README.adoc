@@ -110,7 +110,7 @@ $ make generate
 
 ===== Build [[build]]
 
-If you want to just build the ALM server and client, run `make build`.
+If you want to just build the server and the client, run `make build`.
 
 ----
 $ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
